@@ -12,6 +12,8 @@ The rules live in `pointe/skip.py` (the phrases and the words); the daemon appli
 - **The Mac's key:** ⌃⌥S from any app, like the talk shortcut. Change it in the Mac app's Settings, under This Mac,
   "Skip shortcut" (Delete removes it). It cannot be the talk shortcut's keys. The window shows it beside the talk mode
   ("Skip ⌃⌥S"), and the call bubble shows it, with a skip button, while Pointe speaks.
+- **Play/pause on the Mac:** set Settings → This Mac → Play/pause in a call to Skip, and a headset's play/pause or the
+  keyboard's ⏯ key skips during a call ([mute.md](mute.md#airpods-and-playpause-mac-app)).
 - **Voice:** "skip", "next", "skip this", "next one", "skip this message", "דלג", "הבא", said over a line or right
   after you cut one off. Each must be a whole short utterance: "skip the tests" is a request, and long after Pointe's
   last word "next" is a word like any other.

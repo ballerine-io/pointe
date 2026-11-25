@@ -104,8 +104,52 @@ a local name and an `Origin`, when sent, must equal it.
   the new format, while the WebSocket stays up. A restart that fails ends the call with the reason on the Connect panel.
 - **AirPods.** Voice processing over Bluetooth uses the hands-free profile, as on a phone call: the microphone works and
   the output is mono, lower quality. The app follows the system's default devices in version 1; a device picker is not
-  built. The AirPods stem press is not read (macOS gives it to the media-key owner).
-- **Mute.** In Always on, mute stops sending (the tap's chunks are dropped). In push to talk the gate decides.
+  built. The stem press is read during a call: see "The AirPods press" below.
+- **Mute.** In Always on, mute stops sending (the tap's chunks are dropped). In push to talk the gate decides. The
+  system's input mute (`AVAudioApplication.setInputMuted`) follows the mic during a call, so the next AirPods press asks
+  for the right state.
+
+### The AirPods press
+
+`apps/PointeKit/Sources/PointeUI/AirPods.swift`; tests in `AirPodsTests.swift`. Two inputs, and both belong to Pointe
+only while a real call is up (never with no call, never in a demo):
+
+- **The stem press: the input-mute gesture, macOS 14+.** `AVAudioApplication.setInputMuteStateChangeHandler` is macOS
+  only. Apple's documentation says the system calls it "due to a Bluetooth audio accessory gesture (certain AirPods /
+  Beats headphones)" and for `setInputMuted`, and that on macOS the app mutes its own input there
+  ([setInputMuteStateChangeHandler](https://developer.apple.com/documentation/avfaudio/avaudioapplication/setinputmutestatechangehandler(_:)),
+  [setInputMuted](https://developer.apple.com/documentation/avfaudio/avaudioapplication/setinputmuted(_:)); WWDC23
+  session 10233, "Enhance your app's audio experience with AirPods": "on macOS, your application is responsible for
+  muting any uplink audio when a gesture has been performed"). The handler is mapped to Mic off and on, the app's own
+  mic state, so the system's chime and the app agree. In push to talk the press is the talk button, as on the iPhone,
+  and the handler refuses the mute so the input stays open. The handler is registered when the call's audio starts and
+  removed at hang-up, with the system's mute set back to off.
+  Two facts come from one open-source app tested 2026-11-09 ([airpods-meet-mute](https://github.com/joelmgallant/airpods-meet-mute)),
+  not from Apple. First, the gesture reaches only an app that records from the AirPods, and only one that also
+  observes `inputMuteStateChangeNotification`; without the observer `audiomxd` logs "no recording audio apps found that
+  are opted in to input muting" and rejects the press. Second, `setInputMuted` calls the handler synchronously, so the
+  app's own change is marked and not taken as a press.
+- **Play/pause: `MPRemoteCommandCenter`.** Settings → This Mac → Play/pause in a call: Mute Pointe (the default), Skip,
+  or Nothing. macOS sends remote commands to the Now Playing app, and `MPNowPlayingInfoCenter.playbackState` "only
+  applies to macOS. You must set this property every time the app begins or halts playback, otherwise remote control
+  functionality may not work as expected"
+  ([playbackState](https://developer.apple.com/documentation/mediaplayer/mpnowplayinginfocenter/playbackstate)). So
+  while the commands are held, Pointe's call is Now Playing ("Pointe call" in Control Center). At hang-up they are
+  removed and the state is set to stopped, so the music gets its key back. With Nothing they are never taken.
+
+**What one AirPods press sends.** This is not verified on hardware. No agent can press AirPods; a check by a person with
+AirPods on a call is the test. Expected: while Pointe records from AirPods and has opted in, the press is the
+input-mute gesture; with no call it stays play/pause for the Now Playing app, as before. Apple does not document
+that a press is never sent both ways. `PressArbiter` therefore lets the first event win and drops the other source for
+0.5 s, so one press never turns the mic off and also mutes Pointe. One open-source app
+([meetpods](https://github.com/vinimlo/meetpods)) says macOS 27 no longer hands the gesture to third-party apps; no
+Apple source confirms it. If that is so, a press reaches Pointe only as play/pause, which then does what Settings
+says.
+
+**Other headsets and the keyboard.** The gesture exists only for certain AirPods and Beats. Other Bluetooth or wired
+headsets send their button as play/pause, and so does the keyboard's ⏯ key (F8). During a call both do what Play/pause
+in a call says. Outside a call, or with Nothing, Pointe never takes them. Music started during a call becomes Now
+Playing and takes the key back until Pointe's next call.
 - Audio work never runs on the main thread: the tap converts and hands chunks to the link through a `Sendable` closure.
 
 ### What stays in the daemon

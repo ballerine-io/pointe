@@ -28,6 +28,7 @@ public final class MacSession: CallShell {
     private var requests = 0
     private var heard = Date.distantPast  // when the window last brought a status: while it does, this does not fetch
     private var poller: Task<Void, Never>?
+    @ObservationIgnored let presses = CallPresses(center: MacRemoteCommands())
 
     /// `daemon`: where the app verified Pointe to be on this Mac. A demo given at launch (`-demo call`) needs none.
     public init(daemon: LocalDaemon) {
@@ -37,6 +38,7 @@ public final class MacSession: CallShell {
         status = demo?.status
         AlertCenter.shared.local = link
         if let demo { call.follow(demo.status.ptt) }
+        presses.perform = { [weak self] choice in self?.playPaused(choice) }
     }
 
     /// Invented sessions on screen: nothing is fetched, sent or heard.
@@ -196,6 +198,38 @@ public final class MacSession: CallShell {
         let api = call.api
         Task { try? await api.skip() }
         return true
+    }
+
+    /// Mute Pointe from outside the window (play/pause): what the status line's button does (CallView `setMute`).
+    public func toggleVoice() {
+        guard demo == nil, call.state == .live else { return }
+        let on = !MuteChoice.on(status: status, stored: MuteChoice.stored())
+        MuteChoice.store(on)
+        if on, status?.reading?.held == nil { call.hush() }
+        let api = call.api
+        Task { try? await api.reading(on) }
+    }
+
+    /// Play/pause is Pointe's on a real call only, never a demo's, and given back at hang-up (AirPods.swift). A link
+    /// being dialled again is still the call: the key is not handed to the music and back.
+    public func syncPresses(_ choice: PlayPause) {
+        presses.update(onCall: onRealCall, choice: choice)
+    }
+
+    private var onRealCall: Bool { demo == nil && (call.state == .live || call.state == .reconnecting) }
+
+    private func playPaused(_ choice: PlayPause) {
+        switch choice {
+        case .mutePointe: toggleVoice()
+        case .skip: skip()
+        case .nothing: break
+        }
+    }
+
+    /// "AirPods: press for mic off", beside the talk mode during a real call; nil with none.
+    public var airPodsHint: String? {
+        guard onRealCall else { return nil }
+        return AirPodsPress.hint(pushToTalk: call.talk.ptt, micOff: call.muted)
     }
 
     /// Asks the call screen for a sheet or an action; the caller brings the window forward first.

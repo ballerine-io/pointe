@@ -47,6 +47,11 @@ struct MainWindow: View {
         .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
                 HStack(spacing: 14) {
+                    if let airPods = model.session.airPodsHint {  // during a call: what a stem press does now
+                        Label(airPods, systemImage: AirPodsPress.glyph)
+                            .help("During a call an AirPods press turns the mic off and on, with the system's chime; in push to talk it talks. Play/pause from other headsets and the keyboard does what Settings, This Mac, says.")
+                            .accessibilityIdentifier("airPodsHint")
+                    }
                     if let skip = model.skipHint {  // beside the talk mode, said the same way
                         Label(skip, systemImage: BubbleRule.skipGlyph)
                             .help("The skip shortcut skips what Pointe is saying, from any app. Set it in Settings, This Mac.")

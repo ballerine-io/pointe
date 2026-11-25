@@ -196,9 +196,18 @@ struct BubbleView: View {
                 .accessibilityLabel(detail.text)
                 .accessibilityIdentifier("bubble.detail")
                 let mode = BubbleRule.modeLine(talkMode: model.talkMode, speaking: session.speaking, skipHint: model.skipHint)
-                Label(mode.text, systemImage: mode.skip ? BubbleRule.skipGlyph : BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
-                    .font(PointeLook.font(.caption2)).foregroundStyle(PointeLook.dim).lineLimit(1)
-                    .accessibilityIdentifier("bubble.mode")
+                HStack(spacing: 6) {
+                    Label(mode.text, systemImage: mode.skip ? BubbleRule.skipGlyph : BubbleRule.talkModeGlyph(pushToTalk: session.pushToTalk))
+                        .lineLimit(1)
+                        .accessibilityIdentifier("bubble.mode")
+                    if let airPods = session.airPodsHint {  // the window says it in words; here the glyph, with them on hover
+                        Image(systemName: AirPodsPress.glyph)
+                            .help(airPods)
+                            .accessibilityLabel(airPods)
+                            .accessibilityIdentifier("bubble.airPods")
+                    }
+                }
+                .font(PointeLook.font(.caption2)).foregroundStyle(PointeLook.dim)
             }
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 6) {

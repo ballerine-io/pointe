@@ -407,7 +407,8 @@ TOPICS = (
            "מיוט", "לבטל השתקה"),
           "In Always on, the mic button in the middle turns your microphone off and on.",
           iphone=(("mic", "Turn mic off|Turn mic on"),), page=(("mic", "Microphone"),),
-          page_note="Space, or a headset's play/pause button, does the same while the page has focus."),
+          page_note="Space, or a headset's play/pause button, does the same while the page has focus.",
+          mac_note="During a call an AirPods stem press does the same, with the system's chime; in push to talk it talks."),
     Topic("hang-up", "Hang up", ("hang up", "end the call", "end call", "stop the call", "disconnect the call",
                                  "לנתק את השיחה", "לסיים שיחה", "לנתק שיחה", "לנתק"),
           "Hang up ends the call; your sessions keep running.",
@@ -532,6 +533,8 @@ TOPICS = (
           "and the status says \"Writing…\". Tap it again, or say \"talk again\", to hear Pointe. You still talk or "
           "type. Each device keeps its own choice.",
           iphone=(("status", "Mute Pointe|Unmute Pointe"),), page=(("status", "Mute Pointe|Unmute Pointe"),),
+          mac_note="During a call a headset's play/pause or the keyboard's play/pause key does the same. Settings, under "
+                   "This Mac, Play/pause in a call, can make it Skip or Nothing; outside a call the music keeps it.",
           voice=("stop talking, I'll read", "talk again"), doc="mute.md"),
     Topic("briefing", "Briefing", ("briefing", "brief me", "what happened overnight", "catch me up", "summary of the night",
                                    "תדריך", "תדרך אותי", "מה קרה בלילה"),

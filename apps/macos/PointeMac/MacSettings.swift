@@ -31,6 +31,10 @@ struct MacSettingsSections: View {
                     }
                 }
             }
+            Picker("Play/pause in a call", selection: $model.playPause) {
+                ForEach(PlayPause.allCases, id: \.self) { Text($0.label).tag($0) }
+            }
+            .accessibilityIdentifier("settings.playPause")
             // Each of the three always takes a click. The two under the first were switched off whenever the bubble was
             // hidden (its × does that), and a switch that is off and one that takes no click look the same here.
             Toggle("Show the call bubble during calls", isOn: $model.bubbleOn).accessibilityIdentifier("settings.bubble")
@@ -42,7 +46,7 @@ struct MacSettingsSections: View {
         } header: {
             Text("This Mac")
         } footer: {
-            Text("The talk shortcut works from any app: in push to talk it is the talk button, in Always on it turns the mic off and on, and with no call it brings Pointe forward. The skip shortcut, from any app too, skips what Pointe is saying and goes on to the next message. The bubble floats over other apps while a call is up: the state, the talk mode and a talk button. Click it to open Pointe, drag it anywhere; − makes it small, × hides it. Keeping it on screen with no call also switches it on.")
+            Text("The talk shortcut works from any app: in push to talk it is the talk button, in Always on it turns the mic off and on, and with no call it brings Pointe forward. The skip shortcut, from any app too, skips what Pointe is saying and goes on to the next message. During a call an AirPods press turns the mic off and on (in push to talk it talks), and play/pause from a headset or the keyboard does what Play/pause in a call says; outside a call both stay with your music. The bubble floats over other apps while a call is up: the state, the talk mode and a talk button. Click it to open Pointe, drag it anywhere; − makes it small, × hides it. Keeping it on screen with no call also switches it on.")
         }
 
         Section {

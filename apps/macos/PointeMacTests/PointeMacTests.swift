@@ -55,6 +55,22 @@ final class PointeMacTests: XCTestCase {
         XCTAssertEqual(session.dumpLabel, "Brain dump")
     }
 
+    /// The AirPods press is Pointe's on a real call only: with no call, and in a demo that looks live, nothing is taken
+    /// from the music and no hint shows.
+    func testTheAirPodsPressIsNeverClaimedWithoutARealCall() {
+        let session = MacSession(daemon: LocalDaemon(endpoint: { nil }))
+        session.syncPresses(.mutePointe)
+        XCTAssertNil(session.airPodsHint)
+        session.tryDemo()
+        XCTAssertTrue(session.live, "the demo looks live")
+        session.syncPresses(.mutePointe)
+        XCTAssertNil(session.airPodsHint, "a demo hears no AirPods")
+        let before = UserDefaults.standard.object(forKey: "reading") as? Bool
+        session.toggleVoice()
+        XCTAssertEqual(UserDefaults.standard.object(forKey: "reading") as? Bool, before, "play/pause keeps no choice from an invented call")
+        session.exitDemo()
+    }
+
     /// "Try a demo" shows invented sessions with a request waiting, live, and leaving it puts the shell back.
     func testTheDemoShowsARequestAndLeavesNothingBehind() {
         let session = MacSession(daemon: LocalDaemon(endpoint: { nil }))

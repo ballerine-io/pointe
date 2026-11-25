@@ -76,6 +76,11 @@ For work on the app itself, `apps/macos/build.sh --open` makes a Debug build in 
 - **Talking.** The switch over the mic chooses Always on or push to talk. In push to talk, hold the mic, or hold Space
   while the window is in front, or hold the shortcut from any app (Settings → This Mac → Talk shortcut). Choose Tap to
   talk in Settings to press once to start and again to send. With Always on, the mic, Space and the shortcut mute.
+- **AirPods** (during a call): a stem press turns the mic off and on, with the system's own chime;
+  in push to talk it talks. The window shows "AirPods: press for mic off" beside the talk mode, and the bubble shows an
+  AirPods glyph. Play/pause from other headsets and the keyboard's ⏯ key mutes Pointe by default; Settings → This Mac
+  → Play/pause in a call can make it Skip, or Nothing. Outside a call Pointe takes neither, so the music keeps them.
+  Mac app only. Details: [features/mute.md](features/mute.md#airpods-and-playpause-mac-app).
 - **Type** (⌘T) to send words instead of speaking; typed words never approve.
 - **Brain dump** (⌘B on a call): talk freely, press Done, then edit the structured prompt, choose where it goes, and
   press Send twice.
@@ -85,7 +90,7 @@ For work on the app itself, `apps/macos/build.sh --open` makes a Debug build in 
 - **Settings** (⌘, or the ••• button): the same list as the iPhone app's (the microphone, the talk button, how long to
   wait before answering, Clean up my words, whisper, the dictionary, sessions and mode, machines, Phone, meetings,
   briefings, challenge, alerts, the voice lock, the conflict alarm, show while it says, appearance, About), then this
-  Mac's own: the talk shortcut, the call bubble, open at login, Pointe on this Mac (running or not, its version, Start
+  Mac's own: the talk shortcut, the skip shortcut, play/pause in a call, the call bubble, open at login, Pointe on this Mac (running or not, its version, Start
   and Restart), the folders a new session may start in, and the model keys: the Setup menu (`pointe setup <id>`, the
   rows of [setups.md](setups.md)), one line on whether every role is filled,
   and each key as In use, Saved, not used, Needed (the one key an empty role needs) or Optional, never "missing" when

@@ -8,9 +8,9 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 104 | 0 | 0 | 22 |
-| iPhone | 114 | 0 | 0 | 12 |
-| Mac | 116 | 0 | 0 | 10 |
+| Page | 104 | 0 | 0 | 23 |
+| iPhone | 114 | 0 | 0 | 13 |
+| Mac | 118 | 0 | 0 | 9 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -25,10 +25,11 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Connect, Try again, Cancel and Hang up, with the reason a call did not start <br>`call.connect` | yes `ui.html:1678` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` |
-| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2729` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:647` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:647` |
-| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2701` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:142` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:142` |
+| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2729` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:670` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:670` |
+| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2701` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:149` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:149` |
 | The state line: listening, speaking, muted, holding, reconnecting <br>`call.state` | yes `ui.html:1643` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1867` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1867` |
-| Mute and unmute the microphone <br>`call.mute` | yes `ui.html:1766` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:162` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:162` |
+| Mute and unmute the microphone <br>`call.mute` | yes `ui.html:1766` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:169` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:169` |
+| An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apps/PointeKit/Sources/PointeUI/AirPods.swift:11` | yes `apps/PointeKit/Sources/PointeUI/AirPods.swift:9` |
 | The conversation, newest line followed <br>`call.transcript` | yes `ui.html:1172` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:448` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:448` |
 | A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1685` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:471` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:471` |
 | Your words as you speak them <br>`call.hearing` | yes `ui.html:1743` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` |
@@ -50,11 +51,11 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1443` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:112` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:112` |
 | The Always on / Push to talk switch over the mic <br>`talk.switch` | yes `ui.html:1763` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:128` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:128` |
 | Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1445` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:121` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:121` |
-| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1672` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:191` | yes `apps/macos/PointeMac/AppModel.swift:496` |
+| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1672` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:203` | yes `apps/macos/PointeMac/AppModel.swift:505` |
 | A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1743` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:434` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:434` |
 | Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4713` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` |
 | Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1446` | yes `apps/ios/PointeShared/TalkIntents.swift:13` | yes `apps/macos/PointeMac/HotKey.swift:5` |
-| Skip from any app: a system-wide shortcut, set in Settings <br>`skip.key` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:81` |
+| Skip from any app: a system-wide shortcut, set in Settings <br>`skip.key` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:88` |
 | Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1466` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` |
 | Hold mode ("don't interrupt me"): quiet until you release it <br>`talk.hold` | yes `ui.html:2664` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` |
 
@@ -73,7 +74,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1737` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` |
 | Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1588` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` |
 | The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1738` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` |
-| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1490` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:91` |
+| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1490` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:95` |
 | Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1331` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` |
 | Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1343` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` |
 
@@ -129,10 +130,10 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Whisper: short quiet replies, with the notes it held back <br>`whisper` | yes `ui.html:1781` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` |
 | Mute Pointe: one button beside the status line, every reply as text, each device's own choice <br>`mute` | yes `ui.html:1643` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` |
 | Muted, the state line says Writing… where it would say Speaking… <br>`mute.writing` | yes `ui.html:3002` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` |
-| Muting mid-reply stops what the device still holds to play <br>`mute.cut` | yes `ui_mute.html:43` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:165` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:165` |
+| Muting mid-reply stops what the device still holds to play <br>`mute.cut` | yes `ui_mute.html:43` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:172` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:172` |
 | The status line says Thinking… from the end of the turn until the reply <br>`thinking` | yes `ui_thinking.html:20` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:27` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:27` |
 | The status line names the session that has the request: "billing is working…" <br>`thinking.working` | yes `ui_thinking.html:21` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` |
-| The call's own link says the turn was taken: Thinking… without waiting for a status <br>`thinking.link` | yes `ui.html:2714` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:520` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:520` |
+| The call's own link says the turn was taken: Thinking… without waiting for a status <br>`thinking.link` | yes `ui.html:2714` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:543` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:543` |
 | The state's dot tells thinking, speaking and working apart by motion, and Reduce Motion stops it <br>`thinking.motion` | yes `ui_thinking.html:13` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` |
 | Session tones: a setting, off by default, and a session's row names its tone <br>`tones` | yes `ui.html:1480` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:153` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:153` |
 | Only when I say Pointe: the microphone setting between Always on and push to talk, and the state line says how to talk <br>`mic.addressed` | yes `ui.html:1762` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` |
@@ -140,7 +141,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Reduce Motion: no animation runs, no symbol pulses and no scroll glides <br>`a11y.motion` | yes `ui.html:1150` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` |
 | A screen reader hears the state line as one element, with the line under it <br>`a11y.state` | yes `ui.html:1646` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1866` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1866` |
 | A session's agent is its name in plain text, read as "runs on Codex" <br>`a11y.agent` | yes `ui.html:2077` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` |
-| The call bubble and the menu bar item show thinking <br>`thinking.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:267` |
+| The call bubble and the menu bar item show thinking <br>`thinking.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:276` |
 | The waiting sound: a setting, on by default <br>`thinking.cue` | yes `ui.html:1472` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:137` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:137` |
 | Progress updates while a session works: a setting, off by default <br>`progress` | yes `ui.html:1476` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:145` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:145` |
 | Skip what Pointe is saying: one button beside the status line, after the mute button, only while it speaks <br>`skip` | yes `ui.html:1644` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` |
@@ -172,11 +173,11 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone <br>`pair.read` | n/a | yes `apps/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
 | Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1526` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:223` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:223` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1533` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` |
-| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1157` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:249` |
+| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1157` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1421` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:54` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:54` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (43 topics)` | yes `product_help.json (43 topics)` | yes `product_help.json (42 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` |
-| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3340` | n/a | yes `apps/macos/PointeMac/Panels.swift:169` |
+| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3340` | n/a | yes `apps/macos/PointeMac/Panels.swift:174` |
 
 ## The Mac shell
 
@@ -184,17 +185,17 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 |---|---|---|---|
 | A menu bar item with the state and who needs you <br>`mac.menubar` | n/a | n/a | yes `apps/macos/PointeMac/PointeMacApp.swift:16` |
 | A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × <br>`mac.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:144` |
-| The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:146` |
+| The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:154` |
+| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:216` |
 | Open at login <br>`mac.login` | n/a | n/a | yes `apps/macos/PointeMac/Platform.swift:4` |
-| Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:206` |
-| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1425` | n/a | yes `apps/macos/PointeMac/AppModel.swift:392` |
-| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:386` |
+| Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:215` |
+| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1425` | n/a | yes `apps/macos/PointeMac/AppModel.swift:401` |
+| Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:395` |
 
 ## The phone alone
 
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
-| An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apps/PointeKit/Sources/PointeUI/Call.swift:290` | n/a |
 | Drive mode on the lock screen <br>`ios.nowplaying` | n/a | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:277` | n/a |
 | Talk to Pointe from Control Center, the Lock Screen or the Action button: one press opens Pointe talking to the orchestrator, the next sends <br>`ios.control` | n/a | yes `apps/ios/PointeWidget/TalkControl.swift:8` | n/a |
 | The call on the Lock Screen and in the Dynamic Island, with Send, Cancel, Talk and Hang up <br>`ios.live-activity` | n/a | yes `apps/ios/PointeWidget/TalkLiveActivity.swift:12` | n/a |
@@ -207,6 +208,7 @@ A feature a surface cannot have, and why. Everything else is on all three.
 
 | Feature | Not on | Why |
 |---|---|---|
+| An AirPods press talks or mutes | Page | a browser tab gets no AirPods mute gesture; the page has a headset's play/pause only while it has the focus |
 | A line while the Mac keeps itself awake for a call from another device | Page | the rule runs only for a call from another device; on the Mac there is nothing to say |
 | A line while the Mac keeps itself awake for a call from another device | Mac | the rule runs only for a call from another device; on the Mac there is nothing to say |
 | Skip from any app: a system-wide shortcut, set in Settings | Page | A page hears keys only while its tab has the focus: it has the button, and no key from another app. |
@@ -232,6 +234,8 @@ A feature a surface cannot have, and why. Everything else is on all three.
 | A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
+| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does | Page | a browser tab gets no AirPods mute gesture and no media keys from other apps; the page has Space and a headset's play/pause while it has the focus |
+| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does | iPhone | iOS mutes the input itself on the press, and the iPhone's play/pause is the talk button or drive mode's mute (ios.airpods) |
 | Open at login | Page | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | Open at login | iPhone | a Mac shell feature: AppKit only (docs/design/macos-app.md) |
 | Find, start and restart Pointe on this Mac; say when versions differ | Page | the page exists only while the daemon runs, so there is nothing to start, find or demo from it |
@@ -239,8 +243,6 @@ A feature a surface cannot have, and why. Everything else is on all three.
 | Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add | iPhone | the keys live in the Mac's Keychain, and the iPhone app shows none of them |
 | Which vendor keys are in the Keychain, and Add… | Page | keys are added with `pointe key`, never through a page |
 | Which vendor keys are in the Keychain, and Add… | iPhone | the keys live in the Mac's Keychain |
-| An AirPods press talks or mutes | Page | needs the phone's own hardware or system service (macOS gives the press to the media-key owner) |
-| An AirPods press talks or mutes | Mac | needs the phone's own hardware or system service (macOS gives the press to the media-key owner) |
 | Drive mode on the lock screen | Page | needs the phone's own hardware or system service |
 | Drive mode on the lock screen | Mac | needs the phone's own hardware or system service |
 | Talk to Pointe from Control Center, the Lock Screen or the Action button: one press opens Pointe talking to the orchestrator, the next sends | Page | an iPhone system surface (Controls, Live Activities, Home Screen widgets: WidgetKit and App Intents on iOS 18); the page's from-any-app is a system-wide shortcut running `pointe talk` |

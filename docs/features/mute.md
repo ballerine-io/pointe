@@ -29,6 +29,25 @@ is still muted. Muted or unmuted by voice during a call, the choice is sent to t
 While a call is up every screen shows the call's choice, and the button on any of them changes it. With no call up, the
 button changes only that device's choice.
 
+### AirPods and play/pause (Mac app)
+
+Mac app only, and only during a call:
+
+- **An AirPods stem press turns the microphone off and on.** It is macOS's own mute gesture, with the system's chime,
+  and the status line says "Mic off". In push to talk the press talks instead, as on the iPhone. The window shows
+  "AirPods: press for mic off" (or "for mic on", or "to talk") beside the talk mode; the bubble shows an AirPods glyph
+  with the same words on hover.
+- **Play/pause mutes Pointe.** This covers another headset's button, the keyboard's ⏯ key, and an AirPods press that
+  macOS sends as play/pause. Settings → This Mac → Play/pause in a call chooses Mute Pointe (the default), Skip, or
+  Nothing.
+- **Outside a call Pointe takes neither,** so play/pause and the media keys stay with your music. During a call
+  Pointe's call is the Now Playing item in Control Center. With Nothing, play/pause is never taken.
+- **One press does one thing.** If macOS sends the same press both ways, the first one counts and the other is dropped
+  for half a second.
+
+Why it is built this way, with Apple's documentation:
+[design/macos-app.md, "The AirPods press"](../design/macos-app.md#the-airpods-press).
+
 ## What it does
 
 - **Nothing is synthesised.** A line for the voice never reaches the mouth, so no text-to-speech request is made and no

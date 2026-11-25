@@ -53,6 +53,13 @@ final class AppModel {
     /// The key that skips what Pointe is saying, from any app (docs/features/skip.md).
     var skipShortcut: Shortcut? { didSet { Shortcut.store(skipShortcut, .skip, in: defaults); registerSkipShortcut() } }
     private(set) var skipNote: String?
+    /// What play/pause does during a call: Mute Pointe, Skip or Nothing (AirPods.swift). Taken only while a call is up.
+    var playPause: PlayPause {
+        didSet {
+            if !session.isDemo { PlayPause.store(playPause, defaults) }
+            session.syncPresses(playPause)
+        }
+    }
     /// "Show the call bubble during calls": on a call, and with none when pinned (`BubbleRule.shows`). A demo keeps
     /// none of these.
     var bubbleOn: Bool { didSet { remember(bubbleOn, Keys.bubble); syncBubble() } }
@@ -91,6 +98,7 @@ final class AppModel {
         session = MacSession(daemon: LocalDaemon(endpoint: { box.endpoint }, lost: { box.set(nil) }))
         shortcut = Shortcut.stored(in: defaults)
         skipShortcut = Shortcut.stored(.skip, in: defaults)
+        playPause = PlayPause.stored(defaults)
         bubbleOn = defaults.bool(forKey: Keys.bubble)
         bubblePinned = defaults.bool(forKey: Keys.bubblePinned)
         bubbleSmall = defaults.bool(forKey: Keys.bubbleSmall)
@@ -146,12 +154,13 @@ final class AppModel {
         BubbleRule.talkMode(pushToTalk: session.pushToTalk, hold: session.holdToTalk, shortcut: shortcutNote == nil ? shortcut?.display : nil)
     }
 
-    /// Keeps the bubble and the window in step with the call: the bubble shows or hides, and a call the person placed
-    /// that ended with a reason opens the window on that reason.
+    /// Keeps the bubble and the window in step with the call: the bubble shows or hides, a call the person placed that
+    /// ended with a reason opens the window on that reason, and play/pause is Pointe's only while the call is up.
     private func watchCall() {
         withObservationTracking {
             syncBubble()
             settleDial()
+            session.syncPresses(playPause)
         } onChange: { [weak self] in
             Task { @MainActor in self?.watchCall() }
         }

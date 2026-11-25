@@ -78,6 +78,8 @@ final class Call {
     @ObservationIgnored private var muteObserver: NSObjectProtocol?
     #if os(macOS)
     private var deviceObserver: NSObjectProtocol?
+    /// The AirPods stem press during a call: the mic off and on (AirPods.swift).
+    @ObservationIgnored private var gesture: MuteGesture!
     #endif
     /// False while the call is up on audio that gave no echo cancellation (a Mac device whose voice processing would not
     /// start): the screen says to use headphones.
@@ -100,6 +102,11 @@ final class Call {
         session = link.session { [weak self] in
             Task { @MainActor in self?.opened() }
         }
+        #if os(macOS)
+        gesture = MuteGesture(system: SystemInputMute()) { [weak self] press in
+            Task { @MainActor in self?.gestured(press) }
+        }
+        #endif
     }
 
     var api: API { API(link: link, session: session) }
@@ -171,7 +178,9 @@ final class Call {
         muted = value
         #if os(iOS)
         try? AVAudioApplication.shared.setInputMuted(value)
-        #endif  // on the Mac a muted call sends nothing (`send`): macOS has no input mute an app can set by itself
+        #else  // on the Mac a muted call sends nothing (`send`); the system's mute only follows, for the AirPods press
+        gesture.sync(muted: value)
+        #endif
     }
 
     // MARK: push to talk
@@ -185,6 +194,9 @@ final class Call {
         if was { sendTalk(false) }
         if talk.ptt && muted { setMuted(false) }
         remoteCommands(on: talk.ptt)
+        #if os(macOS)
+        gesture.set(pushToTalk: talk.ptt)
+        #endif
     }
 
     /// `touched`: when the finger came down, on the audio clock (`systemUptime`); nil when it is now.
@@ -283,8 +295,8 @@ final class Call {
         return String(decoding: data, as: UTF8.self)
     }
 
-    /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk. Not on the Mac: taking
-    /// the remote commands there makes the app the Now Playing app and takes the media keys from the music.
+    /// An AirPods press as play/pause, when iOS sends it as a remote command: toggle to talk. The Mac's play/pause is
+    /// the shell's, and only during a call (`CallPresses`): taking it makes the app Now Playing, with the media keys.
     private func remoteCommands(on: Bool) {
         #if os(iOS)
         let center = MPRemoteCommandCenter.shared()
@@ -391,6 +403,7 @@ final class Call {
                 try startAudio(wiring)
                 cancelsEcho = wiring != .plain
                 watchDevices()
+                gesture.start(muted: muted, pushToTalk: talk.ptt)
                 return
             } catch let error as NoMicrophone {
                 throw error
@@ -443,6 +456,16 @@ final class Call {
             wanted = false
             Task { try? await api.hungUp() }
             apply(machine.end(ConnectCopy.micFailed(error.localizedDescription)), close: .normalClosure)
+        }
+    }
+
+    /// A stem press (AirPods.swift): in Always on the mic, in push to talk the talk button. Also while the link is
+    /// dialled again: the system already took the mute, and the mic must agree with it.
+    private func gestured(_ press: AirPodsPress.Gesture) {
+        guard state != .off else { return }
+        switch press {
+        case .mic(let off): setMuted(off)
+        case .talk: talkToggle()
         }
     }
     #endif
@@ -691,6 +714,7 @@ final class Call {
             #else
             if let deviceObserver { NotificationCenter.default.removeObserver(deviceObserver) }
             deviceObserver = nil
+            gesture.stop()
             try? engine.inputNode.setVoiceProcessingEnabled(false)  // gives the microphone back: the orange dot goes out
             #endif
         }

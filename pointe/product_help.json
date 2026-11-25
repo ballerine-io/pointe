@@ -196,7 +196,8 @@
    "page_note": "Space, or a headset's play/pause button, does the same while the page has focus.",
    "mac": [
     "the mic button in the middle at the bottom (Turn mic off / Turn mic on)"
-   ]
+   ],
+   "mac_note": "During a call an AirPods stem press does the same, with the system's chime; in push to talk it talks."
   },
   {
    "id": "hang-up",
@@ -759,6 +760,7 @@
    "mac": [
     "the speaker button beside the status line (Mute Pointe / Unmute Pointe)"
    ],
+   "mac_note": "During a call a headset's play/pause or the keyboard's play/pause key does the same. Settings, under This Mac, Play/pause in a call, can make it Skip or Nothing; outside a call the music keeps it.",
    "voice": [
     "stop talking, I'll read",
     "talk again"
