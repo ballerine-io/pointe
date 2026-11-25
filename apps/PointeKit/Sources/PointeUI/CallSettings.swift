@@ -58,7 +58,7 @@ struct CallSettingsModel: Equatable, Sendable {
 /// A sheet of its own, opened from Settings once Settings has closed (one sheet at a time).
 enum CallSettingsLink: Equatable {
     case sessions, machines, meetingStart, meetingEnd, briefing, briefingSettings, meetingSettings, alerts, dictionary,
-         voiceLock, conflicts, show, about, phone, nightShift
+         voiceLock, conflicts, show, about, phone, nightShift, approvals
 }
 
 /// What the rows do. Not compared: the closures are new on every render of the call and change nothing that shows.
@@ -189,6 +189,7 @@ struct CallSettingsSheet: View, Equatable {
                     row("Meeting settings", "gearshape", .meetingSettings)
                     row(AlertCopy.section, "bell.badge", .alerts)
                     if model.voiceLock { row(VoiceLockCopy.title, "lock.shield", .voiceLock) }
+                    row(ApprovalsCopy.title, "checklist", .approvals).accessibilityIdentifier("approvalsItem")
                     if model.conflicts { row(ConflictCopy.settingsTitle, "exclamationmark.triangle", .conflicts) }
                     if model.showOnPhone { row(ShowCopy.setting, "doc.text.magnifyingglass", .show).accessibilityIdentifier("showSettingItem") }
                     #if os(iOS)  // a Mac has no motion sensor and no car's audio route: nothing to suggest from

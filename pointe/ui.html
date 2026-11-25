@@ -1285,6 +1285,7 @@
         <button type="button" data-section="g-newsessions" onclick="settingsJump('g-newsessions')">New sessions</button>
         <button type="button" data-section="g-conflicts" onclick="settingsJump('g-conflicts')">Conflict alarm</button>
         <button type="button" data-section="g-alerts" onclick="settingsJump('g-alerts')">Alerts</button>
+        <button type="button" data-section="g-approvals" onclick="settingsJump('g-approvals')">Approvals record</button>
         <button type="button" data-section="g-appearance" onclick="settingsJump('g-appearance')">Appearance</button>
         <button type="button" data-section="g-about" onclick="settingsJump('g-about')">About</button>
       </nav>
@@ -1501,6 +1502,14 @@
           <div class="note foot">A notification shows what Pointe would read out, never the hidden full text. Its Approve needs an
             unlocked iPhone or a watch on your wrist instead of Face ID, and only for a request Pointe can read out; anything
             else opens the app. Phone alerts need the call to be up or the app open.</div>
+        </section>
+        <section class="group" id="g-approvals">
+          <h3>Approvals record</h3>
+          <div class="card">
+            <div id="approvals-list" role="list" aria-label="Approvals record"></div>
+            <div id="approvals-note" role="status"></div>
+          </div>
+          <div class="note foot" id="approvals-lede"></div>
         </section>
         <section class="group" id="g-appearance">
           <h3>Appearance</h3>
@@ -4268,6 +4277,7 @@
     $('pref-mic').value = prefs.microphone || 'always';
     $('pref-patience').value = prefs['turns.patience'] || 'normal';
     thinkingPrefsShow(prefs);
+    approvalsShow();
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
@@ -5026,5 +5036,6 @@
 {{MUTE}}
 {{SKIP}}
 {{THINKING}}
+{{APPROVALS}}
 </body>
 </html>

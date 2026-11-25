@@ -359,6 +359,34 @@
    ]
   },
   {
+   "id": "approvals-record",
+   "title": "Approvals record: what was approved, when and how",
+   "ask": [
+    "approvals record",
+    "approval history",
+    "what did i approve",
+    "what have i approved",
+    "list of approvals",
+    "audit",
+    "who approved",
+    "voice lock score",
+    "היסטוריית אישורים",
+    "מה אישרתי",
+    "רשימת האישורים"
+   ],
+   "how": "The approvals record lists every answer to a request that went through Pointe, newest first: when, by voice or by a tap, the exact request, and for a spoken answer the voice lock's score. It is read from the journal on your Mac and only shows; an answer given in a session's terminal is not in it.",
+   "about": "Each answer that went through Pointe: when, by voice or by a tap, the exact request, the voice lock's score",
+   "iphone": [
+    "Settings (••• at the top) → Approvals record"
+   ],
+   "page": [
+    "Settings → Approvals record"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Approvals record"
+   ]
+  },
+  {
    "id": "accessibility",
    "title": "Accessibility: VoiceOver, Reduce Motion and large text",
    "ask": [
@@ -1355,6 +1383,7 @@
     "Meeting settings": [],
     "Alerts": [],
     "Voice lock": [],
+    "Approvals record": [],
     "Conflict alarm": [],
     "Show while it says": [],
     "About": [],
@@ -1442,6 +1471,7 @@
     "Meeting settings": [],
     "Alerts": [],
     "Voice lock": [],
+    "Approvals record": [],
     "Conflict alarm": [],
     "Show while it says": [],
     "Suggest Drive mode in the car": [],
@@ -1585,6 +1615,7 @@
      "Desktop alerts while this tab is in the background",
      "Approve from notifications (iPhone and Apple Watch)"
     ],
+    "Approvals record": [],
     "Appearance": [
      "System",
      "Light",

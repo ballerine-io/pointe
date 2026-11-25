@@ -31,6 +31,7 @@ struct CallView: View {
     @State private var showMeetingStart = false
     @State private var showMeetingSettings = false
     @State private var showVoiceLock = false
+    @State private var showApprovals = false
     @State private var showConflictSettings = false
     @State private var showAlerts = false
     @State private var showIgnored = false
@@ -95,6 +96,7 @@ struct CallView: View {
         // `-demo call -sheet voiceLock`: a sheet open at launch, for screenshots and UI tests.
         switch demo == nil ? nil : UserDefaults.standard.string(forKey: "sheet") {
         case "voiceLock": _showVoiceLock = State(initialValue: true)
+        case "approvals": _showApprovals = State(initialValue: true)
         case "briefing": _showBriefing = State(initialValue: true)
         case "briefingSettings": _showBriefingSettings = State(initialValue: true)
         case "meetingSettings": _showMeetingSettings = State(initialValue: true)
@@ -343,6 +345,9 @@ struct CallView: View {
                 .sheetSurface()
         }
         .onChange(of: showing?.id) { showFollow.follow(showing) }
+        .sheet(isPresented: $showApprovals) {
+            ApprovalsSheet(load: loadApprovals).sheetSurface()
+        }
         .sheet(isPresented: $showAbout) {
             AboutSheet(mac: status?.version).presentationDetents([.medium]).sheetSurface()
         }
@@ -658,6 +663,7 @@ struct CallView: View {
         case .alerts: showAlerts = true
         case .dictionary: showDictionary = true
         case .voiceLock: showVoiceLock = true
+        case .approvals: showApprovals = true
         case .conflicts: showConflictSettings = true
         case .show: showSettings = true
         case .about: showAbout = true
@@ -1193,6 +1199,12 @@ struct CallView: View {
     }
 
     // MARK: dictionary
+
+    /// The approvals record, from the Mac's journal; nil when it did not load.
+    private func loadApprovals() async -> [API.Approval]? {
+        if demo != nil { return Demo.approvals }
+        return try? await call.api.approvals().approvals
+    }
 
     private func loadDictionary() async -> Result<API.DictionaryPage, VocabularyFailure> {
         if demo != nil { return .success(demoDictionary.page) }

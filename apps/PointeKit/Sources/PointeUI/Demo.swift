@@ -314,6 +314,15 @@ struct Demo {
 
     // MARK: owner-voice lock
 
+    /// The approvals record's sample: the same invented answers as tests/fixtures/approvals_journal.jsonl.
+    static let approvals: [API.Approval] = (try? JSONDecoder().decode([API.Approval].self, from: Data(#"""
+    [{"at": "2026-11-21 08:00:00.250", "session": "harbor", "request_id": "p5", "decision": "allow", "by": "voice", "request": "Bash\nuv run pytest -q", "cut": true, "lock": "commands", "score": 0.64},
+     {"at": "2026-11-20 11:05:31.900", "session": "bluebell/dev", "request_id": "p4", "decision": "deny", "by": "voice", "request": "Bash\nnpm publish", "lock": "off"},
+     {"at": "2026-11-20 11:02:10.007", "session": "docs", "machine": "devbox", "request_id": "p3", "decision": "allow", "by": "notification", "request": "Edit\ndocs/changelog.md", "lock": "off"},
+     {"at": "2026-11-20 09:20:44.500", "session": "river-lantern/main", "request_id": "p2", "decision": "deny", "by": "tap", "request": "Bash\nrm -rf build", "lock": "approvals"},
+     {"at": "2026-11-20 09:14:02.121", "session": "bluebell/dev", "request_id": "p1", "decision": "allow", "by": "voice", "request": "Bash\ngit push --force-with-lease origin retry-fix", "lock": "approvals", "score": 0.71}]
+    """#.utf8))) ?? []
+
     private static func voiceLockJSON(_ lock: String, request: Bool = false) -> String {
         let billing = request
             ? #"{"name": "billing/main", "working": true, "waiting": true, "needs": null, "request": "git push origin retry-fix", "request_id": "ef56ab78", "voice_can_approve": true}"#

@@ -27,6 +27,8 @@ best one wins.
 Deleting the last voiceprint turns the lock off. The iPhone app asks for Face ID, and the Mac app for Touch ID or your
 password, before it lowers the level or deletes a voiceprint.
 
+The score of each spoken answer to a request is kept in the [approvals record](approvals-record.md).
+
 ## Rules
 
 - **It only narrows.** A match is never consent. Every approval rule still has to hold for your yes; the lock adds "and

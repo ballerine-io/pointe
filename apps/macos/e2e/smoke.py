@@ -444,6 +444,30 @@ def main() -> int:
         finally:
             app.quit()
 
+    # the approvals record (docs/features/approvals-record.md): Settings has its row, and the sheet shows every approval of
+    # the demo's record, newest first, each read with how it was given, its exact request and the voice lock's score.
+    app = start("-demo", "call", "-sheet", "settings")
+    try:
+        check("Settings has the approvals record", app.wait("approvalsItem"))
+    finally:
+        app.quit()
+    for look in ("dark", "light"):
+        app = start("-demo", "call", "-demoEnglish", "-sheet", "approvals", look=look)
+        try:
+            shown = app.wait("approval.p1")
+            app.shot("approvals", look)
+            if look == "dark":
+                rows = [i for i in app.ax("ids").stdout.split() if i.startswith("approval.")]
+                check("the approvals record shows every approval, newest first", shown and rows == [f"approval.p{n}" for n in (5, 4, 3, 2, 1)], str(rows))
+                said = app.ax("label", "approval.p1").stdout.strip()
+                check("a row says how, when, the exact request and the score",
+                      said.startswith("Approved by voice, bluebell/dev, 20 Nov, 09:14, Bash") and "git push --force-with-lease origin retry-fix" in said
+                      and said.endswith("Voice lock approvals: score 0.71"), said)
+                tap = app.ax("label", "approval.p2").stdout.strip()
+                check("a tap has no score", tap.startswith("Denied by a tap") and "Voice lock" not in tap, tap)
+        finally:
+            app.quit()
+
     # accessibility (docs/features/accessibility.md): VoiceOver has a name for every control of the call window, and
     # with Reduce Motion (-pointe.reduceMotion YES stands in for the system setting) the window is one still picture.
     for screen in ("call", "request", "speaking", "thinking", "held"):

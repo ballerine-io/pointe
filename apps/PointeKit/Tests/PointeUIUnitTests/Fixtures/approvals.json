@@ -1,0 +1,64 @@
+{
+ "approvals": [
+  {
+   "at": "2026-11-21 08:00:00.250",
+   "session": "harbor",
+   "machine": null,
+   "request_id": "p5",
+   "decision": "allow",
+   "by": "voice",
+   "request": "Bash\nuv run pytest -q",
+   "cut": true,
+   "lock": "commands",
+   "score": 0.64
+  },
+  {
+   "at": "2026-11-20 11:05:31.900",
+   "session": "bluebell/dev",
+   "machine": null,
+   "request_id": "p4",
+   "decision": "deny",
+   "by": "voice",
+   "request": "Bash\nnpm publish",
+   "cut": false,
+   "lock": "off",
+   "score": null
+  },
+  {
+   "at": "2026-11-20 11:02:10.007",
+   "session": "docs",
+   "machine": "devbox",
+   "request_id": "p3",
+   "decision": "allow",
+   "by": "notification",
+   "request": "Edit\ndocs/changelog.md",
+   "cut": false,
+   "lock": "off",
+   "score": null
+  },
+  {
+   "at": "2026-11-20 09:20:44.500",
+   "session": "river-lantern/main",
+   "machine": null,
+   "request_id": "p2",
+   "decision": "deny",
+   "by": "tap",
+   "request": "Bash\nrm -rf build",
+   "cut": false,
+   "lock": "approvals",
+   "score": null
+  },
+  {
+   "at": "2026-11-20 09:14:02.121",
+   "session": "bluebell/dev",
+   "machine": null,
+   "request_id": "p1",
+   "decision": "allow",
+   "by": "voice",
+   "request": "Bash\ngit push --force-with-lease origin retry-fix",
+   "cut": false,
+   "lock": "approvals",
+   "score": 0.71
+  }
+ ]
+}

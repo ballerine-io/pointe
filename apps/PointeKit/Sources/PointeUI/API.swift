@@ -734,6 +734,11 @@ struct API {
 
     // MARK: audio briefings
 
+    /// The approvals record (Approvals.swift), newest first.
+    func approvals() async throws -> ApprovalsPage {
+        try JSONDecoder().decode(ApprovalsPage.self, from: try await checked(request("voice/approvals")))
+    }
+
     func briefings() async throws -> BriefingsPage {
         try JSONDecoder().decode(BriefingsPage.self, from: try await checked(request("voice/briefings")))
     }

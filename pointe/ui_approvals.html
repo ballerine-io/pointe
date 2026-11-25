@@ -1,0 +1,72 @@
+<!-- The approvals record (approvals.py, docs/features/approvals-record.md): Settings, Approvals. Every answer to a
+     permission request that went through Pointe, newest first, read by the Mac from its own journal: when, by voice
+     or by a tap, the exact request, and the voice lock's score of a spoken answer. Read only. Served inside ui.html at
+     {{APPROVALS}}; the apps have the same sheet and words (ApprovalsCopy in Approvals.swift). -->
+<style>
+  #approvals-list { display: flex; flex-direction: column; }
+  #approvals-list .ap { padding: 12px 14px; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+  #approvals-list .ap:first-child { border-top: 0; }
+  #approvals-list .ap-head { display: flex; align-items: baseline; gap: 8px; font-weight: 600; font-size: 13.5px; }
+  #approvals-list .ap-head .ap-when { margin-left: auto; font-weight: 400; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  #approvals-list .ap-mark { width: 8px; height: 8px; border-radius: 50%; flex: none; align-self: center; background: var(--success); }
+  #approvals-list .ap.deny .ap-mark { background: none; box-shadow: inset 0 0 0 2px var(--danger-text); border-radius: 2px; }
+  #approvals-list .ap-who, #approvals-list .ap-lock, #approvals-list .ap-cut { font-size: 12px; color: var(--muted); }
+  #approvals-list .ap-req { margin: 2px 0; padding: 8px 10px; border-radius: 8px; background: var(--raised); font: 12px/1.5 var(--mono);
+                            white-space: pre-wrap; overflow-wrap: anywhere; max-height: 180px; overflow: auto; }
+  #approvals-note { padding: 12px 14px; color: var(--muted); font-size: 13px; }
+  #approvals-note.bad { color: var(--accent); }
+</style>
+<script>
+  // The words, word for word approvals.COPY and ApprovalsCopy in the apps (tests/test_approvals.py).
+  const APPROVALS_COPY = {
+    title: 'Approvals record',
+    lede: "Every answer to a request that went through Pointe on this Mac, newest first. An answer given in a session's own terminal is not here.",
+    empty: 'No request has been answered through Pointe yet.',
+    allow: 'Approved',
+    deny: 'Denied',
+    voice: 'by voice',
+    tap: 'by a tap',
+    notification: 'from a notification',
+    other: 'by Pointe',
+    score: (lock, score) => `Voice lock ${lock}: score ${score}`,
+    unscored: lock => `Voice lock ${lock}: the voice was not scored`,
+    lock_off: 'Voice lock off: the voice was not checked',
+    cut: 'The request was longer than the record keeps: this is its start.',
+    failed: 'The record did not load from the Mac.',
+  };
+  const APPROVAL_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  // "20 Nov, 09:14": the Mac's own clock, as it wrote it.
+  function approvalWhen(at) {
+    const m = /^(\d{4})-(\d{2})-(\d{2}) (\d{2}:\d{2})/.exec(at || '');
+    return m && APPROVAL_MONTHS[m[2] - 1] ? `${+m[3]} ${APPROVAL_MONTHS[m[2] - 1]}, ${m[4]}` : (at || '');
+  }
+  // The voice lock's part of a row: only a spoken answer has one.
+  function approvalLock(a) {
+    const c = APPROVALS_COPY;
+    if (a.by !== 'voice') return '';
+    if (!a.lock || a.lock === 'off') return c.lock_off;
+    return typeof a.score === 'number' ? c.score(a.lock, a.score.toFixed(2)) : c.unscored(a.lock);
+  }
+  function approvalRow(a) {
+    const c = APPROVALS_COPY, row = el('div', 'ap ' + (a.decision === 'allow' ? 'allow' : 'deny'));
+    row.dataset.request = a.request_id;
+    const head = el('div', 'ap-head');
+    head.append(el('span', 'ap-mark'), el('span', 'ap-what', `${a.decision === 'allow' ? c.allow : c.deny} ${c[a.by] || c.other}`), el('span', 'ap-when', approvalWhen(a.at)));
+    head.firstChild.setAttribute('aria-hidden', 'true');
+    row.append(head, el('div', 'ap-who', a.machine ? `${a.session} · ${a.machine}` : a.session), el('pre', 'ap-req', a.request));
+    if (a.cut) row.append(el('div', 'ap-cut', c.cut));
+    const lock = approvalLock(a);
+    if (lock) row.append(el('div', 'ap-lock', lock));
+    return row;
+  }
+  // Loaded each time Settings opens: the record is the Mac's journal, so every screen shows the same.
+  async function approvalsShow() {
+    const c = APPROVALS_COPY, list = $('approvals-list'), note = $('approvals-note');
+    $('approvals-lede').textContent = c.lede;
+    let rows = null;
+    try { const r = await fetch('/voice/approvals'); if (r.ok) rows = (await r.json()).approvals; } catch (e) {}
+    list.replaceChildren(...(rows || []).map(approvalRow));
+    note.hidden = !!(rows && rows.length); note.classList.toggle('bad', !rows);
+    note.textContent = !rows ? c.failed : c.empty;
+  }
+</script>

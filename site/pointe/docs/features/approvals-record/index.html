@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Approvals record · Pointe docs</title>
+<meta name="description" content="Every answer to a permission request that went through Pointe is kept, and you can read it: when it was answered, whether by voice or by a tap, the exact…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Approvals record">
+<meta property="og:description" content="Every answer to a permission request that went through Pointe is kept, and you can read it: when it was answered, whether by voice or by a tap, the exact…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/approvals-record/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/approvals-record/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="../thinking/">Thinking and the waiting sound</a></li>
+<li><a href="../progress/">Progress updates</a></li>
+<li><a href="./" aria-current="page">Approvals record</a></li>
+<li><a href="../accessibility/">Accessibility</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="approvals-record">Approvals record</h1>
+<p>Every answer to a permission request that went through Pointe is kept, and you can read it: when it was answered,
+whether by voice or by a tap, the exact request, and for a spoken answer the voice lock's score of the voice that said
+it. A spoken "yes" leaves no click behind; this is where it leaves a line.</p>
+<p>The rules live in <code>pointe/approvals.py</code>; the daemon writes one line per answer (<code>daemon._apply_answer</code>) and serves the
+record at <code>GET /voice/approvals</code>, behind the same lock as every other route.</p>
+<h2 id="use-it">Use it</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The page</td>
+<td>Settings → Approvals record</td>
+</tr>
+<tr>
+<td>iPhone</td>
+<td>Settings (•••) → Approvals record</td>
+</tr>
+<tr>
+<td>Mac</td>
+<td>Settings → Approvals record</td>
+</tr>
+</tbody>
+</table></div>
+<p>It is read only: nothing in it answers a request. There is no phrase for it; ask Pointe "where is the approvals
+record" and it tells you the path.</p>
+<h2 id="what-a-row-says">What a row says</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Example</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The answer and how</td>
+<td>Approved by voice · Denied by a tap · Approved from a notification</td>
+<td>"by a tap" is the card on the page, the iPhone or the Mac; "from a notification" is the action on an alert (<a href="../alerts/">Alerts</a>)</td>
+</tr>
+<tr>
+<td>When</td>
+<td>20 Nov, 09:14</td>
+<td>the Mac's own clock</td>
+</tr>
+<tr>
+<td>The session</td>
+<td>bluebell/dev · devbox</td>
+<td>with its machine when it is not this Mac</td>
+</tr>
+<tr>
+<td>The request</td>
+<td><code>Bash</code> then <code>git push --force-with-lease origin retry-fix</code></td>
+<td>word for word what the card showed: the tool, then its input. Secret-looking values are masked, as everywhere in the journal. Over 4,000 characters it is cut, and the row says so</td>
+</tr>
+<tr>
+<td>The voice lock</td>
+<td>Voice lock approvals: score 0.71</td>
+<td>only for a spoken answer. "The voice was not scored" when the lock could not tell (too short, no voiceprint for this device); "Voice lock off" when the lock was off. A tap has no voice, so no line</td>
+</tr>
+</tbody>
+</table></div>
+<p>The score is the one the <a href="../voice-lock/">voice lock</a> took its decision on: the likeness of the voice to your
+voiceprint, from 0 to 1. A spoken yes that the lock refused approved nothing, so it is not in the record.</p>
+<h2 id="what-it-holds-and-for-how-long">What it holds, and for how long</h2>
+<ul>
+<li>
+<p>An answer that reached the session: approved or denied, by voice, by a tap, by a notification's action. An answer
+  that did not arrive ("the answer did not reach billing") is not a row.</p>
+</li>
+<li>
+<p>Not an answer given in the session's own terminal: that never went through Pointe.</p>
+</li>
+<li>
+<p>The record is the daemon's journal (<code>~/.claude-voice/journal.jsonl</code> and the one older file it rotates to at 20 MB),
+  read back each time you open it. Nothing else is stored. It is as old as the journal is long, it shows the newest
+  200, and deleting the journal empties it. The journal never leaves the Mac; the iPhone reads the record over the
+  paired link.</p>
+</li>
+<li>
+<p>A request answered before this version has no row: the journal then held only the session's name and the answer.</p>
+</li>
+</ul>
+<h2 id="the-tests">The tests</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every approval in a fixture journal is in the record, newest first; a tap and a spoken yes are written with the exact request and the score; a lost answer is not; the endpoint is locked like the rest</td>
+<td><code>tests/test_approvals.py</code></td>
+</tr>
+<tr>
+<td>The page: every approval is a row, each says when, how, the request and the score</td>
+<td><code>tests/test_approvals_page.py</code></td>
+</tr>
+<tr>
+<td>The apps decode what the daemon sends for the same journal; a row's words</td>
+<td><code>apps/PointeKit/Tests/PointeUIUnitTests/ApprovalsTests.swift</code></td>
+</tr>
+<tr>
+<td>iPhone: Settings opens it, every approval is a row, VoiceOver reads the whole row</td>
+<td><code>apps/ios/PointeUITests/ApprovalsUITests.swift</code></td>
+</tr>
+<tr>
+<td>Mac: the same, through the Accessibility API</td>
+<td><code>apps/macos/e2e/smoke.py</code></td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/approvals-record.md">docs/features/approvals-record.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../progress/"><span class="pg-small">Previous</span>Progress updates</a><a class="dx-next" href="../accessibility/"><span class="pg-small">Next</span>Accessibility</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#what-a-row-says">What a row says</a></li>
+<li class="dx-l2"><a href="#what-it-holds-and-for-how-long">What it holds, and for how long</a></li>
+<li class="dx-l2"><a href="#the-tests">The tests</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

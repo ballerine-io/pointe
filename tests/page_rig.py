@@ -36,6 +36,7 @@ def page_html() -> str:
         .replace("{{MUTE}}", (ROOT / "pointe" / "ui_mute.html").read_text())
         .replace("{{SKIP}}", (ROOT / "pointe" / "ui_skip.html").read_text())
         .replace("{{THINKING}}", (ROOT / "pointe" / "ui_thinking.html").read_text())
+        .replace("{{APPROVALS}}", (ROOT / "pointe" / "ui_approvals.html").read_text())
     )
 
 
@@ -131,6 +132,7 @@ class StubMac:
         app.router.add_get("/voice/new-session", self._new_session)
         app.router.add_get("/voice/night-shift", self._night_shift)
         app.router.add_get("/voice/add-sessions", self._add_sessions)
+        app.router.add_get("/voice/approvals", self._approvals)
         app.router.add_route("POST", "/{tail:.*}", self._post)
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
@@ -177,6 +179,11 @@ class StubMac:
         await self._stall()
         return web.json_response({"schedule": {"time": "", "days": [0, 1, 2, 3, 4, 5, 6], "length": "normal", "speak_on_connect": True,
                                                "skip_empty": False}, "briefings": []})
+
+    async def _approvals(self, request):  # the approvals record: `approvals` is what the Mac's journal holds; None: it fails
+        await self._stall()
+        rows = getattr(self, "approvals", [])
+        return web.json_response({"approvals": rows}) if rows is not None else web.json_response({}, status=500)
 
     async def _context(self, request):
         await self._stall()

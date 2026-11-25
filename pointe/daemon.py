@@ -35,6 +35,7 @@ from pathlib import Path
 import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import aiohttp
 import alerts
+import approvals
 import artifacts
 import briefing
 import braindump
@@ -5885,6 +5886,10 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
                   f"line to answer it in that session's terminal.")
         return False
     session.permission_since = None
+    spoke = state.last_speaker if approvals.by(how) == "voice" else None
+    logger.info(approvals.event(session=session.name, machine=session.machine or None, request_id=request_id, decision=verdict,
+                                how=how, request=session.permission_full, lock=lock_level(),
+                                score=getattr(spoke, "score", None)))  # the record the page and the apps show
     REGISTRY.save()
     _night_answered(session, request_id, verdict)
     await _say_answered(verdict)
@@ -8754,6 +8759,13 @@ async def approve(request: Request):
     return {"ok": True}
 
 
+@app.get("/voice/approvals")
+async def approvals_record():
+    """The approvals record (approvals.py): every answer that went through Pointe, newest first, from the journal."""
+    return {"approvals": await asyncio.get_running_loop().run_in_executor(
+        None, approvals.read, [JOURNAL.with_suffix(".jsonl.1"), JOURNAL])}
+
+
 @app.post("/voice/drive")
 async def drive_route(request: Request):
     """The Drive button on the page and in the app: {"on": true|false}."""
@@ -10131,7 +10143,8 @@ async def page():
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text())
             .replace("{{MUTE}}", (here / "ui_mute.html").read_text())
             .replace("{{SKIP}}", (here / "ui_skip.html").read_text())
-            .replace("{{THINKING}}", (here / "ui_thinking.html").read_text()))
+            .replace("{{THINKING}}", (here / "ui_thinking.html").read_text())
+            .replace("{{APPROVALS}}", (here / "ui_approvals.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 

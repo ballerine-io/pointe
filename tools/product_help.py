@@ -438,6 +438,13 @@ TOPICS = (
           "request it says the session is working. When a reply takes long, one soft sound says your words were heard; "
           "it never plays with the reply, while Pointe is muted, in whisper mode or in a meeting.",
           iphone=(("menu", "Waiting sound"),), page=(("settings", "Turn taking", "Waiting sound"),), doc="thinking.md"),
+    Topic("approvals-record", "Approvals record: what was approved, when and how",
+          ("approvals record", "approval history", "what did i approve", "what have i approved", "list of approvals", "audit",
+           "who approved", "voice lock score", "היסטוריית אישורים", "מה אישרתי", "רשימת האישורים"),
+          "The approvals record lists every answer to a request that went through Pointe, newest first: when, by voice or "
+          "by a tap, the exact request, and for a spoken answer the voice lock's score. It is read from the journal on "
+          "your Mac and only shows; an answer given in a session's terminal is not in it.",
+          iphone=(("menu", "Approvals record"),), page=(("settings", "Approvals record"),), doc="approvals-record.md"),
     Topic("accessibility", "Accessibility: VoiceOver, Reduce Motion and large text",
           ("accessibility", "voiceover", "voice over", "screen reader", "reduce motion", "stop the animation", "the dot keeps moving",
            "large text", "bigger text", "text size", "dynamic type", "נגישות", "קורא מסך", "הפחתת תנועה", "טקסט גדול"),
