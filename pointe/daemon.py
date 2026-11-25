@@ -1747,7 +1747,7 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
 
     answers = await asyncio.gather(*(ask(x) for x in sessions))
     asked_at = state.overview_at
-    if state.conn is None or state.last_user_speech_at > asked_at + 0.5:
+    if state.conn is None or (state.last_user_speech_at > asked_at + 0.5 and not backchannel(state.last_utterance)):
         logger.info("overview: the user spoke again before the answers came; they are kept as news, not said")
         for x, a in zip(sessions, answers):
             if a:

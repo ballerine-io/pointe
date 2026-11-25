@@ -128,3 +128,25 @@ def test_when_no_session_answers_one_plain_line_is_said_not_one_failure_per_sess
     asyncio.run(run())
     assert len(fed) == before  # no model step
     assert spoken[-1] == "None of them answered just now. Ask one by name, or ask again in a minute."
+
+
+@pytest.mark.parametrize("words,said", [("Mm-hm.", True), ("Okay.", True), ("Wait, just tell me about lantern.", False)])
+def test_a_backchannel_while_the_sessions_answer_does_not_drop_the_overview(d, monkeypatch, words, said):  # noqa: F811
+    """Tester round 4's first sample, bar-02: "Mm-hm." over "Asking billing, quarry and atlas." counted as the user
+    speaking again, so the answers were kept as news and never said. Only new words do that."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+
+    async def answers_after_a_word(session, prompt):
+        d.state.last_utterance, d.state.last_user_speech_at = words, d.state.overview_at + 2
+        return ANSWERS[session.name]
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(answers_after_a_word),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+    fed = d.state.conn.injector.fed
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert bool(fed and fed[-1][0].startswith("[overview:")) is said
