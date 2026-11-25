@@ -18,6 +18,7 @@ Two kinds of clip, in turn_bench's own shape, so its Soniox run and its judge ar
 
   uv run --no-project --with pyarrow --with numpy python -I bench/human_turns.py build   # writes the clips and the manifest
   .venv/bin/python -I bench/human_turns.py run [--concurrency 2]                          # Soniox, real time
+  .venv/bin/python -I bench/human_turns.py prune                                          # drops rows taken over load 20; run again
   .venv/bin/python -I bench/human_turns.py report [--level normal]
 
 `build` reads the corpus from bench/.human/ami/ (ignored by git; nothing of it is redistributed here): the manual
@@ -340,7 +341,7 @@ def bench():
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("cmd", choices=["fetch", "build", "run", "report"])
+    p.add_argument("cmd", choices=["fetch", "build", "run", "prune", "report"])
     p.add_argument("--pin", action="store_true", help="build: print the SHA-256 of each shard read")
     p.add_argument("--concurrency", type=int, default=2)
     p.add_argument("--max-load", type=float, default=20.0)
@@ -353,6 +354,13 @@ def main() -> None:
     elif a.cmd == "run":
         tb = bench()
         asyncio.run(tb.collect(a.concurrency, a.max_load))
+    elif a.cmd == "prune":
+        # A row taken on a busy machine holds that machine's lateness, not the rule's: dropped, and `run` hears it again.
+        out = bench().OUT
+        rows = [json.loads(line) for line in out.read_text().splitlines() if line.strip()]
+        kept = [r for r in rows if r.get("load", 0) <= a.max_load]
+        out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in kept))
+        print(f"{len(rows) - len(kept)} rows over load {a.max_load} dropped, {len(kept)} kept")
     else:
         bench().report(a.level)
 
