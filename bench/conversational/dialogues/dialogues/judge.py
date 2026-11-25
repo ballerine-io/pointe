@@ -4,6 +4,7 @@ rubric below. Runs are judged one by one in a shuffled order, so a score is abso
 beside it. Spend goes into the suite's ledger."""
 
 import json
+import os
 import random
 import re
 import sys
@@ -11,7 +12,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(HERE))
-MODEL = "claude-fable-5-1"
+# DLG_JUDGE_MODEL picks another judge when Fable is unavailable; its scores are not comparable with Fable rounds.
+MODEL = os.environ.get("DLG_JUDGE_MODEL", "claude-fable-5-1")
 
 RUBRIC = """You judge how natural a spoken conversation with a voice assistant felt to the developer. The assistant sits in
 front of one or more coding-agent sessions (named after their projects): it answers questions about them, passes
