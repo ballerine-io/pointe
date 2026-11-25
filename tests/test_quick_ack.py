@@ -19,7 +19,7 @@ import pytest
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).parent))
 
-from test_orchestrator import d  # noqa: E402,F401  (d is the daemon fixture)
+from test_orchestrator import add, d  # noqa: E402,F401  (d is the daemon fixture)
 
 SENT = {"sent_to": ["billing/main"], "routing": "brain", "note": "Sent is not done: say you asked Claude, not that it happened."}
 LONG_ACK = "I asked billing how many tests failed. I don't have the number yet."
@@ -109,3 +109,10 @@ def test_a_question_put_to_a_read_only_copy_is_acknowledged_the_same_way(d):  # 
     result = {"asking": "billing/main", "say": "Tell the user in a few words that you are asking billing/main, and that "
                                                "the answer comes in about ten seconds."}
     assert d._quick_ack({"question": "Who reviews it?"}, result, "Who reviews the billing change?") == "Asking billing."
+
+
+def test_the_ack_says_a_hyphenated_session_as_words(d):  # noqa: F811
+    """r9, amb-02: "Asking toll dash API." The quick acknowledgement used the session's name as written."""
+    add(d, "t", "toll-api/main")
+    result = {"sent_to": ["toll-api/main"], "routing": "brain"}
+    assert d._quick_ack({"message": "What version is it on?"}, result, "What version is the toll api on?") == "Asking toll api."

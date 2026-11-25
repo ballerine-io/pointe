@@ -1837,7 +1837,7 @@ def _quick_ack(args: dict, result, asked: str) -> str | None:
     if isinstance(result, dict) and result.get("ask") and state.readback is None:
         return result["ask"]  # the request fit several sessions: the question naming them is the whole reply
     if isinstance(result, dict) and result.get("asking") and set(result) <= {"asking", "say"} and state.readback is None:
-        name = str(result["asking"]).split("/")[0]  # a read-only copy is asked (ask_about_session): its answer comes later
+        name = _spoken_names(str(result["asking"])).split("/")[0]  # a read-only copy is asked: its answer comes later
         return f"שואל את {name}." if re.search(r"[\u0590-\u05ff]", asked) else f"Asking {name}."
     if not isinstance(result, dict) or not result.get("sent_to") or state.readback is not None:
         return None
@@ -1848,7 +1848,7 @@ def _quick_ack(args: dict, result, asked: str) -> str | None:
     if asked.count("?") + asked.count("？") > message.count("?") + message.count("？"):
         return None  # the user asked something the message does not pass on: the model answers it
     reached = result["sent_to"]
-    names = [str(n).split("/")[0] for n in ([reached] if isinstance(reached, str) else reached)]
+    names = [_spoken_names(str(n)).split("/")[0] for n in ([reached] if isinstance(reached, str) else reached)]
     target = " and ".join(names)
     if re.search(r"[\u0590-\u05ff]", asked):
         return f"שאלתי את {target}." if question else f"שלחתי ל-{target}."
