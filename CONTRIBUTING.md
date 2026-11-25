@@ -147,7 +147,9 @@ A step that fails there every run for a cause not yet found is quarantined with 
 in CI, with its reason; an ordinary step anywhere else), never skipped. Two are, both on the iOS 26 simulator, and
 either may be a real bug on iOS 26: in `PushToTalkUITests.testTapToTalkOpensOnOneTapAndSendsOnTheNext` the second long
 press on the words leaves the gate open, and in `ScrollFollowUITests.testScrollingBackToTheEndByHandClearsThePill`
-neither swipes nor drags bring the view back to the end. Take a quarantine out when its cause is fixed.
+neither swipes nor drags bring the view back to the end. On the Mac, `PointeMacUITests.testARequestsCardHasTheCommandDenyAndApprove`
+cannot click Deny on the hosted macOS 26 (no hit point for the card's scroll view); the Mac smoke presses the same Deny
+and checks the card goes. Take a quarantine out when its cause is fixed.
 
 ```
 POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API

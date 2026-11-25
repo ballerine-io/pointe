@@ -58,8 +58,16 @@ final class PointeMacUITests: XCTestCase {
         XCTAssertTrue(any("requestCommand").waitForExistence(timeout: 5))
         XCTAssertTrue(any("requestDeny").exists && any("requestApprove").exists)
         shot("02-request")
-        app.buttons["requestDeny"].firstMatch.click()  // Deny needs no one; the demo's card goes, as a Mac's would. The button: the first element with its identifier is a scroll view
-        XCTAssertTrue(NSPredicate(format: "exists == false").evaluate(with: any("requestCommand")) || !any("requestCommand").waitForExistence(timeout: 2))
+        func deny() {  // Deny needs no one; the demo's card goes, as a Mac's would
+            any("requestDeny").click()
+            XCTAssertTrue(NSPredicate(format: "exists == false").evaluate(with: any("requestCommand")) || !any("requestCommand").waitForExistence(timeout: 2))
+        }
+        guard ProcessInfo.processInfo.environment["CI"] == "true" else { return deny() }
+        // Quarantined in CI (CONTRIBUTING.md, UI tests in CI): on the hosted macOS 26 XCUITest finds no hit point for the
+        // card's scroll view, every run. The Mac smoke presses the same Deny through the Accessibility API and passes.
+        let options = XCTExpectedFailure.Options()
+        options.isStrict = false
+        XCTExpectFailure("macOS 26 runner: no hit point for the request card's scroll view; the Mac smoke covers Deny", options: options, failingBlock: deny)
     }
 
     @MainActor func testSettingsHaveTheSharedRowsAndThisMacsOwn() {
