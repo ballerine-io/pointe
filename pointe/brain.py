@@ -436,7 +436,7 @@ class Brain:
             return None
         return trigger
 
-    MORE_ONCE_SECS = 300.0  # "there's more if you want it" is said once in this long: one hearing teaches it
+    MORE_ONCE_SECS = 3600.0  # "there's more if you want it" is said once in this long: one hearing teaches it, a second is padding
 
     def offer_more(self, text: str, now: float) -> str:
         """The cut reply, with its "there's more" line only if none was said in the last MORE_ONCE_SECS."""
