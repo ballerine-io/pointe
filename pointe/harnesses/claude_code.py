@@ -278,13 +278,21 @@ class ClaudeCode(Harness):
         env = _env(getattr(session, "home", ""))  # its own account: the fork reads that account's transcripts
         proc = None
         try:
-            proc = await asyncio.create_subprocess_exec(*args, question, cwd=session.cwd, env=env,
-                                                        stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
-                                                        stderr=asyncio.subprocess.PIPE)
-            out, err = await proc.communicate()
-            if proc.returncode == 0:
-                return (json.loads(out).get("result") or "").strip() or None
-            logger.warning(f"copy of {session.name} failed ({proc.returncode}): {err.decode(errors='replace')[-200:]}")
+            for _ in range(2):
+                proc = await asyncio.create_subprocess_exec(*args, question, cwd=session.cwd, env=env,
+                                                            stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE,
+                                                            stderr=asyncio.subprocess.PIPE)
+                out, err = await proc.communicate()
+                if proc.returncode == 0:
+                    return (json.loads(out).get("result") or "").strip() or None
+                # A session signed in by an ANTHROPIC_API_KEY leaves its copy nothing to sign in with ("Not logged in",
+                # on stdout): asked once more on Pointe's own Anthropic key. The copy can read files and nothing else.
+                if "ANTHROPIC_API_KEY" not in env and b"Not logged in" in out and (own := _own_anthropic_key()):
+                    env = {**env, "ANTHROPIC_API_KEY": own}
+                    continue
+                break
+            said = (err or out).decode(errors="replace")[-200:]
+            logger.warning(f"copy of {session.name} failed ({proc.returncode}): {said}")
         except (OSError, ValueError) as e:
             logger.warning(f"copy of {session.name} failed: {type(e).__name__}")
         except asyncio.CancelledError:  # the caller's timeout
@@ -374,6 +382,12 @@ def open_terminal(script: Path) -> None:
     instead = os.environ.get(OPEN_WITH_ENV)
     argv = [instead, str(script)] if instead else ["open", "-a", terminal_app(), str(script)]
     subprocess.run(argv, check=True, capture_output=True, timeout=15, env=childenv.child_env())
+
+
+def _own_anthropic_key() -> str | None:
+    import vendors
+
+    return vendors.key("anthropic")
 
 
 def _env(home: str) -> dict:

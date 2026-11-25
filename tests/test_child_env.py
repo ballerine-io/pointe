@@ -30,7 +30,10 @@ NEEDS_KEYS = {("keys.py", "restart"), ("harnesses/join.py", "main"),
               # `pointe setup` in the person's own terminal: its environment holds no Keychain key (vendors keeps those in memory), and
               # starts Pointe's own scripts (the daemon reads keys from the environment) and the person's own Codex
               # server, which may sign in with their OPENAI_API_KEY.
-              ("terminal_setup.py", "run"), ("terminal_setup.py", "codex")}
+              ("terminal_setup.py", "run"), ("terminal_setup.py", "codex"),
+              # a read-only copy of a session signed in by a key has nothing else to sign in with: its second try gets
+              # Pointe's Anthropic key and no other (test_a_copy_that_is_not_signed_in_is_asked_once_more_...)
+              ("harnesses/claude_code.py", "side_question")}
 # Scripts that run on macOS's own python3, standard library only (tests/test_apps.py), and never import vendors: they hold
 # no key from the Keychain, only the environment the person's shell gave them, which their children get as before.
 OWN_ENV = {"apps.py", "uninstall.py"}
@@ -149,3 +152,62 @@ def test_the_claude_fork_and_the_roster_get_no_vendor_key(monkeypatch, tmp_path)
     for argv, env in seen:
         assert env is not None and not (vendors.KEY_ENVS & env.keys()), argv[:2]
         assert not any(SECRET in v or v.startswith("from-the-shell-") for v in env.values()), argv[:2]
+
+
+def _anthropic_keychain(monkeypatch):
+    monkeypatch.setattr(vendors.subprocess, "run", lambda argv, **kw: subprocess.CompletedProcess(
+        argv, 0, stdout=SECRET + "\n" if vendors.KEYS["anthropic"][1] in argv else "", stderr=""))
+    monkeypatch.setattr(vendors, "_found", {}, raising=False)
+
+
+def test_a_copy_that_is_not_signed_in_is_asked_once_more_with_pointes_anthropic_key(monkeypatch, tmp_path):
+    """A session signed in by an ANTHROPIC_API_KEY (the conversation suite's sessions; anyone who runs Claude Code on a
+    key) has nothing a copy can sign in with: `claude -p --fork-session` ends "Not logged in", exit 1, nothing on stderr,
+    and every overview said "I couldn't reach it" of every session. The copy is asked once more with Pointe's own
+    Anthropic key, and with no other key."""
+    for env in vendors.KEY_ENVS:
+        monkeypatch.delenv(env, raising=False)
+    monkeypatch.setenv("CLAUDE_VOICE_LOCAL_ONLY", "0")
+    _anthropic_keychain(monkeypatch)
+    seen = []
+
+    class Proc:
+        def __init__(self, signed_in):
+            self.returncode = 0 if signed_in else 1
+            self.out = b'{"result": "fine"}' if signed_in else \
+                b'{"type": "result", "is_error": true, "result": "Not logged in \xc2\xb7 Please run /login"}'
+
+        async def communicate(self):
+            return self.out, b""
+
+    async def fake_exec(*argv, env=None, **kw):
+        seen.append(env)
+        return Proc(signed_in="ANTHROPIC_API_KEY" in env)
+
+    monkeypatch.setattr(claude_code.asyncio, "create_subprocess_exec", fake_exec)
+    session = SimpleNamespace(id="s-1", cwd=str(tmp_path), home="", transcript=str(tmp_path / "none.jsonl"), name="api")
+    assert asyncio.run(claude_code.ClaudeCode().side_question(session, "what changed?")) == "fine"
+    assert len(seen) == 2 and "ANTHROPIC_API_KEY" not in seen[0]
+    assert seen[1]["ANTHROPIC_API_KEY"] == SECRET
+    assert not ((vendors.KEY_ENVS - {"ANTHROPIC_API_KEY"}) & seen[1].keys())
+
+
+def test_a_copy_that_fails_otherwise_is_not_asked_again(monkeypatch, tmp_path):
+    monkeypatch.setenv("CLAUDE_VOICE_LOCAL_ONLY", "0")
+    _anthropic_keychain(monkeypatch)
+    seen = []
+
+    class Proc:
+        returncode = 1
+
+        async def communicate(self):
+            return b"", b"No conversation found with session ID: s-1"
+
+    async def fake_exec(*argv, env=None, **kw):
+        seen.append(env)
+        return Proc()
+
+    monkeypatch.setattr(claude_code.asyncio, "create_subprocess_exec", fake_exec)
+    session = SimpleNamespace(id="s-1", cwd=str(tmp_path), home="", transcript=str(tmp_path / "none.jsonl"), name="api")
+    assert asyncio.run(claude_code.ClaudeCode().side_question(session, "what changed?")) is None
+    assert len(seen) == 1
