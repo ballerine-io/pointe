@@ -123,6 +123,7 @@ from guards import (relays_approval, remote_readable,
     verbatim_request,
     VERBATIM,
     ack_only,
+    withdrawn,
     backchannel,
     repeat_intent,
     cut_off,
@@ -1643,6 +1644,8 @@ def _fast_send(said: str) -> tuple[Session, str] | None:
     said without a model step; None for anything the model must read: a reference to the talk ("fix it", "again"), more
     than one session, a broadcast, an unfinished sentence, a question about the request, production credentials."""
     text = said.strip()
+    if withdrawn(text):
+        return None  # "... actually no, never mind": the model reads it, and the send guard refuses the request it took back
     asked = _fast_ask(text) or _follow_up(text)
     if asked is not None:
         return asked
@@ -6498,6 +6501,10 @@ async def _send_now(message: str) -> dict:
     if state.holding:
         _record(message, [], "blocked: the user said to hold")
         return {"error": "Not sent: the user said not yet. Say nothing was sent, and wait until they say to send it."}
+    if withdrawn(state.last_utterance):
+        _record(message, [], "blocked: the user took it back")
+        return {"error": "Not sent: the user took the request back at the end of the sentence. Say in a few words that "
+                         "nothing was sent."}
     if cut_off(state.last_utterance):
         _record(message, [], "blocked: the user was cut off")
         return {"error": "Not sent: the user stopped in the middle of a thought. Ask them to finish it."}
@@ -6706,6 +6713,9 @@ def _asked_of_several(said: str) -> bool:
             or bool(re.search(r"\b(?:both|each|two)\b|שניהם|שתיהן", said.lower())))
 
 
+_THE_OTHER_ONE = re.compile(r"\bthe other (?:one|session|project|repo|agent)\b|(?<![֐-׿])(?:השני|האחר|השנייה|האחרת)(?![֐-׿])", re.I)
+
+
 def _brain_named(said: str, alone: bool = False) -> Session | None:
     """The session the brain chose, by exact name. It read the whole sentence and the call; "tell Claude" or a word in
     another session's name does not fool it the way name matching can. Session mode stays pinned, and "all" stays a broadcast.
@@ -6721,6 +6731,9 @@ def _brain_named(said: str, alone: bool = False) -> Session | None:
         return None
     if _in_a_tie(said, chosen):
         return None  # "the tariff one" with tariff-api and tariff-web: the brain's pick is a guess, and _route asks
+    thread = _thread()
+    if len(REGISTRY.sessions) == 2 and thread is not None and chosen is not thread and _THE_OTHER_ONE.search(said):
+        return chosen  # two sessions, and "the other one": not the one they were talking with, so this one, and no question
     if named_sessions(said, [chosen]):
         return chosen
     if alone:

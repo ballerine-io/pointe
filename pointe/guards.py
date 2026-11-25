@@ -210,12 +210,27 @@ def remote_readable(readable) -> str | None:
 
 
 _WAIT = {"wait", "רגע"}
+# A question about the request, not an answer to it: the words "yes or no", or four words or more ending in a question
+# mark. A short "Yes?" or "No?" is still the answer the recognizer heard with a rising voice.
+_ASKS_FIRST = re.compile(r"\byes or no\b|\bכן או לא\b|^(?=(?:\S+\s+){3,}\S+).*[?？]\s*$", re.I | re.S)
+# The user took the request back in the same breath: "... Actually no, never mind, forget it."
+_TAKES_BACK = (r"(?:never ?mind|forget (?:it|that|about it)|scratch that|cancel that|don'?t bother|actually,? no|"
+               r"(?<![֐-׿])(?:עזוב|לא משנה|תשכח מזה|בעצם לא)(?![֐-׿]))")
+_WITHDRAWN = re.compile(rf"\b{_TAKES_BACK}(?:[\s,.;!]+(?:{_TAKES_BACK}|please|sorry|thanks))*[\s.!…]*$".replace("\\b(?:never", "(?:never"), re.I)
+
+
+def withdrawn(text: str) -> bool:
+    """The sentence ends by taking back what it asked ("never mind", "forget it", "scratch that"): nothing in it is to
+    be sent. Only at its end: "never mind the tests, fix the build" goes on to ask for something."""
+    return bool(_WITHDRAWN.search((text or "").strip()))
 
 
 def permission_answer(text: str) -> str | None:
     """Stricter than consent: what approves a tool call is a yes and nothing else. "Okay, tell me more" is not an answer,
     and neither is "yes, and run the linter": it comes back as None, and the request is read out again."""
     text = _untransliterated(text)
+    if _ASKS_FIRST.search(text.strip()):
+        return None  # "Yes or no, will that change any files?" asks; it was once heard as a no, and denied
     verdict = consent(text)
     if verdict == "deny" and not (_words(_lower(text)) & (_NO - _WAIT)):
         return None  # "wait, what is this?" asks first: the prompt stays open, it is not a no

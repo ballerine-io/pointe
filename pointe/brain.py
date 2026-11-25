@@ -100,7 +100,7 @@ _ALL_SESSIONS = re.compile(r"\b(?:every|each|all(?: the| of the)?) (?:sessions?|
 _QUESTION_WORDS = re.compile(r"\?\s*$|^\W*(?:who|what|which|when|where|why|how|is|are|did|does|do|has|have|can|was|were)\b|"
                              r"[?？]|^\W*(?:מי|מה|מתי|איפה|למה|איך|כמה|האם)(?![֐-׿])", re.I)
 _UNSPEAKABLE = re.compile(r"`|(?:^|[\s(])[\w.-]*/[\w.-]+\.\w{1,5}\b|\b[\w-]+\.(?:py|ts|tsx|js|jsx|go|rb|rs|json|yaml|yml|sql|sh|md|html|css)\b")
-_BACKSTAGE = re.compile(r"\bmy notes\b|\bthe notes\b(?! file)|\bthe feed\b|\bthe transcript\b|\bin the history\b|\bsession history\b|\bthe system\b|\bthe gate\b|\bthe checker\b|\btool (?:call|result)\b|\blist_sessions\b|\bask_about_session\b|\bsend_to_claude_code\b")
+_BACKSTAGE = re.compile(r"\bthe router\b|\bblocked it\b|\bmy notes\b|\bthe notes\b(?! file)|\bthe feed\b|\bthe transcript\b|\bin the history\b|\bsession history\b|\bthe system\b|\bthe gate\b|\bthe checker\b|\btool (?:call|result)\b|\blist_sessions\b|\bask_about_session\b|\bsend_to_claude_code\b")
 # A question that hands the conversation back with nothing in it. The user knows they can talk.
 _EMPTY_CLOSER = re.compile(r"(?:^|(?<=[.!?…]))\s*(?:(?:so,?\s*)?what(?:'s| is| would you like| do you want)(?: to)?(?: do| tackle| work on)?(?: our)?(?: the)?(?: next)?(?: move| step)?(?: next)?|"
                            r"(?:is there )?anything else(?: i can do)?|let me know[^.!?]*|how can i help[^.!?]*|מה הלאה|מה הצעד הבא[^.!?]*|"
