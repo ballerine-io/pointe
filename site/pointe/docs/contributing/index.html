@@ -337,6 +337,44 @@ update it here.</p>
 <li><strong>A release runs the full gate</strong>: every test with <code>--runslow</code> and the <code>ui</code> workflow on the version commit, at most
    once a day (<a href="../releasing/">docs/releasing.md</a>).</li>
 </ol>
+<p>Which jobs a push to <code>main</code> starts (<code>tests/test_ci_triggers.py</code> holds the filters to the Swift tests' reads):</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>The push changes</th>
+<th><code>test</code>: offline, page, linux-hub, supply-chain</th>
+<th><code>apps</code>: ios, macos</th>
+<th><code>ui</code>: ios-ui, mac-smoke, mac-xcuitest</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>docs, tests, <code>bench/</code>, most of <code>pointe/</code></td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+</tr>
+<tr>
+<td>a file a Swift test reads (<code>pointe/daemon.py</code>, <code>pointe/ui.html</code>, <code>install.sh</code> and the others in <code>apps.yml</code>), <code>pointe/apps.py</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>apps/</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>a tag <code>v*</code></td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+</tbody>
+</table></div>
+<p>A change to <code>apps.yml</code> or <code>ui.yml</code> (or <code>tools/ui_guard.py</code>, for <code>ui</code>) starts that workflow too.</p>
 <p>UI tests never run on a developer's Mac (see <a href="#the-apps">The apps</a>). A new test that takes more than a second or two,
 or starts Chrome, gets <code>@pytest.mark.slow</code>; CI prints the slowest 50 (<code>--durations=50</code>).</p>
 <h2 id="running-the-tests">Running the tests</h2>

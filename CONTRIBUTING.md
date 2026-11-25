@@ -112,6 +112,17 @@ How the parts fit together: [docs/architecture.md](docs/architecture.md). How a 
 4. **A release runs the full gate**: every test with `--runslow` and the `ui` workflow on the version commit, at most
    once a day ([docs/releasing.md](docs/releasing.md)).
 
+Which jobs a push to `main` starts (`tests/test_ci_triggers.py` holds the filters to the Swift tests' reads):
+
+| The push changes | `test`: offline, page, linux-hub, supply-chain | `apps`: ios, macos | `ui`: ios-ui, mac-smoke, mac-xcuitest |
+|---|---|---|---|
+| docs, tests, `bench/`, most of `pointe/` | yes | no | no |
+| a file a Swift test reads (`pointe/daemon.py`, `pointe/ui.html`, `install.sh` and the others in `apps.yml`), `pointe/apps.py` | yes | yes | no |
+| `apps/` | yes | yes | yes |
+| a tag `v*` | yes | yes | yes |
+
+A change to `apps.yml` or `ui.yml` (or `tools/ui_guard.py`, for `ui`) starts that workflow too.
+
 UI tests never run on a developer's Mac (see [The apps](#the-apps)). A new test that takes more than a second or two,
 or starts Chrome, gets `@pytest.mark.slow`; CI prints the slowest 50 (`--durations=50`).
 
