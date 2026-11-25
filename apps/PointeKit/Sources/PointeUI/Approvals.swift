@@ -123,7 +123,7 @@ struct ApprovalsSheet: View {
             Text(a.machine.map { "\(a.session) · \($0)" } ?? a.session).font(.brand(.caption)).foregroundStyle(Brand.muted)
             Text(a.request).font(.system(.footnote, design: .monospaced)).foregroundStyle(Brand.text)
                 .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8).background(Brand.raised, in: RoundedRectangle(cornerRadius: 8))
+                .padding(8).background(Brand.raised2, in: RoundedRectangle(cornerRadius: 8))  // on a Brand.cell row: raised is the cell's own colour in dark
             if a.cut == true { Text(ApprovalsCopy.cut).font(.brand(.caption)).foregroundStyle(Brand.muted) }
             if let lock = ApprovalsCopy.lock(a) { Text(lock).font(.brand(.caption)).foregroundStyle(Brand.muted) }
         }
