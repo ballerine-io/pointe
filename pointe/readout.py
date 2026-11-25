@@ -173,10 +173,10 @@ def beside(full: str, cwd: str) -> str | None:
     """A place in a project next to this one ("tariff-api, next to the project"), when nothing on the way is hidden or
     looks like a secret: its name says where it is as well as its full path, in a breath instead of twenty seconds. For a
     read-only look (looking); what a command acts on outside the project is said whole (place)."""
-    parent = os.path.dirname(os.path.realpath(cwd))
-    rel = os.path.relpath(os.path.realpath(full), parent)
-    if rel.startswith("..") or os.path.isabs(rel) or rel == "." or os.path.realpath(full) == os.path.realpath(cwd):
-        return None
+    real, home = os.path.realpath(full), os.path.realpath(cwd)
+    rel = os.path.relpath(real, os.path.dirname(home))
+    if rel.startswith("..") or os.path.isabs(rel) or rel == "." or not os.path.relpath(real, home).startswith(".."):
+        return None  # outside the folder above, the folder above itself, or inside the project
     if any(p.startswith(".") or p == "node_modules" for p in rel.split(os.sep)) or _SENSITIVE.search(rel):
         return None
     return f"{rel}, next to the project"

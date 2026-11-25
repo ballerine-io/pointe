@@ -81,3 +81,9 @@ def test_a_sibling_project_is_said_by_its_name_next_to_the_project(tmp_path):
     hidden = readout.looking(f"cat {tmp_path}/tariff-api/.env.example", cwd)
     assert hidden is None or "next to the project" not in hidden  # hidden or secret-looking: never shortened
     assert readout.place(f"{tmp_path}/tariff-api/build", cwd).endswith("/tariff-api/build")  # what an action reaches: whole
+
+
+def test_a_place_inside_the_project_is_still_not_said(tmp_path):
+    (tmp_path / "tariff-web" / "src").mkdir(parents=True)
+    cwd = str(tmp_path / "tariff-web")
+    assert readout.looking(f"ls {tmp_path}/tariff-web/src; cat src/app.py", cwd) == "look around, read only: ls and cat"
