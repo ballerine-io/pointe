@@ -82,6 +82,20 @@ HEARD_ROOM = " It counts in the length: you have at most {} more words, in {}, t
 OWN_WORDS = "[the text above ends here. The user now speaks. These are their own words:]\n"
 _CLAIMS_SENT = re.compile(r"^on it\b|\b(?:i've|i have|i just|i) (?:asked|sent|told|instructed)\b(?! nothing| anything)|^sending\b|"
                           r"(?<!לא )שלחתי|(?<!לא )ביקשתי")
+# The work itself said to be done ("Speaking speed added", the owner's call 2026-11-25): never after a refused send.
+_CLAIMS_DONE = re.compile(r"\b(?:added|done|updated|changed|fixed|created|removed|deleted|renamed|set up|installed|merged|"
+                          r"pushed|committed|implemented|applied|enabled|disabled|turned (?:on|off)|switched|bumped)\b|"
+                          r"(?<![֐-׿])(?:נוסף|נוספה|נוספו|הוספתי|עודכן|עודכנה|שונה|תוקן|הופעל|נמחק)(?![֐-׿])", re.I)
+_NEGATED = re.compile(r"\b(?:not|nothing|never|no|didn't|wasn't|isn't|hasn't|haven't|won't|couldn't|can't|n't)\b|"
+                      r"(?<![֐-׿])(?:לא|אין|שום)(?![֐-׿])", re.I)
+
+
+def _claims_done(said: str) -> bool:
+    """A sentence that says the work happened, with no negation in it."""
+    return any(_CLAIMS_DONE.search(part) and not _NEGATED.search(part)
+               for part in re.split(r"(?<=[.!?])\s+|[;:]\s+", said or ""))
+
+
 _CLAIMS_ANSWERED = re.compile(r"\b(?:denied|declined|approved|granted|applying your yes|your (?:yes|no) (?:was|is|has|went|got|counted|did|"
                                r"goes|covers|applies)|which you (?:said yes to|approved)|won't run)\b|"
                                r"\b(?:is|are|'s) (?:now )?running (?:the|it|them)\b(?![^.]*\b(?:needs|wants|waits|waiting)\b)|נדחה|אושר")
@@ -458,6 +472,9 @@ class Brain:
             return "A session finished: say its report, short."
         if said and replying_to_user and self.may_stay_silent() and len(said.split()) > 10:
             return "They only acknowledged. Speak empty text, or a few words at most."
+        if refused and not sent and _claims_done(said):
+            return ("That did not happen: the send was refused or reached no session, so nothing was changed. Say in a few "
+                    "words that it was not sent, and why if the result said.")
         if not sent and (refused or not self.sent_lately()) and _CLAIMS_SENT.search(lowered):
             return ("You say you sent something, and nothing was sent. Call send_to_claude_code and speak its result, or "
                     "say that you did not send it.")
@@ -771,9 +788,10 @@ class Brain:
             for call in [c for c in calls if c["name"] != "speak"]:  # speech last: it may report what the tools did
                 result, filled = await self._tool(call, filled)
                 results[call["id"]] = result
-                sent = sent or (call["name"] == "send_to_claude_code" and "sent_to" in (result or {}))
+                sent = sent or (call["name"] == "send_to_claude_code" and isinstance(result, dict) and bool(result.get("sent_to")))
                 acted = acted or (call["name"] not in READ_ONLY_TOOLS and not (isinstance(result, dict) and "error" in result))
-                refused = refused or (call["name"] == "send_to_claude_code" and "error" in (result or {}))
+                refused = refused or (call["name"] == "send_to_claude_code" and isinstance(result, dict) and (
+                    "error" in result or ("sent_to" in result and not result["sent_to"])))  # refused, or reached no one
                 if call["name"] == "send_to_claude_code" and isinstance(result, dict):
                     if "sent_to" in result:
                         reached = result["sent_to"]
