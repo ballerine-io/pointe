@@ -486,7 +486,7 @@ struct NotesFeed: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .animation(.snappy, value: shown.map(\.id))
+                .motion(.snappy, value: shown.map(\.id))
             }
         }
         .sensoryFeedback(.selection, trigger: notes.filter { $0.kind == "question" }.count)
@@ -654,7 +654,7 @@ struct MeetingBar: View {
                     Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
                         .font(.system(size: 26, weight: .semibold))
                         .foregroundStyle(hot ? Color.white : Brand.dim)
-                        .contentTransition(.symbolEffect(.replace))
+                        .symbolSwap()
                     if phase == .connecting || phase == .reconnecting { ProgressView().tint(Brand.muted).offset(y: 30) }
                 }
                 .frame(width: 70, height: 70)

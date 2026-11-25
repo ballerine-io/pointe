@@ -136,7 +136,7 @@ struct BrainDumpPanel: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {  // the state line above already says "Brain dump": the title is the heading VoiceOver reads
                 Image(systemName: "brain.head.profile").font(.brand(.title2)).foregroundStyle(Brand.accent)
-                    .symbolEffect(.pulse, options: .repeating)
+                    .pulsing()
                     .accessibilityLabel(BrainDumpCopy.title).accessibilityAddTraits(.isHeader).accessibilityIdentifier("dump.title")
                 Text(BrainDumpCopy.lede).foregroundStyle(Brand.muted)
             }
@@ -162,7 +162,7 @@ struct BrainDumpPanel: View {
                         Color.clear.frame(height: 1).id("end")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .animation(.easeOut(duration: 0.15), value: dump.thoughts.count)
+                    .motion(.easeOut(duration: 0.15), value: dump.thoughts.count)
                 }
                 .defaultScrollAnchor(.bottom)
                 .edgeFade(.vertical)  // the earlier thoughts fade out above instead of being cut through a line
@@ -294,7 +294,7 @@ struct BrainDumpReview: View {
                     }
                     .buttonStyle(.brandPrimary).controlSize(.large)
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.orange, lineWidth: 2).padding(-4).opacity(sure ? 1 : 0))
-                    .animation(.easeOut(duration: 0.15), value: sure)
+                    .motion(.easeOut(duration: 0.15), value: sure)
                     .disabled(target == nil || busy)
                     .accessibilityLabel(sure ? Surface.pointer(BrainDumpCopy.sendSure) : "\(BrainDumpCopy.sendTo) \(target?.label ?? "")")
                     .accessibilityIdentifier("dump.send")

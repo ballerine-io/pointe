@@ -73,7 +73,7 @@ struct BottomBar: View {
                 Image(systemName: hot ? "mic.fill" : phase == .live ? "mic.slash.fill" : "mic")
                     .font(.system(size: 26, weight: .semibold))
                     .foregroundStyle(hot ? Brand.onOrange : phase == .live ? Brand.accent : Brand.dim)
-                    .contentTransition(.symbolEffect(.replace))
+                    .symbolSwap()
                 if phase == .connecting || phase == .reconnecting { ProgressView().tint(Brand.muted).offset(y: 30) }
             }
             .frame(width: 70, height: 70)
@@ -95,7 +95,7 @@ struct BottomBar: View {
                 Image(systemName: symbol).font(.system(size: 19, weight: .medium))
                     .frame(width: 46, height: 46)
                     .background(on ? AnyShapeStyle(Brand.tint) : AnyShapeStyle(Brand.raised), in: Circle())
-                    .contentTransition(.symbolEffect(.replace))
+                    .symbolSwap()
                 Text(label).font(.brand(.caption2)).lineLimit(1).fixedSize()
             }
             .foregroundStyle(tint)

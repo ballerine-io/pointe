@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility · Pointe docs</title>
+<meta name="description" content="Pointe is a voice product, so the screen has one job for accessibility: nothing may be told by sound alone, by motion alone or by colour alone, and every…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Accessibility">
+<meta property="og:description" content="Pointe is a voice product, so the screen has one job for accessibility: nothing may be told by sound alone, by motion alone or by colour alone, and every…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/accessibility/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/accessibility/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="../thinking/">Thinking and the waiting sound</a></li>
+<li><a href="../progress/">Progress updates</a></li>
+<li><a href="./" aria-current="page">Accessibility</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="accessibility">Accessibility</h1>
+<p>Pointe is a voice product, so the screen has one job for accessibility: nothing may be told by sound alone, by motion
+alone or by colour alone, and every control must have a name. This page says what holds on the page, the iPhone and
+the Mac, and which test keeps it.</p>
+<h2 id="a-screen-reader">A screen reader</h2>
+<p>Every control of the call screen has a name VoiceOver (or a browser's screen reader) can say: the microphone, mute,
+skip, the mode switch above the mic, the bottom bar, the session chips and rows, the request's Approve and Deny, the
+composer and Settings. A button drawn as a symbol or as "×" or "•••" carries a name of words. The state line is one
+element, read as "Thinking…, Orchestrating 3 sessions", and the page says it again when it changes (<code>role="status"</code>).
+A session's agent is read as "runs on Codex".</p>
+<p>VoiceOver speaks through the same speaker as Pointe. Pointe does not lower its voice for VoiceOver and VoiceOver does
+not wait for Pointe: with both on, mute Pointe (the button beside the state line) and read the conversation, which
+holds every line Pointe would have said. That pass was made by reading the labels, not by a person who uses
+VoiceOver every day: see "Not done".</p>
+<h2 id="reduce-motion">Reduce Motion</h2>
+<p>With Reduce Motion on (iOS and macOS: Settings → Accessibility → Motion; a browser: <code>prefers-reduced-motion</code>), nothing
+on a Pointe screen moves by itself and no change is animated:</p>
+<ul>
+<li>the state's dot is still (it shrinks while Pointe thinks and breathes while it speaks or a session works);</li>
+<li>the wave beside the words being heard, the brain dump's and the challenge's symbols do not pulse;</li>
+<li>cards, sheets, the conversation's new lines and the mode switch change at once, with no slide or fade;</li>
+<li>on the page no animation runs or loops, and a scroll the page starts jumps instead of gliding.</li>
+</ul>
+<p>Nothing is lost: the state is always in the line's words. In Swift every animation goes through
+<code>apps/PointeKit/Sources/PointeUI/Motion.swift</code>; a test fails for one that does not.</p>
+<h2 id="every-sound-has-something-to-see">Every sound has something to see</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Sound</th>
+<th>When</th>
+<th>What is on screen with it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pointe's voice</td>
+<td>every line</td>
+<td>the line in the conversation, as it is said</td>
+</tr>
+<tr>
+<td>the waiting sound</td>
+<td>a reply takes long (<a href="../thinking/">Thinking</a>)</td>
+<td>the state line says "Thinking…"</td>
+</tr>
+<tr>
+<td>the two-note chime</td>
+<td>a brain dump or a challenge starts or ends, a request is held for later</td>
+<td>the state line ("Brain dump", "Challenge") and the card or panel that opened or closed</td>
+</tr>
+<tr>
+<td>the page's mute tone</td>
+<td>the microphone is turned off or on from the page or an AirPods tap</td>
+<td>the mic button and the state line ("Mic off")</td>
+</tr>
+<tr>
+<td>the iPhone's chime when the Mac closes a press</td>
+<td>push to talk: the Mac ended a press by itself</td>
+<td>the state line says why ("Sent: held too long")</td>
+</tr>
+<tr>
+<td>the Mac's chime when it closes a press</td>
+<td>the same, in the Mac app</td>
+<td>the same line</td>
+</tr>
+<tr>
+<td>an alert's sound</td>
+<td>a session needs you while no call is up (<a href="../alerts/">Alerts</a>)</td>
+<td>the notification's banner, with the session's name and what it needs</td>
+</tr>
+</tbody>
+</table></div>
+<p>A haptic on the iPhone always comes with a change on the screen: it is attached to that change.</p>
+<h2 id="large-text">Large text</h2>
+<p>The iPhone app follows Dynamic Type up to the largest accessibility size: the state line wraps to as many lines as it
+needs, with the mute button beside it and the microphone still in reach. The page is whole at 320 CSS pixels wide (a
+1280-pixel window at 400% zoom): the state line wraps, and nothing scrolls sideways. The Mac app has no text-size
+setting of its own; it follows the window's size.</p>
+<h2 id="the-tests">The tests</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Every control of the call screen has a name; Reduce Motion stops the dot, the wave and the pulsing symbols (pictures taken over 1.5 s are the same picture); the state line is whole at the largest text size</td>
+<td><code>apps/ios/PointeUITests/AccessibilityUITests.swift</code></td>
+</tr>
+<tr>
+<td>Every control of the Mac's call window has a name; with Reduce Motion the state's dot is still</td>
+<td><code>apps/macos/e2e/smoke.py</code></td>
+</tr>
+<tr>
+<td>Motion.swift's rules</td>
+<td><code>apps/PointeKit/Tests/PointeUIUnitTests/MotionTests.swift</code></td>
+</tr>
+<tr>
+<td>The page: names, no running animation with reduced motion, the state line at 320 pixels; every Swift animation goes through Motion.swift; every sound has a row above</td>
+<td><code>tests/test_accessibility.py</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="not-done">Not done</h2>
+<ul>
+<li>
+<p>No pass by a person who uses VoiceOver, Switch Control or a braille display daily. The tests check that names exist
+  and read sensibly; they do not check the order of a long session or how it feels beside Pointe's own voice.</p>
+</li>
+<li>
+<p>Sheets other than the call screen (Settings, Sessions, Night shift, Meeting) were not walked control by control.</p>
+</li>
+<li>The Mac app does not scale its text.</li>
+<li>
+<p>On the iPhone the bottom bar's labels keep a fixed size at the accessibility text sizes; the
+  state line and the conversation grow.</p>
+</li>
+<li>
+<p>Captions for the site's film are in English only.</p>
+</li>
+</ul>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/accessibility.md">docs/features/accessibility.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../progress/"><span class="pg-small">Previous</span>Progress updates</a><a class="dx-next" href="../conflict-alarm/"><span class="pg-small">Next</span>Conflict alarm</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#a-screen-reader">A screen reader</a></li>
+<li class="dx-l2"><a href="#reduce-motion">Reduce Motion</a></li>
+<li class="dx-l2"><a href="#every-sound-has-something-to-see">Every sound has something to see</a></li>
+<li class="dx-l2"><a href="#large-text">Large text</a></li>
+<li class="dx-l2"><a href="#the-tests">The tests</a></li>
+<li class="dx-l2"><a href="#not-done">Not done</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

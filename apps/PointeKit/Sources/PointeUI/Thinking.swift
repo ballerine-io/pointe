@@ -79,7 +79,7 @@ struct StateDot: View {
         return ThinkingCopy.isWorking(title) ? .working : .steady
     }
 
-    static func moves(_ kind: Kind, reduceMotion: Bool) -> Bool { !reduceMotion && kind.motion != .none }
+    static func moves(_ kind: Kind, reduceMotion: Bool) -> Bool { !PointeUI.Motion.reduced(reduceMotion) && kind.motion != .none }
 
     let kind: Kind
     let tint: Color
@@ -92,7 +92,7 @@ struct StateDot: View {
         Circle().fill(tint).frame(width: size, height: size)
             .scaleEffect(moving && low && kind.motion == .shrink ? 0.45 : 1)
             .opacity(moving && low ? (kind.motion == .shrink ? 0.6 : 0.35) : 1)
-            .animation(moving ? .easeInOut(duration: kind == .working ? 0.8 : 0.6).repeatForever(autoreverses: true) : .default, value: low)
+            .motion(moving ? PointeUI.Motion.breathing(kind == .working ? 0.8 : 0.6) : .default, value: low)
             .onAppear { low = moving }
             .onChange(of: moving) { _, now in low = now }
             .id(kind)  // a new state starts its own motion from rest

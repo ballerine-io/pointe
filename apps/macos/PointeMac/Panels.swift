@@ -63,7 +63,7 @@ struct MainWindow: View {
             }
         }
         .background(PointeLook.bg)
-        .animation(.smooth(duration: 0.25), value: model.ready)
+        .motion(.smooth(duration: 0.25), value: model.ready)
     }
 }
 

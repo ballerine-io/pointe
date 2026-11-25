@@ -84,7 +84,7 @@ struct ChallengePanel: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 10) {
                 Image(systemName: "figure.fencing").font(.brand(.title2)).foregroundStyle(Brand.accent)
-                    .symbolEffect(.pulse, options: .repeating, isActive: challenge.on)
+                    .pulsing(challenge.on)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(ChallengeCopy.title(on: challenge.on)).font(.brand(.title2, .semibold))
                         .accessibilityIdentifier("challenge.title")

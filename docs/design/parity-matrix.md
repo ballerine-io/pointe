@@ -8,9 +8,9 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 98 | 0 | 0 | 22 |
-| iPhone | 108 | 0 | 0 | 12 |
-| Mac | 110 | 0 | 0 | 10 |
+| Page | 101 | 0 | 0 | 22 |
+| iPhone | 111 | 0 | 0 | 12 |
+| Mac | 113 | 0 | 0 | 10 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -33,9 +33,9 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1667` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:466` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:466` |
 | Your words as you speak them <br>`call.hearing` | yes `ui.html:1725` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` |
 | Type instead of talking <br>`call.type` | yes `ui.html:1726` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:245` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:245` |
-| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3318` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:274` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:250` |
-| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3277` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` |
-| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3268` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` |
+| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3320` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:274` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:250` |
+| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3279` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` |
+| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3270` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` |
 | Clean up my words <br>`call.polish` | yes `ui.html:1636` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:158` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:158` |
 | The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1631` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:433` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:433` |
 | Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1212` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` |
@@ -52,7 +52,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1440` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:113` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:113` |
 | The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1654` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:191` | yes `apps/macos/PointeMac/AppModel.swift:496` |
 | A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1725` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:429` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:429` |
-| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4684` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` |
+| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:4686` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` |
 | Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1441` | yes `apps/ios/PointeShared/TalkIntents.swift:13` | yes `apps/macos/PointeMac/HotKey.swift:5` |
 | Skip from any app: a system-wide shortcut, set in Settings <br>`skip.key` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:81` |
 | Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1461` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:119` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:119` |
@@ -63,11 +63,11 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Feature | Page | iPhone | Mac |
 |---|---|---|---|
 | Sessions, grouped by machine, with each one's agent and state <br>`sessions.list` | yes `ui.html:1153` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:161` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:161` |
-| Focus on a session <br>`sessions.switch` | yes `ui.html:3115` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` |
+| Focus on a session <br>`sessions.switch` | yes `ui.html:3117` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` | yes `apps/PointeKit/Sources/PointeUI/API.swift:549` |
 | Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1160` | yes `apps/PointeKit/Sources/PointeUI/API.swift:587` | yes `apps/PointeKit/Sources/PointeUI/API.swift:587` |
 | Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1630` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` |
 | Rename a session <br>`sessions.rename` | yes `ui.html:3099` | yes `apps/PointeKit/Sources/PointeUI/API.swift:555` | yes `apps/PointeKit/Sources/PointeUI/API.swift:555` |
-| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3383` | yes `apps/PointeKit/Sources/PointeUI/API.swift:552` | yes `apps/PointeKit/Sources/PointeUI/API.swift:552` |
+| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3385` | yes `apps/PointeKit/Sources/PointeUI/API.swift:552` | yes `apps/PointeKit/Sources/PointeUI/API.swift:552` |
 | Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1168` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:588` |
 | Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1556` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:12` |
 | The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1719` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:153` |
@@ -86,7 +86,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1184` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1184` |
 | How many more requests wait <br>`approve.more` | yes `ui.html:2545` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:716` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:716` |
 | A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:1928` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1902` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1902` |
-| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:4893` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` |
+| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:4895` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:167` |
 | Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1499` | yes `apps/PointeKit/Sources/PointeUI/API.swift:411` | yes `apps/PointeKit/Sources/PointeUI/API.swift:411` |
 | Deny and Approve on the notification itself <br>`alerts.actions` | n/a | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:209` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:209` |
 | Alerts keep arriving while the app is in the background <br>`alerts.background` | n/a | yes `apps/ios/Pointe/PointeApp.swift:13` | yes `apps/macos/PointeMac/PointeMacApp.swift:16` |
@@ -134,6 +134,9 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | The status line names the session that has the request: "billing is working…" <br>`thinking.working` | yes `ui_thinking.html:21` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` |
 | The call's own link says the turn was taken: Thinking… without waiting for a status <br>`thinking.link` | yes `ui.html:2693` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:520` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:520` |
 | The state's dot tells thinking, speaking and working apart by motion, and Reduce Motion stops it <br>`thinking.motion` | yes `ui_thinking.html:13` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` |
+| Reduce Motion: no animation runs, no symbol pulses and no scroll glides <br>`a11y.motion` | yes `ui.html:1147` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` |
+| A screen reader hears the state line as one element, with the line under it <br>`a11y.state` | yes `ui.html:1628` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1847` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1847` |
+| A session's agent is its name in plain text, read as "runs on Codex" <br>`a11y.agent` | yes `ui.html:2058` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:180` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:180` |
 | The call bubble and the menu bar item show thinking <br>`thinking.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:267` |
 | The waiting sound: a setting, on by default <br>`thinking.cue` | yes `ui.html:1467` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:129` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:129` |
 | Progress updates while a session works: a setting, off by default <br>`progress` | yes `ui.html:1471` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:137` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:137` |
@@ -170,7 +173,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1417` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:52` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:52` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (40 topics)` | yes `product_help.json (40 topics)` | yes `product_help.json (39 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` |
-| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3315` | n/a | yes `apps/macos/PointeMac/Panels.swift:169` |
+| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3317` | n/a | yes `apps/macos/PointeMac/Panels.swift:169` |
 
 ## The Mac shell
 

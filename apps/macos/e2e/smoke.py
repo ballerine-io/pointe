@@ -444,6 +444,48 @@ def main() -> int:
         finally:
             app.quit()
 
+    # accessibility (docs/features/accessibility.md): VoiceOver has a name for every control of the call window, and
+    # with Reduce Motion (-pointe.reduceMotion YES stands in for the system setting) the window is one still picture.
+    for screen in ("call", "request", "speaking", "thinking", "held"):
+        app = start("-demo", screen, "-demoEnglish")
+        try:
+            app.wait("statusLine")
+            unnamed = app.ax("unnamed")
+            check(f"{screen}: every control of the call window has a name", unnamed.returncode == 0, unnamed.stdout.replace("\n", "; "))
+        finally:
+            app.quit()
+
+    def pictures(app: App, n: int = 6) -> int:
+        """How many different pictures of the window there are over a second and a half."""
+        window, seen = app.ax("window").stdout.strip(), set()
+        for i in range(n):
+            path = work / f"motion-{i}.png"
+            subprocess.run(["screencapture", "-x", "-o", "-l", window, str(path)], check=False)
+            seen.add(path.read_bytes() if path.exists() else b"")
+            time.sleep(0.25)
+        return len(seen)
+
+    for screen in ("thinking", "working"):
+        app = start("-demo", screen, "-demoEnglish")
+        try:
+            app.wait("statusLine")
+            time.sleep(1)
+            moving = pictures(app)
+        finally:
+            app.quit()
+        for look in ("dark", "light"):
+            app = start("-demo", screen, "-demoEnglish", "-pointe.reduceMotion", "YES", look=look)
+            try:
+                app.wait("statusLine")
+                time.sleep(2.5)  # the window has arrived and nothing of its own opening is left
+                still = pictures(app)
+                app.shot(f"reduce-motion-{screen}", look)
+                check(f"{screen}, {look}: with Reduce Motion the window is still, and the line still says the state",
+                      moving > 1 and still == 1 and ("Thinking…" if screen == "thinking" else "is working…") in line(app),
+                      f"{moving} pictures with motion, {still} without; {line(app)}")
+            finally:
+                app.quit()
+
     failed = [name for name, ok in results if not ok]
     print(f"\n{len(results) - len(failed)} of {len(results)} checks passed" + (f"; failed: {failed}" if failed else ""))
     return 1 if failed else 0

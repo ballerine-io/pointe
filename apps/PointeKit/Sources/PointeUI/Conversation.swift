@@ -47,9 +47,9 @@ struct ConversationView: View {
                         .transition(.opacity)
                 }
             }
-            .animation(.smooth(duration: 0.35), value: turns.last?.id)
-            .animation(.smooth(duration: 0.2), value: outgoing)
-            .animation(.smooth(duration: 0.35), value: hearing.isEmpty)
+            .motion(.smooth(duration: 0.35), value: turns.last?.id)
+            .motion(.smooth(duration: 0.2), value: outgoing)
+            .motion(.smooth(duration: 0.35), value: hearing.isEmpty)
         }
     }
 }
@@ -161,7 +161,7 @@ struct LiveBubble: View {
             Spacer(minLength: 56)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "waveform").font(.brand(.callout)).foregroundStyle(Brand.accent)
-                    .symbolEffect(.variableColor.iterative, options: .repeating)
+                    .listeningWave()
                 VStack(alignment: Bubble.textStart(text, in: direction), spacing: 2) {
                     if let draft {
                         Text(draft).font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
@@ -173,7 +173,7 @@ struct LiveBubble: View {
                         .foregroundStyle(draft != nil ? AnyShapeStyle(Brand.muted) : AnyShapeStyle(.primary))
                         .multilineTextAlignment(.leading)
                         .contentTransition(.interpolate)
-                        .animation(.easeOut(duration: 0.12), value: text)
+                        .motion(.easeOut(duration: 0.12), value: text)
                 }
             }
             .padding(.horizontal, 14)

@@ -198,7 +198,7 @@ struct Segments<Value: Hashable, Native: View>: View {
         }
         .padding(2)
         .background(Brand.raised, in: RoundedRectangle(cornerRadius: 10))
-        .animation(.snappy(duration: 0.18), value: selection)
+        .motion(.snappy(duration: 0.18), value: selection)
         .accessibilityElement(children: .contain)
         #else
         native
@@ -230,7 +230,7 @@ struct HoverLift: ViewModifier {
         #if os(macOS)
         content.brightness(over && enabled ? (scheme == .dark ? 0.07 : -0.04) : 0)
             .onHover { over = $0 }
-            .animation(.easeOut(duration: 0.12), value: over)
+            .motion(.easeOut(duration: 0.12), value: over)
         #else
         content
         #endif

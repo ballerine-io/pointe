@@ -243,14 +243,14 @@ struct CallView: View {
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { stageHeight = $0 }  // less the keyboard, when it is up
-        .animation(.smooth(duration: 0.3), value: dumping)
-        .animation(.smooth(duration: 0.3), value: driving)
+        .motion(.smooth(duration: 0.3), value: dumping)
+        .motion(.smooth(duration: 0.3), value: driving)
         .onChange(of: status?.drive) {
             call.driving = status?.driving ?? false
             if driving { typing = false }
             DriveNowPlaying.update(status: status, driving: status?.driving ?? false)
         }
-        .animation(.smooth(duration: 0.3), value: challengeShown?.id)
+        .motion(.smooth(duration: 0.3), value: challengeShown?.id)
         .onChange(of: dump?.inReview, initial: true) {  // the prompt arrived (or was there at launch): the review opens once per dump; Close keeps it away until Review
             if let dump, dump.inReview, dump.id != dumpReviewClosed { showDumpReview = true } else if dump?.inReview != true { showDumpReview = false }
         }
@@ -445,7 +445,7 @@ struct CallView: View {
                 // In a scroll of its own: taller than the stage (large type, a long reason), it was drawn over the header.
                 if panelShown { StageScroll { ConnectPanel(title: title, face: face, tap: connectTap, act: troubleAct) }.transition(.opacity) }
             }
-            .animation(.easeInOut(duration: 0.2), value: panelShown)
+            .motion(.easeInOut(duration: 0.2), value: panelShown)
             .scrollDismissesKeyboard(.interactively)
             .holdToTalk(call.talk.ptt && phase == .live, style: call.talkStyle, press: { call.talkPress(.caption) },
                         release: { call.talkRelease(.caption) }, toggle: { call.talkToggle() })
@@ -479,7 +479,7 @@ struct CallView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .animation(.snappy, value: follow.pillShown)
+            .motion(.snappy, value: follow.pillShown)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 // A dock that grows (a card, the switch, the type bar) covered the newest line: follow it while pinned.
                 bottom.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { _ in
@@ -571,7 +571,7 @@ struct CallView: View {
         .background(Brand.bg)
         .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { topHeight = $0 }
-        .animation(.snappy, value: showing?.id)
+        .motion(.snappy, value: showing?.id)
         .accessibilityElement(children: .contain)  // one container: the menu's platform button took the strip as its children
     }
 
@@ -741,8 +741,8 @@ struct CallView: View {
         .padding(.horizontal, 14)
         .padding(.bottom, 4)
         .brandDock()
-        .animation(.snappy, value: waiting.first?.request_id)
-        .animation(.snappy, value: toast)
+        .motion(.snappy, value: waiting.first?.request_id)
+        .motion(.snappy, value: toast)
     }
 
     /// "Learned: …" with Undo, in the dock over the cards: laid over the screen at a fixed height it covered the mic-mode
@@ -972,7 +972,7 @@ struct CallView: View {
             }
             .padding(.horizontal, 14).padding(.bottom, 4)
             .brandDock()
-            .animation(.snappy, value: handId)
+            .motion(.snappy, value: handId)
         }
     }
 
@@ -1857,7 +1857,7 @@ struct StatusLine: View {
                 .padding(.leading, 18)
                 .accessibilityHidden(true)
         }
-        .animation(.easeInOut(duration: 0.2), value: title)
+        .motion(.easeInOut(duration: 0.2), value: title)
     }
 }
 

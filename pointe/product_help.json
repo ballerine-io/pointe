@@ -359,6 +359,29 @@
    ]
   },
   {
+   "id": "accessibility",
+   "title": "Accessibility: VoiceOver, Reduce Motion and large text",
+   "ask": [
+    "accessibility",
+    "voiceover",
+    "voice over",
+    "screen reader",
+    "reduce motion",
+    "stop the animation",
+    "the dot keeps moving",
+    "large text",
+    "bigger text",
+    "text size",
+    "dynamic type",
+    "נגישות",
+    "קורא מסך",
+    "הפחתת תנועה",
+    "טקסט גדול"
+   ],
+   "how": "Every control of the call screen has a name for a screen reader, and the status line is read as one line. With Reduce Motion on in the system's Accessibility settings nothing on a Pointe screen moves by itself: the status line's words carry the state. Every sound has something on screen with it, and the iPhone app follows the system's text size. These follow the device's own settings: Pointe has no switch for them.",
+   "about": "A name for every control, nothing told by sound, motion or colour alone, Reduce Motion, large text"
+  },
+  {
    "id": "progress",
    "title": "Progress updates while a session works",
    "ask": [

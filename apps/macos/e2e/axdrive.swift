@@ -28,7 +28,7 @@ import Foundation
 
 let args = CommandLine.arguments
 guard args.count >= 3, let pid = pid_t(args[1]) else {
-    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|switches|state|actions|labelled|count|window|panel|button|type|ids|menu|size [what]\n".utf8))
+    FileHandle.standardError.write(Data("usage: axdrive <pid> press|value|label|exists|switches|state|actions|labelled|unnamed|count|window|panel|button|type|ids|menu|size [what]\n".utf8))
     exit(2)
 }
 guard AXIsProcessTrusted() else {
@@ -134,6 +134,35 @@ case "labelled":
         if label.hasPrefix(what) { print(label) }
         return false
     }
+case "unnamed":  // the window's controls a screen reader has no words for: no title, description or value (or a symbol's file name)
+    let controls: Set<String> = [kAXButtonRole, kAXCheckBoxRole, kAXRadioButtonRole, kAXPopUpButtonRole, kAXMenuButtonRole, kAXTextFieldRole,
+                                 kAXTextAreaRole, kAXSliderRole, "AXSwitch", "AXLink"]
+    guard let windows = attribute(app, kAXWindowsAttribute as String) as? [AXUIElement] else { exit(1) }
+    var n = 0
+    for window in windows {
+        _ = walk(window) { element in
+            guard let role = attribute(element, kAXRoleAttribute as String) as? String, controls.contains(role) else { return false }
+            let subrole = attribute(element, kAXSubroleAttribute as String) as? String ?? ""
+            if ["AXCloseButton", "AXMinimizeButton", "AXZoomButton", "AXFullScreenButton", "AXToolbarButton"].contains(subrole) { return false }
+            let parent = attribute(element, kAXParentAttribute as String).map { $0 as! AXUIElement }
+            if parent.flatMap({ attribute($0, kAXRoleAttribute as String) as? String }) == kAXScrollBarRole as String { return false }  // a scroll bar's own arrows and track
+            let words = [kAXDescriptionAttribute, kAXTitleAttribute, kAXHelpAttribute, kAXPlaceholderValueAttribute].compactMap { attribute(element, $0 as String) as? String }.first { !$0.isEmpty }
+                ?? (role == kAXTextFieldRole || role == kAXTextAreaRole ? "" : text(element))
+            let titled = attribute(element, kAXTitleUIElementAttribute as String) != nil
+            if (words.isEmpty && !titled) || words.range(of: #"^[a-z0-9]+(\.[a-z0-9]+)+$"#, options: .regularExpression) != nil {
+                n += 1
+                var inside = ""  // what it holds, to tell which control it is
+                _ = walk(element) { inner in
+                    if attribute(inner, kAXRoleAttribute as String) as? String == kAXStaticTextRole as String { inside = text(inner); return !inside.isEmpty }
+                    return false
+                }
+                let at = frame(of: element).map { "\(Int($0.minX)),\(Int($0.minY)) \(Int($0.width))x\(Int($0.height))" } ?? "?"
+                print("\(role) '\(attribute(element, kAXIdentifierAttribute as String) as? String ?? "")' at \(at) holding '\(inside.prefix(40))' is read as '\(words)'")
+            }
+            return false
+        }
+    }
+    exit(n == 0 ? 0 : 1)
 case "count":
     guard let element = find(what) else { print(0); exit(1) }
     var n = 0

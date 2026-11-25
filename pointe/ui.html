@@ -3111,6 +3111,8 @@
     else nudgeConnect();
   }
   // The row and the mode switch move at once; the Mac's status takes over once it has the request.
+  // A scroll a script asks for glides only when motion is allowed: the CSS rule for reduced motion does not reach it.
+  const glide = () => matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   const setMode = mode => want('mode', s => { s.mode = mode; }, post('/voice/mode', {mode}));
   const switchTo = name => want('mode', s => { s.mode = 'session'; s.active = name; }, post('/voice/switch', {name}));
 
@@ -4285,7 +4287,7 @@
     for (const b of nav.querySelectorAll('button')) {
       const on = b.dataset.section === id;
       if (on && !b.classList.contains('on') && nav.scrollWidth > nav.clientWidth)  // the strip on a narrow screen: the mark stays in view
-        nav.scrollTo({left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2, behavior: 'smooth'});
+        nav.scrollTo({left: b.offsetLeft - (nav.clientWidth - b.offsetWidth) / 2, behavior: glide()});
       b.classList.toggle('on', on);
       if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
     }
@@ -4295,7 +4297,7 @@
   for (const ev of ['wheel', 'touchmove', 'pointerdown', 'keydown']) $('set-panel').addEventListener(ev, () => { settingsJumped = false; }, {passive: true});
   function settingsJump(id) {
     settingsJumping = Date.now() + 700; settingsJumped = true; settingsMark(id);
-    $('set-panel').scrollTo({top: $(id).offsetTop - 12, behavior: 'smooth'});
+    $('set-panel').scrollTo({top: $(id).offsetTop - 12, behavior: glide()});
   }
   function syncSettingsNav() {
     for (const b of $('set-nav').querySelectorAll('button')) { const h = $(b.dataset.section).hidden; if (b.hidden !== h) b.hidden = h; }

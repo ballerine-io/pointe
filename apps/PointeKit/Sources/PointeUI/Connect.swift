@@ -114,7 +114,7 @@ struct ConnectPanel: View {
         }
         .padding(.horizontal, 28)
         .frame(maxWidth: 360)
-        .animation(.easeInOut(duration: 0.2), value: face)
+        .motion(.easeInOut(duration: 0.2), value: face)
     }
 
     /// Title, reason and the one button: when nothing failed, or while a Try again dials.

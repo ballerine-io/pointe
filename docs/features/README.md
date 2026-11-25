@@ -23,6 +23,7 @@ from any voice denies a pending request, in every mode.
 | [Skip](skip.md) | Skip what Pointe is saying and go on to the next message: a button, a key on the Mac, or "skip"; a switch drops what waited |
 | [Thinking and the waiting sound](thinking.md) | From the end of your turn to the reply the status says "Thinking…", and one soft sound marks a long wait |
 | [Progress updates](progress.md) | Off by default: one short true line while a session works, 20 seconds in and then every 45 |
+| [Accessibility](accessibility.md) | A name for every control, nothing told by sound, motion or colour alone, Reduce Motion, large text |
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
 | [Meeting mode](meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends |
 | [Start a new session](new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in |

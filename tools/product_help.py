@@ -438,6 +438,14 @@ TOPICS = (
           "request it says the session is working. When a reply takes long, one soft sound says your words were heard; "
           "it never plays with the reply, while Pointe is muted, in whisper mode or in a meeting.",
           iphone=(("menu", "Waiting sound"),), page=(("settings", "Turn taking", "Waiting sound"),), doc="thinking.md"),
+    Topic("accessibility", "Accessibility: VoiceOver, Reduce Motion and large text",
+          ("accessibility", "voiceover", "voice over", "screen reader", "reduce motion", "stop the animation", "the dot keeps moving",
+           "large text", "bigger text", "text size", "dynamic type", "נגישות", "קורא מסך", "הפחתת תנועה", "טקסט גדול"),
+          "Every control of the call screen has a name for a screen reader, and the status line is read as one line. With "
+          "Reduce Motion on in the system's Accessibility settings nothing on a Pointe screen moves by itself: the status "
+          "line's words carry the state. Every sound has something on screen with it, and the iPhone app follows the "
+          "system's text size. These follow the device's own settings: Pointe has no switch for them.",
+          doc="accessibility.md"),
     Topic("progress", "Progress updates while a session works",
           ("progress updates", "keep me posted", "keep me updated", "how is it going", "stop updates", "is it still working",
            "updates while it works", "תעדכן אותי", "עדכוני התקדמות", "בלי עדכונים"),
