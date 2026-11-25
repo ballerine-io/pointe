@@ -201,6 +201,15 @@ daemon, or a web page that reaches it, must get nothing. The rules below are enf
   twice in ten minutes; after that it is read word for word. Drive mode does not read one out: it waits until you stop.</p>
 </li>
 <li>
+<p>A command that only looks is said as that: "look around, read only: pwd, ls, git status, grep and find", and "also
+  in /tmp" when it looks outside the project or at a hidden or secret-looking file (<code>readout.looking</code>). A session
+  exploring a project asks for long lists of these, and word for word one took 38 seconds. The list of what only
+  looks is its own allowlist and a narrow one: known reading programs, git's reading subcommands, find with no action,
+  no redirect but to <code>/dev/null</code>, no substitution, no variable but <code>$?</code> and <code>$PWD</code>, no background job. Its patterns and
+  flags are not said; every program and every place outside the project is. Each way around it found so far is a test
+  (<code>tests/test_readout_looking.py</code>), and anything it does not know is read word for word.</p>
+</li>
+<li>
 <p>One kind is never said: a request with a secret written in it (a key, a token, <code>password=</code>: <code>readout.redact</code>). Said
   aloud, the secret would reach the speech vendors; masked, it would be approved unheard. On a call it is sent back to
   the session to pass the secret by reference (an environment variable or a file), which can then be read out; if the

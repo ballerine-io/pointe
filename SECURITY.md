@@ -69,6 +69,13 @@ With the default brain, a permission prompt is approved only when all of these h
   words with a pause between. A yes after it approves exactly those words, under every rule below. A long one (over 40
   words read) is first sent back to the session once for plain commands, which are easier to follow by ear, at most
   twice in ten minutes; after that it is read word for word. Drive mode does not read one out: it waits until you stop.
+- A command that only looks is said as that: "look around, read only: pwd, ls, git status, grep and find", and "also
+  in /tmp" when it looks outside the project or at a hidden or secret-looking file (`readout.looking`). A session
+  exploring a project asks for long lists of these, and word for word one took 38 seconds. The list of what only
+  looks is its own allowlist and a narrow one: known reading programs, git's reading subcommands, find with no action,
+  no redirect but to `/dev/null`, no substitution, no variable but `$?` and `$PWD`, no background job. Its patterns and
+  flags are not said; every program and every place outside the project is. Each way around it found so far is a test
+  (`tests/test_readout_looking.py`), and anything it does not know is read word for word.
 - One kind is never said: a request with a secret written in it (a key, a token, `password=`: `readout.redact`). Said
   aloud, the secret would reach the speech vendors; masked, it would be approved unheard. On a call it is sent back to
   the session to pass the secret by reference (an environment variable or a file), which can then be read out; if the

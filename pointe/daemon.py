@@ -8493,6 +8493,8 @@ def _hebrew_request(spoken: str) -> str:
     if m := re.match(r"(run|use (\S+)), word for word: (.*)", spoken, re.S):
         verb = f"להשתמש ב-{m[2]}" if m[2] else "להריץ"
         return f"{verb}, מילה במילה: {m[3]}"
+    if spoken.startswith(readout.LOOK):  # the programs and the places stay as they are
+        return "להסתכל, קריאה בלבד:" + spoken[len(readout.LOOK):].replace(", also in ", ", גם ב-").replace(" and ", " ו-")
     verb, _, rest = spoken.partition(" ")
     return f"{_HE_REQUEST[verb]} {rest}" if verb in _HE_REQUEST and rest else spoken
 

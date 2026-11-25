@@ -134,7 +134,8 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None, run_in
     path = tool_input.get("file_path") or tool_input.get("notebook_path")
     if tool == "Bash":
         command = readout.spoken(str(tool_input.get("command") or ""), cwd, run_in)
-        what = f"run: {command}" if command else ""
+        # No short form of what it runs: it may still only look (readout.looking), which is said as that.
+        what = f"run: {command}" if command else readout.looking(str(tool_input.get("command") or ""), cwd, run_in) or ""
     elif tool in _FILE_VERBS and isinstance(path, str) and not readout._hidden(path):
         what = f"{_FILE_VERBS[tool]} {readout.place(path, cwd)}"
     else:

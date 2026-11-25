@@ -534,3 +534,147 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
         return None
     text = " ".join(w for w in words if w)
     return text if len(text.split()) <= WORDS else None
+
+
+# ---------- a command that only looks ----------
+
+LOOK = "look around, read only:"  # what a read-out of commands that change nothing starts with
+_LOOK_PROGRAMS = {"pwd", "ls", "cat", "head", "tail", "wc", "grep", "egrep", "fgrep", "rg", "file", "stat", "du", "df", "which",
+                  "echo", "true", "test", "[", "basename", "dirname", "realpath", "readlink", "nl", "cut", "tr", "uniq",
+                  "cd", "sort", "find", "date", "git", "python", "python3", "pip", "pip3"}
+_LOOK_GIT = {"status", "diff", "log", "show", "ls-files", "rev-parse", "branch", "remote", "blame", "describe", "ls-tree",
+             "shortlog"}
+_LOOK_GIT_BRANCH = set("-a -r -v -vv --show-current --list --all".split())
+_FIND_ACTS = {"-delete", "-exec", "-execdir", "-ok", "-okdir", "-fprint", "-fprint0", "-fprintf", "-fls"}
+_FIND_PATTERNS = {"-name", "-iname", "-path", "-ipath", "-wholename", "-regex", "-iregex", "-type", "-maxdepth", "-mindepth"}
+_LOOK_SILENT = {"echo", "true", "test", "["}  # they read nothing: not worth a word of the read-out
+_LOOK_QUIET = re.compile(r"\s*(?:[12]?>|&>)\s*/dev/null|\s*2>&1")
+_SENSITIVE = re.compile(r"secret|credential|passw|token|\.pem$|\.key$|id_rsa|id_ed25519|\.env|keychain|\.aws|\.ssh|\.netrc", re.I)
+_LOOK_MAX_PROGRAMS, _LOOK_MAX_PLACES = 8, 3
+
+
+def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | None:
+    """The short form of a command that only looks: "look around, read only: pwd, ls, git status and find", and where,
+    when it looks outside the project or at a file that may hold a secret. A session exploring a project asks for long
+    lists of these ("pwd && ls -la && git status --short && find . -name 'test*.py' | head"); read word for word, one
+    took forty seconds. Said: every program, every place outside the project, every hidden or secret-looking file.
+    Dropped: the patterns and the flags, which here cannot change what is read into what is written.
+
+    An allowlist again, and a narrow one. None, so the command is read word for word, for: any program not known to
+    only read; a redirect to anything but /dev/null; a substitution, a variable other than $? and $PWD, a background
+    job; find with an action, sort to a file, git with anything but its reading subcommands; and anything this cannot
+    parse. `cwd` and `run_in` as for `spoken`."""
+    if not cwd or not command.strip() or _hidden(command.replace("\n", "").replace("\t", "")) or "\r" in command:
+        return None
+    if "\n" in command or "$(" in command or "`" in command or "<(" in command or ">(" in command or "<<" in command:
+        return None
+    command = _LOOK_QUIET.sub(" ", command)
+    if re.search(r"\$(?!\?|PWD\b|\{PWD\})", command):
+        return None
+    lexer = shlex.shlex(command, posix=True, punctuation_chars="|&;<>()")
+    lexer.whitespace_split, lexer.commenters = True, ""
+    try:
+        tokens = list(lexer)
+    except ValueError:
+        return None
+    here = os.path.normpath(run_in or cwd)
+    programs: list[str] = []
+    places: list[str] = []
+
+    def note_place(path: str) -> None:
+        if path not in places:
+            places.append(path)
+
+    def seen(token: str) -> bool:
+        """A word that may be a path: said when it is outside the project, hidden, or looks like a secret. False: refuse."""
+        token = token.replace("${PWD}", here).replace("$PWD", here)
+        if "$" in token or re.match(r"~[^/]", token):
+            return False  # another variable; another user's home ("~other")
+        base = token.split("*")[0].split("?")[0].split("[")[0]  # a glob looks where its fixed start is
+        if token.startswith("-") or not ("/" in token or token.startswith(("~", ".")) or _SENSITIVE.search(token)):
+            return True  # a flag, a pattern, a bare name in the folder it runs in
+        full = os.path.normpath(os.path.join(here, os.path.expanduser(base or ".")))
+        said = place(full if base else here, cwd)
+        if said.startswith(("/", "~")) or said == full:
+            note_place(base if token.startswith("~") else full)  # outside the project: where, in full
+        else:
+            inside = os.path.relpath(os.path.realpath(full), os.path.realpath(cwd))
+            if any(p.startswith(".") and p not in (".", "..") for p in inside.split(os.sep)) or _SENSITIVE.search(token):
+                note_place(inside)
+        return True
+
+    words: list[str] = []  # the simple command being read
+
+    def close() -> bool:
+        nonlocal here
+        if not words:
+            return True
+        program, args = words[0], words[1:]
+        if program not in _LOOK_PROGRAMS or "=" in program:
+            return False
+        name = program
+        if program == "git":
+            while args[:1] == ["-C"] and len(args) >= 2:
+                if not seen(args[1]):
+                    return False
+                args = args[2:]
+            if args[:1] == ["--no-pager"]:
+                args = args[1:]
+            if not args or args[0] not in _LOOK_GIT:
+                return False
+            sub, rest = args[0], args[1:]
+            if any(a == "-o" or a.startswith("--output") or a.startswith("--ext-diff") for a in rest):
+                return False
+            if sub == "branch" and any(a not in _LOOK_GIT_BRANCH for a in rest):
+                return False
+            if sub == "remote" and any(a != "-v" for a in rest):
+                return False
+            name, args = f"git {sub}", rest
+        elif program in ("python", "python3"):
+            if args not in (["--version"], ["-V"]) and args[:3] not in (["-m", "pip", "show"], ["-m", "pip", "list"]):
+                return False
+            name = "pip" if args[:1] == ["-m"] else program
+            args = []
+        elif program in ("pip", "pip3"):
+            if args[:1] not in (["show"], ["list"], ["--version"]):
+                return False
+            args = []
+        elif program == "find":
+            if any(a in _FIND_ACTS for a in args):
+                return False
+            # What follows -name or -path is a pattern to match, not a place it looks in: "-path ./.git -prune".
+            args = [a for i, a in enumerate(args) if i == 0 or args[i - 1] not in _FIND_PATTERNS]
+        elif program == "sort" and any(a == "-o" or a.startswith("--output") for a in args):
+            return False
+        elif program == "date" and any(not a.startswith("+") for a in args):
+            return False
+        elif program == "cd":
+            if len(args) != 1 or args[0].startswith("-") or not seen(args[0]):
+                return False  # "cd -" goes back to a folder this cannot know
+            here = os.path.normpath(os.path.join(here, os.path.expanduser(args[0].replace("$PWD", here))))
+            del words[:]
+            return True  # where it goes is said if it is outside; "cd" itself is not a thing to approve
+        if program == "echo":
+            args = []  # printed to the screen: nothing is read
+        if not all(seen(a) for a in args):
+            return False
+        if name not in programs and name not in _LOOK_SILENT:
+            programs.append(name)
+        del words[:]
+        return True
+
+    for token in tokens:
+        if token in ("|", "&&", "||", ";"):
+            if not close():
+                return None
+        elif token in ("(", ")"):
+            continue  # a group, or find's own brackets: neither changes what is read
+        elif re.fullmatch(r"[|&;<>()]+", token):
+            return None  # a redirect, a background job, a here-string
+        else:
+            words.append(token)
+    if not close() or not programs or len(programs) > _LOOK_MAX_PROGRAMS or len(places) > _LOOK_MAX_PLACES:
+        return None
+    listed = programs[0] if len(programs) == 1 else ", ".join(programs[:-1]) + " and " + programs[-1]
+    where = f", also in {', '.join(places)}" if places else ""
+    return f"{LOOK} {listed}{where}"
