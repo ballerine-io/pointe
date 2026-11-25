@@ -6,9 +6,12 @@
 #   clone       anything else: a git checkout, a worktree, a test's copy. Never chosen over the copy that runs it.
 # When the plugin and the standalone install are both here, the newer version wins (the standalone one on a tie):
 # ~/.local/bin/pointe runs it (bin/link-pointe) and a start from the other one hands over to it (bin/voice-daemon).
-# Usage: pointe-installs list | newest | kind [ROOT] | version [ROOT]
+# Usage: pointe-installs list | newest | kind [ROOT] | version [ROOT] | stale | advise
 #   list      one line per installed copy, newest first: kind, version, root (tab-separated)
 #   newest    the root of the copy that wins; exit 1 when nothing is installed
+#   stale     each Pointe Claude Code plugin, from any marketplace, older than the newest copy: marketplace, version,
+#             root. Its /pointe:voice and hooks still run in every Claude Code session and cannot talk to the newer daemon.
+#   advise    the same, in words that say how to update or remove each one (install.sh and pointe doctor print them)
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POINTE_HOME="${POINTE_HOME:-$HOME/.pointe}"
@@ -60,10 +63,59 @@ list() {
   done | sort -t "$(printf '\t')" -k1,1Vr -k2,2r | cut -f3-
 }
 
+plugins() {  # every Pointe plugin folder Claude Code recorded or cached, any marketplace: marketplace, root
+  local dir key root
+  for dir in ${CLAUDE_CONFIG_DIR:+"$CLAUDE_CONFIG_DIR"} "$HOME/.claude"; do
+    for key in $(grep -o '"pointe@[A-Za-z0-9_.-]*"' "$dir/plugins/installed_plugins.json" 2>/dev/null | tr -d '"' | sort -u); do
+      root="$(grep -A12 -s "\"$key\"" "$dir/plugins/installed_plugins.json" \
+                | sed -n 's/.*"installPath": *"\([^"]*\)".*/\1/p' | head -1)"
+      if [ -n "$root" ] && [ -d "$root" ]; then printf '%s\t%s\n' "${key#pointe@}" "$(cd "$root" && pwd -P)"; fi
+    done
+    for root in "$dir"/plugins/cache/*/pointe/*/; do
+      [ -d "$root" ] && [ ! -e "${root%/}/.orphaned_at" ] || continue
+      key="${root#"$dir"/plugins/cache/}"
+      printf '%s\t%s\n' "${key%%/*}" "$(cd "$root" && pwd -P)"
+    done
+  done | awk -F '\t' '!seen[$2]++'
+}
+
+stale() {
+  local newest market root version
+  newest="$(list | awk -F '\t' 'NR == 1 { print $2 }')"
+  [ -n "$newest" ] || return 0
+  plugins | while IFS=$'\t' read -r market root; do
+    version="$(version_of "$root")" || continue
+    if [ "$version" != "$newest" ] && [ "$(printf '%s\n%s\n' "$version" "$newest" | sort -V | head -1)" = "$version" ]; then
+      printf '%s\t%s\t%s\n' "$market" "$version" "$root"
+    fi
+  done
+  return 0
+}
+
+advise() {
+  local newest market version root
+  newest="$(list | awk -F '\t' 'NR == 1 { print $2 }')"
+  stale | while IFS=$'\t' read -r market version root; do
+    echo "An older Pointe plugin for Claude Code is installed: $version, from the marketplace \"$market\" ($root)."
+    echo "  Its /pointe:voice and hooks run in your Claude Code sessions and do not work with Pointe $newest."
+    if [ "$market" = pointe ]; then
+      echo "  Update it:  claude plugin marketplace update pointe && claude plugin update pointe@pointe"
+    else
+      echo "  Remove it:  claude plugin uninstall pointe@$market"
+      echo "  Then, for /pointe:voice, the current plugin:  claude plugin marketplace add https://github.com/ballerine-io/pointe.git && claude plugin install pointe@pointe"
+      echo "  (claude plugin marketplace remove $market too, if Pointe was the only plugin you took from it.)"
+    fi
+    echo "  Restart your Claude Code sessions after it."
+  done
+  return 0
+}
+
 case "${1:-list}" in
   list)    list ;;
   newest)  root="$(list | awk -F '\t' 'NR == 1 { print $3 }')"; [ -n "$root" ] && echo "$root" ;;
   kind)    kind_of "${2:-$HERE}" ;;
   version) version_of "${2:-$HERE}" ;;
-  *)       echo "usage: pointe-installs list | newest | kind [ROOT] | version [ROOT]" >&2; exit 2 ;;
+  stale)   stale ;;
+  advise)  advise ;;
+  *)       echo "usage: pointe-installs list | newest | kind [ROOT] | version [ROOT] | stale | advise" >&2; exit 2 ;;
 esac

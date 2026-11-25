@@ -193,6 +193,12 @@ def install_lines() -> list[str]:
              for i, (kind, version, path) in enumerate(rows)]
     if not rows:
         lines.append(f"  none: this copy runs from a folder ({root})")
+    try:  # a Pointe plugin, from any marketplace, older than the copy that runs: its /pointe:voice fails against it
+        advice = subprocess.run([str(root / "bin" / "pointe-installs"), "advise"], capture_output=True, text=True,
+                                timeout=10, env=childenv.child_env()).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        advice = ""
+    lines += [f"  {line}" for line in advice.splitlines()]
     try:
         os.kill(int((state_dir() / "daemon.pid").read_text()), 0)
         ran = Path((state_dir() / "daemon.root").read_text().strip()).resolve()

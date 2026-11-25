@@ -162,6 +162,7 @@ if [ -n "$RESTART" ]; then
     || say "note     Pointe did not restart on $VERSION: pointe doctor says why, then pointe restart"
 fi
 while IFS= read -r dir; do [ -z "$dir" ] || { rm -rf "$dir" && say "ok       removed $(pretty "$dir")"; }; done <<<"$OLD"
+"$DEST/$INSTALLS" advise 2>/dev/null | sed 's/^/note     /' || true  # an older Pointe plugin would break /pointe:voice
 if [ "$MODE" = update ]; then say "Pointe is updated to $VERSION."; exit 0; fi
 
 say ""
