@@ -140,7 +140,14 @@ that Mac while they run. Each one refuses to start unless `CI=true` (GitHub Acti
 two UI test bundles refuse by the same rule when `xcodebuild test` is typed by hand (`UIGuard.swift` in each): pass
 `TEST_RUNNER_POINTE_UI_LOCAL=1` to xcodebuild, or add `POINTE_UI_LOCAL=1` to the scheme's Test environment in Xcode,
 uncommitted. An agent never sets either: it pushes, and reads the `ui` workflow's run (`.github/workflows/ui.yml`), which
-runs the iPhone UI tests in the Simulator, the Mac smoke and the Mac XCUITests, and uploads their screenshots.
+runs the iPhone UI tests in the Simulator, the Mac smoke and the Mac XCUITests, and uploads their screenshots. A failed
+iPhone test leaves the screen and the app's element tree in the `ios-ui-failures` artifact. To run some iPhone suites or
+tests again without the rest: `gh workflow run ui.yml -f only="PushToTalkUITests ParityUITests/testDisconnectingASessionAsksFirst"`.
+A step that fails there every run for a cause not yet found is quarantined with `quarantinedInCI` (an expected failure
+in CI, with its reason; an ordinary step anywhere else), never skipped. Two are, both on the iOS 26 simulator, and
+either may be a real bug on iOS 26: in `PushToTalkUITests.testTapToTalkOpensOnOneTapAndSendsOnTheNext` the second long
+press on the words leaves the gate open, and in `ScrollFollowUITests.testScrollingBackToTheEndByHandClearsThePill`
+neither swipes nor drags bring the view back to the end. Take a quarantine out when its cause is fixed.
 
 ```
 POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API
