@@ -209,3 +209,36 @@ def test_both_of_two_sessions_is_every_session(d, monkeypatch, words):  # noqa: 
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     d.REGISTRY.sessions.pop("s3")
     assert [s.name for s in d._overview_sessions(words)] == ["billing", "lantern"]
+
+
+def test_a_redirect_still_being_said_when_the_answers_come_narrows_it_too(d, monkeypatch):  # noqa: F811
+    """Tester round 5's bar-01: the three answers came 0.2 s before "Wait, wait, just tell me about quarry." was taken;
+    the whole overview was said, and the model also answered the redirect from notes ("Quarry has joined Pointe")."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    fed = d.state.conn.injector.fed
+
+    async def answers_while_the_user_talks(session, prompt):
+        d.state.hearing = (time.time(), "wait wait just tell me")
+        return ANSWERS[session.name]
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(answers_while_the_user_talks),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+
+    async def the_redirect_is_taken():
+        await asyncio.sleep(0.3)
+        d.state.hearing, d.state.final_at = (0.0, ""), time.time()  # the final transcript; the turn is taken later
+        await asyncio.sleep(0.5)
+        d.state.final_at = 0.0
+        words = "Wait, wait, just tell me about lantern."
+        d.state.utterance_spent = False
+        d.state.last_utterance, d.state.last_user_speech_at = words, time.time()
+        await d._on_user_utterance(words)
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await asyncio.gather(d._overview(front, "What's going on everywhere?",
+                                         d._overview_sessions("What's going on everywhere?")), the_redirect_is_taken())
+
+    asyncio.run(run())
+    text, respond = fed[-1]
+    assert respond and ANSWERS["lantern"] in text and ANSWERS["billing"] not in text

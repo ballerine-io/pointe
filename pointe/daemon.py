@@ -1746,6 +1746,7 @@ OVERVIEW_QUESTION = ("Where does your work stand right now, and what is the next
                      "numbers and names that matter. If you are waiting on the user, say for what.")
 OVERVIEW_MAX_SESSIONS = 5  # more sessions than this and the answer is from the notes, as before
 OVERVIEW_WAIT_SECS = 25.0  # a session's copy slower than this is left out of the answer, by name
+OVERVIEW_HEARD_SECS = 5.0  # answers that come while the user is speaking wait this long for their words to be taken
 OVERVIEW_AGAIN_SECS = 90.0  # asked again this soon, the answer is the one just given: the model has it
 _EVERY_SESSION = re.compile(r"\b(?:each|every|all (?:of )?(?:the |my )?|both(?: (?:of )?the)?) ?sessions?\b|"
                             r"\ball (?:of )?(?:them|the sessions)\b|\bboth of them\b|"
@@ -1798,6 +1799,13 @@ async def _overview(front, said: str, sessions: list[Session]) -> None:
     state.overview_asking, state.overview_focus = [x.id for x in sessions], None
     try:
         answers = await asyncio.gather(*(ask(x) for x in sessions))
+        # The user is mid-sentence as the answers come ("wait, just tell me about quarry"): their words decide what is
+        # said, so they are waited for (bar-01, tester round 5: the whole overview and a reply from notes, both said).
+        deadline = time.time() + OVERVIEW_HEARD_SECS
+        while ((state.hearing[1] or state.final_at > state.overview_at) and state.last_user_speech_at <= state.overview_at + 0.5
+               and time.time() < deadline):  # words being said, or said and not yet taken as the turn
+            await asyncio.sleep(0.1)
+        await asyncio.sleep(0)
     finally:
         state.overview_asking = []
     asked_at = state.overview_at
