@@ -44,9 +44,10 @@ def test_the_apps_and_ui_jobs_run_on_a_pull_request_by_the_same_paths_and_on_eve
         assert on["push"]["tags"] == ["v*"], f"{name}: a release tag runs it whatever changed"
 
 
-def test_the_offline_suite_and_the_supply_chain_gate_run_on_every_push_in_parallel_with_the_slow_tests():
+def test_the_offline_suite_the_page_and_the_supply_chain_gate_run_on_every_push_in_parallel_with_the_slow_tests():
     doc = yaml.safe_load((WORKFLOWS / "test.yml").read_text())
     assert doc[True] == ["push", "pull_request"], "no path filter: offline is a required check"
-    assert {"offline", "supply-chain"} <= doc["jobs"].keys()
-    runs = " ".join(step.get("run", "") for step in doc["jobs"]["offline"]["steps"])
-    assert "-n auto" in runs and "--runslow" in runs
+    assert {"offline", "page", "supply-chain"} <= doc["jobs"].keys()
+    runs = {job: " ".join(step.get("run", "") for step in doc["jobs"][job]["steps"]) for job in ("offline", "page")}
+    assert all("-n auto" in run and "--runslow" in run for run in runs.values())
+    assert '-m "not chrome"' in runs["offline"] and "-m chrome" in runs["page"], "between them, every test"

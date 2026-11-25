@@ -52,12 +52,14 @@ def pytest_addoption(parser):
     parser.addoption("--runslow", action="store_true", help="run the tests marked slow too (CI and the release gate do)")
 
 
+@pytest.hookimpl(tryfirst=True)  # before -m deselects, so `-m chrome` sees the marks added here
 def pytest_collection_modifyitems(config, items):
     """A test marked slow (a real daemon, a long wait) runs in CI and at a release, not in the inner loop
     (tools/test-changed): without --runslow it is skipped and says why. Every test that skips without headless Chrome
-    is slow too (each starts a browser): the page's tests are the bulk of the suite's time."""
+    is marked chrome and slow (each starts a browser): CI runs those in a job of their own (test.yml, `page`)."""
     for item in items:
         if any("headless Chrome" in str(m.kwargs.get("reason", "")) for m in item.iter_markers("skipif")):
+            item.add_marker(pytest.mark.chrome)
             item.add_marker(pytest.mark.slow)
     if config.getoption("--runslow"):
         return

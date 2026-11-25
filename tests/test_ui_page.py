@@ -193,6 +193,7 @@ def test_settings_reopens_at_the_top_with_the_first_section_marked():
     assert got["reopened"] == {"top": 0, "marked": "voicelock"}
 
 
+@pytest.mark.skipif(sys.platform == "linux", reason="headless Chrome on Linux lists no microphone")
 @needs_chrome
 def test_mic_mode_toggle_follows_the_daemon_and_sets_the_preference():
     got = asyncio.run(_render("""(async () => {
@@ -285,6 +286,7 @@ CONNECT_STATES = """(async () => {
 })()"""
 
 
+@pytest.mark.skipif(sys.platform == "linux", reason="headless Chrome on Linux lists no microphone")
 @needs_chrome
 def test_connect_is_its_own_control_and_says_why_it_failed():
     got = asyncio.run(_render(CONNECT_STATES))

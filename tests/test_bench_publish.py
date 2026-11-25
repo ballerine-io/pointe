@@ -7,6 +7,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 # The report scores with the dialogue suite's harness; its module names (core, dialogues) are shared with the other
 # harnesses, so the conftest hook enters this one before each test (tests/conv_suite.py).
@@ -25,6 +27,7 @@ def test_there_is_a_published_release():
     assert RELEASES, "bench/results/<date>-<tag>/ with a manifest.json"
 
 
+@pytest.mark.slow
 def test_the_summary_is_what_the_rows_give():
     release = RELEASES[-1]
     report = load("release_report")
