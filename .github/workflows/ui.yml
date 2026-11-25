@@ -22,7 +22,8 @@ jobs:
   # that need a test daemon or a stand-in Mac skip themselves here (each says which driver in apps/ios/e2e/ runs it).
   ios-ui:
     runs-on: macos-26
-    timeout-minutes: 90
+    # The tests alone take 70 to 80 minutes on a hosted runner; at 90 a busy day timed the job out with no artifacts.
+    timeout-minutes: 120
     env:
       # xcodebuild hands the test runner the variables named TEST_RUNNER_*, without the prefix. CI=true is what the
       # bundle's own guard asks for (apps/ios/PointeUITests/UIGuard.swift).
