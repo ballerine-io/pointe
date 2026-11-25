@@ -2882,6 +2882,7 @@ class State:
     sidetracked: str | None = None  # a permission the user turned away from with another question
     overview_at: float = 0.0  # when every session was last asked where it stands (_overview)
     unclear_asked: str | None = None  # the request for which "Is that a yes?" was said (once a request)
+    voice_allowed_at: float = 0.0  # when a spoken yes last approved a request: "run it" just after is that yes's tail
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
@@ -5809,10 +5810,24 @@ async def _on_user_utterance(text: str, typed: bool = False) -> None:
     if FRONT != "brain" and status_intent(text) and state.conn is not None:  # the brain is told before every reply
         await state.conn.injector.inject(_needs_now(), False)
     await _answer_permission(text)
+    if not state.utterance_spent and _tail_of_a_yes(text):
+        state.utterance_spent = True  # "כן, תריץ" heard as two turns: the second is the first's, and needs no reply
+        logger.info(f"the rest of a yes, said as its own turn: {text!r}")
     _drop_asked(text)
     await _stop_by_voice(text)
     if state.challenge is not None and not state.utterance_spent:  # a yes or no to a permission is not a rebuttal
         _challenge_note("rebuttal", text)
+
+
+YES_TAIL_SECS = 4.0
+_GO_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|yes|yeah|sure|please)\W+)*(?:go(?: ahead| for it| on)?|run(?: it| them)?|do it|proceed|"
+                    r"please|go go|תריץ|תריצי|תעשה|תעשי|סע|קדימה|בבקשה|יאללה)\W*$", re.I)
+
+
+def _tail_of_a_yes(text: str) -> bool:
+    """Words that only carry on a yes just given ("run it", "go ahead", "תריץ"), a few seconds after it approved."""
+    return time.time() - state.voice_allowed_at < YES_TAIL_SECS and (bool(_GO_ON.match(text or ""))
+                                                                     or permission_answer(text) == "allow")
 
 
 REDIRECT_STOP_SECS = 900.0  # "no wait, do X" ends a turn only in a session the user sent work to this recently
@@ -6053,6 +6068,8 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
                   f"line to answer it in that session's terminal.")
         return False
     session.permission_since = None
+    if verdict == "allow" and approvals.by(how) == "voice":
+        state.voice_allowed_at = time.time()
     spoke = state.last_speaker if approvals.by(how) == "voice" else None
     logger.info(approvals.event(session=session.name, machine=session.machine or None, request_id=request_id, decision=verdict,
                                 how=how, request=session.permission_full, lock=lock_level(),

@@ -13,6 +13,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 sys.path.insert(0, str(Path(__file__).parent))
 
@@ -263,3 +265,28 @@ def test_the_yes_after_is_that_a_yes_approves(d, monkeypatch):  # noqa: F811
     d.state.utterance_spent = False
     asyncio.run(d.on_user_utterance("Yes."))
     assert verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]
+
+
+@pytest.mark.parametrize("yes,tail", [("כן.", "תריץ."), ("Yes.", "Go ahead."), ("Yeah.", "Run it.")])
+def test_the_rest_of_a_yes_said_as_its_own_turn_is_part_of_it(d, monkeypatch, yes, tail):  # noqa: F811
+    """Tester round 4's first sample, heb-03: "כן, תריץ." came as two turns. "כן" approved; "תריץ" two seconds later went
+    to the model, which said for nine seconds that the tests were already with billing and an approval was pending."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    said.clear()
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance(yes))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]
+    d.state.utterance_spent = False
+    asyncio.run(d.on_user_utterance(tail))
+    assert d.state.utterance_spent and verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]
+
+
+def test_a_new_request_after_a_yes_is_not_taken_for_its_tail(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance("Yes."))
+    d.state.utterance_spent = False
+    asyncio.run(d.on_user_utterance("Run the lint too."))
+    assert not d.state.utterance_spent
