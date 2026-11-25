@@ -153,6 +153,7 @@ class Pointe(Base):
         self.port, self.tls = worker_port, worker_port + 1
         self.call: Call | None = None
         self._log_pos = 0
+        self.log_restarts = 0  # times daemon.log was found shorter than what was already read
         self.log_lines: list = []
         self.state: Path | None = None
         self.started_at = 0.0
@@ -200,11 +201,19 @@ class Pointe(Base):
     def lines(self) -> list:
         path = self.state / "daemon.log"
         if path.exists():
-            with open(path, errors="replace") as f:
+            # Bytes, not text: a text file's tell() is a cookie that also holds the decoder's state, and a read that
+            # ended inside a multi-byte character (Hebrew, a dash) left one this reader could not seek back to: the log
+            # then read as empty for the rest of the dialogue, and the harness went blind to what the voice said.
+            with open(path, "rb") as f:
+                size = f.seek(0, 2)
+                if size < self._log_pos:  # a new file under the same name: the daemon was started again
+                    self.log_restarts += 1
+                    self._log_pos = 0
                 f.seek(self._log_pos)
                 data = f.read()
-                self._log_pos = f.tell()
-            self.log_lines += data.splitlines()
+            end = data.rfind(b"\n") + 1  # whole lines only: a line still being written is read next time
+            self._log_pos += end
+            self.log_lines += data[:end].decode("utf-8", "replace").splitlines()
         return self.log_lines
 
     def start(self, sessions, env):
@@ -277,7 +286,8 @@ class Pointe(Base):
         tasks = self.call.tasks if self.call else []
         return {"daemon_up": bool(self.status()), "call_tasks_done": [t.done() for t in tasks],
                 "call_errors": [type(t.exception()).__name__ for t in tasks if t.done() and not t.cancelled() and t.exception()],
-                "socket_closed": getattr(self.call, "closed", None)}
+                "socket_closed": getattr(self.call, "closed", None),
+                "log_read": self._log_pos, "log_restarts": self.log_restarts}
 
     def _said_events(self) -> list:
         out = []
