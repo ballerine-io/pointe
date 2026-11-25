@@ -1,0 +1,108 @@
+"""An overview's facts are the sessions' own, asked for this minute.
+
+From the third independent tester (orc-01, bar-01, bar-02, t3-03): "what's going on everywhere" was answered from notes
+that held only how each session joined the call: "The three sessions are all idle, attached to Pointe, and have
+read the notes file." Every session named, and not one fact. Now each session is asked through a read-only copy, and the
+model is given their answers and nothing else to make the reply from.
+
+uv run pytest -q tests/test_overview_from_sessions.py
+"""
+
+import asyncio
+import sys
+import time
+from pathlib import Path
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from pipecat.frames.frames import InputTextRawFrame  # noqa: E402
+from pipecat.processors.frame_processor import FrameDirection  # noqa: E402
+
+from test_no_silent_turn import _call  # noqa: E402
+from test_orchestrator import add, d  # noqa: E402,F401  (d is the daemon fixture)
+
+ANSWERS = {"billing": "Three refund tests fail on half-cent rounding. Next is Decimal with half-even rounding.",
+           "lantern": "The nightly import took 47 minutes. Next is an index on customer id.",
+           "harbor": "Lighthouse is at 71. Next is converting the hero image."}
+
+
+def _three(d, monkeypatch, slow: str | None = None):  # noqa: F811
+    front, spoken, asked, say = _call(d, monkeypatch, ["Billing has three failing refund tests. Lantern's import took "
+                                                       "47 minutes. Harbor's Lighthouse score is 71."])
+    add(d, "s2", "lantern"), add(d, "s3", "harbor")
+    monkeypatch.setattr(d, "COPY_SESSIONS", True)
+    monkeypatch.setattr(d, "online", lambda s: True)
+    monkeypatch.setattr(d, "_capabilities", lambda s: {"side_questions": True})
+    monkeypatch.setattr(d, "OVERVIEW_WAIT_SECS", 0.3)
+    questions = []
+
+    async def side_question(session, prompt):
+        questions.append((session.name, prompt))
+        if session.name == slow:
+            await asyncio.sleep(5)
+        return ANSWERS[session.name]
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(side_question),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+    return front, spoken, asked, say, questions
+
+
+@pytest.mark.parametrize("words", ["What's going on everywhere?", "Give me a full rundown of everything that's happening "
+                                   "across all the sessions.", "What's the status of each session?", "מה קורה בכל הסשנים?"])
+def test_a_question_about_every_session_asks_every_session(d, monkeypatch, words):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    assert [s.name for s in d._overview_sessions(words)] == ["billing", "lantern", "harbor"]
+
+
+@pytest.mark.parametrize("words", ["What's billing doing?", "Tell every session to run its tests.", "Thanks, all of them work.",
+                                   "What's the status of lantern?"])
+def test_other_words_are_answered_as_before(d, monkeypatch, words):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    assert d._overview_sessions(words) == []
+
+
+def test_the_overview_is_made_from_the_sessions_own_answers(d, monkeypatch):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    fed = d.state.conn.injector.fed
+
+    async def run():
+        d.state.last_utterance, d.state.last_user_speech_at = "What's going on everywhere?", time.time() - 1
+        d.state.utterance_spent = False
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert spoken[0] == "Asking billing, lantern and harbor."  # said at once, before any answer
+    assert sorted(name for name, _ in questions) == ["billing", "harbor", "lantern"]
+    text, respond = fed[-1]
+    assert respond and text.startswith("[overview:")
+    assert all(answer in text for answer in ANSWERS.values())  # what the model speaks from is the sessions' words
+    assert "at most 50 words" in text and "joining the voice" in text
+
+
+def test_a_session_that_does_not_answer_in_time_is_named_as_unreached(d, monkeypatch):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch, slow="harbor")
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    text, _ = d.state.conn.injector.fed[-1]
+    assert "- harbor: gave no answer in time" in text and ANSWERS["billing"] in text
+
+
+def test_asked_again_at_once_it_is_not_asked_of_the_sessions_twice(d, monkeypatch):  # noqa: F811
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+    assert d._overview_sessions("What's going on everywhere?")
+    d.state.overview_at = time.time()
+    assert d._overview_sessions("What's going on everywhere?") == []
+
+
+def test_the_overview_may_say_a_sentence_for_each_session():
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pointe"))
+    import conversation as cv
+    assert cv.limit_for("[overview: the user asked…]\n- billing: x", "What's going on everywhere?") is cv.OVERVIEW
+    assert cv.OVERVIEW.sentences >= 3 and cv.OVERVIEW.words <= 60

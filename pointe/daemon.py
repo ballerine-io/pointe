@@ -1685,6 +1685,76 @@ def _may_fast_send() -> bool:
             and not any(s.permission_id for s in REGISTRY.sessions.values()))
 
 
+OVERVIEW_QUESTION = ("Where does your work stand right now, and what is the next step? Two short sentences, with the "
+                     "numbers and names that matter. If you are waiting on the user, say for what.")
+OVERVIEW_MAX_SESSIONS = 5  # more sessions than this and the answer is from the notes, as before
+OVERVIEW_WAIT_SECS = 25.0  # a session's copy slower than this is left out of the answer, by name
+OVERVIEW_AGAIN_SECS = 90.0  # asked again this soon, the answer is the one just given: the model has it
+_EVERY_SESSION = re.compile(r"\b(?:each|every|all (?:of )?(?:the |my )?) ?sessions?\b|\ball (?:of )?(?:them|the sessions)\b|"
+                            r"\beverywhere\b|\bacross (?:all|the) |(?<![֐-׿])(?:ב?כל הסשנים|בכל מקום|כולם)(?![֐-׿])", re.I)
+_OVERVIEW_ASK = re.compile(r"\b(?:status|rundown|overview|update|what'?s (?:going on|happening|up)|how (?:are|is) (?:things|"
+                           r"it|they) going|where (?:do|does) (?:things|it|they) stand)\b|(?<![֐-׿])(?:מה קורה|מה המצב|סטטוס)(?![֐-׿])", re.I)
+
+
+def _overview_sessions(said: str) -> list[Session]:
+    """The sessions to ask, when the user's words ask what is going on in all of them: an overview said from notes that
+    hold only "joined the voice, read the notes file, said ready" names every session and no fact (the tester's orc-01).
+    Each session is asked itself, through a read-only copy that never touches its work. Empty: answer as before (one
+    session, too many, a session named, a mode in which nothing is asked, or asked a moment ago)."""
+    if not COPY_SESSIONS or REGISTRY.mode != "orchestrator" or not _may_fast_send() or not current_mode().sends:
+        return []
+    if not (_EVERY_SESSION.search(said) and (_OVERVIEW_ASK.search(said) or status_intent(said))) \
+            or broadcast_intent(said) or re.match(r"\W*(?:tell|ask|have|get|make|תגיד|תבקש)\b", said, re.I):
+        return []  # "tell every session to run its tests" is work for them, not a question about them
+    sessions = [x for x in REGISTRY.sessions.values() if online(x)]
+    if named_sessions(said, sessions) or not 2 <= len(sessions) <= OVERVIEW_MAX_SESSIONS \
+            or time.time() - state.overview_at < OVERVIEW_AGAIN_SECS:
+        return []
+    return sessions if all(_capabilities(x)["side_questions"] for x in sessions) else []
+
+
+async def _overview(front, said: str, sessions: list[Session]) -> None:
+    """"What's going on everywhere?": says at once whom it asks, asks every session's copy in parallel, and gives the
+    model their own answers to say in one short reply. Every fact in the overview is a session's, of this minute."""
+    state.overview_at = time.time()
+    hebrew = bool(re.search(r"[\u0590-\u05ff]", said))
+    names = [_spoken_names(x.name).split("/")[0] for x in sessions]
+    listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + (" ו-" if hebrew else " and ") + names[-1]
+    ack = f"שואל את {listed}." if hebrew else f"Asking {listed}."
+    front.brain.forget()
+    front.brain.append(said)
+    front.brain.messages.append({"role": "assistant", "calls": [], "said": ack})
+    front.brain._spoke(ack)
+    _stage("reply")
+    _stage("checked")
+    await front._speak(ack)
+
+    async def ask(x: Session) -> str | None:
+        prompt = f"{OVERVIEW_QUESTION}\n\n(Answered aloud to the user, who asked by voice: plain spoken sentences, no code, no lists.)"
+        try:
+            return await asyncio.wait_for(harnesses.of(x).side_question(x, prompt), OVERVIEW_WAIT_SECS)
+        except Exception as e:
+            logger.warning(f"overview: the copy of {x.name} gave no answer ({type(e).__name__})")
+            return None
+
+    answers = await asyncio.gather(*(ask(x) for x in sessions))
+    asked_at = state.overview_at
+    if state.conn is None or state.last_user_speech_at > asked_at + 0.5:
+        logger.info("overview: the user spoke again before the answers came; they are kept as news, not said")
+        for x, a in zip(sessions, answers):
+            if a:
+                front.brain.add_news(f"[{x.name}, asked where it stands, answered] {mask(a)[:600]}")
+        return
+    lines = [f"- {x.name}: {mask(a).strip()[:600]}" if a else
+             f"- {x.name}: gave no answer in time; say that you could not reach it" for x, a in zip(sessions, answers)]
+    logger.info(f"overview: {sum(1 for a in answers if a)} of {len(sessions)} sessions answered")
+    await state.conn.injector.inject(
+        "[overview: the user asked what is going on in every session, and each session has just answered for itself, "
+        f"below. Tell the user in {'Hebrew' if hebrew else 'English'}, in at most 50 words: one short sentence for each "
+        "session, its name first, with the number or name that matters most. Say nothing about joining the voice or "
+        "reading files, add nothing that is not below, and ask nothing]\n" + "\n".join(lines), True)
+
+
 async def _send_fast(front, said: str, session: Session, message: str) -> bool:
     """A plain request sent as said (_fast_send), through every guard a send passes (send_to_claude_code), and
     acknowledged in two words; the model is told what was sent. False when it did not go: the words go to the model as
@@ -2029,6 +2099,10 @@ class BrainFront(FrameProcessor):
                     return
                 self._cut_reply = None  # real words: the reply they cut is theirs to bring back by asking
                 self._watch(frame.text)
+                everyone = _overview_sessions(frame.text)
+                if everyone:
+                    self.create_task(_overview(self, frame.text, everyone), f"overview-{time.time()}")
+                    return
                 fast = _fast_send(frame.text) if _may_fast_send() else None
                 if fast is not None:
                     self.create_task(self._fast_or_brain(frame.text, *fast), f"fast-{time.time()}")
@@ -2789,6 +2863,7 @@ class State:
     turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    overview_at: float = 0.0  # when every session was last asked where it stands (_overview)
     unclear_asked: str | None = None  # the request for which "I need a yes or a no" was said (once a request)
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)

@@ -21,6 +21,7 @@ REPLY = Limit(words=30, sentences=2)  # an answer to what was asked, and nothing
 STATUS = Limit(words=60, sentences=4)  # "what's going on": several sessions in one answer, three named at most
 REPORT = Limit(words=45, sentences=3)  # a session's finished turn: the verdict, the limit, what it needs
 URGENT_REPORT = Limit(words=60, sentences=4)
+OVERVIEW = Limit(words=60, sentences=5)  # "what's going on everywhere": a sentence for each session, five at most
 BATCH = Limit(words=40, sentences=2)  # "Two updates: billing finished, docs needs approval."
 DETAIL = Limit(words=120, sentences=8, items=None)  # asked for: "tell me more", "elaborate", "תפרט"
 # Two things side by side: at 30 words the cut kept the mutex and dropped the semaphore, 3 of 3 (QA round 2).
@@ -96,6 +97,8 @@ def limit_for(trigger: str | None, asked: str, status: bool = False, drive_words
         return None
     if drive_words is not None:
         return Limit(words=drive_words, sentences=2)
+    if trigger.startswith("[overview:"):
+        return OVERVIEW  # every session's own answer, a sentence each (daemon._overview)
     if BATCH_HEAD.match(trigger):
         return BATCH
     if trigger.startswith("["):
