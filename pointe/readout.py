@@ -538,6 +538,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
 
 # ---------- a command that only looks ----------
 
+ABOVE = "the folder above the project"
 LOOK = "look around, read only:"  # what a read-out of commands that change nothing starts with
 _LOOK_PROGRAMS = {"pwd", "ls", "cat", "head", "tail", "wc", "grep", "egrep", "fgrep", "rg", "file", "stat", "du", "df", "which",
                   "echo", "true", "test", "[", "basename", "dirname", "realpath", "readlink", "nl", "cut", "tr", "uniq",
@@ -595,7 +596,9 @@ def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | N
             return True  # a flag, a pattern, a bare name in the folder it runs in
         full = os.path.normpath(os.path.join(here, os.path.expanduser(base or ".")))
         said = place(full if base else here, cwd)
-        if said.startswith(("/", "~")) or said == full:
+        if os.path.realpath(full) == os.path.dirname(os.path.realpath(cwd)):
+            note_place(ABOVE)  # ".." from the project: said as that, not as the long path the project sits in
+        elif said.startswith(("/", "~")) or said == full:
             note_place(base if token.startswith("~") else full)  # outside the project: where, in full
         else:
             inside = os.path.relpath(os.path.realpath(full), os.path.realpath(cwd))

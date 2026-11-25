@@ -81,3 +81,10 @@ def test_too_many_places_or_programs_is_read_word_for_word(cwd):
 def test_a_single_readable_command_keeps_its_own_short_form(cwd):
     assert said("git status", cwd) == "run: git status"
     assert said("ls -la", cwd) == "run: ls"
+
+
+def test_the_folder_above_the_project_is_said_as_that(cwd):
+    """Measured: "find .. -maxdepth 3 -iname logo*.svg" was read as "also in slash private slash tmp slash…" for 23 s."""
+    assert said("find .. -maxdepth 3 -iname 'logo*.svg' | head", cwd) == \
+        "look around, read only: find and head, also in the folder above the project"
+    assert said("find ../.. -name x | head", cwd).endswith(os.path.dirname(os.path.dirname(os.path.realpath(cwd))))
