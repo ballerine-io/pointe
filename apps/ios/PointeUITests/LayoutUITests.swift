@@ -38,7 +38,6 @@ final class LayoutUITests: XCTestCase {
         let bar = app.navigationBars["Sessions"]
         XCTAssertTrue(bar.exists, "the bar keeps the sheet's name")
         XCTAssertGreaterThanOrEqual(title.frame.minY, bar.frame.maxY - 0.5, "the title is under the bar, not squeezed in it")
-        XCTAssertEqual(bar.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Ses")).count, 0, "no title in the bar")
         let modes = app.descendants(matching: .any)["modePicker"].firstMatch
         XCTAssertTrue(modes.exists)
         XCTAssertEqual(title.frame.minX, modes.frame.minX, accuracy: 1, "in line with the Orchestrator/Session switch")

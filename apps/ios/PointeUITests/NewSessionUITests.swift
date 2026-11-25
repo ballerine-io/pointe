@@ -60,8 +60,10 @@ final class NewSessionUITests: XCTestCase {
         launch("newSession")
         XCTAssertTrue(app.navigationBars["Sessions"].waitForExistence(timeout: 15))
         let starting = any("starting.shop-2"), failed = any("starting.lantern")
-        if !starting.waitForExistence(timeout: 5) { app.swipeUp() }
+        // The half-height sheet shows its title row over the switch: the second row can be below the fold.
+        if !(starting.waitForExistence(timeout: 5) && failed.exists) { app.swipeUp() }
         XCTAssertTrue(starting.waitForExistence(timeout: 5))
+        XCTAssertTrue(failed.waitForExistence(timeout: 5))
         XCTAssertTrue(starting.label.contains("Claude Code") && starting.label.contains("starting"), starting.label)
         XCTAssertTrue(failed.label.contains("did not start") && failed.label.contains("Codex's daemon is not running."), failed.label)
     }
