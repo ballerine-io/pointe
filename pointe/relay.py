@@ -165,11 +165,18 @@ _NAME_CUES = (re.compile(r"\b(?:function|method|class|constant|variable|helper)\
 
 # The recognizer's spellings of words of the trade (tester round 5: "dark string", "unitist", "Uniris", "UNIREST").
 _TRADE_SPELLINGS = {"docstring": r"\b(?:dark|doc|dock) ?strings?\b", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
+# "Convert hero dot png to webp" is heard "to web" (lat-04, by Soniox and by Whisper): an image converted to "web" is WebP,
+# and "web" that is a place ("move it to web", "web folder") or a thing of the web ("a web app", "web-safe") stays.
+_IMAGE_TO_WEB = re.compile(
+    r"\b((?:convert|re-?encode|encode|transcode)\w*\b[^.?!]{0,60}?"
+    r"(?:\.(?:png|jpe?g|gif|tiff?|bmp)\b|\b(?:pngs?|jpe?gs?|gifs?|images?|pictures?|photos?|screenshots?)\b)"
+    r"[^.?!]{0,30}?\b(?:to|into|as)\s+)web\b(?![-\w])(?!\s+(?:folder|dir|directory|page|site|app|server)s?\b)", re.I)
 
 
 def trade_words(message: str, known: set[str]) -> str:
     """The message with a recognizer's spelling of a word of the trade written as the trade writes it ("dark string" is
-    docstring), unless the session's own code uses the heard word (`known`, lower case)."""
+    docstring), unless the session's own code uses the heard word (`known`, lower case), and an image converted to "web"
+    converted to WebP (whatever the code calls "web")."""
     for word, pattern in _TRADE_SPELLINGS.items():
         def fix(m: re.Match, word: str = word) -> str:
             heard = m.group(0)
@@ -177,7 +184,7 @@ def trade_words(message: str, known: set[str]) -> str:
                 return heard
             return word + ("s" if heard.lower().endswith("strings") else "")
         message = re.sub(pattern, fix, message, flags=re.I)
-    return message
+    return _IMAGE_TO_WEB.sub(r"\1WebP", message)
 
 
 def repo_names(message: str, names: dict[str, set[str]]) -> str:

@@ -32,3 +32,19 @@ def test_a_misspelled_trade_word_is_written_right(message, sent):
 
 def test_a_word_the_code_uses_is_left_alone():
     assert relay.trade_words("Import unirest and call it.", {"unirest"}) == "Import unirest and call it."
+
+
+@pytest.mark.parametrize("message,sent", [
+    # lat-04: "convert hero dot png to webp" reaches the daemon as "to web" (Soniox and Whisper both hear the clip so)
+    ("Convert hero.png to web and update hero.js to point at it.",
+     "Convert hero.png to WebP and update hero.js to point at it."),
+    ("Convert the PNGs in assets to web.", "Convert the PNGs in assets to WebP."),
+    ("Re-encode banner.jpg as web, quality 80.", "Re-encode banner.jpg as WebP, quality 80."),
+    # "web" that names a place or a thing of the web stays
+    ("Move hero.png to web and update the import.", "Move hero.png to web and update the import."),
+    ("Convert hero.png to web folder assets.", "Convert hero.png to web folder assets."),
+    ("Convert the CLI to a web app.", "Convert the CLI to a web app."),
+    ("Convert hero.png to web-safe colours.", "Convert hero.png to web-safe colours."),
+])
+def test_an_image_converted_to_web_is_converted_to_webp(message, sent):
+    assert relay.trade_words(message, set()) == sent
