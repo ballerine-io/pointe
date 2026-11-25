@@ -6073,6 +6073,13 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         state.unclear_asked, state.utterance_spent = session.permission_id, True
         await _say_fixed("זה כן?" if re.search(r"[\u0590-\u05ff]", text) else "Is that a yes?")
         return
+    if verdict is None and not window_open and _LEADS_WITH_YES.match(text or "") and "?" not in text and current_mode().reads_out \
+            and not [s for s in named_sessions(text, list(REGISTRY.sessions.values())) if s is not session]:
+        # "Okay, yes, run the atlas tests." after the request went cold: not a bare yes, so it approves nothing, and the
+        # model must not answer it ("Okay, atlas is running the tests", t5-04): the request again, and the yes after it.
+        state.sidetracked, state.utterance_spent = None, True
+        await _read_out(session)
+        return
     if verdict is None:
         if window_open:  # a question first: a later yes may answer the bot's reply, not the permission
             session.permission_delivered_at = float("inf")
@@ -6150,6 +6157,7 @@ _READ_IT = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|please|yes|yeah|sorry|can you|cou
                       r"^\W*(?:תקריא|תקריאי|תחזור על)(?: את)?(?: זה)?(?: שוב)?\W*$", re.I)
 
 
+_LEADS_WITH_YES = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|alright|right)\W+)?(?:yes|yeah|yep|yup|sure|go ahead|כן|יאללה)\b", re.I)
 _WAIT_A_MOMENT = re.compile(r"^\W*(?:(?:yes|yeah|ok(?:ay)?|um+|uh+|hmm+|so|כן|אוקיי|אממ?)\W+)*(?:wait|hold on|one sec(?:ond)?|"
                             r"just a (?:sec(?:ond)?|moment|minute)|a moment|let me think|רגע|שנייה|שניה|חכה|תן לי לחשוב)"
                             r"(?:\W+(?:a sec(?:ond)?|a moment|please|רגע))?\W*$", re.I)

@@ -322,3 +322,18 @@ def test_a_wait_over_a_request_gets_silence_while_the_user_thinks(d, monkeypatch
     d.state.user_started_at = time.time() - 1
     asyncio.run(d.on_user_utterance("לא, אל תריץ את זה." if "כן" in words else "No, don't run it."))
     assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]
+
+
+@pytest.mark.parametrize("words", ["Okay, yes, run the tests.", "Yes, go ahead and run it.", "Yeah, do it now."])
+def test_a_yes_with_more_words_after_the_request_went_cold_brings_the_read_out_back(d, monkeypatch, words):  # noqa: F811
+    """t5-04 in tester round 5 (3 of 3): a question came between the read-out and the answer, then a reminder, then "Okay,
+    yes, run the atlas tests." It is not a bare yes, so it neither approved nor brought the request back: the model
+    answered "Okay, atlas is running the tests." and nothing ran. Words that lead with a yes now get the read-out again,
+    approving nothing, and the yes after it approves."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    active.permission_delivered_at, d.state.sidetracked = float("inf"), active.permission_id  # turned away, reminded
+    said.clear()
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance(words))
+    assert verdicts(posts) == [] and d.state.utterance_spent and said and "rm -rf build" in said[-1]
