@@ -6528,6 +6528,12 @@ def _routing_mode() -> str:
     return REGISTRY.mode
 
 
+# "Going back to the import, …": the user returns to a topic of an earlier exchange (t3-02); with the session they asked
+# about it earlier in this call, that is where it goes, not a question of which.
+_RETURNS_TO = re.compile(r"\b(?:going back to|go(?:ing)? back to|back to|returning to|coming back to|about the \w+ again)\b|"
+                         r"(?<![֐-׿])(?:חוזר ל|חזרה ל|בחזרה ל|לגבי ה\S+ שוב)", re.I)
+
+
 async def _route(message: str, said: str | None = None) -> tuple[list[Session], str]:
     """Where a request goes, decided in code.
 
@@ -6572,7 +6578,7 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
         return [], "ambiguous"  # ask which session rather than guess
     thread = _thread()
     if thread is not None and picked is not None and picked is not thread and not (picked.open_questions or picked.needs) \
-            and not _just_mentioned(picked):
+            and not _just_mentioned(picked) and not (_RETURNS_TO.search(said) and picked.last_delegation_at > state.connected_at):
         state.off_thread = (thread.name, picked.name)
         return [], "off-thread"
     if picked is not None:
