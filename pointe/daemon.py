@@ -8849,6 +8849,8 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
 
 
 _HE_REQUEST = {"run:": "להריץ:", "edit": "לערוך את", "write": "לכתוב את", "read": "לקרוא את"}
+_HE_JOINS = ((" then ", " ואז "), (" or else ", " ואם לא, "), (" into ", " אל "), (" writing to ", " וכותב ל-"),
+             (" appending to ", " ומוסיף ל-"), (" reading ", " וקורא את "))
 
 
 def _heard_request(spoken: str) -> str:
@@ -8867,7 +8869,11 @@ def _hebrew_request(spoken: str) -> str:
     if spoken.startswith(readout.LOOK):  # the programs and the places stay as they are
         return "להסתכל, קריאה בלבד:" + spoken[len(readout.LOOK):].replace(", also in ", ", גם ב-").replace(" and ", " ו-")
     verb, _, rest = spoken.partition(" ")
-    return f"{_HE_REQUEST[verb]} {rest}" if verb in _HE_REQUEST and rest else spoken
+    if verb not in _HE_REQUEST or not rest:
+        return spoken
+    for english, hebrew in _HE_JOINS:  # the short form's own words (readout._JOIN, _REDIRECT); the commands stay as they run
+        rest = rest.replace(english, hebrew)
+    return f"{_HE_REQUEST[verb]} {rest}"
 
 
 async def _ask_permission(session: Session) -> None:

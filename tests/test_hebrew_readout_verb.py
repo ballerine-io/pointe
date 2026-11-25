@@ -27,3 +27,13 @@ from test_orchestrator import d  # noqa: E402,F401  (d is the daemon fixture)
 ])
 def test_the_verb_is_hebrew_and_the_command_is_exact(d, spoken, said):  # noqa: F811
     assert d._hebrew_request(spoken) == said
+
+
+@pytest.mark.parametrize("spoken,said", [
+    # heb-03 in tester round 4's first sample: "LS Scripts App Tests, then Head Test… then Python 3 Unit Taste Discover"
+    ("run: ls scripts then head test_refunds.py then python3 unittest discover",
+     "להריץ: ls scripts ואז head test_refunds.py ואז python3 unittest discover"),
+    ("run: python3 pytest tests writing to out.txt", "להריץ: python3 pytest tests וכותב ל-out.txt"),
+])
+def test_the_joining_words_of_a_short_read_out_are_hebrew_too(d, spoken, said):  # noqa: F811
+    assert d._hebrew_request(spoken) == said
