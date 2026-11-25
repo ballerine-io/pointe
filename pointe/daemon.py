@@ -8813,7 +8813,8 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
         text = (f"{name} צריך אישור שאני לא יכול להקריא. הוא מופיע על המסך: אשר שם, או אמור לא." if hebrew else
                 f"{name} needs an approval I can't read out. It's on your screen: approve it there, or say no.")
     else:
-        text = f"{name} מבקש {_hebrew_request(session.permission_spoken)}. לבצע?" if hebrew else f"{name} wants to {session.permission_spoken}. Should it?"
+        heard = _heard_request(session.permission_spoken)
+        text = f"{name} מבקש {_hebrew_request(heard)}. לבצע?" if hebrew else f"{name} wants to {heard}. Should it?"
     if unsure and state.drive.on():
         text = drives.unsure(hebrew) + text
     elif unsure:
@@ -8831,6 +8832,14 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
 
 
 _HE_REQUEST = {"run:": "להריץ:", "edit": "לערוך את", "write": "לכתוב את", "read": "לקרוא את"}
+
+
+def _heard_request(spoken: str) -> str:
+    """The read-out as it is said: a code name's underscores as spaces ("calc total", not "calc underscore total") and a
+    lone "." as "here". A word-for-word read-out is said exactly; the words a yes is bound to are not changed."""
+    if VERBATIM in spoken[:40]:
+        return spoken
+    return re.sub(r"(?<=\s)\.(?=\s|$)", "here", re.sub(r"(?<=[A-Za-z0-9])_+(?=[A-Za-z0-9])", " ", spoken))
 
 
 def _hebrew_request(spoken: str) -> str:

@@ -166,6 +166,7 @@ def visible(value):
 
 
 PROJECT = "the project folder"
+ROOT = "the whole disk"  # "/" read as "slash" says nothing of how far a search or a delete reaches
 
 
 def place(path: str, cwd: str | None) -> str:
@@ -176,6 +177,8 @@ def place(path: str, cwd: str | None) -> str:
     full = os.path.normpath(os.path.join(cwd or "/", os.path.expanduser(path))) if cwd else None
     if not full or not cwd:
         return path
+    if full == "/":
+        return ROOT
     inside = os.path.relpath(full, cwd)
     if inside.startswith("..") or path.startswith(("~", "/")) and not full.startswith(cwd.rstrip("/") + "/"):
         # The same folder spelled through another link (/tmp is /private/tmp on a Mac) is still inside: read on.
@@ -598,6 +601,8 @@ def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | N
         said = place(full if base else here, cwd)
         if os.path.realpath(full) == os.path.dirname(os.path.realpath(cwd)):
             note_place(ABOVE)  # ".." from the project: said as that, not as the long path the project sits in
+        elif said == ROOT:
+            note_place(ROOT)
         elif said.startswith(("/", "~")) or said == full:
             note_place(base if token.startswith("~") else full)  # outside the project: where, in full
         else:
