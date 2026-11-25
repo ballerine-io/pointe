@@ -6745,11 +6745,27 @@ async def send_to_claude_code(params: FunctionCallParams):
     await params.result_callback(result)
 
 
+_OWNER_YES = re.compile(r"\b(?:owner|user)\s+(?:confirm\w*|said yes|says yes|agree\w*|approv\w*|authori[sz]\w*|insists?)\b|"
+                        r"\bconfirms? by voice\b|(?<!\w)(?:הבעלים|המשתמש) (?:אישר|אמר כן|מסכים)", re.I)
+_DESTRUCTIVE = re.compile(r"\b(?:delet\w*|remov\w*|rm|drop\w*|force[- ]?push\w*|push\w*|merg\w*|publish\w*|post\w*|"
+                          r"overwrit\w*|reset --hard|wipe\w*)\b|(?<!\w)(?:תמחק|למחוק|מחק|תמזג|למזג|תדחוף)(?!\w)", re.I)
+
+
+def owner_yes_relay(message: str) -> bool:
+    """A message that vouches for the owner's yes to a destructive action ("The owner confirms by voice: yes, delete…").
+    A yes is given to a request read out in full, or typed in the session's terminal: the voice never passes one on."""
+    return bool(_OWNER_YES.search(message or "") and _DESTRUCTIVE.search(message or ""))
+
+
 def typed_approval_refusal(message: str, target) -> dict | None:
-    """An approval the session accepts only typed in its terminal is never relayed by the voice."""
+    """An approval the session accepts only typed in its terminal is never relayed by the voice, and no owner's yes to a
+    destructive action is ever relayed (t5-01: before the session's refusal was known, one went out)."""
     if target and target.typed_approval and relays_approval(message, target.typed_approval):
         return {"error": f"Not sent: {target.name} accepts this approval only typed by the user. Tell the user to type it "
                          f"in the terminal: {target.typed_approval}."}
+    if target and owner_yes_relay(message):
+        return {"error": f"Not sent: the voice never passes on the user's yes. Send the request itself, plainly; if "
+                         f"{target.name} asks for permission, its request is read to the user, and their yes answers it."}
     return None
 
 
