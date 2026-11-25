@@ -52,9 +52,13 @@ def turn_scores(row: dict) -> list:
         dl = deliveries(row, a, b)
         r = {"dialogue": row["dialogue"], "dim": row["dim"], "i": i, "kind": kind, "lang": t["lang"], "when": t["when"],
              "text": text, "words": words(text), "need": t["need"], "delivered_to": sorted(dl)}
-        # time to first word
+        # Time to first word: the first span the recognizer heard words in. A waiting sound (Pointe's "thinking"
+        # tone, since 0.8.5) is audible and is not a word: counted as one, it made every first word look like 1.8 s.
+        worded = [sp for sp in spans if re.search(r"\w", sp[2] or "")]
+        if worded and kind in ANSWER_KINDS:
+            r["ttfw"] = round(worded[0][0] - a, 3)
         if spans and kind in ANSWER_KINDS:
-            r["ttfw"] = round(spans[0][0] - a, 3)
+            r["first_sound"] = round(spans[0][0] - a, 3)
         # talk-over: the arm starts while the user is still speaking (not a barge-in item, not already speaking)
         if t["when"] != "speaking" and not t.get("speaking_at_start"):
             r["talk_over"] = any(t["start"] + 0.3 < s < t["end"] - 0.3 for s, _, _ in said)
@@ -228,6 +232,7 @@ def metrics(rows: list, judge: dict | None = None) -> dict:
          "spend_usd": round(sum(r.get("spend_usd", 0) for r in rows), 3)}
     m["ttfw_median"] = pct([t.get("ttfw") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.5)
     m["ttfw_p90"] = pct([t.get("ttfw") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.9)
+    m["first_sound_median"] = pct([t.get("first_sound") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.5)
     useful = [t for t in T if t["kind"] in ("answer", "send", "multi", "ask", "send_or_ask")]
     # a turn whose goal was never met counts at the floor (30 s) so failing fast does not look fast
     m["ttua_median"] = pct([t["ttua"] if t["ok"] and t["ttua"] is not None else 30.0 for t in useful], 0.5)
@@ -332,7 +337,7 @@ def fmt(v) -> str:
 
 def table(results: dict) -> str:
     """results: label -> metrics. A markdown table of the measures and the dimension scores."""
-    keys = ["ttfw_median", "ttfw_p90", "ttua_median", "ttua_session_answer_median", "talk_over_rate", "barge_stop_median",
+    keys = ["ttfw_median", "ttfw_p90", "first_sound_median", "ttua_median", "ttua_session_answer_median", "talk_over_rate", "barge_stop_median",
             "barge_honoured", "backchannel_false_stop", "cut_off_on_pause", "right_session", "wrong_session_rate",
             "right_action", "code_names_exact", "words_over_need_median", "confirmations_per_10", "naturalness",
             "truncated_recovered", "correction_applied", "drop_mid_turn", "ambiguous_asked", "overview", "overview_words",
