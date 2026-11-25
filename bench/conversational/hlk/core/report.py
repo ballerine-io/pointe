@@ -306,15 +306,16 @@ def sections(rows, unpub, frozen) -> list:
         "No outside product is tested. Every reference arm is written by Pointe's team; we found no way to give audio to "
         "another voice coding tool without a virtual microphone, and the rules forbid microphones.",
         "Pointe's own model sits between the user and the agent and may rewrite an instruction, so a spoken arm can beat "
-        "the keyboard arm. The keyboard-transcript arm (the exact spoken words, typed) helps read that.",
+        "the keyboard arm." + (" The keyboard-transcript arm (the exact spoken words, typed) helps read that."
+                               if any(r["adapter"] == "keyboard-transcript" for r in rows) else ""),
         "The keyboard (canonical) text is written as a person would type it, and in some families it carries a "
         "detail the spoken line leaves to the listener (a file name in brackets, a quoted value), so the gap against it "
         "mixes information with voice; the router is the like-for-like comparison.",
         "The scripted user is deterministic, not a person: it answers the questions an item foresees, says one generic "
         "line to any other question, and repeats an instruction at most once.",
         "Costs are computed from usage and list prices, not metered bills.",
-        "The keyword-rules arm is ours and is built to fail the adversarial items; no headline number compares Pointe "
-        "with it.",
+        *(["The keyword-rules arm is ours and is built to fail the adversarial items; no headline number compares "
+           "Pointe with it."] if any(r["adapter"] == "naive" for r in rows) else []),
         "Voice only means voice only. Pointe counts a spoken yes only after it has read the request in full, and reads a "
         "command without a short form word for word; the scripted user cannot tap, so after two spoken yeses that did "
         "not take it says no. The count is in the table below.",
@@ -401,12 +402,15 @@ def sections(rows, unpub, frozen) -> list:
                    "not finish; they count as failures."))
     if "pointe" in arms:
         pf, pf_no, pf_edit, pp_no = refusals(rows)
-        B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
-                       "take and the scripted user then said no. That counts runs, not causes. "
-                       f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
-                       f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
-                       f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
-                       "spoken yes for any command: they have no such guard."))
+        if not pf_no:
+            B.append(("p", f"In none of Pointe's {len(pf)} failed runs did a spoken yes fail to take."))
+        else:
+          B.append(("p", f"Where Pointe lost runs: in {pf_no} of its {len(pf)} failed runs at least one spoken yes did not "
+                         "take and the scripted user then said no. That counts runs, not causes. "
+                         f"In {pf_no - pf_edit} of those {pf_no} the agent changed no file, so the work stopped at the "
+                         f"refusal or after it. In the other {pf_edit} the agent had already changed files and the hidden "
+                         f"tests still failed. {pp_no} runs passed despite such a refusal. The other arms act on a "
+                         "spoken yes for any command: they have no such guard."))
     if "pointe" in arms:
         slow = brain_timeouts(rows, frozen)
         if slow["now"][0]:
@@ -447,13 +451,18 @@ def sections(rows, unpub, frozen) -> list:
         "(Bash commands still ask). The Pointe arm adds only --plugin-dir and joins with /pointe:voice. No arm uses "
         "claude -p or --bare. A preflight checked that sessions are billed to the API key, load no user plugins and run "
         "in acceptEdits.",
-        "Arms: keyboard, canonical (the instruction as a person would type it; approve, deny and Escape as keypresses at "
-        "the same triggers; the reference ceiling); keyboard, transcript (the exact spoken words, typed: perfect ears); "
-        "null (starts the sessions, does nothing: the floor); keyword rules, ours (Soniox ears, first word naming a "
-        "session, yes, no and stop keywords, speaks the agent's final message through local Kokoro); LLM router (Soniox "
-        "ears, one call per utterance to the brain model of Pointe's default setup with a published 20-line prompt, "
-        "speech through local Kokoro: the baseline for the head-to-head); Pointe (an isolated daemon in its default "
-        "setup, audio in over the page's call, audio out recorded).",
+        "Arms run: " + "; ".join(text for arm, text in (
+            ("keyboard-canonical", "keyboard, canonical (the instruction as a person would type it; approve, deny and "
+                                   "Escape as keypresses at the same triggers; the reference ceiling)"),
+            ("keyboard-transcript", "keyboard, transcript (the exact spoken words, typed: perfect ears)"),
+            ("null", "null (starts the sessions, does nothing: the floor)"),
+            ("naive", "keyword rules, ours (Soniox ears, first word naming a session, yes, no and stop keywords, speaks "
+                      "the agent's final message through local Kokoro)"),
+            ("llm-router", "LLM router (Soniox ears, one call per utterance to the brain model of Pointe's default setup "
+                           "with a published 20-line prompt, speech through local Kokoro: the baseline for the "
+                           "head-to-head)"),
+            ("pointe", "Pointe (an isolated daemon in its default setup, audio in over the page's call, audio out "
+                       "recorded)")) if any(r["adapter"] == arm for r in rows)) + ".",
         "Answer keys: hidden tests and the reference patch are written before the session to a folder no arm is given; "
         "every config dir denies reads of it and of the bench; every transcript was audited for tool calls naming a path "
         "outside the item.",
@@ -464,7 +473,7 @@ def sections(rows, unpub, frozen) -> list:
         "every arm met the same hours of vendor latency, and a stop at the budget would have left a random subsample "
         "with every arm present.",
         "Speech: Kokoro-82M v1.0 (Apache-2.0), four voices (US and British, female and male), one seeded voice per "
-        "instance for both runs; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
+        "instance for every run; noise made in code (babble from the three other voices at 6 dB for the noisy-paths "
         "instruction, pink noise at 12 dB for the rest of that item)."]))
     B.append(("h2", "Run it, add to it"))
     B.append(("code", "uv run --locked --extra local python bench/conversational/hlk/run.py corpus\n"
