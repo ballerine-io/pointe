@@ -6574,7 +6574,9 @@ async def _send_now(message: str) -> dict:
         relevant = await _is_current_request(message, state.last_utterance, earlier, talk,
                                              parts[clause] if clause is not None else None)
     asked_part = parts[clause] if parts and clause is not None else state.last_utterance
-    if relevant is False:
+    if relevant is not True:
+        # No verdict at all (the fast model wrote "to answer this, let's analyze the user's…" in place of a yes or a
+        # no) used to end the turn in "the check failed, say it again": it gets the same second reading as a refusal.
         # The fast model refuses some plain requests at random (about 2 runs in 6 for "ask Claude Code what the launch date in
         # the notes is"), and it misreads translations: a refusal gets a second, slower reading before the user hears it.
         # Told where it goes: otherwise "ask billing to ..." reads as a different target (5 of 6 replays said no).
@@ -6584,8 +6586,10 @@ async def _send_now(message: str) -> dict:
                 setup().reader, f"The user said: {asked_part!r}\nProposed instruction to {to}: "
                 f"{message!r}\nDoes it carry what they asked? Rewording, translating, dropping who it is for ('ask Claude Code "
                 f"to ...'), and spelling out how to report the same result ('with a short summary of why') count as carrying "
-                f"it. A different action, target, condition or decision does not. Answer yes or no."), REPORT_TIMEOUT_SECS)
-            relevant = re.sub(r"^[\W_]+", "", second.strip().lower()).startswith("yes")
+                f"it. A different action, target, condition or decision does not. Answer yes or no."), REPORT_TIMEOUT_SECS if relevant is False else CHECK_TIMEOUT_SECS)
+            word = re.sub(r"^[\W_]+", "", second.strip().lower())
+            # A yes or a no settles it; anything else leaves the first reading as it was (no verdict stays none).
+            relevant = True if word.startswith("yes") else False if word.startswith("no") else relevant
         except Exception as e:
             logger.warning(f"second reading failed: {type(e).__name__}")
     if relevant is None:

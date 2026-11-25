@@ -110,3 +110,26 @@ def test_the_second_waiting_request_is_read_after_the_first_is_answered(d, monke
 
     asyncio.run(run())
     assert asked == [other.name] and d.REGISTRY.active is other
+
+
+def test_a_check_with_no_verdict_gets_a_second_reading_not_say_it_again(d, monkeypatch):  # noqa: F811
+    """Measured in the 0.8.5 round (bar-01): the fast checker answered "to answer this, let's analyze the user's…", which
+    is neither yes nor no, and the user heard "My question didn't go through, because the check failed. Please say it
+    again." A missing verdict is read once more by the slower model, as a refusal already was."""
+    from test_orchestrator import _gates_open, record_dispatch
+    a = add(d, "a", "alpha")
+    d.REGISTRY.active_id = a.id
+    sent = record_dispatch(d, monkeypatch)
+    _gates_open(d, monkeypatch, "Just tell me about alpha.")
+
+    async def no_verdict(*_a):
+        return None
+
+    async def second_reading(*_a, **_k):
+        return "Yes."
+
+    monkeypatch.setattr(d, "_is_current_request", no_verdict)
+    monkeypatch.setattr(d.vendors, "text", second_reading)
+    out = asyncio.run(d._send("The owner asks: tell me about alpha. Report your state."))
+    assert out.get("sent_to") == ["alpha"] and sent
+
