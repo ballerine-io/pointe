@@ -2056,7 +2056,8 @@ class BrainFront(FrameProcessor):
             self.brain.append("[the user cut you off: they did not hear the rest of what you were saying]")
             self._note_cut(line_id)
 
-    _cut_reply: tuple[float, str] | None = None  # (when, what was left to say) of a reply of its own the voice was cut in
+    # (when, what was left to say, the whole line) of a reply of its own the voice was cut in
+    _cut_reply: tuple[float, str, str] | None = None
     _spoke_since = 0.0
 
     def _note_cut(self, line_id: str | None) -> None:
@@ -2079,10 +2080,10 @@ class BrainFront(FrameProcessor):
         left = " ".join(rest).strip()
         if len(left.split()) < REPLY_RESUME_MIN_WORDS:
             return
-        self._cut_reply = (time.time(), left)
+        self._cut_reply = (time.time(), left, said)
         self.create_task(self._resume_after_quiet(self._cut_reply), f"resume-{time.time()}")
 
-    async def _resume_after_quiet(self, cut: tuple[float, str]) -> None:
+    async def _resume_after_quiet(self, cut: tuple[float, str, str]) -> None:
         """Nobody said anything after the cut: it was a noise, and the reply goes on."""
         while self._cut_reply is cut and time.time() - cut[0] < REPLY_RESUME_SECS:
             await asyncio.sleep(0.1)
@@ -2098,6 +2099,16 @@ class BrainFront(FrameProcessor):
         logger.info(f"reply resumed from the sentence that was cut ({why})")
         self.brain.append("[you went on with the rest of what you were saying: the user had only been listening]")
         await self._speak(cut[1])
+
+    @staticmethod
+    def _answers(text: str, cut: tuple[float, str, str]) -> bool:
+        """Words over a line of Pointe's that answer it: any, to a question not yet said; a yes or an "approved" (never
+        "okay" or "mm-hm") to a question already heard before the cut, or while a session waits on the user's answer
+        ("Say approve rows 4, 6 and 9": no question mark at all)."""
+        if "?" in cut[1]:
+            return True
+        return permission_answer(text) == "allow" and not ack_only(text) \
+            and ("?" in cut[2] or any(_waiting_items(s) for s in REGISTRY.sessions.values()))
 
     def _only_listening(self, text: str) -> bool:
         """Words that came over the voice and take no turn: a backchannel, or a one- or two-word acknowledgement that
@@ -2194,8 +2205,8 @@ class BrainFront(FrameProcessor):
                                 "greet: do what these words ask.]")
                     return
                 cut = self._cut_reply
-                if cut is not None and time.time() - cut[0] < REPLY_RESUME_SECS * 2 and "?" not in cut[1] \
-                        and self._only_listening(frame.text):  # a "yes" over a question of Pointe's answers it
+                if cut is not None and time.time() - cut[0] < REPLY_RESUME_SECS * 2 and not self._answers(frame.text, cut) \
+                        and self._only_listening(frame.text):
                     self.brain.append(frame.text)  # heard, and no turn of its own: the reply it came over goes on
                     await self._resume_reply(f"only listening: {frame.text!r}")
                     return

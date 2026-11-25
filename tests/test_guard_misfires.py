@@ -1,7 +1,8 @@
 """Three misfires from one call, as specs: a request the user aimed at a session by what it works on, refused as "off
 the thread" again and again; the answer to "which session?" refused as "not what the user just said"; and the wake
 word alone, which reached the brain and set off a re-send, beside a sentence about the top bar read as "add a
-session" and answered with closed sessions. Invented sessions and words only.
+session" and answered with closed sessions. Then "Approved." over Pointe's own line asking for it, taken for "only
+listening", and the line said again. Invented sessions and words only.
 
 uv run --locked pytest -q tests/test_guard_misfires.py
 """
@@ -197,3 +198,63 @@ def test_one_open_session_named_takes_the_send_with_no_question_beside_a_closed_
     assert sent == [("ledger", "Rerun the retry tests.")] and seen == [], result
     assert ledger.name in result["sent_to"]
 
+
+# ---------- "Approved." over Pointe's own line that asks for it ----------
+
+from test_reply_resumes import _hear, _rig  # noqa: E402
+
+ASKS = ("Vendor review still needs your answer on group two, rows 4, 6 and 9. Say approve rows 4, 6 and 9, or name the "
+        "row to change.")
+
+
+async def _cut(d, front, spoken, line: str, heard_secs: float):
+    d.state.last_utterance, d.state.last_user_speech_at = "What is next?", time.time() - 10
+    await front._speak(line)
+    front._speaking = True
+    front._spoke_since = time.time() - heard_secs
+    front._interrupted()  # what an InterruptionFrame does here
+    front._speaking = False
+    del spoken[:]
+
+
+def _waiting(d):
+    vendor = add(d, "q", VENDOR_NAME, cwd="/w/monorepo")
+    vendor.needs = {"need": "Yes to group two (rows 4, 6 and 9) or a named change"}
+    return vendor
+
+
+@pytest.mark.parametrize("words", ["Approved.", "Yes."])
+def test_a_yes_over_a_line_that_asks_for_it_is_the_answer_not_listening(d, monkeypatch, words):
+    _waiting(d)
+    front, spoken, asked, tasks_done = _rig(d, monkeypatch, ["Sent the approval of all three to vendor review."])
+
+    async def run():
+        await _cut(d, front, spoken, ASKS, heard_secs=5.5)  # inside "Say approve rows ...": no question mark left
+        await _hear(d, front, tasks_done, words)
+
+    asyncio.run(run())
+    assert len(asked) == 1 and not any("name the row" in line for line in spoken), spoken
+
+
+def test_a_yes_after_the_question_was_heard_answers_it_though_the_cut_came_later(d, monkeypatch):
+    front, spoken, asked, tasks_done = _rig(d, monkeypatch, ["Sent."])
+
+    async def run():
+        await _cut(d, front, spoken, "Group two is rows 4, 6 and 9: all advisory only. Approve all three? It is due "
+                   "today, before the vendor call.", heard_secs=5.3)  # past the question mark: it was heard
+        await _hear(d, front, tasks_done, "Approved.")
+
+    asyncio.run(run())
+    assert len(asked) == 1 and not any("vendor call" in line for line in spoken), spoken
+
+
+def test_okay_over_that_line_is_still_only_listening(d, monkeypatch):
+    _waiting(d)
+    front, spoken, asked, tasks_done = _rig(d, monkeypatch, [])
+
+    async def run():
+        await _cut(d, front, spoken, ASKS, heard_secs=5.5)
+        await _hear(d, front, tasks_done, "Okay.")
+
+    asyncio.run(run())
+    assert asked == [] and spoken and "name the row" in spoken[0], spoken
