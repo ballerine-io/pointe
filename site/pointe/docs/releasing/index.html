@@ -125,6 +125,9 @@ the release tarball the standalone install uses. Claude Code installs the plugin
 version; <code>install.sh</code> and <code>pointe update</code> install the tarball of a tag. A change to anything a user runs (the Python,
 <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, <code>install.sh</code>, the page, the app) reaches them only with a new version number. A change to
 docs, tests or <code>bench/</code> alone needs no version.</p>
+<p><strong>Batch.</strong> At most one release a day, carrying everything merged since the last one, unless an owner-reported bug
+needs a fix out sooner. Between releases, changes land on <code>main</code> through the inner loop and CI (CONTRIBUTING.md,
+"How to test"); the release is where the full gate below runs.</p>
 <h2 id="1-the-version-commit">1. The version commit</h2>
 <p>Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. While the major
 version is 0, Pointe is in beta: the page, the apps and the site say "beta" beside the version by that rule alone,
@@ -148,10 +151,12 @@ together:</p>
 <code>tests/test_version.py</code> fails when the manifest, <code>pyproject.toml</code>, <code>uv.lock</code>, the two apps and the changelog disagree.
 <code>tests/test_site.py</code> fails while a page of the site shows another version.</p>
 <h2 id="2-checks">2. Checks</h2>
-<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e     # the offline suite, about four minutes, no keys
+<div class="dx-code"><pre><code>uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto   # every test, the slow ones too
 python3 tools/check_action_pins.py                       # each GitHub Action is still the commit its tag names</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>CI must be green on the version commit. For a minor version, or when the install path or setup changed, follow
-<code>docs/install.md</code> again on a clean environment and add the run on top of
+<p>Run the full suite with <code>--runslow</code> on a Mac: CI runs it on Ubuntu, where the tests that need a Mac skip themselves.
+CI must be green on the version commit: <code>test</code>, <code>apps</code> and <code>ui</code>. The version commit changes both apps' projects, so
+<code>apps</code> and <code>ui</code> run on it, and the tag runs them again whatever changed.</p>
+<p>For a minor version, or when the install path or setup changed, follow <code>docs/install.md</code> again on a clean environment and add the run on top of
 <a href="https://github.com/ballerine-io/pointe/blob/main/docs/install-verification.md">docs/install-verification.md</a>. The paid end-to-end suites (<code>tests/e2e/run_all.sh</code>) run
 when the call path changed; say in the notes whether they ran.</p>
 <p><strong>Screenshots come from CI.</strong> The <code>ui</code> workflow (<code>.github/workflows/ui.yml</code>) runs the iPhone UI tests in the Simulator,

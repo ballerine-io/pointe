@@ -10,7 +10,9 @@ file adds what an agent editing the repository must do.
 
 - Branch from `main`. One worktree per task, under `../claude-voice-wt/<name>`:
   `git worktree add ../claude-voice-wt/<name> -b <name> main`. Work and write only inside it.
-- Tests: `uv run --locked pytest -q tests/ --ignore=tests/e2e` (no keys, about four minutes; CI runs the same on Ubuntu).
+- Tests (CONTRIBUTING.md, "How to test"): after each edit run `tools/test-changed`, the tests the change can break, not
+  the full suite. Push without waiting for CI; CI runs every test (`--runslow`, all cores) on each push. If `main` is
+  red, stop and fix it before anything else lands. The full gate runs at a release (`docs/releasing.md`).
   `tests/e2e/` calls paid vendors and starts real sessions: only when asked.
 - Never run a test that opens windows on this Mac: the Mac smoke, the XCUITests, the iPhone UI tests in the Simulator,
   or `xcodebuild test` on a UI test target. A person is working at it. They refuse without `POINTE_UI_LOCAL=1`

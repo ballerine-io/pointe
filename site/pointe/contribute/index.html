@@ -48,13 +48,14 @@
     <li><div><b>Clone, and install uv</b> (pinned, checked against its SHA-256; it does nothing if uv is there).
       <pre class="pg-term"><code>git clone https://github.com/ballerine-io/pointe.git &amp;&amp; cd pointe
 bin/install-uv</code></pre></div></li>
-    <li><div><b>Run the offline suite.</b> About four minutes. Tests that need a key or Apple silicon skip themselves.
-      <pre class="pg-term"><code>uv run --locked pytest -q tests/ --ignore=tests/e2e</code></pre></div></li>
+    <li><div><b>Run the offline suite.</b> A few minutes on every core. Tests that need a key or Apple silicon skip themselves.
+      <pre class="pg-term"><code>uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto</code></pre></div></li>
     <li><div><b>Run a daemon of your own</b>, on its own port and state folder, so it never touches a Pointe you use.
       It needs one model key, from the Keychain or its environment variable.
       <pre class="pg-term"><code>export CLAUDE_VOICE_STATE="$(mktemp -d)" CLAUDE_VOICE_DAEMON_PORT=7870
 bin/voice-daemon ensure</code></pre></div></li>
-    <li><div><b>Change one thing, test it, sign the commit</b> (<code>git commit -s</code>, the
+    <li><div><b>Change one thing, test it</b> (<code>tools/test-changed</code> runs the tests your change can break),
+      <b>sign the commit</b> (<code>git commit -s</code>, the
       <a href="https://github.com/ballerine-io/pointe/blob/main/CONTRIBUTING.md#sign-your-commits-dco">DCO</a>), and open a pull request. A maintainer reviews every one.</div></li>
   </ol>
 

@@ -6,6 +6,10 @@ version; `install.sh` and `pointe update` install the tarball of a tag. A change
 `bin/`, `hooks/`, `plugin/`, `install.sh`, the page, the app) reaches them only with a new version number. A change to
 docs, tests or `bench/` alone needs no version.
 
+**Batch.** At most one release a day, carrying everything merged since the last one, unless an owner-reported bug
+needs a fix out sooner. Between releases, changes land on `main` through the inner loop and CI (CONTRIBUTING.md,
+"How to test"); the release is where the full gate below runs.
+
 ## 1. The version commit
 
 Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. While the major
@@ -29,12 +33,15 @@ Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `
 ## 2. Checks
 
 ```
-uv run --locked pytest -q tests/ --ignore=tests/e2e     # the offline suite, about four minutes, no keys
+uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto   # every test, the slow ones too
 python3 tools/check_action_pins.py                       # each GitHub Action is still the commit its tag names
 ```
 
-CI must be green on the version commit. For a minor version, or when the install path or setup changed, follow
-`docs/install.md` again on a clean environment and add the run on top of
+Run the full suite with `--runslow` on a Mac: CI runs it on Ubuntu, where the tests that need a Mac skip themselves.
+CI must be green on the version commit: `test`, `apps` and `ui`. The version commit changes both apps' projects, so
+`apps` and `ui` run on it, and the tag runs them again whatever changed.
+
+For a minor version, or when the install path or setup changed, follow `docs/install.md` again on a clean environment and add the run on top of
 [docs/install-verification.md](install-verification.md). The paid end-to-end suites (`tests/e2e/run_all.sh`) run
 when the call path changed; say in the notes whether they ran.
 

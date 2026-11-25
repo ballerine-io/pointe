@@ -19,12 +19,12 @@ You need git and a Mac or a Linux machine. No keys and no cost, until step 4.
 2. **See what runs here.** `bin/voice-doctor` downloads Python and the locked packages on its first run (about 190 MB),
    then says which keys and tools it found.
 
-3. **Run the offline suite.** About four minutes, no keys. Tests that call vendors (`RUN_LIVE=1`), or need Apple silicon
+3. **Run the offline suite.** No keys; a few minutes on every core. Tests that call vendors (`RUN_LIVE=1`), or need Apple silicon
    or the local extra, skip themselves. CI runs the same command on Ubuntu.
 
    ```
-   uv run --locked pytest -q tests/ --ignore=tests/e2e
-   uv run --locked pytest -q tests/test_ui_page.py          # one file, while you work
+   uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto
+   uv run --locked pytest -q tests/test_ui_page.py --runslow   # one file
    ```
 
 4. **Run a daemon of your own**, on its own port and state folder, so it never touches a Pointe you use (port 7860,
@@ -43,7 +43,7 @@ You need git and a Mac or a Linux machine. No keys and no cost, until step 4.
 
    ```
    git switch -c my-fix
-   uv run --locked pytest -q tests/ --ignore=tests/e2e
+   tools/test-changed                                       # the tests your change can break
    git commit -s -m "The sessions column keeps a long name on one line"
    ```
 
@@ -98,17 +98,35 @@ update it here.
 How the parts fit together: [docs/architecture.md](docs/architecture.md). How a call works, step by step:
 [docs/how-it-works.md](docs/how-it-works.md). The threat model: [SECURITY.md](SECURITY.md).
 
+## How to test
+
+1. **While you work: `tools/test-changed`.** It runs the tests your change can break, usually in under a minute: the
+   Python tests whose recorded code you touched (pytest-testmon), the test files that name a changed file that is not
+   Python, and `swift test --filter` for the PointeKit targets you touched. Tests marked `slow` (headless Chrome, a
+   real daemon, long waits) and UI tests never run there. The first run in a clone records every test once.
+2. **Push, and don't wait for CI.** CI runs every test, the slow ones too, on every core (`test.yml`), and the
+   supply-chain gate, on each push. The apps' builds (`apps.yml`) and UI tests (`ui.yml`) run when `apps/`, a file the
+   Swift tests read, or their own workflow changes, and on a release tag. Start the next change while it runs, then
+   read the result.
+3. **If `main` goes red, everyone stops and fixes it first.** Nothing else lands on a red `main`.
+4. **A release runs the full gate**: every test with `--runslow` and the `ui` workflow on the version commit, at most
+   once a day ([docs/releasing.md](docs/releasing.md)).
+
+UI tests never run on a developer's Mac (see [The apps](#the-apps)). A new test that takes more than a second or two,
+or starts Chrome, gets `@pytest.mark.slow`; CI prints the slowest 50 (`--durations=50`).
+
 ## Running the tests
 
 Every command runs from the top of the repository, with paths from the [layout](#repository-layout) above.
 
 ### The offline suite
 
-No keys, no cost, about four minutes. CI runs the same command on Ubuntu, so a test that needs a Mac, Chrome, Apple
+No keys, no cost. CI runs it on Ubuntu with `--runslow` on every core, so a test that needs a Mac, Chrome, Apple
 silicon or a key skips itself elsewhere.
 
 ```
-uv run --locked pytest -q tests/ --ignore=tests/e2e        # all of it
+uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto   # all of it, every core
+uv run --locked pytest -q tests/ --ignore=tests/e2e        # all but the slow tests, one core
 uv run --locked pytest -q tests/test_ui_page.py            # one file
 uv run --locked pytest -q tests/test_pair.py -k rotate     # the tests whose names match
 ```
@@ -156,7 +174,7 @@ POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented session
 POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first
 ```
 
-The iPhone app's tests run in the iPhone Simulator, as in CI (`.github/workflows/test.yml`, job `ios`): pick an
+The iPhone app's tests run in the iPhone Simulator, as in CI (`.github/workflows/apps.yml`, job `ios`): pick an
 available simulator's id from `xcrun simctl list devices available`, then
 
 ```

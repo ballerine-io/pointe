@@ -137,10 +137,10 @@ bin/install-uv</code></pre><button class="dx-copy" type="button" hidden>Copy</bu
    then says which keys and tools it found.</p>
 </li>
 <li>
-<p><strong>Run the offline suite.</strong> About four minutes, no keys. Tests that call vendors (<code>RUN_LIVE=1</code>), or need Apple silicon
+<p><strong>Run the offline suite.</strong> No keys; a few minutes on every core. Tests that call vendors (<code>RUN_LIVE=1</code>), or need Apple silicon
    or the local extra, skip themselves. CI runs the same command on Ubuntu.</p>
-<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e
-uv run --locked pytest -q tests/test_ui_page.py          # one file, while you work</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<div class="dx-code"><pre><code>uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto
+uv run --locked pytest -q tests/test_ui_page.py --runslow   # one file</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 </li>
 <li>
 <p><strong>Run a daemon of your own</strong>, on its own port and state folder, so it never touches a Pointe you use (port 7860,
@@ -154,7 +154,7 @@ bin/voice-daemon stop</code></pre><button class="dx-copy" type="button" hidden>C
 <li>
 <p><strong>Change one thing, test it, sign the commit, open the pull request.</strong></p>
 <div class="dx-code"><pre><code>git switch -c my-fix
-uv run --locked pytest -q tests/ --ignore=tests/e2e
+tools/test-changed                                       # the tests your change can break
 git commit -s -m &quot;The sessions column keeps a long name on one line&quot;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Commit subjects are plain sentences, like the log. A maintainer reviews every pull request before it reaches <code>main</code>.</p>
 </li>
@@ -317,12 +317,35 @@ update it here.</p>
 </table></div>
 <p>How the parts fit together: <a href="../architecture/">docs/architecture.md</a>. How a call works, step by step:
 <a href="../how-it-works/">docs/how-it-works.md</a>. The threat model: <a href="../security/">SECURITY.md</a>.</p>
+<h2 id="how-to-test">How to test</h2>
+<ol>
+<li>
+<p><strong>While you work: <code>tools/test-changed</code>.</strong> It runs the tests your change can break, usually in under a minute: the
+   Python tests whose recorded code you touched (pytest-testmon), the test files that name a changed file that is not
+   Python, and <code>swift test --filter</code> for the PointeKit targets you touched. Tests marked <code>slow</code> (headless Chrome, a
+   real daemon, long waits) and UI tests never run there. The first run in a clone records every test once.</p>
+</li>
+<li>
+<p><strong>Push, and don't wait for CI.</strong> CI runs every test, the slow ones too, on every core (<code>test.yml</code>), and the
+   supply-chain gate, on each push. The apps' builds (<code>apps.yml</code>) and UI tests (<code>ui.yml</code>) run when <code>apps/</code>, a file the
+   Swift tests read, or their own workflow changes, and on a release tag. Start the next change while it runs, then
+   read the result.</p>
+</li>
+<li>
+<p><strong>If <code>main</code> goes red, everyone stops and fixes it first.</strong> Nothing else lands on a red <code>main</code>.</p>
+</li>
+<li><strong>A release runs the full gate</strong>: every test with <code>--runslow</code> and the <code>ui</code> workflow on the version commit, at most
+   once a day (<a href="../releasing/">docs/releasing.md</a>).</li>
+</ol>
+<p>UI tests never run on a developer's Mac (see <a href="#the-apps">The apps</a>). A new test that takes more than a second or two,
+or starts Chrome, gets <code>@pytest.mark.slow</code>; CI prints the slowest 50 (<code>--durations=50</code>).</p>
 <h2 id="running-the-tests">Running the tests</h2>
 <p>Every command runs from the top of the repository, with paths from the <a href="#repository-layout">layout</a> above.</p>
 <h3 id="the-offline-suite">The offline suite</h3>
-<p>No keys, no cost, about four minutes. CI runs the same command on Ubuntu, so a test that needs a Mac, Chrome, Apple
+<p>No keys, no cost. CI runs it on Ubuntu with <code>--runslow</code> on every core, so a test that needs a Mac, Chrome, Apple
 silicon or a key skips itself elsewhere.</p>
-<div class="dx-code"><pre><code>uv run --locked pytest -q tests/ --ignore=tests/e2e        # all of it
+<div class="dx-code"><pre><code>uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto   # all of it, every core
+uv run --locked pytest -q tests/ --ignore=tests/e2e        # all but the slow tests, one core
 uv run --locked pytest -q tests/test_ui_page.py            # one file
 uv run --locked pytest -q tests/test_pair.py -k rotate     # the tests whose names match</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Tests get a throwaway state folder and ports of their own (<code>tests/conftest.py</code>); none touches a Pointe you use.
@@ -357,7 +380,7 @@ cannot click Deny on the hosted macOS 26 (no hit point for the card's scroll vie
 and checks the card goes. Take a quarantine out when its cause is fixed.</p>
 <div class="dx-code"><pre><code>POINTE_UI_LOCAL=1 apps/macos/test.sh smoke # every main flow on invented sessions, through the Accessibility API
 POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/test.yml</code>, job <code>ios</code>): pick an
+<p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/apps.yml</code>, job <code>ios</code>): pick an
 available simulator's id from <code>xcrun simctl list devices available</code>, then</p>
 <div class="dx-code"><pre><code>(cd ios &amp;&amp; xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination &quot;id=&lt;simulator id&gt;&quot; \
   -only-testing:PointeTests CODE_SIGNING_ALLOWED=NO -quiet)
@@ -511,6 +534,7 @@ so write nothing there you would not publish.</p>
 <li class="dx-l2"><a href="#your-first-pull-request-in-15-minutes">Your first pull request in 15 minutes</a></li>
 <li class="dx-l2"><a href="#development-setup">Development setup</a></li>
 <li class="dx-l2"><a href="#repository-layout">Repository layout</a></li>
+<li class="dx-l2"><a href="#how-to-test">How to test</a></li>
 <li class="dx-l2"><a href="#running-the-tests">Running the tests</a></li>
 <li class="dx-l3"><a href="#the-offline-suite">The offline suite</a></li>
 <li class="dx-l3"><a href="#the-page">The page</a></li>

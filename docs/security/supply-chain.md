@@ -87,8 +87,9 @@ listed in the allowlist as `link` and are never contacted by the software.
 
 ## CI
 
-`.github/workflows/test.yml` runs on every push and has two jobs. `offline` runs the whole suite, the slow tests too,
-in parallel (`-n auto`), with no keys and no network beyond PyPI. `.github/workflows/apps.yml` runs `ios` and `macos`
+`.github/workflows/test.yml` runs on every push and has three jobs. `offline` runs the whole suite, the slow tests too,
+in parallel (`-n auto`), with no keys and no network beyond PyPI. `linux-hub` installs the checkout as a Linux hub with
+`install.sh` and checks that it answers. `.github/workflows/apps.yml` runs `ios` and `macos`
 when `apps/` or a file the Swift tests read changes, and on a tag push.
 `ios` builds the iPhone app for the simulator, unsigned, on `macos-26` with the newest Xcode there, and runs its unit
 tests (`PointeTests`); it pulls no packages from outside the repository.
