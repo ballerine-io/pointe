@@ -351,7 +351,7 @@ from the cache in every run, so caching had nothing left to give.
 What changed, largest first:
 
 - **The model reads a finished sentence while it settles** (`Brain.foresee`, `daemon._foreseeable`). The settle (1.0 s
-  at Normal) and the model's first token (0.8 s) ran one after the other. When the final transcript of a complete
+  at Normal then, 1.3 s since `turn-taking.md` §7) and the model's first token (0.8 s) ran one after the other. When the final transcript of a complete
   sentence arrives, the request that would answer it is made at once. It is only a request: no history, no tool, no
   speech, and the floor stays the user's. When the turn is taken, the step is used if what it was sent is exactly what
   the turn would send now; if the user said more, news arrived or the state changed, it is cancelled and the turn asks

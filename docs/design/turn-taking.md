@@ -48,7 +48,7 @@ much depends on how the text reads:
 | Text reads | Quick | Normal (default) | Patient |
 |---|---|---|---|
 | one or two words, nothing held ("yes", "stop", "run it", "כן") | 0 | 0 | 0 |
-| complete | 0.4 s | 1.0 s | 1.8 s |
+| complete | 0.4 s | 1.3 s (1.0 s until §7) | 1.8 s |
 | unfinished (`guards.unfinished`, widened, §3.2) | 1.5 s | 3.0 s | 4.5 s |
 | hard cap while the user keeps talking (`maximum`) | 6 s | 10 s | 14 s |
 
@@ -272,4 +272,42 @@ the same Soniox rows (the `before` streams) with `turns.settle` and a changed `a
   To try it: `agreed=0.3` on Normal in `turns.LEVELS`, nothing else.
 - **What the people show about today.** Normal takes the turn inside 23% of real pauses of half a second or more
   (55 to 64% of those of 0.8 s or more, where the words read whole); Patient inside 2%.
+
+## 7. Normal waits 1.3 s (0.8.x): what recorded people showed
+
+The recorded-human set (`bench/human_turns.py`: 291 mid-sentence pauses of 0.5 to 2.0 s and 283 ends of turn, 37
+speakers, AMI meetings) put a number on the complaint this document began with: at Normal the turn was taken inside
+**23% of real pauses**, and 56 of those 68 were a pause of 0.8 s or more after words that read whole.
+
+`bench/turn_rules.py` replays what Soniox heard under any rule, with no new audio. The speakers are split in two by a
+hash of their name; rules were chosen on 15 of them and are reported on the other 22.
+
+| Rule | Cut-ins, 22 held-out speakers (171 pauses) | Cut-ins, all 37 (291) | A real end is taken after |
+|---|---|---|---|
+| Normal before (1.0 s) | 19.9% | 23.4% | 1.00 s |
+| every whole sentence 1.1 s | 12.9% | 17.2% | 1.10 s |
+| every whole sentence 1.2 s | 8.8% | 13.1% | 1.20 s |
+| **Normal now: 1.3 s and the words below** | **7.6%** | **9.3%** | **1.30 s** |
+| every whole sentence 1.4 s | 7.0% | 7.2% | 1.40 s |
+| Patient (1.8 s) | 2.9% | 2.4% | 1.80 s |
+| more words read unfinished (contractions, "its", "every"…), 1.0 s | 19.9% | 22.0% | 1.00 s |
+| a low sound score (under 0.5) waits 1.6 s | 11.7% | 16.2% | 1.00 s median, 1.13 s mean |
+| 1.4 s unless the sound scores 0.9 or over | 11.7% | 14.1% | 1.00 s median, 1.20 s mean |
+| a speaker who paused in the last two minutes waits 1.4 s | 15.8% | 19.6% | 1.00 s median, 1.08 s mean |
+
+- **The wait itself is what works.** Each cleverer rule lands on the same curve as a plain longer wait with the same
+  mean: the sound's score does not tell a pause after a whole-reading clause from an end (median 0.55 there), and a
+  speaker's earlier pause says little about the next one. So the rule stays simple.
+- **1.3 s costs a reply that a model writes little or nothing.** The model step starts at the final transcript, about
+  0.45 s after the sound (Soniox is still asked for held words at 0.7 s: `Patience.ask`), and its first checked
+  sentence is ready 0.9 to 1.3 s after that. Of 59 model turns in two suite runs, one would have started later at
+  1.3 s. On 12 plain questions (`tests/e2e/latency.py`) in an hour when the model's first token took 0.62 s, 7 would
+  have started later, by 0.09 s on average and 0.28 s at most; in an hour when it took 0.93 s, none did. A reply the
+  daemon says itself (a send's two-word acknowledgement) starts 0.3 s later: 1.74 s for 1.44 s.
+- **The words.** `guards.unfinished` also holds a contraction whose verb is still to come ("it's", "I'll", "we're"),
+  "its", "every", "gonna", "wanna", "just", "says", and six Hebrew words (אל, מן, אך, אלא, כאשר, אשר). On the recorded
+  set: four more real pauses held, none of the 283 real ends delayed. It is what holds "Ask atlas to run its".
+  The Hebrew words are not measured: the set has no Hebrew.
+- Limits: people in a meeting talking to each other in English, not to an assistant; a pause while a colleague waits
+  is not a pause while a machine does.
 

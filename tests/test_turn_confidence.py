@@ -221,3 +221,34 @@ def test_the_brain_says_whole_sentences_ahead_unless_a_bench_asks_for_clauses():
 
     assert brain.Brain("anthropic:x", "", [], lambda: "", None).early_clauses is False
     assert "early_clauses = " not in (ROOT / "pointe" / "daemon.py").read_text()  # no call turns it on
+
+
+# ---------- Normal waits 1.3 s: from recorded people (docs/design/turn-taking.md §7) ----------
+
+def test_normal_waits_one_point_three_seconds_and_still_asks_soniox_at_point_seven():
+    """At 1.0 s the turn was taken inside 23% of 291 recorded mid-sentence pauses; at 1.3 s inside 9%. Soniox is asked
+    for its words when it was before, so the model, which starts at the final transcript, starts no later."""
+    normal = turns.LEVELS["normal"]
+    assert normal.complete == 1.3
+    assert turns.settle("Run the tests in the billing package.", False, "normal") == 1.3
+    assert turns.finalize_after("normal") == pytest.approx(0.7)
+    assert turns.finalize_after("quick") == pytest.approx(0.2) and turns.finalize_after("patient") == pytest.approx(1.5)
+    assert turns.LEVELS["quick"].complete == 0.4 and turns.LEVELS["patient"].complete == 1.8  # the other two as they were
+    assert turns.settle("yes", False, "normal") == 0.0  # an answer still never waits
+
+
+@pytest.mark.parametrize("said", ["Ask atlas to run its", "When a button gets pressed, it's.", "And then I was, uh, just.",
+                                  "Remote control says.", "I think we’re", "So I'll", "It checks every", "אני רוצה לעבור אל"])
+def test_a_contraction_or_a_word_that_only_stands_before_another_reads_unfinished(said):
+    """"Ask atlas to run its | tests" was taken at "run its" after a second (the recorded-human run)."""
+    from guards import unfinished
+
+    assert unfinished(said)
+
+
+@pytest.mark.parametrize("said", ["So any questions for the time being?", "Run the tests.", "Is that its name?",
+                                  "What does it say?"])
+def test_these_ends_of_turn_still_read_whole(said):
+    from guards import unfinished
+
+    assert not unfinished(said)

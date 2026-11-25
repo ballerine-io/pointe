@@ -19,6 +19,9 @@ class Patience:
     # finished (turnsound.py). `agreed`: both say so. `likely`: one of them. Left out, they are `complete`.
     agreed: float = None  # type: ignore[assignment]
     likely: float = None  # type: ignore[assignment]
+    # Seconds of silence after which Soniox is asked for words it still holds. Left out: so that its answer is in when
+    # `complete` ends. Normal asks sooner than that: the model step starts at the final, not at the turn.
+    ask: float = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
         for name in ("agreed", "likely"):
@@ -28,13 +31,17 @@ class Patience:
 
 LEVELS = {
     "quick": Patience(complete=0.4, unfinished=1.5, maximum=6.0),  # about today: Soniox's own 0.3-0.5 s and no more
-    "normal": Patience(complete=1.0, unfinished=3.0, maximum=10.0),
+    # 1.3 s, from 1.0 s: on 291 recorded mid-sentence pauses of real speakers the turn was taken inside 23% of them at
+    # 1.0 s and inside 10% at 1.3 s (bench/turn_rules.py; docs/design/turn-taking.md §7). The words are still asked of
+    # Soniox 0.7 s after the sound, so the model reads them as soon as before, and its first sentence is seldom ready
+    # before 1.3 s: a reply a model writes starts 0 to 0.1 s later. One the daemon says itself starts 0.3 s later.
+    "normal": Patience(complete=1.3, unfinished=3.0, maximum=10.0, ask=0.7),
     "patient": Patience(complete=1.8, unfinished=4.5, maximum=14.0),
 }
 # The shorter waits tried for Normal and not shipped: on bench/turn_bench.py they took a first part that reads whole
 # 0.5 or 0.8 s into its pause 94% of the time, against 0% and 15% (docs/design/turn-taking.md §6). No level uses them
 # until recorded human pauses say what they cost.
-CANDIDATE = Patience(complete=1.0, unfinished=3.0, maximum=10.0, agreed=0.3, likely=0.6)
+CANDIDATE = Patience(complete=1.0, unfinished=3.0, maximum=10.0, agreed=0.3, likely=0.6, ask=0.7)
 DEFAULT_LEVEL = "normal"
 SHORT_LETTERS = 8  # a yes, a no, "run it", "לא עכשיו": never delayed, they answer approvals and stop the bot
 
@@ -92,8 +99,9 @@ def finalize_after(level: str | Patience, sound: float | None = None) -> float:
     the voice sounded finished (`sound`, as in settle) the settle that may follow is the `likely` one, so a level whose
     `likely` is shorter asks that much sooner (CANDIDATE: 0.3 s)."""
     patience = level if isinstance(level, Patience) else LEVELS.get(level, LEVELS[DEFAULT_LEVEL])
-    wait = patience.likely if sound is not None and sound >= SOUNDS_FINISHED else patience.complete
-    return max(FINALIZE_MIN_SECS, wait - FINALIZE_REPLY_SECS)
+    if sound is not None and sound >= SOUNDS_FINISHED and patience.likely < patience.complete:
+        return max(FINALIZE_MIN_SECS, patience.likely - FINALIZE_REPLY_SECS)
+    return patience.ask if patience.ask is not None else max(FINALIZE_MIN_SECS, patience.complete - FINALIZE_REPLY_SECS)
 
 
 def finalize_due(pending: bool, voiced: bool, sound_ended: float, last_asked: float, now: float, level: str,

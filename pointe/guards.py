@@ -91,6 +91,11 @@ _UNFINISHED = {"and", "so", "then", "the", "that", "well", "um", "uh", "just", "
 _DANGLING = {"a", "an", "the", "and", "or", "but", "so", "because", "if", "than", "between", "whether", "my", "your", "our",
              "their", "his", "um", "uh", "er", "hmm", "which", "while", "after", "before", "until", "unless", "although",
              "also", "plus", "versus", "very", "pretty", "quite", "basically", "actually",
+             # A contraction whose verb is still to come, and words that only stand before a noun or a verb. From recorded
+             # speech (bench/turn_rules.py): four real pauses held, no real end of 283 delayed.
+             "its", "every", "it's", "i'm", "we're", "they're", "you're", "he's", "she's", "there's", "that's", "i've",
+             "we've", "you've", "they've", "i'll", "we'll", "you'll", "they'll", "i'd", "we'd", "gonna", "wanna", "just",
+             "says", "אל", "מן", "אך", "אלא", "כאשר", "אשר",
              "של", "את", "עם", "בין", "או", "כי", "אז", "ש", "ו", "ה", "ל", "ב", "מ", "כמו", "אם",
              "אבל", "וגם", "ואז", "כאילו", "בעצם", "אחרי", "לפני", "עד", "כש", "בגלל", "למרות", "בשביל", "לגבי", "בתוך",
              "ליד", "מול", "אצל", "בלי", "כדי", "שאני", "שאתה", "שהוא", "שזה", "שהם", "אה", "אמ"}
@@ -107,7 +112,7 @@ _QUESTION = re.compile(r"\b(what|where|who|whom|which|when|why|how|whose)\b|\?|\
 
 def unfinished(text: str) -> bool:
     """A sentence cut by a pause, not ended: "the difference between—", "I want to look at". Its end is still coming."""
-    stripped = text.strip()
+    stripped = text.strip().replace("’", "'")
     if re.search(r"(—|–|-|…|\.\.\.|,)$", stripped):
         return True
     lowered = re.sub(r"[.!?…]+$", "", stripped.lower()).rstrip()  # Soniox closes a cut clause with a full stop too
