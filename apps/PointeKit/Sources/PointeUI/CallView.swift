@@ -1456,13 +1456,15 @@ struct CallView: View {
     }
 
     /// A tap on the read-back's card. Join needs Face ID (or the passcode), as Start does; Cancel never does.
-    private func answerAttach(_ pending: AddSessions.Pending, _ yes: Bool) async {
+    private func answerAttach(_ pending: AddSessions.Pending, _ yes: Bool, _ pick: String?) async {
         if yes, !(await ownerCheck(AddSessionsSheet.faceIDReason)) { return }
         if demo != nil {
             status?.attach_pending = nil
             return
         }
-        await act { try await call.api.addSessions([yes ? "confirm" : "cancel": pending.id]) }
+        var body = [yes ? "confirm" : "cancel": pending.id]
+        if yes, let pick { body["pick"] = pick }  // one of the choices "which one?" read back
+        await act { try await call.api.addSessions(body) }
     }
 
     /// The demo's start: a row under the sessions, then the session itself, as a Mac would show it.

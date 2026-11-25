@@ -88,11 +88,15 @@ def test_the_sheet_lists_searches_and_joins_by_key_and_the_card_follows():
                 out["card"] = await page.eval(CARD)
                 await page.eval("(() => { document.querySelector('#attachask button.allow').click(); return true; })()")
                 await asyncio.sleep(0.3)
-                stub.status["attach_pending"] = {"id": "a2", "line": "Two sessions fit: one, a in x, open; two, b in y, open. Which one?",
-                                                 "choose": True, "verb": "join", "items": [], "expires_in": 50}
+                stub.status["attach_pending"] = {"id": "a2", "line": "Two sessions fit: one, a in x, open; two, b in y, recent. Which one?",
+                                                 "choose": True, "verb": "join", "expires_in": 50,
+                                                 "items": [{"key": "-|claude-code|a", "name": "a", "harness": "claude-code", "state": "open"},
+                                                           {"key": "-|claude-code|b", "name": "b", "harness": "claude-code", "state": "recent"}]}
                 await page.eval("(async () => { await refresh(); return true; })()")
                 await asyncio.sleep(0.3)
                 out["choose"] = await page.eval(CARD)
+                await page.eval("(() => { document.querySelectorAll('#attachask button.allow')[1].click(); return true; })()")
+                await asyncio.sleep(0.3)
         finally:
             await stub.stop()
         return out, [(p, b) for p, b, _ in stub.posts if p == "/voice/add-sessions"]
@@ -109,4 +113,6 @@ def test_the_sheet_lists_searches_and_joins_by_key_and_the_card_follows():
     assert posts[1] == ("/voice/add-sessions", {"reopen": "-|claude-code|c3"})
     assert "Add these sessions?" in got["card"]["card"] and got["card"]["buttons"] == ["Cancel", "Join"]
     assert posts[2] == ("/voice/add-sessions", {"confirm": "a1"})
-    assert got["choose"]["buttons"] == ["Cancel"]  # "which one?" is answered by voice or in the sheet
+    # The owner's live call: "which one?" showed only Cancel. Each choice now has its own button, and a tap picks it.
+    assert got["choose"]["buttons"] == ["Cancel", "Join a", "Reopen b"]
+    assert posts[3] == ("/voice/add-sessions", {"confirm": "a2", "pick": "-|claude-code|b"})

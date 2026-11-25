@@ -9702,7 +9702,7 @@ async def add_sessions_options():
 @app.post("/voice/add-sessions")
 async def add_sessions_action(request: Request):
     """The sheet's Join ({join: [key, ...]}) or Reopen ({reopen: key}), or a tap on a read-back's card ({confirm: id}
-    joins what it read back, {cancel: id} drops it). Keys come from the last listing, never a path. Same-origin, or the
+    joins what it read back, {confirm: id, pick: key} the one of its choices tapped, {cancel: id} drops it). Keys come from the last listing, never a path. Same-origin, or the
     phone's key."""
     body = await _body(request)
     how = _start_how(request)
@@ -9711,15 +9711,20 @@ async def add_sessions_action(request: Request):
         key = "confirm" if "confirm" in body else "cancel"
         if not pending or not hmac.compare_digest(str(body[key]), pending[1]["id"]):
             raise HTTPException(status_code=409, detail="That is no longer waiting for an answer.")
+        picked = None
         if key == "confirm" and pending[1]["choose"]:
-            raise HTTPException(status_code=409, detail="Say which one, or pick it in Add sessions.")
+            # A choice read back: the card's button for one of them names it by key (the owner's call: only Cancel showed).
+            picked = next((f for f in pending[1]["items"] if isinstance(body.get("pick"), str)
+                           and hmac.compare_digest(f.key, body["pick"])), None)
+            if picked is None:
+                raise HTTPException(status_code=409, detail="Say which one, or tap it on the card.")
         state.pending_attach, state.last_attach_at = None, time.time()
         if key == "cancel":
             if state.conn is not None:
                 await state.conn.injector.inject("[add cancelled] The user tapped Cancel: nothing was joined. Do not "
                                                  "announce it.", False)
             return {"cancelled": True}
-        items = list(pending[1]["items"])
+        items = [picked] if picked is not None else list(pending[1]["items"])
     else:
         fresh = time.time() - FOUND["at"] < FOUND_KEEP_SECS
         keys = body.get("join") if "join" in body else [body.get("reopen")]

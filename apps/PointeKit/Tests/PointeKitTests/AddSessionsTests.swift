@@ -39,4 +39,13 @@ final class AddSessionsTests: XCTestCase {
         XCTAssertEqual(AddSessions.Pending(id: "a", line: "x", choose: false, verb: "reopen").button, AddSessionsCopy.reopen)
         XCTAssertTrue(AddSessions.Pending(id: "a", line: "x", choose: true).choose)
     }
+
+    /// The owner's live call: the card for "which one?" showed only Cancel. Each choice read back has its own button.
+    func testAReadBackThatAsksWhichHasAButtonForEachChoice() throws {
+        let status = #"{"id": "a2", "line": "Which one?", "choose": true, "verb": "join", "expires_in": 50, "items": [{"key": "k-a", "name": "a", "harness": "claude-code", "state": "open"}, {"key": "k-b", "name": "b", "harness": "codex", "state": "recent"}]}"#
+        let pending = try JSONDecoder().decode(AddSessions.Pending.self, from: Data(status.utf8))
+        XCTAssertEqual(pending.choices.map(\.label), ["Join a", "Reopen b"])
+        XCTAssertEqual(pending.choices.map(\.key), ["k-a", "k-b"])
+        XCTAssertTrue(AddSessions.Pending(id: "a", line: "x", choose: false).choices.isEmpty)
+    }
 }

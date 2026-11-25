@@ -75,20 +75,40 @@ public enum AddSessions {
     }
 
     /// What the voice read back and waits on (`attach_pending` in /voice/status): `line` is its exact words. `choose`:
-    /// it asked which one, and only a spoken pick or the sheet answers it.
+    /// it asked which one; a spoken pick or a tap on one of `choices` answers it.
     public struct Pending: Decodable, Equatable, Identifiable, Sendable {
+        public struct Item: Decodable, Equatable, Sendable {
+            public let key: String
+            public let name: String
+            public let state: String
+        }
+
+        /// A choice read back, as its button on the card: "Join billing", "Reopen docs".
+        public struct Choice: Equatable, Sendable {
+            public let key: String
+            public let label: String
+        }
+
         public let id: String
         public let line: String
         public let choose: Bool
         public let verb: String
+        public let items: [Item]?
 
-        public init(id: String, line: String, choose: Bool = false, verb: String = "join") {
+        public init(id: String, line: String, choose: Bool = false, verb: String = "join", items: [Item]? = nil) {
             self.id = id
             self.line = line
             self.choose = choose
             self.verb = verb
+            self.items = items
         }
 
         public var button: String { verb == "reopen" ? AddSessionsCopy.reopen : AddSessionsCopy.join }
+
+        /// The owner's live call: "which one?" showed only Cancel. Empty unless the voice asked which one.
+        public var choices: [Choice] {
+            guard choose else { return [] }
+            return (items ?? []).map { Choice(key: $0.key, label: "\($0.state == "open" ? AddSessionsCopy.join : AddSessionsCopy.reopen) \($0.name)") }
+        }
     }
 }

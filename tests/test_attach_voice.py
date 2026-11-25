@@ -366,6 +366,20 @@ def test_a_question_read_back_is_answered_by_a_pick_not_a_confirm(world):
     assert client.post("/voice/add-sessions", json={"confirm": pending["id"]}).status_code == 409
 
 
+def test_a_tap_on_one_of_the_choices_read_back_joins_that_one(world):
+    """From the owner's live call: the card for "which one?" showed only Cancel, with no way to confirm. Each choice now
+    has its own button, which posts {confirm: id, pick: key}; a key that was not read back joins nothing."""
+    d = world.d
+    client = client_for(d)
+    run((d, "connect to a session"))
+    pending = client.get("/voice/status").json()["attach_pending"]
+    assert pending["choose"] is True and len(pending["items"]) > 1
+    assert client.post("/voice/add-sessions", json={"confirm": pending["id"], "pick": "-|claude-code|made-up"}).status_code == 409
+    chosen = pending["items"][1]
+    got = client.post("/voice/add-sessions", json={"confirm": pending["id"], "pick": chosen["key"]}).json()
+    assert got["joined"] == [chosen["name"]] and client.get("/voice/status").json()["attach_pending"] is None
+
+
 def test_meeting_and_challenge_cannot_add_sessions(d):
     import modes
 

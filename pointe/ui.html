@@ -2339,7 +2339,7 @@
     else { $('add-err').textContent = got.detail || 'Not added: the Mac did not answer.'; button.disabled = false; }
     refresh();
   }
-  // What the voice read back and waits on: a yes by voice, or a tap here. A "which one?" is answered by voice or in the sheet.
+  // What the voice read back and waits on: a yes by voice, or a tap here. A "which one?" is answered by voice or a tap on one.
   let attachAskShown = '';
   function showAttachAsk(s) {
     const p = s.attach_pending, key = p ? p.id : '';
@@ -2350,6 +2350,8 @@
     b.append(el('div', 'what', c.confirmTitle), el('div', 'need exact', p.line));
     const answers = [[c.cancel, 'deny', {cancel: p.id}]];
     if (!p.choose) answers.push([p.verb === 'reopen' ? c.reopen : c.join, 'allow', {confirm: p.id}]);
+    // "Which one?": a button for each choice read back, so the card can answer it too (it showed only Cancel).
+    else for (const x of p.items || []) answers.push([`${x.state === 'open' ? c.join : c.reopen} ${x.name}`, 'allow', {confirm: p.id, pick: x.key}]);
     for (const [label, cls, body] of answers) {
       const button = el('button', cls, label);
       button.onclick = async () => {

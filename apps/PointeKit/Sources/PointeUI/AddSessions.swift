@@ -129,7 +129,7 @@ struct AddSessionsSheet: View {
 /// does. A "which one?" has no Join here: the user says which, or picks it in the sheet.
 struct AttachCard: View {
     let pending: AddSessions.Pending
-    let answer: (AddSessions.Pending, Bool) async -> Void
+    let answer: (AddSessions.Pending, Bool, String?) async -> Void
     @State private var busy = false
 
     var body: some View {
@@ -149,6 +149,12 @@ struct AttachCard: View {
                 }
             }
             .disabled(busy)
+            ForEach(pending.choices, id: \.key) { choice in  // "which one?": a tap on one answers it
+                Button { act(true, choice.key) } label: { Label(choice.label, systemImage: Surface.ownerSymbol).frame(maxWidth: .infinity) }
+                    .buttonStyle(.brandPrimary).controlSize(.large)
+                    .accessibilityIdentifier("attachPick")
+                    .disabled(busy)
+            }
         }
         .padding(16)
         .background(Brand.card, in: RoundedRectangle(cornerRadius: 16))
@@ -156,8 +162,8 @@ struct AttachCard: View {
         .sensoryFeedback(.warning, trigger: pending.id)
     }
 
-    private func act(_ yes: Bool) {
+    private func act(_ yes: Bool, _ pick: String? = nil) {
         busy = true
-        Task { await answer(pending, yes); busy = false }
+        Task { await answer(pending, yes, pick); busy = false }
     }
 }

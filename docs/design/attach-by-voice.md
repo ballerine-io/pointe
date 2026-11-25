@@ -140,7 +140,8 @@ Speech splits words ("pen test"): the match also tries each two adjacent words j
 (`sessions._joined`), so "leave the pen test session" leaves pentest-recon.
 
 The read-back shows on every screen as a card with Join (or Reopen) and Cancel; on the iPhone and the Mac the button asks
-for Face ID or Touch ID, as Start does.
+for Face ID or Touch ID, as Start does. A read-back that asks which one shows a button for each choice ("Join billing",
+"Reopen docs"), which posts `{confirm: id, pick: key}`; a key that was not read back joins nothing.
 
 ## Attach
 
