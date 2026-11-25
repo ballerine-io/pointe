@@ -26,6 +26,7 @@ import argparse
 import asyncio
 import json
 import random
+import re
 import statistics
 import subprocess
 import sys
@@ -96,6 +97,9 @@ WHOLE = [
     ("wh20", "תפתח pull request מול הענף dev."),
 ]
 POLICIES = ("before", "after")
+# `now`: today's rule for taking the turn, but Soniox is asked for the words it holds as soon as the voice detector
+# says the voice stopped (0.2 s of silence, the least Soniox asks for), not 0.7 s after the sound.
+ALL_POLICIES = POLICIES + ("now",)
 
 
 def load() -> float:
@@ -154,7 +158,9 @@ async def stream_once(audio: np.ndarray, policy: str) -> dict:
             if st["open"] and st["stopped"] is not None and st["asked"] != st["stopped"][0]:
                 quiet = (st["sent"] - st["stopped"][0]) / sb.RATE + VAD_STOP_SECS
                 sound = st["stopped"][1] if policy == "after" and turnsound.judged("".join(final)) else None
-                if quiet >= turns.finalize_after(turns.CANDIDATE if policy == "after" else "normal", sound):
+                due = turns.FINALIZE_MIN_SECS if policy == "now" else turns.finalize_after(
+                    turns.CANDIDATE if policy == "after" else "normal", sound)
+                if quiet >= due:
                     st["asked"] = st["stopped"][0]
                     stops[-1].append(time.time())  # when Soniox was asked for the words it held
                     await ws.send('{"type": "finalize"}')
@@ -179,7 +185,7 @@ def judge(row: dict, policy: str, level: str = "normal") -> dict:
             continue
         joined = f"{held} {text}".strip()
         quiet_from = max(e for e in sound_ends if e <= arrived + 0.05) if any(e <= arrived + 0.05 for e in sound_ends) else arrived
-        if policy == "before":
+        if policy != "after":
             wait = turns.settle(joined, bool(held), level)
         else:
             stop = next((s for s in reversed(row["stops"]) if s[0] <= arrived), None)
@@ -194,7 +200,9 @@ def judge(row: dict, policy: str, level: str = "normal") -> dict:
         break
     cut = back is not None and taken_at is not None and taken_at < back
     last_end = sound_ends[-1]
-    return {"cut": cut, "taken_text": taken_text,
+    heard = " ".join(text for _, text, _ in row["segments"] if text)
+    finals = [arrived - last_end for arrived, text, _ in row["segments"] if text and arrived >= last_end]
+    return {"cut": cut, "taken_text": taken_text, "heard": heard, "final_delay": round(finals[0], 3) if finals else None,
             "delay": None if taken_at is None or cut else round(taken_at - last_end, 3)}
 
 
@@ -218,13 +226,13 @@ async def clips(http) -> dict:
     return out
 
 
-async def collect(concurrency: int, max_load: float) -> None:
+async def collect(concurrency: int, max_load: float, policies: tuple) -> None:
     done = set()
     if OUT.exists():
         done = {(r["policy"], r["clip"]) for r in map(json.loads, OUT.read_text().splitlines()) if not r.get("error")}
     async with aiohttp.ClientSession() as http:
         every = await clips(http)
-    jobs = [(p, c) for c in every for p in POLICIES if (p, c) not in done]
+    jobs = [(p, c) for c in every for p in policies if (p, c) not in done]
     random.Random(7).shuffle(jobs)
     print(f"{len(jobs)} runs to do ({len(done)} cached), load {load()}", flush=True)
     sem, lock = asyncio.Semaphore(concurrency), asyncio.Lock()
@@ -252,6 +260,50 @@ async def collect(concurrency: int, max_load: float) -> None:
 def p90(values: list) -> float:
     ordered = sorted(values)
     return ordered[min(len(ordered) - 1, int(round(0.9 * (len(ordered) - 1))))]
+
+
+def words(text: str) -> list[str]:
+    return re.findall(r"[\w']+", text.lower().replace("-", " "))
+
+
+def word_errors(ref: list[str], hyp: list[str]) -> int:
+    """Word edit distance."""
+    row = list(range(len(hyp) + 1))
+    for i, r in enumerate(ref, 1):
+        prev, row[0] = row[0], i
+        for j, h in enumerate(hyp, 1):
+            prev, row[j] = row[j], min(row[j] + 1, row[j - 1] + 1, prev + (r != h))
+    return row[-1]
+
+
+def finals_report(level: str) -> None:
+    """Asking Soniox at once (`now`) against today (`before`): when the last words are final, the words, the cut-ins."""
+    said = {sid: f"{a} {b}" for sid, a, b in HESITATIONS} | dict(WHOLE)
+    rows = {}
+    for r in map(json.loads, OUT.read_text().splitlines()):
+        if not r.get("error") and r["policy"] in ("before", "now"):
+            rows[(r["policy"], r["clip"])] = {**r, **judge(r, r["policy"], level)}
+    both = sorted({c for _, c in rows if all((p, c) in rows for p in ("before", "now"))})
+    if not both:
+        return
+    print(f"\nAsking Soniox for its words at the voice detector's stop (`now`) against 0.7 s after the sound (`before`), "
+          f"{len(both)} clips, load median {statistics.median(rows[('now', c)]['load'] for c in both):.1f}:")
+    print(f"{'clips':22s} {'n':>4s} {'rule':>7s} {'final after last sound: med':>28s} {'p90':>6s} {'word errors':>12s} "
+          f"{'segments':>9s} {'cut-ins':>8s}")
+    for name, pick in (("whole turns", lambda r: r["pause"] is None), ("hesitations", lambda r: r["pause"] is not None)):
+        cs = [c for c in both if pick(rows[("before", c)])]
+        for p in ("before", "now"):
+            rs = [rows[(p, c)] for c in cs]
+            delays = [r["final_delay"] for r in rs if r["final_delay"] is not None]
+            errs = sum(word_errors(words(said[r["id"]]), words(r["heard"])) for r in rs)
+            total = sum(len(words(said[r["id"]])) for r in rs)
+            segs = statistics.mean(sum(1 for _, t, _ in r["segments"] if t) for r in rs)
+            print(f"{name:22s} {len(cs):4d} {p:>7s} {statistics.median(delays):28.2f} {p90(delays):6.2f} "
+                  f"{errs / total:12.1%} {segs:9.2f} {sum(r['cut'] for r in rs):8d}")
+    for c in both:
+        a, b = rows[("before", c)], rows[("now", c)]
+        if words(a["heard"]) != words(b["heard"]):
+            print(f"  {c:20s} before {a['heard']!r}\n  {'':20s} now    {b['heard']!r}")
 
 
 def report(level: str) -> None:
@@ -316,6 +368,7 @@ def report(level: str) -> None:
     for c in both:
         if rows[("before", c)]["cut"] and not rows[("after", c)]["cut"]:
             print(f"  gone  {c:20s} {rows[('before', c)]['taken_text']!r}")
+    finals_report(level)
 
 
 def main() -> None:
@@ -324,9 +377,10 @@ def main() -> None:
     p.add_argument("--concurrency", type=int, default=4)
     p.add_argument("--max-load", type=float, default=20.0, help="run: wait while the 1-minute load is over this")
     p.add_argument("--level", default="normal", choices=list(turns.LEVELS))
+    p.add_argument("--policies", default=",".join(POLICIES), help=f"run: of {', '.join(ALL_POLICIES)}")
     a = p.parse_args()
     if a.cmd == "run":
-        asyncio.run(collect(a.concurrency, a.max_load))
+        asyncio.run(collect(a.concurrency, a.max_load, tuple(a.policies.split(","))))
     else:
         report(a.level)
 
