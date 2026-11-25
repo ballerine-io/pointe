@@ -305,3 +305,20 @@ def test_read_it_again_in_its_common_forms_brings_the_read_out(words):
 def test_other_words_are_not_read_it(words):
     import daemon
     assert not daemon._read_it_intent(words)
+
+
+@pytest.mark.parametrize("words", ["כן, רגע.", "Yes, wait.", "Hmm, hold on.", "Wait.", "One sec."])
+def test_a_wait_over_a_request_gets_silence_while_the_user_thinks(d, monkeypatch, words):  # noqa: F811
+    """adv-10 in tester round 4: "כן, רגע." approved nothing (right) but went to the model, which said "Got it… billing
+    goes on after the approval"; "לא, אל תריץ את זה." a second later was "Denied." A wait is not an answer and needs no
+    reply: the next words answer the request."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    said.clear()
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance(words))
+    assert verdicts(posts) == [] and said == [] and d.state.utterance_spent and active.permission_id == "p1"
+    d.state.utterance_spent = False
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance("לא, אל תריץ את זה." if "כן" in words else "No, don't run it."))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "deny"}]

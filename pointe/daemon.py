@@ -6027,6 +6027,10 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         state.utterance_spent = True  # "read it": the request again, in the daemon's own words, and the yes after it counts
         await _read_out(session)
         return
+    if verdict is None and _WAIT_A_MOMENT.match(text or "") and stop_intent(text) is None:
+        state.utterance_spent = True  # "yes, wait": the user is still deciding, and the next words answer the request
+        logger.info(f"a wait over {session.name}'s request: nothing said, nothing answered: {text!r}")
+        return
     if verdict is None and window_open and backchannel(text) and state.unclear_asked != session.permission_id \
             and state.heard is not None and not state.heard.typed and not state.heard_own_words:
         # "Mm-hm" or "okay" right after "Should it?" is an answer of a kind, and not one that may approve: Pointe
@@ -6109,6 +6113,11 @@ _READ_IT = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|please|yes|yeah|sorry|can you|cou
                       r"repeat (?:it|that|the (?:command|request))|"
                       r"what (?:is it|does it (?:run|do|want))|which command)\W*(?:please\W*)?$|"
                       r"^\W*(?:תקריא|תקריאי|תחזור על)(?: את)?(?: זה)?(?: שוב)?\W*$", re.I)
+
+
+_WAIT_A_MOMENT = re.compile(r"^\W*(?:(?:yes|yeah|ok(?:ay)?|um+|uh+|hmm+|so|כן|אוקיי|אממ?)\W+)*(?:wait|hold on|one sec(?:ond)?|"
+                            r"just a (?:sec(?:ond)?|moment|minute)|a moment|let me think|רגע|שנייה|שניה|חכה|תן לי לחשוב)"
+                            r"(?:\W+(?:a sec(?:ond)?|a moment|please|רגע))?\W*$", re.I)
 
 
 def _read_it_intent(text: str) -> bool:
