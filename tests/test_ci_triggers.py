@@ -51,3 +51,10 @@ def test_the_offline_suite_the_page_and_the_supply_chain_gate_run_on_every_push_
     runs = {job: " ".join(step.get("run", "") for step in doc["jobs"][job]["steps"]) for job in ("offline", "page")}
     assert all("-n auto" in run and "--runslow" in run for run in runs.values())
     assert '-m "not chrome"' in runs["offline"] and "-m chrome" in runs["page"], "between them, every test"
+
+
+def test_a_newer_push_to_main_cancels_the_older_ui_run_and_nothing_cancels_a_tags_run():
+    concurrency = yaml.safe_load((WORKFLOWS / "ui.yml").read_text())["concurrency"]
+    group = concurrency["group"]
+    assert "github.ref == 'refs/heads/main'" in group and "github.event_name == 'push'" in group, "main pushes share one group"
+    assert "github.run_id" in group, "every other run, a tag's above all, has a group of its own"

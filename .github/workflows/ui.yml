@@ -17,6 +17,12 @@ on:
         description: "Some iPhone suites or tests only, by name (DemoUITests ParityUITests/testDisconnectingASessionAsksFirst); empty runs them all"
         required: false
         default: ""
+# A newer push to main cancels the older main run still going: the iPhone suite alone takes 70 to 80 minutes, and runs
+# for commits already superseded held the few macOS runners for hours. Every other run (a tag, a pull request, a
+# dispatch) is in a group of its own, so nothing cancels it; a release tag's run always finishes.
+concurrency:
+  group: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'ui-main' || format('ui-{0}', github.run_id) }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
