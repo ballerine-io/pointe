@@ -1,6 +1,7 @@
 """When the voice may answer (docs/design/turn-taking.md). Soniox's endpoint is a candidate for a turn end, not the
-verdict: every final transcript waits for silence first, longer when the sentence reads unfinished, and a hold
-("don't interrupt me") keeps the voice quiet until a release. Pure rules, so tests replay transcripts offline."""
+verdict: every final transcript waits for silence first, longer when the sentence reads unfinished, shorter when
+Soniox and the sound of the voice (turnsound.py) both say it ended, and a hold ("don't interrupt me") keeps the voice
+quiet until a release. Pure rules, so tests replay transcripts offline."""
 
 import re
 from dataclasses import dataclass
@@ -14,6 +15,15 @@ class Patience:
     complete: float  # the text reads as a whole sentence
     unfinished: float  # it ends on a dangling word, a filler or a comma (guards.unfinished)
     maximum: float  # the cap while the user keeps voicing and no whole sentence arrives
+    # A whole sentence that the other two signals also call ended: Soniox closed it itself, and the voice sounded
+    # finished (turnsound.py). `agreed`: both say so. `likely`: one of them. Left out, they are `complete`.
+    agreed: float = None  # type: ignore[assignment]
+    likely: float = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        for name in ("agreed", "likely"):
+            if getattr(self, name) is None:
+                object.__setattr__(self, name, self.complete)
 
 
 LEVELS = {
@@ -21,6 +31,10 @@ LEVELS = {
     "normal": Patience(complete=1.0, unfinished=3.0, maximum=10.0),
     "patient": Patience(complete=1.8, unfinished=4.5, maximum=14.0),
 }
+# The shorter waits tried for Normal and not shipped: on bench/turn_bench.py they took a first part that reads whole
+# 0.5 or 0.8 s into its pause 94% of the time, against 0% and 15% (docs/design/turn-taking.md §6). No level uses them
+# until recorded human pauses say what they cost.
+CANDIDATE = Patience(complete=1.0, unfinished=3.0, maximum=10.0, agreed=0.3, likely=0.6)
 DEFAULT_LEVEL = "normal"
 SHORT_LETTERS = 8  # a yes, a no, "run it", "לא עכשיו": never delayed, they answer approvals and stop the bot
 
@@ -33,18 +47,32 @@ def _short_answer(text: str) -> bool:
 _STOP_WORD = re.compile(r"^\W*(?:stop|wait|enough|cancel|quiet|עצור|די|חכה|רגע)\W*$", re.I)
 
 
-def settle(text: str, held: bool, level: str, answering: bool = True) -> float:
+SOUNDS_FINISHED = 0.8  # the sound model's probability from which the voice counts as finished, and under which as
+SOUNDS_OPEN = 0.2  # trailing off; between the two it says nothing (bench/turn_bench.py has the measured rates)
+
+
+def settle(text: str, held: bool, level: str | Patience, answering: bool = True, endpoint: bool = False,
+           sound: float | None = None) -> float:
     """How long a final must have been followed by silence. 0 for a hold request, a stop, and a short answer with nothing
     held while something waits for one (`answering`: a question, an approval, a read-back). With nothing waiting, a
-    short sentence ("Okay.") may open a longer one: it settles like any other."""
-    patience = LEVELS.get(level, LEVELS[DEFAULT_LEVEL])
+    short sentence ("Okay.") may open a longer one: it settles like any other.
+
+    A sentence that reads whole waits less when the other signals agree it ended. `endpoint`: Soniox closed the words
+    itself, not on a finalize asked of it. `sound`: the probability that the voice sounded finished when it stopped
+    (turnsound.score), None when it was not judged. Words that read unfinished wait the long time whatever those two
+    say, a voice that trails off keeps the whole wait, and so does a sentence said in parts (`held`). The three levels
+    wait the same whatever the two say (their `agreed` and `likely` are their `complete`): see CANDIDATE."""
+    patience = level if isinstance(level, Patience) else LEVELS.get(level, LEVELS[DEFAULT_LEVEL])
     if hold_intent(text) or _STOP_WORD.match(text):
         return 0.0  # "don't interrupt me" and "stop" act at once
     if unfinished(text):
         return patience.unfinished
     if not held and answering and _short_answer(text):
         return 0.0
-    return patience.complete
+    if held or (sound is not None and sound <= SOUNDS_OPEN):
+        return patience.complete
+    votes = int(endpoint) + int(sound is not None and sound >= SOUNDS_FINISHED)
+    return (patience.complete, patience.likely, patience.agreed)[votes]
 
 
 def maximum(level: str) -> float:
@@ -58,19 +86,24 @@ FINALIZE_MIN_SECS = 0.2  # Soniox asks for about this much silence before a fina
 FINALIZE_GAP_SECS = 2.0  # between two asks: Soniox may drop a stream asked too often
 
 
-def finalize_after(level: str) -> float:
+def finalize_after(level: str | Patience, sound: float | None = None) -> float:
     """Seconds of silence before the held words are asked for: so they are final when a whole sentence's settle ends,
-    and no sooner. 0.7 s at Normal: on the bench it finalized 22% of clips early (0.5 s: 56%), with p90 0.76 s."""
-    return max(FINALIZE_MIN_SECS, LEVELS.get(level, LEVELS[DEFAULT_LEVEL]).complete - FINALIZE_REPLY_SECS)
+    and no sooner. 0.7 s at Normal: on the bench it finalized 22% of clips early (0.5 s: 56%), with p90 0.76 s. When
+    the voice sounded finished (`sound`, as in settle) the settle that may follow is the `likely` one, so a level whose
+    `likely` is shorter asks that much sooner (CANDIDATE: 0.3 s)."""
+    patience = level if isinstance(level, Patience) else LEVELS.get(level, LEVELS[DEFAULT_LEVEL])
+    wait = patience.likely if sound is not None and sound >= SOUNDS_FINISHED else patience.complete
+    return max(FINALIZE_MIN_SECS, wait - FINALIZE_REPLY_SECS)
 
 
-def finalize_due(pending: bool, voiced: bool, sound_ended: float, last_asked: float, now: float, level: str) -> bool:
+def finalize_due(pending: bool, voiced: bool, sound_ended: float, last_asked: float, now: float, level: str,
+                 sound: float | None = None) -> bool:
     """Whether to ask Soniox for the words it has not ended yet (`finalize`). Its v6 model keeps some whole sentences open
     until about 3 s after the speech, past its own max_endpoint_delay_ms, and no turn can settle before its words are
     final (bench/results/soniox-v6.md). Asked once per silence, finalize_after(level) after the sound ended, by the voice
     detector, never by word times: those lag the audio, and a finalize while the user talks splits their words. The
     settle still decides the turn: a half sentence finalized in a pause waits like any other final."""
-    return (pending and not voiced and sound_ended > last_asked and now - sound_ended >= finalize_after(level)
+    return (pending and not voiced and sound_ended > last_asked and now - sound_ended >= finalize_after(level, sound)
             and now - last_asked >= FINALIZE_GAP_SECS)
 
 

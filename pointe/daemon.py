@@ -65,6 +65,7 @@ import scope
 import skip
 import speaker
 import turns
+import turnsound
 from ptt import Ptt
 import setups
 import vendors
@@ -1931,16 +1932,18 @@ class SonioxEars(FrameProcessor):
             state.user_started_at = state.ptt.speech_began(time.time(), PREFS.get("microphone"))
             state.floor.user_started(time.time())
             self._voiced = True
+            state.turn_sound = None  # the voice is back: what its last stop sounded like says nothing now
+            if not self._held:
+                self._audio.begin(ECHO.speaking)
         elif isinstance(frame, VADUserStoppedSpeakingFrame):
             state.user_stopped_at = time.time()
             state.floor.user_stopped(state.user_stopped_at)
             self._voiced = False
+            if _patience() != "patient" and not state.ptt.collecting and (pcm := self._audio.audio()):
+                self._judging_sound = asyncio.ensure_future(self._judge_sound(pcm, state.user_stopped_at))
             # The live words are usually whole when the voice detector hears the silence, about half a second before
             # their final: the model starts reading them now, and the final keeps that step if its words are the same.
-            live = state.hearing[1] if state.hearing else ""
-            if (FRONT == "brain" and isinstance(state.front, BrainFront) and live and not self._held and not ECHO.speaking
-                    and not state.ptt.collecting and _foreseeable(live)):
-                state.front.brain.foresee(live)
+            self._foresee_live()
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
             if state.meeting is not None:  # what the page and the app show as "speaking to the room"
@@ -1953,6 +1956,7 @@ class SonioxEars(FrameProcessor):
         elif isinstance(frame, InputAudioRawFrame) and direction == FrameDirection.DOWNSTREAM:
             pcm = np.frombuffer(frame.audio, dtype=np.int16).astype(np.float32)
             LEVEL.frame(float(np.sqrt(np.mean(pcm * pcm))) if pcm.size else 0.0, ECHO.speaking)
+            self._audio.frame(frame.audio, ECHO.speaking)
             if _scores_voices():  # the lock, or drive mode with a voiceprint, scores the next utterance on this
                 VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
@@ -2031,14 +2035,13 @@ class SonioxEars(FrameProcessor):
                     self._began = spoken[0] if spoken else 0.0
                 self._ended = spoken[1] if spoken else max(state.user_stopped_at, state.user_heard_at)
                 self._final_at, self._clocked = time.time(), spoken is not None
-                wait = turns.settle(heard, held, _patience(), answering=_answer_awaited()) \
-                    if not _dumping() and state.hold is None else 0.0
+                wait = self._settle(heard, held) if not _dumping() and state.hold is None else 0.0
                 if wait > 0:  # Soniox's endpoint is a candidate: the turn is the text once the user has been quiet this long
                     self._held = re.sub(r"[\s.—–…,-]+$", "", heard) if unfinished(heard) else heard
                     if isinstance(state.front, BrainFront):
                         # A whole sentence: the model reads it while it settles. More words, and it reads again.
                         state.front.brain.foresee(heard) if _foreseeable(heard) else state.front.brain.forget()
-                    logger.info(f"settling {wait:.1f} s: {heard!r}")
+                    logger.info(f"settling {wait:.1f} s ({self._signals()}): {heard!r}")
                     self.create_task(self._release_held(self._held, time.time(), wait), f"held-{time.time()}")
                     return
                 await self._take_timed(heard)
@@ -2071,13 +2074,51 @@ class SonioxEars(FrameProcessor):
         logger.info("barge-in: voice well above the echo")
         await self.broadcast_interruption()
 
+    def _foresee_live(self) -> None:
+        live = state.hearing[1] if state.hearing else ""
+        if (FRONT == "brain" and isinstance(state.front, BrainFront) and live and not self._held and not ECHO.speaking
+                and not state.ptt.collecting and _foreseeable(live)):
+            state.front.brain.foresee(live)
+
+    async def _judge_sound(self, pcm: bytes, stopped: float) -> None:
+        """How finished the voice sounded at this stop, on this Mac (turnsound.py, about 40 ms), off the call's loop.
+        Kept only while that silence lasts: a voice that came back is judged again at its next stop."""
+        sound = await asyncio.get_running_loop().run_in_executor(None, turnsound.score, pcm)
+        if state.user_stopped_at == stopped and not self._voiced:
+            state.turn_sound = sound
+
+    def _settle(self, heard: str, held: bool) -> float:
+        """The settle time of these words, from the three signals (turns.settle): how they read, whether Soniox ended
+        them itself (no finalize was asked of it since the voice last started), and how the voice sounded."""
+        endpoint = _soniox_ears() and 0.0 < state.user_started_at and state.finalize_asked_at < state.user_started_at
+        sound = state.turn_sound if turnsound.judged(heard) else None
+        wait = turns.settle(heard, held, _patience(), answering=_answer_awaited(), endpoint=endpoint, sound=sound)
+        state.turn_signals = {"wait": int(wait * 1000), "endpoint": endpoint,
+                              **({"sound": round(sound, 2)} if sound is not None else {})}
+        return wait
+
+    @staticmethod
+    def _signals() -> str:
+        said = state.turn_signals
+        sound = f"sounds {said['sound']:.2f} finished" if "sound" in said else "sound not judged"
+        return f"{'Soniox ended it' if said.get('endpoint') else 'ended on request'}, {sound}"
+
     _held_words = ""
+    _audio_heard: turnsound.Heard | None = None
+    _judging_sound: asyncio.Future | None = None  # kept so the judgment under way is not collected
     _judging = 0  # finals waiting out the echo's settle time
     _began = 0.0  # when the first word of the turn being put together was said, if the ears tell (state.words_began_at)
     _ended = 0.0  # when its last word ended, and when the final transcript with it arrived (state.timing)
     _final_at = 0.0
     _clocked = False  # the ears timed those words themselves (Soniox does)
     _voiced = False  # the voice detector's own state: a push-to-talk press moves user_started_at, not this
+
+    @property
+    def _audio(self) -> turnsound.Heard:
+        """The microphone audio of the turn being put together, for the judgment of its sound."""
+        if self._audio_heard is None:
+            self._audio_heard = turnsound.Heard()
+        return self._audio_heard
 
     @property
     def _held(self) -> str:
@@ -2161,6 +2202,7 @@ class SonioxEars(FrameProcessor):
             await self._take(heard)
         finally:
             state.words_began_at = state.words_ended_at = state.final_at = 0.0
+            state.turn_signals = {}
 
     async def _start_hold(self, heard: str) -> None:
         """"Don't interrupt me": the bot stops talking and answers nothing until a release phrase or a long silence."""
@@ -2589,6 +2631,9 @@ class State:
     recent_said: deque = field(default_factory=lambda: deque(maxlen=6))  # (when, what): the user's last few sentences
     hearing: tuple[float, str] = (0.0, "")  # the user's words as they speak, echo removed: the live transcript
     unfinalized: bool = False  # the ears gave words with no final transcript yet (PttGate asks for them, turns.finalize_due)
+    turn_sound: float | None = None  # how finished the voice sounded at its last stop (turnsound.score); None: not judged
+    finalize_asked_at: float = 0.0  # when Soniox was last asked for the words it held: a final after it is not its own endpoint
+    turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
@@ -4721,8 +4766,9 @@ class PttGate(FrameProcessor):
             await self._finalize()  # the words the meeting cut off finish now, inside it, where they are dropped
         if self._soniox and not room and not state.ptt.collecting and turns.finalize_due(
                 state.unfinalized, state.user_started_at > state.user_stopped_at,
-                state.user_stopped_at - VAD_STOP_SECS, self._asked, now, _patience()):
-            self._asked = now
+                state.user_stopped_at - VAD_STOP_SECS, self._asked, now, _patience(),
+                sound=state.turn_sound if turnsound.judged(state.hearing[1] if state.hearing else "") else None):
+            self._asked = state.finalize_asked_at = now
             logger.info("ears: silence, asking Soniox for the words it holds")
             await self._finalize()
         for event in state.ptt.tick(PREFS.get("microphone"), now):
@@ -5411,6 +5457,7 @@ async def on_user_utterance(text: str, typed: bool = False) -> None:
         state.timing.mark("last_word", min(state.words_ended_at, state.final_at))
         state.timing.mark("stt_final", state.final_at)
     state.timing.mark("settled", time.time())
+    state.timing.info.update(state.turn_signals)
     state.floor.user_turn(time.time())  # an answer, or a new topic: a question of Pointe's is no longer open
     _briefing_heard(text)
     state.last_utterance, state.last_user_speech_at = text, time.time()
@@ -10099,6 +10146,11 @@ def _tell_finalized(stt) -> None:
         return messages()
 
     stt._get_websocket = websocket
+
+
+def _soniox_ears() -> bool:
+    """The call's ears are Soniox: only its finals come from an endpoint it judged itself."""
+    return EARS != "native" and (setup().ears or "").split(":")[0] == "soniox"
 
 
 def _is_soniox(stt) -> bool:

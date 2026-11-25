@@ -16,7 +16,9 @@ check the package itself for the authoritative text.
 | Kokoro v1.0 (`kokoro-v1.0.onnx`, `voices-v1.0.bin`) | local mouth, only with `mouth: local` | Apache-2.0 ([Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M)) | https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/, checked against the SHA-256s pinned in `pointe/assets.py` (Pipecat's own downloader, which checks nothing, never runs) |
 | Gemma 4 26B A4B instruct, MLX 4-bit conversion (`mlx-community/gemma-4-26b-a4b-it-4bit`, 15.4 GB) | local brain, reader and gate, only with `pointe local` | Apache-2.0 ([google/gemma-4-26B-A4B-it](https://huggingface.co/google/gemma-4-26B-A4B-it)) | Hugging Face, at the commit pinned in `pointe/assets.py`, by `pointe local` |
 
-Silero VAD (MIT) ships inside the `pipecat-ai` package; it is not downloaded.
+Silero VAD (MIT) ships inside the `pipecat-ai` package; it is not downloaded. So does Smart Turn v3.2
+(`smart-turn-v3.2-cpu.onnx`, BSD-2-Clause, [pipecat-ai/smart-turn](https://github.com/pipecat-ai/smart-turn)), which judges on
+this Mac whether a voice sounded finished (`pointe/turnsound.py`).
 
 ## Fonts in the repository
 

@@ -77,10 +77,8 @@ as soon as and then`; `like`, `when`, `where`, `who` only outside a question (as
 HE: `אבל וגם ואז כאילו בעצם אחרי לפני עד כש בגלל למרות בשביל לגבי בתוך ליד מול אצל בלי כדי שאני שאתה שהוא שזה שהם
 אה אמ`. The existing tests stay green (`tests/test_units.py:653`); new ones cover each language.
 
-Not done: a smart-turn model. pipecat's `LocalSmartTurnAnalyzerV3` needs a new Hugging Face asset pinned by commit
-(`assets.py`, egress and dependency allowlists, `THIRD_PARTY.md`) and its 23 languages do not include Hebrew. It would
-help the English content-word case (prosody), so it is the natural next step once the owner says yes to the asset; the
-settle time is where it would plug in (it would replace the `complete` row with "the model says finished").
+A smart-turn model was not part of 1.5.0. §6 measures one: it now ships inside the pinned pipecat wheel, so it needs
+no new asset. It is judged and logged on every turn, and it does not change the wait.
 
 ### 3.3 Hold: "don't interrupt me"
 
@@ -182,3 +180,70 @@ stop" choice, and still catches the dangling-word cases today misses.
 - Not shipped: the smart-turn model (§3.2), a page e2e (the offline parity test covers the setting; the live
   `tests/e2e/turn_taking.py` still runs against a real call when asked and its "answers within 3 s of the real end"
   check holds with Normal's 1.0 s).
+
+## 6. A shorter wait when three signals agree: measured, not shipped (0.8.x)
+
+The 1.0 s at Normal is the largest single stage of a turn that needs no model step. The idea: wait less when the turn's
+end is sure. Three signals, each known when the final transcript arrives:
+
+- **The words** read whole (`guards.unfinished` is false).
+- **Soniox ended them itself** (`<end>`), not on a finalize Pointe asked for (`state.finalize_asked_at`).
+- **The voice sounded finished** when it stopped: Smart Turn v3.2 (`pointe/turnsound.py`), the 8.7 MB ONNX model inside
+  the pinned pipecat wheel (BSD-2-Clause), on the audio of the turn so far. About 40 ms on one core, on this Mac: no
+  audio leaves, nothing is downloaded. A turn with the bot's own voice in it is not judged, nor are Hebrew words.
+
+The candidate rule (`turns.CANDIDATE`): all three agree, 0.3 s; the words and one other, 0.6 s; otherwise 1.0 s; words
+that trail off, 3.0 s as before; a sentence said in parts, 1.0 s. When the voice sounded finished Soniox is asked for
+its held words 0.3 s after the sound instead of 0.7 s.
+
+### What it did (`bench/turn_bench.py`, 280 clips, real Soniox, load median 6.4)
+
+Sentences said in two parts with a pause, and whole sentences, by two synthetic voices. A cut-in is a turn taken before
+the second part.
+
+| First part | Pause | Clips | Normal today | Candidate |
+|---|---|---|---|---|
+| trails off, English | 0.5, 0.8, 1.2 s | 78 | 1 (1%) | 7 (9%) |
+| trails off, Hebrew | all | 12 | 0 | 0 |
+| reads whole, English | 0.5 s | 34 | 0 (0%) | 32 (94%) |
+| reads whole, English | 0.8 s | 34 | 5 (15%) | 32 (94%) |
+| reads whole, English | 1.2 s | 34 | 34 (100%) | 34 (100%) |
+| reads whole, Hebrew | all | 48 | 19 (40%) | 22 (46%) |
+| all hesitations | | 240 | 59 (25%) | 127 (53%) |
+
+A whole English turn was taken 0.60 s after its last sound instead of 1.00 s (median and p90, 30 clips). Hebrew stayed
+at 1.00 s.
+
+The sound's score does not tell a pause from an end on these clips: a whole turn scored 0.97 at the median, and a first
+part that reads whole scored 0.97 too (91% of them at 0.8 or over). It does tell a trailing voice: first parts that
+trail off scored 0.19 at the median. The text rules already hold those, and where Soniox dropped the trailing word
+("Move the tests, which" heard as "Move the tests.") the candidate took the turn.
+
+### Why it is not shipped
+
+- **It doubles the cut-ins.** A pause of 0.5 to 0.8 s after a clause that reads whole is the complaint this document
+  began with, and the candidate takes that turn 94% of the time against 0 to 15%.
+- **It does not make the first word sooner where a model answers.** The model step already starts at the final
+  transcript, 0.45 s after the last sound, and its first sentence is ready 0.9 to 1.3 s later: after the 1.0 s wait
+  has passed. On `tests/e2e/latency.py` (12 plain questions, load 7 to 11) the turn was taken 0.44 s sooner and the
+  first sound came no sooner. The gain is only on turns the daemon answers itself and on a send's acknowledgement,
+  and a send is where a cut-in costs most: half an instruction reaches the session.
+  On 21 dialogues of the suite run side by side (load 5 to 9, 30 timed turns each): the turn was taken 0.83 s after
+  the last word instead of 1.18 s; turns with no model step were heard at 1.26 s instead of 1.44 s; the first word's
+  median was 2.28 s against 2.14 s and its p90 4.58 s against 4.32 s, which is the model's own variation. No turn was
+  cut in on in either run (one pause item).
+- **The clips cannot settle it.** A synthetic voice reads "The retry loop is wrong" as a sentence; a person who stops
+  to think may not. The sound model may do better on people. That needs recorded human pauses (the acceptance in the
+  backlog: at least 100), not these clips.
+
+### What is in the code
+
+`turns.settle` takes the two new signals, and `SonioxEars._settle` gives them to it. The three levels wait as before
+whatever the signals say. Each turn's timing line carries what they said (`"endpoint"`, `"sound"`, `"wait"`), so a
+recorded-human run or a live call shows how often they agree and what a shorter wait would have done. To try the
+candidate: set a level's `agreed` and `likely` in `turns.LEVELS`.
+
+The live words cannot start the model sooner either. At the voice detector's stop Soniox's live words lack the last
+one to three words ("What time zone is Tel" for "What time zone is Tel Aviv in?", 12 of 12 turns); the whole sentence
+arrives with the final.
+
