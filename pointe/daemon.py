@@ -6745,7 +6745,13 @@ async def _send_now(message: str) -> dict:
     parts, clause = _clauses(), _clause_for(message)
     earlier, talk = state.sent[-5:] + [f"(refused, not sent) {m}" for m in state.blocked if m != message], state.conversation[:-1]
     if answering or _corrects_last_send(message):  # these only re-aim words the user already approved, so those go, exactly
-        message, relevant = (state.pending_route[2] if answering else state.last_message), True
+        draft = state.pending_route[2] if answering else state.last_message
+        # A first draft that named the session the user did not pick ("in the tariff-api project", answered "the web
+        # one") is not sent: the model's call, checked above to bring nothing new, names the one they picked.
+        everyone = list(REGISTRY.sessions.values())
+        picked = {s.id for s in named_sessions(message, everyone)}
+        wrong = bool(answering) and any(s.id not in picked for s in named_sessions(draft, everyone))
+        message, relevant = (message if wrong else draft), True
     elif parts and clause is None:
         # No shared word (a translation, or a paraphrase): each part is asked whether it carries this message.
         # One that fits a part already sent is taken as a reworded replay of it, never handed to an unsent part.
