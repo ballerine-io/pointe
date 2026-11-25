@@ -2781,6 +2781,7 @@ class State:
     turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    unclear_asked: str | None = None  # the request for which "I need a yes or a no" was said (once a request)
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
@@ -3297,11 +3298,11 @@ async def _nudger() -> None:
             continue
         session.nudged_at = state.last_nudge_at = now
         if session.permission_id and session is REGISTRY.active:
-            if session.permission_read_at and len(session.permission_spoken.split()) > REMIND_SHORT_OVER_WORDS \
-                    and not session.permission_cut and not state.drive.on():
-                # Read once already, and long: reading it all again unasked is nagging (a 30 s read-out came back
-                # every 45 s). One line says it waits; "read it" or a yes brings the request again.
-                logger.info(f"nudging about {session.name}: its request is long, a short reminder")
+            if session.permission_read_at and not session.permission_cut and not state.drive.on():
+                # Read once already: saying it all again unasked is nagging, whatever its length (the same question,
+                # word for word, after 45 s of silence, was the commonest fault a blind judge named). One line says it
+                # waits; "read it" or a yes brings the request again before anything is approved.
+                logger.info(f"nudging about {session.name}: a short reminder of its request")
                 name = _spoken_names(session.name)
                 await _say_fixed(f"{name} עדיין מחכה לכן או לא. אמור תקריא כדי לשמוע שוב."
                                  if re.search(r"[\u0590-\u05ff]", state.last_utterance or "") else
@@ -5784,6 +5785,13 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         state.utterance_spent = True  # "read it": the request again, in the daemon's own words, and the yes after it counts
         await _read_out(session)
         return
+    if verdict is None and window_open and backchannel(text) and state.unclear_asked != session.permission_id \
+            and state.heard is not None and not state.heard.typed and not state.heard_own_words:
+        # "Mm-hm" or "okay" right after "Should it?" is an answer of a kind, and not one that may approve: Pointe
+        # says which words it needs, once for a request, and the window stays open for them.
+        state.unclear_asked, state.utterance_spent = session.permission_id, True
+        await _say_fixed("צריך כן או לא." if re.search(r"[\u0590-\u05ff]", text) else "I need a yes or a no.")
+        return
     if verdict is None:
         if window_open:  # a question first: a later yes may answer the bot's reply, not the permission
             session.permission_delivered_at = float("inf")
@@ -5925,7 +5933,6 @@ NEXT_REQUEST_AFTER_SECS = 0.8
 ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}
 
 
-REMIND_SHORT_OVER_WORDS = 14  # a read-out longer than this is not read again unasked: a short reminder instead
 UNHEARD_ANSWER_SECS = 2.5  # a sound with no words this long after it, while a request waits for its yes: ask once
 UNHEARD_ANSWER_LINE = "I didn't catch that. Yes or no?"
 UNHEARD_ANSWER_HE = "לא שמעתי. כן או לא?"

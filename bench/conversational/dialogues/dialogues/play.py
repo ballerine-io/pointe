@@ -158,7 +158,9 @@ async def wait_for(turn, w: Watch, last_end: float, last_busy: list) -> str:
             # A person answers the request they heard: the turn waits for its read-out, not for any speech after it
             # ("Sent to atlas." is not the request).
             read = w.a.readout_since(max(ap["_t"] - 1, last_end)) if ap is not None else None
-            if read is not None and any(s >= read - 1.5 for s, _ in w.spans()) and w.quiet(1.5):
+            # Audio still playing at or after the read-out began: a re-read that follows another line with no gap is
+            # one audible span that began before it, and the turn used to wait for its cap.
+            if read is not None and any(e >= read for _, e in w.spans()) and w.quiet(1.5):
                 break
         elif turn.when == "readout":  # over the read-out itself: a yes said before it ends
             name, ap = w.pending()
