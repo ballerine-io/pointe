@@ -751,9 +751,13 @@ def repeat_intent(text: str) -> bool:
     return bool(_REPEAT.search((text or "").strip()))
 
 
+_LONE_YES = re.compile(r"^\W*(?:yes|yeah|yep|yup|כן|נכון|אוקיי|אוקי)\W*$", re.I)
+
+
 def backchannel(text: str) -> bool:
-    """Only listener sounds or a word of assent ("mm-hm", "uh-huh", "okay", "right"): no wish to take the floor."""
-    return ack_only(text)
+    """Only listener sounds or a word of assent ("mm-hm", "uh-huh", "okay", "right", a lone "yes" or "כן"): no wish to
+    take the floor. Over the voice, such a word does not stop it; whether it answers anything is judged elsewhere."""
+    return ack_only(text) or bool(_LONE_YES.match(text or ""))
 
 
 _STOP_VERB = re.compile(r"^(?:stop|cancel|abort|halt|kill|hold on|hang on|עצור|תעצור|תפסיק|הפסק|בטל|תבטל)$")
