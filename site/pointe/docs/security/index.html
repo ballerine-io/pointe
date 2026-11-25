@@ -469,11 +469,18 @@ by voice, but only the terminal approves.</p>
   the daemon's memory, never in its environment.</p>
 </li>
 <li>
-<p>No program Pointe starts receives them: not the <code>claude -p</code> copy a side question runs in, not <code>claude agents</code>, <code>git</code>,
-  OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
-  (<code>pointe/childenv.py</code>; <code>tests/test_child_env.py</code> fails on a spawn that does not use it). The exceptions start the daemon
-  itself (<code>pointe key</code>'s restart, <code>pointe join</code>), which reads keys from the environment it is given; <code>pointe apps</code> and
-  <code>pointe uninstall</code> never read a key and pass on the environment your shell gave them.</p>
+<p>No program Pointe starts receives them: not <code>claude agents</code>, <code>git</code>, OpenCode, the local text-model server or any other
+  tool. Each gets the daemon's environment without the key variables (<code>pointe/childenv.py</code>; <code>tests/test_child_env.py</code>
+  fails on a spawn that does not use it). The exceptions start the daemon itself (<code>pointe key</code>'s restart, <code>pointe
+  join</code>), which reads keys from the environment it is given; <code>pointe apps</code> and <code>pointe uninstall</code> never read a key and
+  pass on the environment your shell gave them.</p>
+</li>
+<li>
+<p>One exception, for one key: the <code>claude -p</code> copy a side question or an overview runs in starts without any key, and
+  signs in as the session's account does. A session that runs on an <code>ANTHROPIC_API_KEY</code> leaves that copy nothing to
+  sign in with ("Not logged in"); it is then started once more with Pointe's own Anthropic key and no other. The copy
+  has no settings, hooks or MCP servers and can only read files (<code>--permission-mode dontAsk</code>), so it cannot run a
+  command that would print the key or send it anywhere (<code>harnesses/claude_code.py</code>, <code>side_question</code>).</p>
 </li>
 <li>
 <p>Pointe saves each key as <code>pointe.&lt;vendor&gt;-api-key</code>. It still reads the names of pre-release builds (<code>openai-api-key</code>,

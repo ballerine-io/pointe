@@ -280,11 +280,16 @@ What sessions report is data for the voice model, not instructions to it:
 
 - Keys come from the environment or the macOS Keychain, and reach the daemon only. A key read from the Keychain stays in
   the daemon's memory, never in its environment.
-- No program Pointe starts receives them: not the `claude -p` copy a side question runs in, not `claude agents`, `git`,
-  OpenCode, the local text-model server or any other tool. Each gets the daemon's environment without the key variables
-  (`pointe/childenv.py`; `tests/test_child_env.py` fails on a spawn that does not use it). The exceptions start the daemon
-  itself (`pointe key`'s restart, `pointe join`), which reads keys from the environment it is given; `pointe apps` and
-  `pointe uninstall` never read a key and pass on the environment your shell gave them.
+- No program Pointe starts receives them: not `claude agents`, `git`, OpenCode, the local text-model server or any other
+  tool. Each gets the daemon's environment without the key variables (`pointe/childenv.py`; `tests/test_child_env.py`
+  fails on a spawn that does not use it). The exceptions start the daemon itself (`pointe key`'s restart, `pointe
+  join`), which reads keys from the environment it is given; `pointe apps` and `pointe uninstall` never read a key and
+  pass on the environment your shell gave them.
+- One exception, for one key: the `claude -p` copy a side question or an overview runs in starts without any key, and
+  signs in as the session's account does. A session that runs on an `ANTHROPIC_API_KEY` leaves that copy nothing to
+  sign in with ("Not logged in"); it is then started once more with Pointe's own Anthropic key and no other. The copy
+  has no settings, hooks or MCP servers and can only read files (`--permission-mode dontAsk`), so it cannot run a
+  command that would print the key or send it anywhere (`harnesses/claude_code.py`, `side_question`).
 - Pointe saves each key as `pointe.<vendor>-api-key`. It still reads the names of pre-release builds (`openai-api-key`,
   `gemini-api-key`, ...) after its own, so a key saved then keeps working. Another tool may keep an item under such a
   name: Pointe then uses that key for the same vendor, and `pointe key <vendor>` saves one of Pointe's own, which wins.
