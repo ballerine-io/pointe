@@ -24,3 +24,12 @@ def test_a_short_question_asks_for_a_short_answer():
 def test_work_and_detail_are_relayed_as_before():
     assert "read aloud" not in voice_message("Add a docstring to refund.")
     assert "read aloud" not in voice_message("Explain in detail why the refund tests fail?")
+
+
+def test_the_short_answer_asked_for_is_said_as_a_person_says_it():
+    """Tester round 4's first sample: answers said as they came were "According to NOTES, the last test run had 3
+    failures… I haven't rerun the tests, so that count may be out of date." and "Tuesday. NOTES records it: 'Last deploy:
+    Tuesday.'" The session is asked for the answer alone: not where it read it, and a caveat only when it changes the
+    answer."""
+    out = voice_message("How many tests failed?")
+    assert "the answer first" in out and "not where you read it" in out and "a caveat only if it changes the answer" in out
