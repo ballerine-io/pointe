@@ -57,3 +57,26 @@ def test_no_call_or_not_a_shell_command_is_left_alone(d):  # noqa: F811
     assert d._rephrase_first(s, "Bash", LOOP, None) is None
     d.state.conn = fake_conn()
     assert d._rephrase_first(s, "WebFetch", {"url": "https://example.com"}, None) is None
+
+
+MEASURED = {"command": 'pwd; ls -la; git log --oneline --all; git status --short; python3 -c "import unirest" 2>&1; '
+                       'python3 -m pip show unirest 2>&1 | head -5'}
+
+
+def test_a_command_long_to_hear_is_sent_back_though_it_is_few_words(d):  # noqa: F811
+    """From the independent tester's third round: this one was read word for word for 27 seconds ("python 3 dash c
+    import unirest 2 ampersand greater than 1"). It is 21 words on the page, under the old limit of 40."""
+    s = add(d, "b", "billing")
+    d.state.conn = fake_conn()
+    out = d._rephrase_first(s, "Bash", MEASURED, None)
+    assert out and out["hookSpecificOutput"]["decision"]["behavior"] == "deny"
+    assert "only read" in out["hookSpecificOutput"]["decision"]["message"]
+
+
+def test_a_short_unusual_command_and_a_long_look_are_still_put_to_the_user(d):  # noqa: F811
+    s = add(d, "b", "billing")
+    d.state.conn = fake_conn()
+    assert d._rephrase_first(s, "Bash", {"command": "sh scripts/slow_check.sh 3"}, None) is None  # short: word for word
+    look = {"command": "pwd && ls -la && git status --short && find . -name 'test*.py' -not -path './.git/*' | head -50"}
+    assert d._rephrase_first(s, "Bash", look, None) is None  # long, and only looks: said in a few words
+    assert d.spoken_request("Bash", look, s.cwd).startswith("look around, read only:")

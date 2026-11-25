@@ -217,3 +217,18 @@ def test_no_request_waiting_means_a_sound_is_just_a_sound(d, monkeypatch):  # no
     now = time.time()
     d.state.user_started_at, d.state.user_stopped_at = now - 0.5, now
     assert not d._unheard_answer_possible()
+
+
+def test_read_it_brings_the_request_again_and_the_yes_after_it_counts(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    d._note_bot_speech("Bluebell is still waiting for your yes or no.")  # something else was said since: the window closed
+    said.clear()
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance("Read it."))
+    assert len(said) == 1 and "rm -rf build" in said[0] and verdicts(posts) == []
+    d.ECHO.stopped_at = time.time() - 5
+    d.state.user_started_at = time.time() - 1
+    d.state.conn.injector.bot_started_at = time.time()
+    asyncio.run(d.on_user_utterance("Yes."))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]

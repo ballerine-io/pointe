@@ -3293,6 +3293,17 @@ async def _nudger() -> None:
             continue
         session.nudged_at = state.last_nudge_at = now
         if session.permission_id and session is REGISTRY.active:
+            if session.permission_read_at and len(session.permission_spoken.split()) > REMIND_SHORT_OVER_WORDS \
+                    and not session.permission_cut and not state.drive.on():
+                # Read once already, and long: reading it all again unasked is nagging (a 30 s read-out came back
+                # every 45 s). One line says it waits; "read it" or a yes brings the request again.
+                logger.info(f"nudging about {session.name}: its request is long, a short reminder")
+                name = _spoken_names(session.name)
+                await _say_fixed(f"{name} עדיין מחכה לכן או לא. אמור תקריא כדי לשמוע שוב."
+                                 if re.search(r"[\u0590-\u05ff]", state.last_utterance or "") else
+                                 f"{name} is still waiting for your yes or no. Say read it to hear it again.")
+                session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id  # a yes re-reads it
+                continue
             logger.info(f"nudging about {session.name}: reading its permission out again")
             await _read_out(session)  # a model's reminder invites a yes that could not count
             continue
@@ -5765,6 +5776,10 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         state.utterance_spent = True
         await _say_fixed(_tap_only_text(session))
         return
+    if verdict is None and _read_it_intent(text) and current_mode().reads_out:
+        state.utterance_spent = True  # "read it": the request again, in the daemon's own words, and the yes after it counts
+        await _read_out(session)
+        return
     if verdict is None:
         if window_open:  # a question first: a later yes may answer the bot's reply, not the permission
             session.permission_delivered_at = float("inf")
@@ -5876,6 +5891,7 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
 ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}
 
 
+REMIND_SHORT_OVER_WORDS = 14  # a read-out longer than this is not read again unasked: a short reminder instead
 UNHEARD_ANSWER_SECS = 2.5  # a sound with no words this long after it, while a request waits for its yes: ask once
 UNHEARD_ANSWER_LINE = "I didn't catch that. Yes or no?"
 UNHEARD_ANSWER_HE = "לא שמעתי. כן או לא?"
@@ -8360,10 +8376,13 @@ REPHRASE_LIMIT, REPHRASE_WINDOW_SECS = 2, 600.0
 REPHRASE_MESSAGE = ("The user is on a voice call and approves by ear: this command is too long to follow when read out "
                     "word for word, so it was not run. Do the same step again as plain commands, one at a time: no loops, pipes "
                     "into other programs, subshells, variables, or code passed in quotes. Each will be read out and can be "
-                    "approved by voice.")
+                    "approved by voice. Commands that only read (ls, cat, grep, find, git status, in any number) are read "
+                    "out in a few words: keep those apart from a command that changes something.")
 
 
 REPHRASE_WORDS = 40  # a word-for-word read-out longer than this is sent back once for plain commands first
+REPHRASE_CHARS = 64  # and so is a command of more characters than this: about five seconds read word for word. Measured:
+# such commands took 10 to 40 s to read ("ampersand greater than 1 pipe head"), and nobody could follow one
 SECRET_MESSAGE = ("The user is on a voice call and approves by ear: this command has a secret written in it, which is "
                   "never said aloud, so it was not run. Do the same step again with the secret passed by reference (an "
                   "environment variable or a file that holds it), never written in the command; it will be read out and "
@@ -8381,7 +8400,8 @@ def _rephrase_first(session: Session, tool_name: str, tool_input: dict, run_in: 
             or readable_request(tool_name, tool_input, session.cwd, run_in)):
         return None
     verbatim = verbatim_request(tool_name, tool_input)
-    if verbatim and len(verbatim.split()) <= REPHRASE_WORDS:
+    # Long by the ear, not by the eye: "--exclude-dir=.git" is one word on the page and eight said aloud.
+    if verbatim and len(verbatim.split()) <= REPHRASE_WORDS and len(str(tool_input.get("command") or "")) <= REPHRASE_CHARS:
         return None
     now = time.time()
     recent = [t for t in session.harness_data.get("rephrased", []) if now - t < REPHRASE_WINDOW_SECS]
