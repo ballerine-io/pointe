@@ -61,8 +61,10 @@ import local
 import meeting as meetings
 import modes
 import mute
+import progress
 import scope
 import skip
+import thinking
 import speaker
 import turns
 import turnsound
@@ -1856,7 +1858,12 @@ class BrainFront(FrameProcessor):
 
     async def _fast_or_brain(self, text: str, session, message: str) -> None:
         """A plain request is sent as said (_send_fast); one that did not go is the model's, as ever."""
-        if not await _send_fast(self, text, session, message):
+        state.words_at_work += 1  # the Thinking state holds while the words are on their way to the session
+        try:
+            sent = await _send_fast(self, text, session, message)
+        finally:
+            state.words_at_work -= 1
+        if not sent:
             self._start(text)
 
     def _start(self, text: str | None, speech_only: bool = False) -> None:
@@ -2041,7 +2048,7 @@ def _foreseeable(heard: str) -> bool:
             and not any(s.permission_id for s in REGISTRY.sessions.values()) and not unfinished(heard)
             and not (turns.hold_intent(heard) or briefing.briefing_intent(heard) is not None or drives.intent(heard)
                      or whisper.intent(heard) is not None or meeting_intent(heard) or challenge.start_intent(heard)
-                     or braindump.start_intent(heard)))
+                     or braindump.start_intent(heard) or progress.intent(heard) is not None))
 
 
 class SonioxEars(FrameProcessor):
@@ -2431,6 +2438,9 @@ class SonioxEars(FrameProcessor):
                 and (text_only or state.mute) and not (state.challenge is not None and challenge.end_intent(heard)):
             await _mute_by_voice(heard, text_only)
             return
+        if not _dumping() and state.meeting is None and state.challenge is None and (posted := _progress_words(heard)) is not None:
+            await _progress_by_voice(heard, posted)
+            return
         wanted = meeting_intent(heard)
         if wanted and not _dumping():
             await _start_meeting_by_voice(heard, wanted)
@@ -2615,6 +2625,7 @@ class BotSpeechTap(FrameProcessor):
             _stage("tts_first_byte")
         elif isinstance(frame, BotStartedSpeakingFrame):
             _stage("first_sound")
+            state.wait.sound(time.time())
         elif isinstance(frame, TTSTextFrame) and direction == FrameDirection.DOWNSTREAM:
             if FRONT != "brain":
                 ECHO.bot_said(frame.text)
@@ -2722,6 +2733,10 @@ class State:
     clauses_at: float = 0.0  # the utterance (by speech time) whose clauses clauses_used counts
     clauses_used: set[int] = field(default_factory=set)
     front: object = None  # the brain in the pipeline, when there is one
+    wait: thinking.Wait = field(default_factory=thinking.Wait)  # the wait for a reply: the Thinking state and its sound
+    words_at_work: int = 0  # sends of the owner's own words in flight (a fast send): work on their turn, as a model step is
+    watch: progress.Watch = field(default_factory=progress.Watch)  # sessions that have the owner's request and no answer yet
+    progress_loop: asyncio.Task | None = None
     idle_hangup: bool = False  # the idle timer ended the last call: the page must not call back by itself
     user_started_at: float = 0.0  # a yes begun before the read-out ended answered something else
     # When the words of the turn being taken began, by the ears' own clock (Soniox times each word); 0 when they do not
@@ -3674,6 +3689,8 @@ async def _briefing_scheduler() -> None:
 def _call_ended() -> None:
     """"The night" starts here; a briefing does not outlive its call."""
     state.call_break = True
+    state.wait.clear()
+    state.watch.clear()
     BRIEFINGS.call_ended(time.time())
     _notify_call()  # the nodes stop forwarding prompts: they stay in their terminals
     state.briefing_play = None
@@ -3837,7 +3854,7 @@ async def _night_send(shift, front, kind: str | None) -> None:
     text = nightshift.message(kind, task.text)
     session.joining = False  # its next finished turn answers this
     began = time.time()
-    delivered = await _dispatch(session, text)
+    delivered = await _dispatch(session, text, for_user=False)
     aside = _set_aside(session, began)
     if not delivered or aside:
         why = ("Its Claude Code held or refused a message from the voice: set crossSessionInbound to accept in that "
@@ -5575,6 +5592,13 @@ async def _tone(up: bool) -> None:
 
 
 async def on_user_utterance(text: str, typed: bool = False) -> None:
+    try:
+        await _on_user_utterance(text, typed)
+    finally:
+        state.wait.handled(time.time())  # the daemon's part is done: the Thinking state now follows the model's work
+
+
+async def _on_user_utterance(text: str, typed: bool = False) -> None:
     state.heard = _heard_now(text, typed)  # before anything below can speak: what the words answer is fixed now
     _journal_bot_turn()  # what the bot said comes before the reply to it
     logger.info(f"user said: {text!r}")
@@ -5585,6 +5609,7 @@ async def on_user_utterance(text: str, typed: bool = False) -> None:
     state.timing.mark("settled", time.time())
     state.timing.info.update(state.turn_signals)
     state.answers_question = state.floor.question
+    _turn_taken(None if typed or not (state.words_ended_at and state.final_at) else min(state.words_ended_at, state.final_at))
     state.floor.user_turn(time.time())  # an answer, or a new topic: a question of Pointe's is no longer open
     _briefing_heard(text)
     state.last_utterance, state.last_user_speech_at = text, time.time()
@@ -6679,14 +6704,18 @@ def _set_aside(target: Session, since: float) -> str:
     return ""
 
 
-async def _dispatch(target: Session, message: str) -> bool:
-    """Delivered, or not: a bus job only queues the request, so it cannot say whether it arrived."""
+async def _dispatch(target: Session, message: str, for_user: bool = True) -> bool:
+    """Delivered, or not: a bus job only queues the request, so it cannot say whether it arrived. `for_user`: the owner
+    asked for it on this call, so the screens say the session is working and progress.py may say how it goes; a night
+    shift's own message is not."""
     asked = target.stop_asked_at
     while asked is not None and target.stop_asked_at == asked and time.time() - asked < STOP_SETTLE_SECS:
         await asyncio.sleep(0.2)  # "stop, and do X": X goes after the stop landed, or Claude reads it inside that turn
     if not await deliver(target, message):
         return False
     target.busy = True
+    if for_user and state.conn is not None:
+        state.watch.asked(target.id, time.time())
     return True
 
 
@@ -8850,6 +8879,7 @@ async def _drop_old_topic(by_voice: bool = False) -> None:
     (an interruption from the injector reaches the brain and ends that turn)."""
     if state.front is not None and not by_voice:
         state.front.brain.interrupt()
+    state.watch.clear()  # updates on a request are for the place the owner left: none is said after the switch
     _stop_briefing()  # what is left of a briefing was for the place the owner left
     if state.conn is None:
         return
@@ -9145,6 +9175,9 @@ async def _user_text(text: str) -> None:
         return
     if (wanted := mute.intent(text)) is not None and (wanted or state.mute):  # "talk again" typed works too
         await _mute_by_voice(text, wanted)
+        return
+    if state.challenge is None and (posted := _progress_words(text)) is not None:
+        await _progress_by_voice(text, posted)
         return
     state.heard_own_words, state.last_speaker = True, None
     await on_user_utterance(text, typed=True)  # state.heard keeps it typed after the flag is cleared: no yes to a read-back
@@ -9474,6 +9507,7 @@ async def _status(request: Request) -> dict:
             "whisper": whisper.status(PREFS.get("whisper"), lock_level(), PREFS.get("microphone"),
                                       held="drive" if state.drive.on() else None),
             "reading": _mute_status(),
+            "phase": _phase(),  # thinking, or a session working on the owner's request (thinking.py)
             "mode_state": {"mode": current_mode().name, "speech": current_mode().speech, "approvals": current_mode().approvals},
             "drive": _drive_status(),
             "local": _local_status(),
@@ -9980,7 +10014,8 @@ async def page():
             .replace("{{DICTIONARY}}", (here / "ui_dictionary.html").read_text())
             .replace("{{WHISPER}}", (here / "ui_whisper.html").read_text())
             .replace("{{MUTE}}", (here / "ui_mute.html").read_text())
-            .replace("{{SKIP}}", (here / "ui_skip.html").read_text()))
+            .replace("{{SKIP}}", (here / "ui_skip.html").read_text())
+            .replace("{{THINKING}}", (here / "ui_thinking.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
@@ -10431,6 +10466,8 @@ async def run_call(transport) -> None:
         state.liveness = asyncio.create_task(_liveness())
     if state.nudger is None or state.nudger.done():
         state.nudger = asyncio.create_task(_nudger())
+    if state.progress_loop is None or state.progress_loop.done():
+        state.progress_loop = asyncio.create_task(_progress_loop())
 
     opening = _opening_context()
     state.tokens = None
@@ -10650,6 +10687,145 @@ async def _whisper_by_voice(heard: str, on: bool) -> None:
               "[whisper mode off] The user turned whisper mode off. Say in at most four words that you are back to normal.")
 
 
+# ---------- the wait for a reply (thinking.py) and spoken progress (progress.py) ----------
+
+def _work_on_words() -> bool:
+    """Work on the owner's own words is running: a model step that answers them, or their words on the way to a session.
+    A realtime front has no step to ask about: it is taken to work until it speaks, for a few seconds at most."""
+    if state.words_at_work > 0:
+        return True
+    if FRONT != "brain":
+        wait = state.wait
+        return bool(wait.taken_at) and wait.sound_at < wait.taken_at and time.time() - wait.taken_at < thinking.HANDED_SECS
+    brain = getattr(state.front, "brain", None)  # any step while the turn is open: the reply to a yes is one too
+    return bool(getattr(brain, "_user_turns", 0) or getattr(brain, "busy", False))
+
+
+def _working_on() -> tuple[str, float] | None:
+    """The session that has the owner's newest request and is still working on it: (name, since)."""
+    live = [(ask.since, s.name) for sid, ask in state.watch.asks.items()
+            if (s := REGISTRY.sessions.get(sid)) is not None and _working(s) and not s.permission_id]
+    return (max(live)[1], max(live)[0]) if live else None
+
+
+def _phase() -> dict | None:
+    """Status `phase`: what is true on the call while nothing is being said. None in a meeting and in a mode that never
+    speaks: no reply is coming there, and the screen has that mode's own state."""
+    if state.conn is None or state.meeting is not None or current_mode().speech == "never":
+        return None
+    now = time.time()
+    said = ECHO.speaking or (_muted() and now - state.wrote_at < mute.WRITING_SECS)
+    return thinking.status(state.wait, now, _work_on_words(), said, _working_on())
+
+
+def _turn_taken(last_word: float | None) -> None:
+    """The owner's words became the turn: every screen says Thinking… (the calling device is told now, the others at
+    their next poll), and the waiting sound is armed for this turn."""
+    state.wait.taken(time.time(), last_word)
+    if state.conn is None:
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    loop.create_task(_tell_phase())
+    loop.create_task(_cue_watch(state.wait.turn))
+
+
+async def _tell_phase() -> None:
+    sock = state.call_socket
+    if sock is not None:
+        with contextlib.suppress(Exception):
+            await sock.send_text(json.dumps({"type": "phase", "name": "thinking", "session": None}))
+
+
+def _cue_allowed() -> bool:
+    """The waiting sound may play: the setting is on, and Pointe has a voice here that the owner hears (not muted,
+    though drive mode holds mute; not whisper mode; not a meeting's room; not a mode that never speaks), and nobody is
+    making a sound."""
+    return (state.conn is not None and state.front is not None and bool(PREFS.get("thinking.cue")) and not _muted()
+            and not _whispering() and state.meeting is None and current_mode().speech != "never"
+            and not ECHO.speaking and not _user_talking())
+
+
+async def _cue_watch(turn: int) -> None:
+    """Follows one turn until it is answered or nothing is coming, and closes it. Its waiting sound is played once the
+    wait is long (thinking.Wait.cue_due), unless the reply's words reach the mouth first or a newer turn replaces it."""
+    wait = state.wait
+    while wait.turn == turn and state.conn is not None:
+        now = time.time()
+        busy = _work_on_words()
+        if not wait.thinking(now, busy):
+            wait.close()  # answered, or nothing is coming: a line said from now on is news, not this turn's reply
+            return
+        if wait.cue_due(now, busy) and _cue_allowed():
+            wait.cue_played(now)
+            rate = 24000
+            logger.info(f"waiting sound, {now - wait.taken_at:.2f} s after the turn was taken")
+            await state.front.push_frame(OutputAudioRawFrame(audio=thinking.cue_pcm(rate), sample_rate=rate, num_channels=1))
+        await asyncio.sleep(thinking.CUE_POLL_SECS)
+
+
+def _progress_words(heard: str) -> bool | None:
+    """"Keep me posted" (True) or "stop updates" (False), as the daemon takes them; None for anything else. "Stop
+    updates" with the updates off is someone else's words."""
+    wanted = progress.intent(heard)
+    return wanted if wanted is not None and (wanted or PREFS.get("progress.spoken")) else None
+
+
+async def _progress_by_voice(heard: str, on: bool) -> None:
+    """The setting by voice, caught in code like mute's phrases. It changes what Pointe says unasked, never what a
+    yes can do."""
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send
+    PREFS.update({"progress.spoken": on})
+    logger.info(f"progress updates {'on' if on else 'off'} (by voice)")
+    await _say_exactly(progress.ON_LINE if on else progress.OFF_LINE, f"progress updates {'on' if on else 'off'}")
+
+
+def _progress_may_speak() -> bool:
+    """Not where a mode has its own rules for what is said: a meeting's room, a hold, a brain dump, a challenge, a
+    briefing, a mode that never speaks."""
+    return (state.meeting is None and state.hold is None and not _dumping() and state.challenge is None
+            and state.briefing_play is None and current_mode().speech != "never")
+
+
+async def _progress_tick(now: float) -> None:
+    """Once a second on a call. A session that answered, left, or waits at a prompt in its terminal is no longer
+    watched. With the setting on, the one line that is due is said when the floor is free: a line that waited for the
+    floor is dropped if the session finished meanwhile, never said late."""
+    watch = state.watch
+    for sid in list(watch.asks):
+        session = REGISTRY.sessions.get(sid)
+        if session is None or not _working(session):
+            watch.done(sid)
+    if state.conn is None or not PREFS.get("progress.spoken") or not _progress_may_speak():
+        return
+    for sid in watch.due(now):
+        session, ask = REGISTRY.sessions[sid], watch.asks[sid]
+        if session.permission_id:  # it waits on the owner: its read-out is the news
+            continue
+        if _floor_blocked() is not None:
+            return
+        step = session.step[1] if session.step and session.step[0] >= ask.since else None
+        name = _spoken_names(session.name)
+        text = progress.line(name[:1].upper() + name[1:], now - ask.since, step, new=step != ask.step,
+                             hebrew=bool(re.search(r"[\u0590-\u05ff]", state.last_utterance)))
+        watch.said(sid, now, step)
+        logger.info(f"progress update on {session.name}, {now - ask.since:.0f} s in")
+        await _say_exactly(text, "progress update")
+        return
+
+
+async def _progress_loop() -> None:
+    while True:
+        await asyncio.sleep(1.0)
+        try:
+            await _progress_tick(time.time())
+        except Exception as e:  # one bad tick must not end the updates for the rest of the process
+            logger.error(f"progress update failed: {type(e).__name__}: {e}")
+
+
 # ---------- mute (mute.py holds the rules) ----------
 
 def _muted() -> bool:
@@ -10674,9 +10850,12 @@ class MuteOut(FrameProcessor):
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
+        if isinstance(frame, TTSSpeakFrame) and direction == FrameDirection.DOWNSTREAM:
+            state.wait.handed(time.time())  # every line for the mouth passes here: the waiting sound never follows one
         if isinstance(frame, TTSSpeakFrame) and direction == FrameDirection.DOWNSTREAM and _muted():
             logger.info(f"muted: shown, not spoken ({len(frame.text)} chars)")
             state.wrote_at = time.time()
+            state.wait.sound(state.wrote_at)  # shown: the wait for it is over
             await self.push_frame(BotStartedSpeakingFrame(), FrameDirection.UPSTREAM)
             await self.push_frame(BotStoppedSpeakingFrame(), FrameDirection.UPSTREAM)
             return

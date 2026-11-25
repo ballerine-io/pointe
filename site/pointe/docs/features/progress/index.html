@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Progress updates · Pointe docs</title>
+<meta name="description" content="After &quot;Asking billing&quot; there was silence until the answer, and a long silence reads as a dead call. With progress updates on, Pointe says one short line…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Progress updates">
+<meta property="og:description" content="After &quot;Asking billing&quot; there was silence until the answer, and a long silence reads as a dead call. With progress updates on, Pointe says one short line…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/progress/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/progress/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="../thinking/">Thinking and the waiting sound</a></li>
+<li><a href="./" aria-current="page">Progress updates</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="progress-updates">Progress updates</h1>
+<p>After "Asking billing" there was silence until the answer, and a long silence reads as a dead call. With progress
+updates on, Pointe says one short line while a session works on your request: the first about 20 seconds in, then one
+every 45 seconds, until the session answers.</p>
+<blockquote>
+<p>Billing is still working, 20 seconds in. Latest step: running the tests.</p>
+</blockquote>
+<p>Off by default. The rules live in <code>pointe/progress.py</code>; the daemon says the lines in <code>daemon._progress_tick</code>.</p>
+<h2 id="use-it">Use it</h2>
+<ul>
+<li>
+<p><strong>Voice:</strong> "keep me posted" turns it on, "stop updates" turns it off. Also "keep me updated", "give me progress
+  updates", "no more updates", "<span lang="he" dir="rtl">תעדכן אותי</span>", "<span lang="he" dir="rtl">בלי עדכונים</span>". Each must be a whole short utterance: "keep me posted on what
+  billing decides" is a request for the session, and "stop updates" with the updates off is a sentence like any other.</p>
+</li>
+<li>
+<p><strong>The page:</strong> Settings → Turn taking → Progress updates.</p>
+</li>
+<li><strong>The iPhone and the Mac:</strong> Settings (•••) → While you wait → Progress updates.</li>
+</ul>
+<p>The setting lives on the Mac (<code>progress.spoken</code>), so every screen shows the same.</p>
+<h2 id="every-word-is-from-the-sessions-record">Every word is from the session's record</h2>
+<p>No model writes these lines. Each has two facts, both read from the session:</p>
+<ul>
+<li><strong>How long:</strong> since your request reached the session, rounded down ("20 seconds", "a minute and a half").</li>
+<li><strong>Its latest step:</strong> the newest tool the session used since your request, named in fixed words from the tool and its
+  input: "running the tests" (the command itself is a test run), "running a command", "editing pricing.py", "reading
+  README.md", "searching the code", "searching the web", "reading a web page", "running a helper agent", "updating its
+  task list", "using a tool".</li>
+</ul>
+<p>A command is never said, and of a path only the file's name. The session model's own description of a step is never
+used: "run the tests" written over <code>cat build.log</code> is said as "running a command". With no step since your request the
+line names none ("Billing is still working, 20 seconds in."); with the same step as the last update it says so
+("Billing is still on the same step, a minute in: running the tests."). A session on another machine reports no steps
+to this Mac, so its lines say how long and no step.</p>
+<h2 id="when-nothing-is-said">When nothing is said</h2>
+<ul>
+<li>
+<p><strong>After the answer.</strong> When the session's turn ends the updates end; its answer follows by the usual rules. A line
+  that waited for a quiet moment is dropped if the session finished meanwhile, never said late.</p>
+</li>
+<li>
+<p><strong>While the session waits on you.</strong> A request to approve is read out by its own rules; "still working" would be false.</p>
+</li>
+<li><strong>Over anyone.</strong> A line waits until you are not mid-sentence and Pointe is not answering, like other news.</li>
+<li><strong>In a meeting, a hold, a brain dump, a challenge or a briefing.</strong></li>
+<li>
+<p><strong>After a switch.</strong> Moving to another session or to the other mode ends the updates on what you left, as it
+  <a href="../skip/#a-switch-drops-what-waited">stops speech</a>. The answer itself still arrives.</p>
+</li>
+<li>
+<p><strong>After the call ends,</strong> and for a night shift's own messages, which are not your request.</p>
+</li>
+</ul>
+<p><strong>Muted,</strong> the line is text in the conversation like every other line, and the status says Writing….
+<strong>In drive mode</strong> it is spoken: it is under 25 words and names no screen.</p>
+<h2 id="on-the-screen-always">On the screen, always</h2>
+<p>Whether or not the lines are spoken, the status line says "billing is working…" while a session has your request
+(<a href="../thinking/#what-the-status-line-says">Thinking</a>).</p>
+<h2 id="the-wire">The wire</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Answer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /voice/prefs {"progress.spoken": true}</code></td>
+<td>the setting, on</td>
+</tr>
+<tr>
+<td><code>GET /voice/status</code> → <code>phase</code></td>
+<td><code>{"name": "working", "session": "billing", "since": …}</code> while a session has the request</td>
+</tr>
+</tbody>
+</table></div>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/progress.md">docs/features/progress.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../thinking/"><span class="pg-small">Previous</span>Thinking and the waiting sound</a><a class="dx-next" href="../conflict-alarm/"><span class="pg-small">Next</span>Conflict alarm</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#use-it">Use it</a></li>
+<li class="dx-l2"><a href="#every-word-is-from-the-sessions-record">Every word is from the session&#x27;s record</a></li>
+<li class="dx-l2"><a href="#when-nothing-is-said">When nothing is said</a></li>
+<li class="dx-l2"><a href="#on-the-screen-always">On the screen, always</a></li>
+<li class="dx-l2"><a href="#the-wire">The wire</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

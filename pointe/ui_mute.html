@@ -12,6 +12,9 @@
   #mutebtn:hover { color: var(--accent); }
   #mutebtn svg { width: 18px; height: 18px; }
   #mutebtn[aria-pressed=true] { color: var(--accent); box-shadow: inset 0 0 0 2px var(--orange); }
+  /* The icon is the state now, the label is what a tap does: sound waves while Pointe has a voice, the slash only while muted. */
+  #mutebtn .slash, #mutebtn[aria-pressed=true] .waves { display: none; }
+  #mutebtn[aria-pressed=true] .slash { display: inline; }
   [data-state=writing] .top .dot { background: var(--orange); animation: breathe 1s ease-in-out infinite; }
   body.firstrun #mutebtn { display: none; }
   @media (max-width: 760px) { #mutebtn { width: 44px; height: 44px; } }  /* a finger's target */

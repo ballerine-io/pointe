@@ -23,6 +23,16 @@ enum BubbleRule {
     /// "Skip ⌃⌥S": the key that skips what Pointe is saying, said the way the talk shortcut is. Nil with no working one.
     static func skipHint(shortcut: String?) -> String? { shortcut.map { "Skip \($0)" } }
     static let skipGlyph = "forward.end"
+    static let thinkingGlyph = "ellipsis"
+
+    /// What the bubble's circle shows: a phone with no call; while Pointe thinks, three dots (the turn was taken, and
+    /// the microphone is not what matters now); else the microphone as it is.
+    static func stateGlyph(live: Bool, thinking: Bool, pushToTalk: Bool, talking: Bool, muted: Bool) -> String {
+        guard live else { return "phone.fill" }
+        if talking { return "mic.fill" }
+        if thinking { return thinkingGlyph }
+        return pushToTalk ? "mic" : (muted ? "mic.slash.fill" : "mic.fill")
+    }
 
     /// The bubble's third line: the talk mode, and while Pointe speaks the key that skips it (what the keys do now).
     static func modeLine(talkMode: String, speaking: Bool, skipHint: String?) -> (text: String, skip: Bool) {
@@ -254,8 +264,8 @@ struct BubbleView: View {
 
     private var glyph: String {
         let session = model.session
-        guard session.live else { return "phone.fill" }
-        return session.pushToTalk ? (session.talking ? "mic.fill" : "mic") : (session.muted ? "mic.slash.fill" : "mic.fill")
+        return BubbleRule.stateGlyph(live: session.live, thinking: session.thinking, pushToTalk: session.pushToTalk,
+                                     talking: session.talking, muted: session.muted)
     }
 
     private var talkButton: some View {

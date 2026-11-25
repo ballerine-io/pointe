@@ -57,11 +57,12 @@ class App:
     def press(self, ident: str) -> bool:
         return self.ax("press", ident).returncode == 0
 
-    def shot(self, name: str, look: str) -> None:
+    def shot(self, name: str, look: str, panel: bool = False) -> None:
+        """The main window, or with `panel` the call bubble (the app's floating panel)."""
         if SHOTS is None:
             return
         SHOTS.mkdir(parents=True, exist_ok=True)
-        window = self.ax("window").stdout.strip()
+        window = self.ax("panel" if panel else "window").stdout.strip()
         if window:
             subprocess.run(["screencapture", "-x", "-o", "-l", window, str(SHOTS / f"{name}-{look}.png")], check=False)
 
@@ -246,6 +247,47 @@ def main() -> int:
     finally:
         app.quit()
 
+    # thinking and working: from the end of the owner's turn the line says "Thinking…", not "Listening"; while a session
+    # has their request it names it. The window, the bubble and the small bubble say the same words; the mute button
+    # stays beside the line and there is nothing to skip.
+    for look in ("dark", "light"):
+        for screen, words in (("thinking", "Thinking…"), ("working", "billing/main is working…"), ("call", "Listening")):
+            app = start("-demo", screen, "-demoEnglish", "-pointe.bubble", "YES", "-pointe.bubble.small", "NO", look=look)
+            try:
+                shown = app.wait("muteButton") and app.wait("bubble.state")
+                name = "listening" if screen == "call" else screen
+                app.shot(name, look)
+                app.shot(f"bubble-{name}", look, panel=True)
+                if look == "dark":
+                    check(f"{screen}: the line says {words} with the mute button beside it and no skip button",
+                          shown and words in line(app) and "Listening" not in line(app).replace(words, "") and not app.has("skipButton"), line(app))
+                    said = app.ax("label", "bubble.state").stdout.strip()
+                    check(f"{screen}: the bubble says the same words", said == words and not app.has("bubble.skip"), said)
+            finally:
+                app.quit()
+        for screen, words in (("thinking", "Thinking…"), ("working", "billing/main is working…")):
+            app = start("-demo", screen, "-demoEnglish", "-pointe.bubble", "YES", "-pointe.bubble.small", "YES", look=look)
+            try:
+                shown = app.wait("bubble.small")
+                app.shot(f"bubble-small-{screen}", look, panel=True)
+                if look == "dark":
+                    check(f"{screen}: small, the bubble reads {words}", shown and words in app.ax("labelled", words[:8]).stdout,
+                          app.ax("labelled", words[:8]).stdout[:120])
+            finally:
+                app.quit()
+    app = start("-demo", "call", "-sheet", "settings")
+    try:
+        app.wait("microphoneSetting")
+        cue, posted = (dict(part.split("=") for part in app.ax("state", ident).stdout.split()) for ident in ("waitCueSetting", "progressSetting"))
+        check("Settings has the waiting sound, on, and the progress updates, off", cue.get("value") == "1" and posted.get("value") == "0",
+              f"{cue} {posted}")
+        check("with the page's words", app.ax("label", "waitCueSetting").stdout.strip() == "Waiting sound"
+              and app.ax("label", "progressSetting").stdout.strip() == "Progress updates",
+              app.ax("label", "waitCueSetting").stdout.strip() + " / " + app.ax("label", "progressSetting").stdout.strip())
+        app.shot("settings-wait", "dark")
+    finally:
+        app.quit()
+
     # Settings: every switch takes a press and flips, with the bubble hidden (its × does that) as with it shown. The two
     # under "Show the call bubble" were switched off while it was hidden, and looked the same as switches that were on.
     def switch(app: App, ident: str) -> dict:
@@ -257,7 +299,8 @@ def main() -> int:
             names = app.ax("switches").stdout.split("\n")
             names = [n for n in names if n]
             check(f"Settings lists its switches, each with an identifier (bubble {bubble})",
-                  {"settings.bubble", "settings.bubblePinned", "settings.bubbleSmall", "settings.login", "polishSetting"} <= set(names)
+                  {"settings.bubble", "settings.bubblePinned", "settings.bubbleSmall", "settings.login", "polishSetting", "waitCueSetting",
+                   "progressSetting"} <= set(names)
                   and not [n for n in names if n.startswith("?")], ", ".join(names))
             for name in names:
                 before = switch(app, name)

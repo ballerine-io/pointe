@@ -176,6 +176,7 @@ def _voice_checks(daemon):
     import briefing
     import nightshift
     import mute
+    import progress
     return {
         "hold": lambda p: turns.hold_intent(p) or turns.release_intent(p),
         "brain-dump": lambda p: braindump.start_intent(p) or braindump.done_intent(p),
@@ -187,6 +188,7 @@ def _voice_checks(daemon):
         "drive": lambda p: drive.intent(p) is not None,
         "whisper": lambda p: whisper.intent(p) is not None,
         "mute": lambda p: mute.intent(p) is not None,
+        "progress": lambda p: progress.intent(p) is not None,
         "briefing": lambda p: briefing.briefing_intent(p) is not None,
         "routing-mode": lambda p: guards.mode_intent(p) is not None,
         "switch-session": guards.switch_intent,

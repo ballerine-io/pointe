@@ -13,7 +13,7 @@ final class PointeMacTests: XCTestCase {
     func testTheMenuBarImageFollowsTheState() {
         XCTAssertEqual(MenuBarLabel.image(.off), "MenuOff")
         XCTAssertEqual(MenuBarLabel.image(.down), "MenuOff")
-        for glyph in [MacSession.Glyph.live, .talking, .speaking, .needsYou] { XCTAssertEqual(MenuBarLabel.image(glyph), "MenuLive") }
+        for glyph in [MacSession.Glyph.live, .talking, .speaking, .thinking, .needsYou] { XCTAssertEqual(MenuBarLabel.image(glyph), "MenuLive") }
         for name in ["MenuOff", "MenuLive"] { XCTAssertNotNil(NSImage(named: name), name) }
     }
 
@@ -220,6 +220,19 @@ final class PointeMacTests: XCTestCase {
         }
         XCTAssertEqual(pill.dot.width, 9)
         XCTAssertEqual(pill.circle.midY, pill.glyph.midY, accuracy: 0.01, "the circle and the glyph share a line")
+    }
+
+    /// While Pointe thinks the bubble's circle shows three dots, in the full bubble and the small one: the turn was taken.
+    /// Talking (a press held) and no call come first; with the mic off the dots still show, since the words were typed.
+    func testTheBubblesCircleShowsThinking() {
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: true, pushToTalk: false, talking: false, muted: false), "ellipsis")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: true, pushToTalk: true, talking: false, muted: false), "ellipsis")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: true, pushToTalk: true, talking: true, muted: false), "mic.fill")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: false, thinking: true, pushToTalk: false, talking: false, muted: false), "phone.fill")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: false, pushToTalk: false, talking: false, muted: false), "mic.fill")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: false, pushToTalk: false, talking: false, muted: true), "mic.slash.fill")
+        XCTAssertEqual(BubbleRule.stateGlyph(live: true, thinking: false, pushToTalk: true, talking: false, muted: false), "mic")
+        XCTAssertEqual(BubbleRule.thinkingGlyph, "ellipsis")
     }
 
     /// The skip key is shown the way the talk key is: "Skip ⌃⌥S" beside "Hold ⌃⌥Space" in the window, and on the bubble's

@@ -11,7 +11,7 @@ struct Demo {
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
                        newSession, startPending, longTalk,
-                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held }
+                       nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held, thinking, working }
     let screen: Screen
     let status: API.Status
     var notes: [API.Note] = []
@@ -87,6 +87,8 @@ struct Demo {
         case .dictionary, .dictionaryLearned: dictionaryJSON(learned: screen == .dictionaryLearned)
         case .whisper, .whisperOff: whisperJSON(on: screen == .whisper)
         case .writing: writingJSON
+        case .thinking: waitingJSON(working: false)
+        case .working: waitingJSON(working: true)
         case .held: heldJSON
         case .rtl: rtlJSON
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
@@ -126,6 +128,20 @@ struct Demo {
          "sessions": \(sessions), "talk": \(talk),
          "dictionary": {"count": 2, "cap": 400, "full": false, "learn": true, "problem": null,
                         "learned_this_call": \(learned ? "[{\"term\": \"Quillfeather\", \"at\": 1}]" : "[]")}}
+        """
+    }
+
+    /// The owner's turn was taken and nothing is said yet ("Thinking…"), or billing has their request ("billing/main is
+    /// working…"): Thinking.swift.
+    private static func waitingJSON(working: Bool) -> String {
+        """
+        {"active": "billing/main", "connected": true, "mode": "orchestrator", "polish": false,
+         "sessions": \(sessions),
+         "talk": [{"id": 40, "who": "user", "text": "what's billing doing", "typed": false, "corrected": false},
+                  {"id": 41, "who": "assistant", "text": "It finished the retry fix. Tests pass. It wants to know if it should open the PR."},
+                  {"id": 42, "who": "user", "text": "Ask it to run the whole suite on the staging copy first.", "typed": false, "corrected": false}
+                  \(working ? #", {"id": 43, "who": "assistant", "text": "Asked billing to run the whole suite on the staging copy."}"# : "")],
+         "phase": \(working ? #"{"name": "working", "session": "billing/main", "since": 1700000000}"# : #"{"name": "thinking", "session": null, "since": 1700000000}"#)}
         """
     }
 

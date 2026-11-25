@@ -13,6 +13,9 @@ enum CallTitle {
         case .reconnecting: return "Reconnecting…"
         case .live:
             let writing = MuteChoice.writing(status: status, stored: false)  // muted: shown where it would have spoken
+            // The turn was taken and nothing is said yet, or a session has the request (Thinking.swift).
+            let waiting = ThinkingRule.phase(status: status, told: call.toldPhase)
+            let thinking = waiting?.name == "thinking"
             if let refused = status?.key_refused ?? status?.vendor_fault { return refused.ears ? ConnectCopy.cannotHear : ConnectCopy.cannotAnswer }
             if status?.challenge?.on == true { return ChallengeCopy.state }
             if dumping { return BrainDumpCopy.state }
@@ -21,11 +24,17 @@ enum CallTitle {
                 if talking { return talkingLine(call) }
                 if speaking { return MuteCopy.speaking }
                 if writing { return MuteCopy.writing }
+                if thinking { return ThinkingCopy.thinking }
                 if let note = call.talkNote { return note }
                 if let why = call.talkClosedWhy { return TalkGate.closedLine(why, style: call.talkStyle) }
                 return call.talk.roomHeard ? "Meeting: room is heard · \(call.talkStyle.label.lowercased())" : call.talkStyle.label
             }
-            return muted ? MicCopy.off : speaking ? MuteCopy.speaking : writing ? MuteCopy.writing : "Listening"
+            if muted { return MicCopy.off }
+            if speaking { return MuteCopy.speaking }
+            if writing { return MuteCopy.writing }
+            if thinking { return ThinkingCopy.thinking }
+            if waiting?.name == "working", let session = waiting?.session { return ThinkingCopy.working(session) }
+            return "Listening"
         }
     }
 

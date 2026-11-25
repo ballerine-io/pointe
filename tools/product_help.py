@@ -431,6 +431,21 @@ TOPICS = (
           "waits longer.",
           iphone=(("menu", "Wait before answering", "Quick|Normal|Patient"),),
           page=(("settings", "Turn taking", "Wait before answering", "Quick|Normal|Patient"),)),
+    Topic("thinking", "Thinking and the waiting sound",
+          ("thinking", "did you hear me", "is it thinking", "waiting sound", "the beep", "the sound while i wait",
+           "what is that sound", "turn off the sound", "still listening", "חושב", "שמעת אותי", "צליל המתנה", "הצליל"),
+          "From the end of your turn until the reply the status line says \"Thinking…\"; while a session has your "
+          "request it says the session is working. When a reply takes long, one soft sound says your words were heard; "
+          "it never plays with the reply, while Pointe is muted, in whisper mode or in a meeting.",
+          iphone=(("menu", "Waiting sound"),), page=(("settings", "Turn taking", "Waiting sound"),), doc="thinking.md"),
+    Topic("progress", "Progress updates while a session works",
+          ("progress updates", "keep me posted", "keep me updated", "how is it going", "stop updates", "is it still working",
+           "updates while it works", "תעדכן אותי", "עדכוני התקדמות", "בלי עדכונים"),
+          "With progress updates on, Pointe says one short line about 20 seconds after a session got your request, then "
+          "every 45 seconds until it answers: how long it has worked and its latest step. Off unless you turn it on. "
+          "Muted, the line is text.",
+          iphone=(("menu", "Progress updates"),), page=(("settings", "Turn taking", "Progress updates"),),
+          voice=("keep me posted", "stop updates"), doc="progress.md"),
     Topic("hold", "Don't interrupt me", ("don't interrupt me", "do not interrupt", "hold on", "let me finish",
                                          "stay quiet", "keep quiet while i think", "interrupting me", "stop interrupting", "אל תפריע", "אל תקטע", "רגע",
                                          "תן לי לסיים"),

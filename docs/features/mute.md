@@ -9,8 +9,9 @@ The rules live in `pointe/mute.py` (the phrases, the words, the status); the dae
 
 ## Use it
 
-- **The button:** a speaker with a slash, beside the call's status line, on the page, in the iPhone app and in the Mac
-  app. It says "Mute Pointe"; muted, it is filled and says "Unmute Pointe".
+- **The button:** a speaker, beside the call's status line, on the page, in the iPhone app and in the Mac
+  app. The icon shows the state now: sound waves while Pointe has a voice; muted, a slash and an orange ring. Its label
+  says what a tap does: "Mute Pointe", or "Unmute Pointe".
 - **The status line:** while Pointe speaks it says "Speaking…". Muted, it says "Writing…" whenever Pointe would have
   spoken, and the reply is in the conversation.
 - **Voice:** "stop talking, I'll read", "I'll read", "reading mode", "text only", "מצב קריאה" mute it. "Talk again",

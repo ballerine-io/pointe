@@ -90,7 +90,9 @@ BTN = """(() => { const b = document.getElementById('mutebtn'), st = document.ge
   sameRow: Math.abs((b.getBoundingClientRect().top + b.getBoundingClientRect().bottom) / 2
                     - (st.getBoundingClientRect().top + st.getBoundingClientRect().bottom) / 2) < 6,
   shown: b.getClientRects().length > 0, pressed: b.getAttribute('aria-pressed'), label: b.getAttribute('aria-label'),
-  title: b.title, slash: !!b.querySelector('svg .slash'), stored: localStorage.getItem('pointe.reading')}; })()"""
+  title: b.title, slash: !!b.querySelector('svg .slash'),
+  slashShown: getComputedStyle(b.querySelector('svg .slash')).display !== 'none',
+  wavesShown: getComputedStyle(b.querySelector('svg .waves')).display !== 'none', stored: localStorage.getItem('pointe.reading')}; })()"""
 
 
 def _speaking_status():
@@ -129,7 +131,10 @@ def test_while_pointe_speaks_the_status_says_speaking_and_the_mute_button_sits_b
     got, after, back, posts = asyncio.run(run())
     assert got and got["beside"] and got["sameRow"] and 0 <= got["gap"] <= 16, got
     assert got["shown"] and got["slash"] and got["pressed"] == "false" and got["label"] == mute.COPY["mute"], got
+    # The icon is the state now and the label is what a tap does: a slash while the voice is on read as "already muted".
+    assert got["wavesShown"] and not got["slashShown"], got
     assert after and after["label"] == mute.COPY["unmute"] and after["stored"] == "1", after
+    assert after["slashShown"] and not after["wavesShown"], after
     assert back and back["label"] == mute.COPY["mute"] and back["stored"] == "0", back
     assert posts == [{"on": True}, {"on": False}]
 

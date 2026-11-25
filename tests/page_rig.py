@@ -35,6 +35,7 @@ def page_html() -> str:
         .replace("{{WHISPER}}", (ROOT / "pointe" / "ui_whisper.html").read_text())
         .replace("{{MUTE}}", (ROOT / "pointe" / "ui_mute.html").read_text())
         .replace("{{SKIP}}", (ROOT / "pointe" / "ui_skip.html").read_text())
+        .replace("{{THINKING}}", (ROOT / "pointe" / "ui_thinking.html").read_text())
     )
 
 
@@ -77,7 +78,7 @@ def fixture(sessions: int = 1, machines: int = 1, talk: int = 0, approval: bool 
     return {
         "active": names[0] if names else None, "connected": connected, "problem": None, "idle_hangup": False, "monologue": None,
         "brain_dump": None,
-        "speaking": None, "mode": "orchestrator",
+        "speaking": None, "phase": None, "mode": "orchestrator",
         "ptt": {"mode": "always", "open": False, "sent_bytes": 0, "room_heard": False},
         "whisper": {"on": False, "held": None, "suggest_ptt": False, "lock_note": None},
         "reading": {"on": False, "held": None, "read_through": -1, "writing": False},
@@ -165,9 +166,12 @@ class StubMac:
 
     async def _prefs(self, request):
         await self._stall()
-        return web.json_response({"microphone": self.status["ptt"]["mode"], "meeting.default_mode": "listening", "meeting.auto_lookups": False,
-                                  "meeting.notes_language": "auto", "meeting.consented": False, "conflicts.on": True, "conflicts.spoken": True,
-                                  "alerts.watch_approve": False, "show.on_phone": False, "whisper": False, "dictionary.learn": True})
+        prefs = {"microphone": self.status["ptt"]["mode"], "meeting.default_mode": "listening", "meeting.auto_lookups": False,
+                 "meeting.notes_language": "auto", "meeting.consented": False, "conflicts.on": True, "conflicts.spoken": True,
+                 "alerts.watch_approve": False, "show.on_phone": False, "whisper": False, "dictionary.learn": True}
+        if not getattr(self, "old_prefs", False):  # a Mac from before the waiting sound and the progress updates has neither
+            prefs.update({"thinking.cue": True, "progress.spoken": False})
+        return web.json_response(prefs)
 
     async def _briefings(self, request):
         await self._stall()

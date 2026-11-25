@@ -21,6 +21,8 @@ from any voice denies a pending request, in every mode.
 | [Whisper mode](whisper-mode.md) | Quiet replies, a raised microphone, the same approval rules |
 | [Mute](mute.md) | One button beside the status line: Pointe writes every reply instead of speaking, approvals unchanged |
 | [Skip](skip.md) | Skip what Pointe is saying and go on to the next message: a button, a key on the Mac, or "skip"; a switch drops what waited |
+| [Thinking and the waiting sound](thinking.md) | From the end of your turn to the reply the status says "Thinking…", and one soft sound marks a long wait |
+| [Progress updates](progress.md) | Off by default: one short true line while a session works, 20 seconds in and then every 45 |
 | [Conflict alarm](conflict-alarm.md) | Two sessions claim opposite things about the same work: you hear it at once |
 | [Meeting mode](meeting-mode.md) | Notes, lookups and a raised hand in a meeting, with consent and no sends |
 | [Start a new session](new-session.md) | "Start a Codex session in shop": read back, started on your yes, only in folders you already work in |
@@ -47,6 +49,8 @@ Where each one works, and how to reach it:
 | [Whisper mode](whisper-mode.md#use-it) | "whisper mode", "back to normal" | Whisper in the dock | Settings → Whisper | Settings → Whisper |
 | [Mute](mute.md#use-it) | "stop talking, I'll read", "talk again" | the speaker button beside the status line | the speaker button beside the status line | the speaker button beside the status line |
 | [Skip](skip.md#use-it) | "skip", "next" | the skip button beside the status line, while Pointe speaks | the same button | the same button, and ⌃⌥S from any app |
+| [Thinking and the waiting sound](thinking.md#turn-it-off) | nothing to say: it follows the call | the status line; Settings → Turn taking → Waiting sound | the status line; Settings → Waiting sound | the status line, the bubble and the menu bar; Settings → Waiting sound |
+| [Progress updates](progress.md#use-it) | "keep me posted", "stop updates" | Settings → Turn taking → Progress updates | Settings → Progress updates | Settings → Progress updates |
 | [Conflict alarm](conflict-alarm.md#use-it) | the alarm is spoken; "I know" dismisses it | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm |
 | [Meeting mode](meeting-mode.md#start) | "meeting mode, listening", once consent was given | Meeting in the dock | Start a meeting at the top | Start a meeting at the top; Call → Start a Meeting |
 | [Start a new session](new-session.md#use-it) | "start a new Codex session in shop" | New session under the sessions | Sessions → New session | New session under the sessions; File → New Session |

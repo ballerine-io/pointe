@@ -10,7 +10,7 @@ import SwiftUI
 public final class MacSession: CallShell {
     public enum Phase: Sendable { case off, connecting, live, reconnecting }
     /// What the menu bar item shows beside the mark: never by colour alone.
-    public enum Glyph: Sendable { case down, off, live, talking, speaking, needsYou }
+    public enum Glyph: Sendable { case down, off, live, talking, speaking, thinking, needsYou }
     public enum Command: Sendable { case settings, sessions, newSession, addSessions, brainDump, meeting, type, about, briefing, machines, phone, nightShift, approve, deny }
 
     /// A session that waits for an answer, for the menu.
@@ -60,6 +60,8 @@ public final class MacSession: CallShell {
     public var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
     public var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking && !demoSkipped }
     var demoSkipped = false
+    /// The owner's turn was taken and nothing is said yet: the state line says "Thinking…" (Thinking.swift).
+    public var thinking: Bool { live && stateTitle == ThinkingCopy.thinking }
     public var hearing: String { status?.hearing ?? "" }
     public var activeSession: String? { status?.active }
     public var sessionCount: Int { status?.sessions.count ?? 0 }
@@ -99,7 +101,7 @@ public final class MacSession: CallShell {
         if reach != .ok && phase != .live { return .down }
         if needCount > 0 { return .needsYou }
         guard phase == .live else { return .off }
-        return talking ? .talking : speaking ? .speaking : .live
+        return talking ? .talking : speaking ? .speaking : thinking ? .thinking : .live
     }
 
     /// The menu bar item's help tag and what VoiceOver reads.

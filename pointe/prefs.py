@@ -35,6 +35,8 @@ SCHEMA: dict[str, tuple] = {
     "nightshift.hours": (HOURS, valid_hours),  # a shift ends after this many hours, at most 12
     "nightshift.messages": (MESSAGES, valid_messages),  # messages a shift may send to sessions, at most 200
     "nightshift.notify": (False, bool),  # off: a blocked session raises no alert until morning
+    "thinking.cue": (True, bool),  # the waiting sound: one soft tone when a reply takes long (thinking.py)
+    "progress.spoken": (False, bool),  # say how a session is doing while it works on a request (progress.py)
     "turns.patience": ("normal", ("quick", "normal", "patient")),  # wait before answering (turns.LEVELS): how long a pause ends a sentence
 }
 

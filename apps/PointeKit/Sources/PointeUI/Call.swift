@@ -23,6 +23,8 @@ final class Call {
     private(set) var muted = false
     private(set) var problem: String?
     private(set) var botSpeaking = false
+    /// The Mac said on this call's link that it took the turn (Thinking.swift): shown until the status says it too.
+    private(set) var toldPhase: ThinkingRule.Told?
     /// The last round trip the Mac measured with its pings, in ms; nil before the first.
     private(set) var rttMs: Int?
     /// Whole seconds since anything arrived from the Mac (audio, a ping), while live: a call can die silently, a VPN
@@ -511,9 +513,12 @@ final class Call {
         case .control:
             break
         case .text(let text):  // the owner said "stop talking, I'll read" or "talk again": this device keeps it for its next call
-            if let data = text.data(using: .utf8), let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               message["type"] as? String == "reading", let on = MuteChoice.message(message) {
+            guard let data = text.data(using: .utf8), let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { break }
+            if message["type"] as? String == "reading", let on = MuteChoice.message(message) {
                 MuteChoice.store(on)
+            }
+            if let phase = ThinkingRule.message(message) {  // the turn was taken: Thinking… now, not at the next status
+                toldPhase = ThinkingRule.Told(phase: phase, at: Date())
             }
         case .ended(let code, let http, let reason):
             linkEnded(code: code, http: http, reason: reason)

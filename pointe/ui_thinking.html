@@ -1,0 +1,52 @@
+<!-- Thinking and working (thinking.py, docs/features/thinking.md) and spoken progress (progress.py,
+     docs/features/progress.md). Status `phase` says what is true on the call while nothing is being said: "thinking"
+     from the moment the owner's turn is taken until the reply is heard or shown, "working" while a session has their
+     request. ui.html's showState puts it on the state line, after Speaking… and Writing…. The call's own link says
+     "thinking" the moment the turn is taken ({"type": "phase"}), so the line does not wait for the next poll. Served
+     inside ui.html at {{THINKING}}; the apps have the same words and the same colours (Thinking.swift): green is the
+     owner's turn or a session's work, orange is Pointe's turn. -->
+<style>
+  /* Pointe's turn, not yet a voice: the dot shrinks to a loader. Speaking… breathes at full size. */
+  [data-state=thinking] .top .dot { background: var(--orange); animation: think 1.2s ease-in-out infinite; }
+  /* A session's work: the same slow breath as the working dot on the session's own row. */
+  [data-state=working] .top .dot { background: var(--success); animation: breathe 1.6s ease-in-out infinite; }
+  @keyframes think { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(.45); opacity: .6; } }
+  #g-turns .hint { color: var(--muted); font-size: 12.5px; padding: 0 14px 12px; }
+</style>
+<script>
+  // The words, word for word thinking.COPY and progress.COPY, and ThinkingCopy in the apps (tests/test_thinking.py,
+  // tests/test_progress.py).
+  const THINKING_COPY = {
+    thinking: 'Thinking…',
+    working: session => `${session} is working…`,
+    cue: 'Waiting sound',
+    cue_hint: 'A soft sound when Pointe needs more than a moment to answer.',
+  };
+  const PROGRESS_COPY = {
+    setting: 'Progress updates',
+    hint: 'While a session works on your request, Pointe says one short line after 20 seconds, then every 45.',
+  };
+  // What the call's own link said, kept until the status has had time to say it too: a poll that was already on its
+  // way when the turn was taken is older than the link's word.
+  const PHASE_HOLD_MS = 900;
+  let phaseTold = null, phaseToldAt = 0;
+  function phaseRemote(m) {
+    phaseTold = m.name ? {name: m.name, session: m.session || null} : null; phaseToldAt = Date.now();
+    showState();
+    setTimeout(showState, PHASE_HOLD_MS + 20);  // never confirmed (nothing was coming): back to what the status says
+  }
+  function phaseNow(s) {
+    if (!s || !s.connected) return null;
+    if (s.phase && s.phase.name) return s.phase;
+    return phaseTold && Date.now() - phaseToldAt < PHASE_HOLD_MS ? phaseTold : null;
+  }
+  const phaseIs = (s, name) => { const p = phaseNow(s); return !!p && p.name === name; };
+  const phaseLine = s => { const p = phaseNow(s); return !p ? '' : p.name === 'thinking' ? THINKING_COPY.thinking : THINKING_COPY.working(p.session || ''); };
+  // Settings: both live on the Mac (prefs "thinking.cue", "progress.spoken"), so every screen shows the same.
+  $('pref-cue-hint').textContent = THINKING_COPY.cue_hint; $('pref-progress-hint').textContent = PROGRESS_COPY.hint;
+  function thinkingPrefsShow(prefs) {
+    $('pref-cue').checked = prefs['thinking.cue'] !== false;  // on unless the Mac says off (a Mac from before it: shown on)
+    $('pref-progress').checked = prefs['progress.spoken'] === true;
+  }
+  const thinkingPrefs = () => ({'thinking.cue': $('pref-cue').checked, 'progress.spoken': $('pref-progress').checked});
+</script>

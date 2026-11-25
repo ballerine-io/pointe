@@ -25,6 +25,7 @@ from loguru import logger
 from artifacts import Turn
 from brief import FINAL_MARK, agent_finding, excerpt, human_text
 from echo import NUMBERS
+from progress import step_of
 from guards import _NO, _WEAK_YES, _YES, strip_tasks
 
 Feed = Callable[["Session", str, bool], Awaitable[None]]
@@ -91,6 +92,7 @@ class Session:
     machine: str = ""  # the node it runs on; "" is this machine. Its adapter is harnesses.of(session), never get()
     turn: Turn = field(default_factory=Turn)  # what the turn in progress touched (show while it says)
     artifacts: list = field(default_factory=list)  # what the last finished turn touched, for its report
+    step: tuple[float, str] | None = None  # (when, what): its newest tool use, in progress.step_of's fixed words
 
     def alive(self) -> bool:
         import harnesses
@@ -947,6 +949,7 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
             for block in content if isinstance(content, list) else []:
                 if block.get("type") == "tool_use":
                     session.turn.use(block, session.cwd)
+                    session.step = (time.time(), step_of(block.get("name"), block.get("input")))
                     session.busy = True
                     session.idle_since, session.needs = None, None
                     await feed(session, f"[{who} is using {block.get('name')}, perhaps still waiting for approval] {_tool_detail(block.get('input') or {})}",

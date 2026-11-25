@@ -395,6 +395,7 @@ struct CallView: View {
             if let demo {
                 feed.useDemo(demo.notes); call.follow(demo.status.ptt)
                 if demo.screen == .dictionaryLearned { toast = demo.status.dictionary?.learned_this_call?.map(\.term) }
+                prefs = await loadPrefs()  // the demo's Mac: Settings shows every switch
                 return
             }
             #if DEBUG
@@ -609,7 +610,7 @@ struct CallView: View {
     }
 
     private var settingsActions: CallSettingsActions {
-        CallSettingsActions(setMicrophone: setMicrophone, setTalkStyle: { call.talkStyle = $0 }, setPatience: setPatience,
+        CallSettingsActions(setMicrophone: setMicrophone, setTalkStyle: { call.talkStyle = $0 }, setPatience: setPatience, setWaitCue: setWaitCue, setProgress: setProgress,
                             setPolish: { on in Task { await setPolish(on) } }, setWhisper: { on in Task { await setWhisper(on) } },
                             setDriveSuggest: { sensors.setEnabled($0) },
                             setOutside: { on in
@@ -1045,7 +1046,8 @@ struct CallView: View {
     }
 
     private func loadPrefs() async -> API.Prefs? {
-        demo != nil ? try? JSONDecoder().decode(API.Prefs.self, from: Data("{}".utf8)) : try? await call.api.prefs()
+        // A demo's Mac has every setting: the waiting sound on and the progress updates off, as a new Mac has them.
+        demo != nil ? try? JSONDecoder().decode(API.Prefs.self, from: Data(#"{"thinking.cue": true, "progress.spoken": false}"#.utf8)) : try? await call.api.prefs()
     }
 
     private func savePrefs(_ change: [String: any Sendable]) async -> Bool {
@@ -1265,6 +1267,20 @@ struct CallView: View {
                 return
             }
             if !(await savePrefs(["turns.patience": level])) { problem = TurnsCopy.failed }
+        }
+    }
+
+    private func setWaitCue(_ on: Bool) {
+        Task {
+            if demo != nil { prefs?.waitCue = on; return }
+            if !(await savePrefs(["thinking.cue": on])) { problem = ThinkingCopy.failed }
+        }
+    }
+
+    private func setProgress(_ on: Bool) {
+        Task {
+            if demo != nil { prefs?.progressSpoken = on; return }
+            if !(await savePrefs(["progress.spoken": on])) { problem = ThinkingCopy.failed }
         }
     }
 
@@ -1808,9 +1824,11 @@ struct StatusLine: View {
     var mute: Mute? = nil
     var skip: (() -> Void)? = nil  // only while Pointe speaks (SkipRule): the line being said, skipped
 
+    private var dot: StateDot.Kind { StateDot.kind(title: title, speaking: speaking) }
+
     private var tint: Color {
         switch phase {
-        case .live: return broken ? Brand.danger : muted ? Brand.dim : speaking ? Brand.orange : Brand.success
+        case .live: return broken ? Brand.danger : muted ? Brand.dim : dot.pointesTurn ? Brand.orange : Brand.success
         case .connecting, .reconnecting: return Brand.orange
         case .off: return Brand.dim
         }
@@ -1820,8 +1838,7 @@ struct StatusLine: View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 10) {  // the dot belongs to the state: on its first line, however long
-                    Circle().fill(tint).frame(width: 8, height: 8)
-                        .symbolEffect(.pulse, isActive: speaking)
+                    StateDot(kind: phase == .live && !broken && !muted ? dot : .steady, tint: tint)
                         .alignmentGuide(.firstTextBaseline) { $0[.bottom] + 3 }
                     Text(title).font(.brand(.title3)).contentTransition(.opacity)
                 }

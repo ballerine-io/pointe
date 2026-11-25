@@ -79,7 +79,8 @@ final class MuteTests: XCTestCase {
     func testTheButtonSaysWhatATapDoes() {
         XCTAssertEqual(MuteButton.label(on: false), "Mute Pointe")
         XCTAssertEqual(MuteButton.label(on: true), "Unmute Pointe")
-        XCTAssertEqual(MuteButton.symbol(on: false), "speaker.slash")
+        // The icon is the state now, the label is what a tap does: a slash while the voice is on read as "already muted".
+        XCTAssertEqual(MuteButton.symbol(on: false), "speaker.wave.2")
         XCTAssertEqual(MuteButton.symbol(on: true), "speaker.slash.fill")
         XCTAssertEqual(MuteButton.hint(on: true, held: true), MuteCopy.held)
         XCTAssertNil(MuteButton.hint(on: true, held: false))

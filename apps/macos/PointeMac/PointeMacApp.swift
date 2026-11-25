@@ -156,6 +156,7 @@ struct MenuBarLabel: View {
         HStack(spacing: 3) {
             Image(Self.image(glyph))
             if glyph == .talking { Image(systemName: "mic.fill") }
+            if glyph == .thinking { Image(systemName: BubbleRule.thinkingGlyph) }  // never by the mark's strength alone
             if glyph == .needsYou { Text("\(session.needCount)").monospacedDigit() }
         }
         .accessibilityElement(children: .ignore)
@@ -166,7 +167,7 @@ struct MenuBarLabel: View {
     static func image(_ glyph: MacSession.Glyph) -> String {
         switch glyph {
         case .down, .off: "MenuOff"
-        case .live, .talking, .speaking, .needsYou: "MenuLive"
+        case .live, .talking, .speaking, .thinking, .needsYou: "MenuLive"
         }
     }
 }

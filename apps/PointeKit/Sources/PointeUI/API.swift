@@ -64,6 +64,7 @@ struct API {
         var dictionary: DictionaryStatus?  // the dictionary (Vocabulary.swift); nil from a Mac without it
         var whisper: WhisperStatus?  // whisper mode (Whisper.swift); nil from a Mac without it
         var reading: ReadingStatus?  // mute, the call's (Mute.swift; the wire's name is reading mode's); nil from a Mac without it
+        var phase: Phase?            // thinking, or a session working on a request (Thinking.swift); nil when neither, or from an older Mac
         var held: HeldStatus?        // session mode: the other sessions' news, held and not spoken; nil from an older Mac
         var idle_hangup: Bool?      // the Mac's idle timer ended the last call: not redialled
         var recent: [Dispatch]?     // the last requests and where each went, oldest first; the page's Recent requests
@@ -410,6 +411,8 @@ struct API {
         var watchApprove: Bool  // Approve on a notification, without Face ID
         var showOnPhone: Bool   // show while it says on this phone: off until turned on
         var patience: String    // "turns.patience": quick, normal or patient (Turns.swift)
+        var waitCue: Bool?      // "thinking.cue": the waiting sound (Thinking.swift); nil from a Mac without it
+        var progressSpoken: Bool?  // "progress.spoken": say how a session is doing while it works; nil from a Mac without it
 
         enum CodingKeys: String, CodingKey {
             case defaultMode = "meeting.default_mode", autoLookups = "meeting.auto_lookups"
@@ -418,6 +421,7 @@ struct API {
             case watchApprove = "alerts.watch_approve"
             case showOnPhone = "show.on_phone"
             case patience = "turns.patience"
+            case waitCue = "thinking.cue", progressSpoken = "progress.spoken"
         }
 
         init(from decoder: Decoder) throws {
@@ -432,6 +436,8 @@ struct API {
             watchApprove = (try? c.decode(Bool.self, forKey: .watchApprove)) ?? false
             showOnPhone = (try? c.decode(Bool.self, forKey: .showOnPhone)) ?? false
             patience = (try? c.decode(String.self, forKey: .patience)) ?? TurnsCopy.defaultLevel  // an older Mac: Normal
+            waitCue = try? c.decode(Bool.self, forKey: .waitCue)
+            progressSpoken = try? c.decode(Bool.self, forKey: .progressSpoken)
         }
     }
 

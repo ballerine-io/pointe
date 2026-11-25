@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thinking and the waiting sound · Pointe docs</title>
+<meta name="description" content="From the end of your turn until Pointe answers, the call&#x27;s status line says &quot;Thinking…&quot;. Before this it said &quot;Listening&quot; through the whole wait, so words…">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Thinking and the waiting sound">
+<meta property="og:description" content="From the end of your turn until Pointe answers, the call&#x27;s status line says &quot;Thinking…&quot;. Before this it said &quot;Listening&quot; through the whole wait, so words…">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/docs/features/thinking/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/docs/features/thinking/' + location.hash);
+</script>
+<link rel="icon" href="../../../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../../../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../../../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../../../style.css">
+<link rel="stylesheet" href="../../../pages.css">
+<link rel="stylesheet" href="../../../docs.css">
+</head>
+<body class="pg dx">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap dx-wrap pg-header">
+  <a class="pg-wordmark" href="../../../"><picture><source srcset="../../../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../../../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../../../features/">Features</a>
+    <a href="../../" aria-current="true">Docs</a>
+    <a href="../../../benchmarks/">Benchmarks</a>
+    <a href="../../../roadmap/">Roadmap</a>
+    <a href="../../../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<div class="pg-wrap dx-wrap dx-grid">
+<nav class="dx-side" aria-label="Documentation">
+<details class="dx-fold" open data-fold="880">
+<summary>Documentation</summary>
+<p class="dx-nav-h">Overview</p>
+<ul>
+<li><a href="../../">Pointe documentation</a></li>
+<li><a href="../../comparison/">Compared to other tools</a></li>
+<li><a href="../../limits/">Limits</a></li>
+</ul>
+<p class="dx-nav-h">Getting started</p>
+<ul>
+<li><a href="../../getting-started/">Getting started</a></li>
+<li><a href="../../install/">Install Pointe</a></li>
+<li><a href="../../mac-app/">The Mac app</a></li>
+</ul>
+<p class="dx-nav-h">Connect your phone</p>
+<ul>
+<li><a href="../../phone/">Connect your phone</a></li>
+<li><a href="../../phone/wifi/">Connect over Wi-Fi</a></li>
+<li><a href="../../phone/tailscale/">Connect over Tailscale</a></li>
+<li><a href="../../phone/twingate/">Connect over Twingate</a></li>
+<li><a href="../../phone/cloudflare/">Connect over Cloudflare Tunnel with Access</a></li>
+<li><a href="../../iphone-app/">The iPhone app</a></li>
+</ul>
+<p class="dx-nav-h">Models and setups</p>
+<ul>
+<li><a href="../../models/">Models and setups</a></li>
+<li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
+<li><a href="../../benchmarks/">Benchmarks</a></li>
+</ul>
+<p class="dx-nav-h">Architecture</p>
+<ul>
+<li><a href="../../architecture/">Architecture</a></li>
+<li><a href="../../how-it-works/">How it works</a></li>
+<li><a href="../../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
+<li><a href="../../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
+</ul>
+<p class="dx-nav-h">Features</p>
+<ul>
+<li><a href="../">Features</a></li>
+<li><a href="../voice-lock/">Voice lock</a></li>
+<li><a href="../vocabulary/">Self-learning vocabulary</a></li>
+<li><a href="../drive-mode/">Drive &amp; walk mode</a></li>
+<li><a href="../push-to-talk/">Push to talk</a></li>
+<li><a href="../briefings/">Audio briefings</a></li>
+<li><a href="../brain-dump/">Brain dump</a></li>
+<li><a href="../challenge/">Challenge me (devil&#x27;s advocate)</a></li>
+<li><a href="../alerts/">Wrist approvals and desktop alerts</a></li>
+<li><a href="../show-while-it-says/">Show while it says</a></li>
+<li><a href="../whisper-mode/">Whisper mode</a></li>
+<li><a href="../mute/">Mute</a></li>
+<li><a href="../skip/">Skip</a></li>
+<li><a href="./" aria-current="page">Thinking and the waiting sound</a></li>
+<li><a href="../progress/">Progress updates</a></li>
+<li><a href="../conflict-alarm/">Conflict alarm</a></li>
+<li><a href="../meeting-mode/">Meeting mode</a></li>
+<li><a href="../new-session/">Start a new session</a></li>
+<li><a href="../add-sessions/">Add sessions</a></li>
+<li><a href="../night-shift/">Night shift</a></li>
+<li><a href="../clean-up-my-words/">Clean up my words</a></li>
+<li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
+<li><a href="../local/">Fully local</a></li>
+<li><a href="../openai-url/">OpenAI models from another host</a></li>
+</ul>
+<p class="dx-nav-h">Contributing</p>
+<ul>
+<li><a href="../../contributing/">Contributing</a></li>
+<li><a href="../../releasing/">Releasing</a></li>
+<li><a href="../../security/">Security</a></li>
+</ul>
+</details>
+</nav>
+<main id="main" class="dx-main">
+<article class="dx-doc">
+<h1 id="thinking-and-the-waiting-sound">Thinking and the waiting sound</h1>
+<p>From the end of your turn until Pointe answers, the call's status line says "Thinking…". Before this it said
+"Listening" through the whole wait, so words that were heard looked the same as words that were lost. When the wait is
+long, one soft sound says the same thing without a look at the screen.</p>
+<p>The rules live in <code>pointe/thinking.py</code> (the state, the sound's timing and the words); the daemon stamps them at events
+it already had (<code>daemon._turn_taken</code>, <code>MuteOut</code>, <code>BotSpeechTap</code>) and changes no timing of the turn itself.</p>
+<h2 id="what-the-status-line-says">What the status line says</h2>
+<p>The same words and the same colours on the page, the iPhone, the Mac window, the Mac's call bubble and its menu bar
+item. Green is your turn or a session's work; orange is Pointe's turn. The dot's motion tells the states apart without
+colour, and Reduce Motion stops it: the words carry the state.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>The line</th>
+<th>When</th>
+<th>The dot</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Listening</td>
+<td>the call hears you and nothing else holds</td>
+<td>green, still</td>
+</tr>
+<tr>
+<td>Hearing you (the page)</td>
+<td>your words are arriving</td>
+<td>green, a ring on the mic</td>
+</tr>
+<tr>
+<td>Thinking…</td>
+<td>your turn was taken and the reply is not heard yet</td>
+<td>orange, shrinking to a loader</td>
+</tr>
+<tr>
+<td>Speaking…</td>
+<td>Pointe's voice plays</td>
+<td>orange, breathing</td>
+</tr>
+<tr>
+<td>Writing…</td>
+<td>Pointe is <a href="../mute/">muted</a> and just wrote the line it would have said</td>
+<td>orange, breathing</td>
+</tr>
+<tr>
+<td>billing is working…</td>
+<td>a session has your request and has not answered</td>
+<td>green, breathing slowly, like the session's own row</td>
+</tr>
+</tbody>
+</table></div>
+<p>The first of these that holds is the line: Speaking… and Writing… come before Thinking…, and Thinking… before the
+session's work. Mic off, a hold, a brain dump and a challenge keep their own lines, as before. In push to talk the line
+says Thinking… too; while a session works it keeps the talk mode's own words, which say how to talk. The Mac's small
+bubble shows three dots in its circle while Pointe thinks, and the menu bar item shows them beside the mark.</p>
+<p><strong>Thinking… follows the work, not a timer.</strong> It starts the moment your words become the turn and holds while Pointe
+works on them: a yes being applied, a model step, your words on their way to a session, the reply's words on their way
+to the voice. After a spoken "One sec." it comes back, because the work goes on. For a turn that gets no reply (an
+"mm-hm") it ends by itself after about half a second. A report a session sends later is news, not thinking. A step
+that hangs stops reading as thinking after 45 seconds.</p>
+<p><strong>It shows at once.</strong> The device on the call is told on the call's own link the moment the turn is taken, so the line
+changes within 150 ms (tested on the page); every other screen shows it at its next status, about half a second.</p>
+<h2 id="the-waiting-sound">The waiting sound</h2>
+<p>One soft note, 120 ms, at a tenth of full volume, when you have waited 1.8 seconds since your last word and nothing has
+been said. For typed words and a push-to-talk press it counts 1.2 seconds from the send.</p>
+<ul>
+<li><strong>Never for a fast reply.</strong> A reply heard before the mark gets no sound, in that turn at all.</li>
+<li>
+<p><strong>Never with the reply.</strong> Once the reply's words have gone to the voice the sound is not played, so it cannot land on
+  the first word. It travels in the call's own audio, in order with the voice.</p>
+</li>
+<li>
+<p><strong>Once in a turn.</strong> A turn that takes ten seconds gets one sound, then the spoken "One sec." Pointe already says past
+  4.5 seconds.</p>
+</li>
+<li>
+<p><strong>Not speech.</strong> Nothing that times Pointe's voice (the echo guard, the yes window, the floor) takes it for Pointe
+  speaking, and the status line does not say Speaking… for it.</p>
+</li>
+<li>
+<p><strong>Not where it would be wrong:</strong> while Pointe is muted, in <a href="../whisper-mode/">whisper mode</a>, in a
+  <a href="../meeting-mode/">meeting</a>, in a mode that never speaks, or while anyone is making a sound. In
+  <a href="../drive-mode/">drive mode</a> it plays even when you had muted Pointe: drive mode holds mute, and on the road the sound
+  is the only sign your words were heard.</p>
+</li>
+</ul>
+<p><strong>Why the clock starts at your last word.</strong> That is the silence you hear. The time Pointe waits to be sure you finished
+is part of it, so a clock that started when the turn was taken would let a slow turn pass two seconds of dead air. It
+also means a faster end of turn later makes the sound rarer, not earlier.</p>
+<p><strong>Why a sound and not a spoken "got it".</strong> Words said in the second after a question delay the answer they announce,
+and a filler helps only on a wait of several seconds. So the ladder is: the state at once, the sound at 1.8 seconds,
+the spoken "One sec." at 4.5.</p>
+<h2 id="turn-it-off">Turn it off</h2>
+<ul>
+<li><strong>The page:</strong> Settings → Turn taking → Waiting sound.</li>
+<li><strong>The iPhone and the Mac:</strong> Settings (•••) → While you wait → Waiting sound.</li>
+</ul>
+<p>On by default. The setting lives on the Mac (<code>thinking.cue</code>), so every screen shows the same. The Thinking… line has
+no switch: it is the state.</p>
+<h2 id="the-wire">The wire</h2>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>What</th>
+<th>Shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GET /voice/status</code> → <code>phase</code></td>
+<td><code>null</code>, <code>{"name": "thinking", "session": null, "since": …}</code> or <code>{"name": "working", "session": "billing", "since": …}</code>. Always <code>null</code> while Pointe speaks or just wrote a line: <code>speaking</code> and <code>reading.writing</code> say those</td>
+</tr>
+<tr>
+<td>The call's link</td>
+<td><code>{"type": "phase", "name": "thinking", "session": null}</code> when a turn is taken. A device shows it for 0.9 s unless the status confirms it</td>
+</tr>
+<tr>
+<td><code>POST /voice/prefs {"thinking.cue": false}</code></td>
+<td>the waiting sound, off</td>
+</tr>
+</tbody>
+</table></div>
+<p>An app from before this ignores <code>phase</code> and the link's message, and says Listening as it did.</p>
+</article>
+<p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/thinking.md">docs/features/thinking.md</a> in the repository.</p>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../skip/"><span class="pg-small">Previous</span>Skip</a><a class="dx-next" href="../progress/"><span class="pg-small">Next</span>Progress updates</a></nav>
+</main>
+<aside class="dx-toc" aria-label="On this page">
+<details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
+<ul>
+<li class="dx-l2"><a href="#what-the-status-line-says">What the status line says</a></li>
+<li class="dx-l2"><a href="#the-waiting-sound">The waiting sound</a></li>
+<li class="dx-l2"><a href="#turn-it-off">Turn it off</a></li>
+<li class="dx-l2"><a href="#the-wire">The wire</a></li>
+</ul>
+</details>
+</aside>
+</div>
+<footer class="pg-footer">
+  <div class="pg-wrap dx-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../../../">Ballerine Engineering</a>. MIT licensed.
+      Community-supported, best effort, no SLA.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../../../">Pointe</a>
+      <a href="../../">Docs</a>
+      <a href="../../../roadmap/">Roadmap</a>
+      <a href="../../../contribute/">Contribute</a>
+      <a href="https://github.com/ballerine-io/pointe">Source</a>
+      <a href="https://github.com/ballerine-io/pointe/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a>
+    </nav>
+  </div>
+</footer>
+<script>
+  // Narrow screens: the nav and the outline start folded, each below the width its column needs. Copy buttons appear only where the clipboard can be written.
+  for (const d of document.querySelectorAll('[data-fold]')) {
+    const narrow = matchMedia(`(max-width: ${d.dataset.fold}px)`);
+    const fold = () => { d.open = !narrow.matches; };
+    fold();
+    narrow.addEventListener('change', fold);
+  }
+  if (navigator.clipboard) for (const b of document.querySelectorAll('.dx-copy')) {
+    b.hidden = false;
+    b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(b.previousElementSibling.innerText.replace(/\n$/, '')); b.textContent = 'Copied'; }
+      catch { b.textContent = 'Press ⌘C'; }
+      setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+    });
+  }
+</script>
+</body>
+</html>

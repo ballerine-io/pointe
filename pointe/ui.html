@@ -1465,6 +1465,17 @@
           <div class="note foot">How long a pause ends your sentence. Normal waits about a second after a whole sentence and three after
             a half one; Patient waits longer; Quick answers as soon as you stop. Say “don't interrupt me” or “hold on” and it stays
             quiet until you say “go ahead” or “I'm done”, or until 8 seconds of quiet.</div>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="pref-cue" checked> Waiting sound</label>
+            <div class="hint" id="pref-cue-hint"></div>
+          </div>
+          <div class="card">
+            <label class="tick"><input type="checkbox" id="pref-progress"> Progress updates</label>
+            <div class="hint" id="pref-progress-hint"></div>
+          </div>
+          <div class="note foot">The state line says “Thinking…” from the end of your turn until the reply. The sound plays only
+            when that takes long, never with the reply, and never while Pointe is muted, in whisper mode or in a meeting.
+            Say “keep me posted” or “stop updates” to turn the progress updates on or off by voice.</div>
         </section>
         <section class="group" id="g-newsessions">
           <h3>New sessions</h3>
@@ -1614,7 +1625,7 @@
     <span class="dot"></span>
     <div class="grow">
       <div class="stateline"><div class="state" id="state">Not connected</div><button type="button" id="mutebtn" onclick="muteToggle()" aria-pressed="false" aria-label="Mute Pointe" title="Mute Pointe">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3l4.5-4v13l-4.5-4H4z"/><path d="M15 9.2a4 4 0 0 1 0 5.6"/><path class="slash" d="M3.5 3.5l17 17"/></svg></button><button type="button" id="skipbtn" onclick="skipNow()" aria-label="Skip this message" title="Skip this message">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3l4.5-4v13l-4.5-4H4z"/><g class="waves"><path d="M15 9.2a4 4 0 0 1 0 5.6"/><path d="M17.8 6.6a7.6 7.6 0 0 1 0 10.8"/></g><path class="slash" d="M3.5 3.5l17 17"/></svg></button><button type="button" id="skipbtn" onclick="skipNow()" aria-label="Skip this message" title="Skip this message">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5.5l9 6.5-9 6.5z"/><path d="M18.5 5.5v13"/></svg></button></div>
       <div class="sr" id="statesay" role="status"></div>
       <div class="sub" id="sub">Press the mic to start talking</div>
@@ -2683,6 +2694,7 @@
         if (m.type === 'ping') { call.rtt = m.rtt_ms; call.answered = m.id; ws.send(JSON.stringify({type: 'pong', id: m.id})); }  // protocol 2 heartbeat
         if (m.type === 'ptt' && typeof m.open === 'boolean') pttRemote(m.open);  // a system-wide shortcut pressed on the Mac
         if (m.type === 'reading' && typeof m.on === 'boolean') muteRemote(m.on);  // said by voice: this browser keeps it
+        if (m.type === 'phase') phaseRemote(m);  // the turn was taken: Thinking… now, not at the next poll
         if (m.type === 'call' && typeof m.resume === 'string') { call.token = m.resume; retries = 0; if (m.resumed) pageEvent('back on the same call'); }
         return;
       }
@@ -2973,14 +2985,17 @@
     else if (s.speaking === 'bot') [st, title] = ['bot', 'Speaking…'];
     // muted: shown where it would have spoken (ui_mute.html, a later script: not there on the first paint)
     else if (typeof muteWriting === 'function' && muteWriting(s)) [st, title] = ['writing', 'Writing…'];
+    // the turn was taken and nothing is said yet (ui_thinking.html): before "Hearing you", whose last words are that turn's
+    else if (typeof phaseIs === 'function' && phaseIs(s, 'thinking')) [st, title] = ['thinking', phaseLine(s)];
     else if (s.speaking === 'user') [st, title] = ['user', 'Hearing you'];
     else if (pttMode()) [st, title] = ['ptt', Date.now() < ptt.whyUntil ? ptt.why
                                        : roomHeard() ? `Meeting: room is heard · ${pttStyleLabel().toLowerCase()}` : pttStyleLabel()];
+    else if (typeof phaseIs === 'function' && phaseIs(s, 'working')) [st, title] = ['working', phaseLine(s)];
     else [st, title] = ['live', 'Listening'];
     document.body.dataset.state = st; text('state', title);
     // Read out when the call itself changes (connected, dropped, muted, refused), not each turn's Speaking and Listening:
     // those would talk over the voice.
-    const callIs = ['live', 'bot', 'writing', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
+    const callIs = ['live', 'bot', 'writing', 'thinking', 'working', 'user', 'ptt', 'talking'].includes(st) ? 'on' : st;
     if (callIs !== saidState) { saidState = callIs; if (callIs !== 'off' || $('statesay').textContent) text('statesay', title); }
     document.body.classList.toggle('firstrun', !!(s && s.first_call));
     $('fixkey').hidden = !(s && s.key_refused && s.key_refused.vendor) || denied || fails >= 3 || (s.connected && !mine);  // its own problem only
@@ -4254,6 +4269,7 @@
     $('pref-consent').hidden = !prefs['meeting.consented'];
     $('pref-mic').value = prefs.microphone || 'always';
     $('pref-patience').value = prefs['turns.patience'] || 'normal';
+    thinkingPrefsShow(prefs);
     $('pref-conflicts').checked = prefs['conflicts.on'] !== false;
     $('pref-conflicts-spoken').value = prefs['conflicts.spoken'] === false ? 'card' : 'spoken';
     $('pref-watch').checked = !!prefs['alerts.watch_approve'];
@@ -4577,7 +4593,7 @@
       'meeting.default_mode': $('pref-mode').value, 'meeting.auto_lookups': $('pref-lookups').checked, 'meeting.notes_language': $('pref-lang').value,
       microphone: $('pref-mic').value, 'turns.patience': $('pref-patience').value, 'alerts.watch_approve': $('pref-watch').checked,
       'show.on_phone': $('pref-showphone').checked, 'conflicts.on': $('pref-conflicts').checked,
-      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken'})});
+      'conflicts.spoken': $('pref-conflicts-spoken').value === 'spoken', ...thinkingPrefs()})});
     if (r.ok) { ptt.key = pendingKey; localStorage.setItem('pointe.pttKey', ptt.key); pttSetStyle($('pref-style').value); refresh(); }
     if (r.ok) localStorage.setItem('pointe.desktopAlerts', $('pref-desktop').checked ? 'on' : 'off');
     if (r.ok) { $('setok').textContent = 'Saved.'; setTimeout(() => closeSheet('settingssheet'), 500); }
@@ -4933,6 +4949,7 @@
     const pending = (s.drive.pending || [])[0];
     if (pending) return `${short(pending.session)} needs you`;
     if (s.speaking === 'bot') return 'Speaking';
+    if (s.phase && s.phase.name === 'thinking') return 'Thinking';
     if (s.speaking === 'user') return 'Listening';
     const working = (s.sessions || []).filter(x => x.working).length;
     return working ? `${working} working` : 'All quiet';
@@ -5010,5 +5027,6 @@
 {{WHISPER}}
 {{MUTE}}
 {{SKIP}}
+{{THINKING}}
 </body>
 </html>

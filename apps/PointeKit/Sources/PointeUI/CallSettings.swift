@@ -8,6 +8,8 @@ struct CallSettingsModel: Equatable, Sendable {
     var microphone = "always"
     var talkStyle = TalkStyle.hold
     var patience = TurnsCopy.defaultLevel
+    var waitCue: Bool?  // nil: this Mac has no waiting sound
+    var progressSpoken: Bool?  // nil: this Mac has no progress updates
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
     var machines = false
@@ -32,6 +34,8 @@ struct CallSettingsModel: Equatable, Sendable {
         self.microphone = microphone
         self.talkStyle = talkStyle
         patience = prefs?.patience ?? TurnsCopy.defaultLevel
+        waitCue = prefs?.waitCue
+        progressSpoken = prefs?.progressSpoken
         polish = status?.polish ?? false
         whisper = status?.whisper.map { $0.on }
         machines = status?.machines != nil
@@ -62,6 +66,8 @@ struct CallSettingsActions {
     var setMicrophone: (String) -> Void = { _ in }
     var setTalkStyle: (TalkStyle) -> Void = { _ in }
     var setPatience: (String) -> Void = { _ in }
+    var setWaitCue: (Bool) -> Void = { _ in }
+    var setProgress: (Bool) -> Void = { _ in }
     var setPolish: (Bool) -> Void = { _ in }
     var setWhisper: (Bool) -> Void = { _ in }
     var setDriveSuggest: (Bool) -> Void = { _ in }
@@ -79,6 +85,8 @@ struct CallSettingsSheet: View, Equatable {
     @Environment(\.dismiss) private var dismiss
     @State private var polishWanted: Bool?  // a switch moves at the tap; the Mac's word replaces it on the next status
     @State private var whisperWanted: Bool?
+    @State private var cueWanted: Bool?
+    @State private var progressWanted: Bool?
     @State private var outsideWanted: Bool?
     @State private var unpairAsked = false
     #if os(macOS)
@@ -109,6 +117,29 @@ struct CallSettingsSheet: View, Equatable {
                     } label: { Label(TurnsCopy.setting, systemImage: "hourglass") }
                         .pickerStyle(.menu)
                         .accessibilityIdentifier("patienceSetting")
+                }
+                if model.waitCue != nil || model.progressSpoken != nil {
+                    Section {
+                        if let cue = model.waitCue {
+                            Toggle(isOn: Binding(get: { cueWanted ?? cue }, set: { cueWanted = $0; act.setWaitCue($0) })) {
+                                Label(ThinkingCopy.cue, systemImage: "bell")
+                            }
+                            .help(ThinkingCopy.cueHint)
+                            .accessibilityHint(ThinkingCopy.cueHint)
+                            .accessibilityIdentifier("waitCueSetting")
+                        }
+                        if let posted = model.progressSpoken {
+                            Toggle(isOn: Binding(get: { progressWanted ?? posted }, set: { progressWanted = $0; act.setProgress($0) })) {
+                                Label(ThinkingCopy.progress, systemImage: "text.bubble")
+                            }
+                            .help(ThinkingCopy.progressHint)
+                            .accessibilityHint(ThinkingCopy.progressHint)
+                            .accessibilityIdentifier("progressSetting")
+                        }
+                    } header: { Text(ThinkingCopy.section).brandKicker() } footer: {
+                        Text("\(ThinkingCopy.cueHint) \(ThinkingCopy.progressHint)").font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                            .accessibilityIdentifier("waitFooter")
+                    }
                 }
                 #if os(iOS)
                 if let outside = model.outside {

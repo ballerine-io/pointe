@@ -66,14 +66,16 @@ enum MuteChoice {
     }
 }
 
-/// Beside the status line: a speaker with a slash. A tap mutes Pointe, and unmutes it when it is filled.
+/// Beside the status line: a speaker with its sound waves while Pointe has a voice, a filled speaker with a slash and an
+/// orange ring while it is muted. A tap changes it.
 struct MuteButton: View {
     let on: Bool
     var held = false  // drive mode holds it: Pointe talks, and the button says why
     let toggle: () -> Void
 
     static func label(on: Bool) -> String { on ? MuteCopy.unmute : MuteCopy.mute }
-    static func symbol(on: Bool) -> String { on ? "speaker.slash.fill" : "speaker.slash" }
+    /// The state now, never the action: a slash while the voice is on read as "already muted". The label says what a tap does.
+    static func symbol(on: Bool) -> String { on ? "speaker.slash.fill" : "speaker.wave.2" }
     static func hint(on: Bool, held: Bool) -> String? { on && held ? MuteCopy.held : nil }
 
     var body: some View {
