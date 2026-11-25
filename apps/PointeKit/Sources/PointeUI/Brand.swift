@@ -583,8 +583,10 @@ enum AppVersion {
     /// "1.2.0", without the build number, for a header with little room.
     static var short: String { app.split(separator: " ").first.map(String.init) ?? app }
 
-    static func line(app: String, mac: String?) -> String {
-        let shown = isBeta(app) ? "\(app) · beta" : app
+    /// `store`: the iPhone app, which ships through the App Store, where a beta is refused (App Review 2.2): its line
+    /// never says beta. The Mac app is a download, and a 0.x one says so.
+    static func line(app: String, mac: String?, store: Bool = !Surface.isMac) -> String {
+        let shown = !store && isBeta(app) ? "\(app) · beta" : app
         guard let mac, !mac.isEmpty, mac != app.split(separator: " ").first.map(String.init) else { return shown }
         return "\(shown) · Mac \(mac)"
     }

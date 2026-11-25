@@ -8,6 +8,8 @@ enum AboutCopy {
     static let repoURL = "https://github.com/ballerine-io/pointe"
     static let maker = "ballerine.com"
     static let makerURL = "https://ballerine.com"
+    static let privacy = "Privacy policy"
+    static let privacyURL = "https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md"
     static let version = "Version"
 }
 
@@ -28,6 +30,7 @@ public struct PointeAboutRows: View {
             // In the accent with the arrow that says it leaves the app: in the form's ink they read as two more lines of text.
             link(AboutCopy.repo, AboutCopy.repoURL).accessibilityIdentifier("aboutRepo")
             link(AboutCopy.maker, AboutCopy.makerURL).accessibilityIdentifier("aboutMaker")
+            link(AboutCopy.privacy, AboutCopy.privacyURL).accessibilityIdentifier("aboutPrivacy")
             LabeledContent(AboutCopy.version, value: AppVersion.line(app: AppVersion.app, mac: mac))
                 .accessibilityIdentifier("aboutVersion")
         }

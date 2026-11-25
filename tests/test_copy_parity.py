@@ -99,11 +99,14 @@ def test_about_says_the_same_on_the_page_and_the_app():
     assert page["body"] == app["body"] == ABOUT
     assert page == {k: app[k] for k in page}, "every About string the page shows is the app's"
     assert page["repoURL"] == "https://github.com/ballerine-io/pointe" and page["makerURL"] == "https://ballerine.com"
+    # App Review 5.1.1(i): the privacy policy is linked inside the app, not only in the App Store listing.
+    assert page["privacy"] == app["privacy"] == "Privacy policy"
+    assert page["privacyURL"] == app["privacyURL"] == "https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md"
     assert app["title"] == "About" and 'data-section="g-about"' in PAGE
 
 
 ABOUT_SHOWN = """(() => ({body: document.getElementById('about-body').textContent, repo: document.getElementById('about-repo').href,
-  maker: document.getElementById('about-maker').href, ver: document.getElementById('about-ver').textContent,
+  maker: document.getElementById('about-maker').href, privacy: document.getElementById('about-privacy').href, ver: document.getElementById('about-ver').textContent,
   shown: document.getElementById('about-body').offsetHeight > 0, name: document.querySelector('#side .brand .name').textContent,
   ballerine: /Ballerine|Command center/.test(document.querySelector('#side .brand').textContent),
   logo: [...document.querySelectorAll('#side .brand svg')].map(m => m.getAttribute('class') + ' ' + m.getAttribute('aria-hidden'))}))()"""
@@ -129,4 +132,5 @@ def test_the_page_header_is_the_mark_and_pointe_and_about_shows_the_credit():
     assert got["logo"] == ["logo true"], "one mark, the Chorus mark beside the name, hidden from a screen reader"
     assert got["body"] == ABOUT and got["shown"], got
     assert got["repo"] == "https://github.com/ballerine-io/pointe" and got["maker"] == "https://ballerine.com/", got
+    assert got["privacy"] == "https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md", got
     assert got["ver"] == "9.8.7", got

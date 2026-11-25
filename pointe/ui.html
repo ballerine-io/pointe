@@ -1536,6 +1536,7 @@
             <div class="help" id="about-body"></div>
             <a class="r nav" id="about-repo" target="_blank" rel="noopener noreferrer"></a>
             <a class="r nav" id="about-maker" target="_blank" rel="noopener noreferrer"></a>
+            <a class="r nav" id="about-privacy" target="_blank" rel="noopener noreferrer"></a>
             <div class="r"><span id="about-ver-label"></span><span class="aver" id="about-ver"></span></div>
           </div>
         </section>
@@ -4200,9 +4201,11 @@
   }
   // Settings → About: the same words as the app's AboutCopy (tests/test_copy_parity.py).
   const ABOUT_COPY = {body: 'Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.', repo: 'Source code on GitHub',
-    repoURL: 'https://github.com/ballerine-io/pointe', maker: 'ballerine.com', makerURL: 'https://ballerine.com', version: 'Version'};
+    repoURL: 'https://github.com/ballerine-io/pointe', maker: 'ballerine.com', makerURL: 'https://ballerine.com',
+    privacy: 'Privacy policy', privacyURL: 'https://github.com/ballerine-io/pointe/blob/main/PRIVACY.md', version: 'Version'};
   text('about-body', ABOUT_COPY.body); text('about-repo', ABOUT_COPY.repo); text('about-maker', ABOUT_COPY.maker);
-  text('about-ver-label', ABOUT_COPY.version); $('about-repo').href = ABOUT_COPY.repoURL; $('about-maker').href = ABOUT_COPY.makerURL;
+  text('about-privacy', ABOUT_COPY.privacy); text('about-ver-label', ABOUT_COPY.version);
+  $('about-repo').href = ABOUT_COPY.repoURL; $('about-maker').href = ABOUT_COPY.makerURL; $('about-privacy').href = ABOUT_COPY.privacyURL;
   // Settings → Model keys: the same words as /pointe:setup, the doctor and the Mac app (vendors.WHAT_YOU_NEED, KeyCopy;
   // tests/test_key_setup.py). A key no role needs is Optional, never Missing.
   const KEYS_COPY = {title: 'What do I need?',

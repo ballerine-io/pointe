@@ -71,9 +71,10 @@ final class SettingsUITests: XCTestCase {
         let app = launch("call")
         let header = app.descendants(matching: .any)["versionLine"].firstMatch  // the header reads as one element
         XCTAssertTrue(header.waitForExistence(timeout: 5))
-        // A 0.x version is the beta and says so after it (AppVersion.line).
-        XCTAssertNotNil(header.label.range(of: #"Pointe, .*\b\d+\.\d+\.\d+( \(\d+\))?( · beta)?$"#, options: .regularExpression),
+        // The App Store's app never calls itself a beta (App Review 2.2), whatever its version (AppVersion.line).
+        XCTAssertNotNil(header.label.range(of: #"Pointe, .*\b\d+\.\d+\.\d+( \(\d+\))?$"#, options: .regularExpression),
                         "the version ends the header: \(header.label)")
+        XCTAssertFalse(header.label.contains("beta"), header.label)
     }
 
     /// The header is Pointe alone; Settings → About credits Ballerine Engineering, with the page's words.

@@ -20,6 +20,14 @@ final class VersionTests: XCTestCase {
         XCTAssertEqual(AppVersion.line(app: "10.0.0", mac: nil), "10.0.0")
     }
 
+    /// The iPhone app ships through the App Store, where a beta is refused (App Review 2.2; TestFlight marks its own
+    /// builds): its line never says beta. The Mac app, a download, does.
+    func testTheStoreAppDoesNotSayBeta() {
+        XCTAssertEqual(AppVersion.line(app: "0.8.6 (66)", mac: nil, store: true), "0.8.6 (66)")
+        XCTAssertEqual(AppVersion.line(app: "0.8.6 (66)", mac: "0.8.5", store: true), "0.8.6 (66) · Mac 0.8.5")
+        XCTAssertEqual(AppVersion.line(app: "0.8.6 (66)", mac: nil, store: false), "0.8.6 (66) · beta")
+    }
+
     /// A header with little room drops the build number before it cuts a word.
     func testTheShortVersionHasNoBuildNumber() {
         XCTAssertFalse(AppVersion.short.contains("("))
