@@ -122,8 +122,9 @@ that cannot wait, after you finish your sentence.
   writer's "say" field: 45 words, 60 when urgent). In code, a reply over its limit is refused once with the reason
   (`length_problem`), like drive mode's rule: the model shortens better than a cut. A second long one is cut
   (`trim`): the first sentences that fit, the closing question kept (it is the decision asked of the user), one
-  sentence too long on its own cut at a clause, then "There's more if you want it." / "יש עוד, אם תרצה." That line is
-  a statement, not a question, so it does not take the floor (§3.2). One retry, not two: a second costs another model
+  sentence too long on its own cut at a clause. A closing question of four words or fewer that leans on the sentence
+  before it ("Should it?") goes when that sentence was cut. Until 0.8.6 a cut reply ended "There's more if you want
+  it."; three testers called it padding, and it is no longer said ("tell me more" works without it). One retry, not two: a second costs another model
   step (about 2 s) with the user waiting. Since 1.13.6 a reply over only on sentences, within the words, skips the
   retry and is cut at once (§6).
 - **Lists.** Three items, then how many more ("billing, docs, lantern, and 2 more"). The model is sent back for a list
