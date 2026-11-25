@@ -7,7 +7,7 @@
    "request_id": "p5",
    "decision": "allow",
    "by": "voice",
-   "request": "Bash\nuv run pytest -q",
+   "request": "Bash\ncat > docs/retry-plan.md <<'EOF'\nRetry plan\n\nWhen the queue drops a message during failover, the worker",
    "cut": true,
    "lock": "commands",
    "score": 0.64
