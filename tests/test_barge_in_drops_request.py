@@ -9,6 +9,7 @@ uv run pytest -q tests/test_barge_in_drops_request.py
 """
 
 import asyncio
+import time
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -18,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import brain as brain_mod  # noqa: E402
 from brain import Brain  # noqa: E402
+from test_orchestrator import d  # noqa: E402,F401  (d is the daemon fixture)
 
 
 def _brain(monkeypatch, steps: list, tool):
@@ -176,3 +178,57 @@ def test_a_voice_that_turns_out_to_be_nothing_lets_the_send_go(monkeypatch):
     b, said = _brain(monkeypatch, [_send("Run the tests.")], tool)
     asyncio.run(b.turn("Tell billing to run the tests."))
     assert delivered == ["Run the tests."]
+
+
+def _over_the_bot(d, monkeypatch, b, then):  # noqa: F811
+    """The daemon's own check, `_abandoned`, run as a send of `b`'s turn while the bot speaks and a voice has just
+    begun over it, too new for the level gate to tell from the echo. `then` plays what follows, with `b`."""
+    monkeypatch.setattr(d.ECHO, "speaking", True, raising=False)
+    monkeypatch.setattr(d.LEVEL, "loud", lambda: False)
+    d.state.front = SimpleNamespace(brain=b)
+    d.state.last_user_speech_at = time.time() - 5  # the words that started the turn
+    d.state.user_stopped_at = d.state.last_user_speech_at
+    verdicts = []
+
+    async def tool(params):
+        d.state.user_started_at = time.time()  # the voice began 0.2 s ago in the recording; here, now
+        verdicts.append(await d._abandoned(params.arguments["message"]))
+        await params.result_callback({})
+
+    b.tools[0].handler = tool
+
+    async def call():
+        first = asyncio.ensure_future(b.turn("Give me a full rundown of everything."))
+        await then(b)
+        await first
+
+    t0 = time.time()
+    asyncio.run(call())
+    return verdicts, time.time() - t0
+
+
+def test_a_voice_begun_over_the_bot_holds_the_send_until_the_barge_in_shows(d, monkeypatch):  # noqa: F811
+    """bar-01 on 0.8.5 (suite 2): "Wait," began over the rundown 1 s before its send to billing, the level gate could
+    not yet tell it from the echo, and the send went out 1 ms before the barge-in's first word cut the turn."""
+    b, _ = _brain(monkeypatch, [_send("Give a full rundown."), _speak("Lantern is idle.")], None)
+
+    async def then(b):
+        await asyncio.sleep(0.25)
+        b.interrupt()  # "Wait,": the barge-in
+        d.ECHO.speaking = False
+        await asyncio.sleep(0.3)
+        d.state.last_utterance = "Wait, wait. Just tell me about lantern."
+        b.user_spoke()
+
+    verdicts, _ = _over_the_bot(d, monkeypatch, b, then)
+    assert verdicts == [True]
+
+
+def test_the_bots_own_echo_delays_a_send_only_a_moment(d, monkeypatch):  # noqa: F811
+    b, _ = _brain(monkeypatch, [_send("Run the tests."), _speak("Sent.")], None)
+
+    async def then(b):
+        return None  # the voice is the bot's own, and no barge-in ever comes
+
+    verdicts, took = _over_the_bot(d, monkeypatch, b, then)
+    assert verdicts == [False] and took < 1.6

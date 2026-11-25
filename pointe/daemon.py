@@ -6939,10 +6939,25 @@ def _voice_since_the_turn() -> bool:
     return began > stopped or time.time() - stopped < VOICE_PENDING_SECS
 
 
+VOICE_OVER_BOT_SECS = 1.0  # how long a send waits for a voice begun over the bot to show whether it is a barge-in
+
+
+def _voice_over_the_bot() -> bool:
+    """A voice began over the bot's own speech since the turn's words and is still going, too new for the level gate
+    to tell the user from the echo."""
+    began, stopped = state.user_started_at, state.user_stopped_at
+    return began > state.last_user_speech_at and began > stopped and ECHO.speaking and not LEVEL.loud()
+
+
 async def _abandoned(message: str) -> bool:
     """The user talked over the turn this send was made for and said something new: the request they left is not
     delivered behind their back (a barge-in "wait, just tell me about quarry" once left the rundown it replaced with
-    three sessions). An acknowledgement over the voice ("okay", "mm-hm") abandons nothing."""
+    three sessions). An acknowledgement over the voice ("okay", "mm-hm") abandons nothing. A voice begun over the bot
+    gets a moment to become a barge-in first: on 0.8.5 "Wait," began a second before the rundown's send to billing,
+    and the send went 1 ms before the barge-in cut the turn. The bot's own echo costs a send at most that moment."""
+    deadline = time.time() + VOICE_OVER_BOT_SECS
+    while _voice_over_the_bot() and time.time() < deadline:
+        await asyncio.sleep(0.05)
     brain = getattr(state.front, "brain", None)
     if brain is None or not hasattr(brain, "abandoned") or not await brain.abandoned(voicing=_voice_since_the_turn):
         return False
