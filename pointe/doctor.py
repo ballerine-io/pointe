@@ -88,9 +88,11 @@ NO_KEY_ABOUT = f"""What do I need?
 
 Setups (choose one: pointe setup <id>):
 {setups.text_table()}"""
-NO_KEY_ELSEWHERE = """Without a Keychain (Linux, CI): export GOOGLE_API_KEY=... (or OPENAI_API_KEY, ANTHROPIC_API_KEY, SONIOX_API_KEY,
-ELEVENLABS_API_KEY). Or no key at all: `pointe local` runs every model on this Mac, and nothing leaves it
-(docs/features/local.md)."""
+NO_KEY_ELSEWHERE = """On Linux, pointe key <vendor> asks in the terminal with hidden typing and keeps the key in your login keyring
+(secret-tool, the Secret Service). With no keyring (a server, CI), give it for one start only, from your own secret
+store: GOOGLE_API_KEY="$(<command that prints it>)" pointe restart (or OPENAI_API_KEY, ANTHROPIC_API_KEY,
+SONIOX_API_KEY, ELEVENLABS_API_KEY); never in a file (docs/linux.md). Or no key at all: `pointe local` runs every model
+on an Apple-silicon Mac, and nothing leaves it (docs/features/local.md)."""
 NO_KEY = f"""No model key yet. {NO_KEY_ABOUT}
 
   In Claude Code: /pointe:setup compares the vendors and saves each key for you.

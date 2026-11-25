@@ -7,6 +7,8 @@
 #   curl -fsSLO https://eng.ballerine.com/pointe/install.sh && bash install.sh
 #
 #   bash install.sh [--yes]                   the pinned release below
+#   bash install.sh --hub | --node            on Linux: this machine holds the voice (hub), or only its sessions join
+#                                             a hub on another machine (node); asked when not given
 #   bash install.sh --version X.Y.Z           another release, checked against the SHA-256 published with it
 #   pointe update [--yes]                     (runs install.sh --update) the newest release, checked the same way
 #   pointe uninstall                          removes it again
@@ -40,7 +42,7 @@ standalone() {  # the folders an earlier run of this installer finished, newest 
   return 0
 }
 
-YES=""; VERSION=""; URL=""; SHA=""; MODE=install; ROOT=""
+YES=""; VERSION=""; URL=""; SHA=""; MODE=install; ROOT=""; ROLE="${POINTE_ROLE:-}"
 while [ $# -gt 0 ]; do
   case "$1" in
     -y|--yes)   YES=1 ;;
@@ -48,8 +50,10 @@ while [ $# -gt 0 ]; do
     --url)      URL="${2:?--url needs a URL}"; shift ;;
     --sha256)   SHA="${2:?--sha256 needs a hash}"; shift ;;
     --update)   MODE=update ;;
+    --hub)      ROLE=hub ;;
+    --node)     ROLE=node ;;
     --activate) MODE=activate; ROOT="${2:?--activate needs a folder}"; shift ;;
-    -h|--help)  sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)          die "no option $1 (bash install.sh --help lists them)" ;;
   esac
   shift
@@ -69,15 +73,38 @@ if [ "$MODE" = activate ]; then
   ROOT="$(cd "$ROOT" && pwd)"
   [ -f "$ROOT/$MARKER" ] || die "$ROOT was not unpacked by install.sh"
   "$ROOT/$INSTALL_UV"  # uv if missing, checked against its pinned SHA-256; then ~/.local/bin/pointe (bin/link-pointe)
-  say "Installing Pointe's Python packages (about 180 MB the first time)..."
-  "$ROOT/$UV_SYNC" --quiet --project "$ROOT"
+  if [ "$ROLE" = node ]; then  # a node has no voice: pointe node join syncs its own small environment (no Pipecat)
+    say "ok       no voice packages: a node needs none (pointe node join sets up what it runs)"
+  else
+    say "Installing Pointe's Python packages (about 180 MB the first time)..."
+    "$ROOT/$UV_SYNC" --quiet --project "$ROOT"
+  fi
   say "ok       Pointe $(version_in "$ROOT") is installed in $(pretty "$ROOT")"
   exit 0
 fi
 
 [ "$(id -u)" != 0 ] || die "run it as yourself, not with sudo: everything goes into your home folder"
 for tool in curl tar; do command -v "$tool" >/dev/null 2>&1 || die "$tool is missing"; done
-[ "$(uname -s)" = Darwin ] || say "note     Pointe's voice runs on macOS. On this system it can only run as a node of a Mac (docs/multi-machine.md)."
+if [ "$(uname -s)" = Darwin ]; then
+  ROLE=hub
+elif [ -z "$ROLE" ] && [ "$MODE" = install ]; then  # an update keeps what is there: a node has a node.json
+  say "On Linux, Pointe runs one of two ways (docs/linux.md):"
+  say "  1. hub   this machine holds the voice. Its page, your phone, and your other machines connect to it."
+  say "           Needs a model key (kept in your login keyring) or local models."
+  say "  2. node  only this machine's sessions join a hub that runs on another machine. No voice, no keys, no models here."
+  if [ -n "$YES" ]; then ROLE=hub; say "--yes: hub. For a node: bash install.sh --node"
+  else
+    answer=""
+    if [ -t 0 ]; then read -r -p "Which one? [1 hub / 2 node] " answer
+    elif { : </dev/tty; } 2>/dev/null; then read -r -p "Which one? [1 hub / 2 node] " answer </dev/tty
+    else say "No terminal to answer on: run it in a terminal, or add --hub or --node."; exit 1; fi
+    case "$answer" in 1|h|hub|Hub|HUB) ROLE=hub ;; 2|n|node|Node|NODE) ROLE=node ;;
+      *) say "Nothing changed: answer 1 or 2, or run bash install.sh --hub or --node."; exit 1 ;; esac
+  fi
+fi
+[ -z "$ROLE" ] && grep -qs '"hub"' "$STATE/node.json" && ROLE=node  # an update of a node stays a node
+[ -n "$ROLE" ] || ROLE=hub
+export POINTE_ROLE="$ROLE"  # the release's own install.sh --activate reads it
 
 if [ "$MODE" = update ]; then
   HAVE="$(standalone | awk -F '\t' 'NR == 1 { print $1 }')"
@@ -122,7 +149,11 @@ say "  - download  $URL"
 say "  - check     it against $WHY, and stop on any difference"
 say "  - unpack    it into $(pretty "$DEST")"
 say "  - install   uv into ~/.local/bin if it is missing (one pinned version, its installer checked against a SHA-256)"
-say "  - install   Pointe's Python packages into $(pretty "$DEST")/.venv (about 180 MB to download, 530 MB on disk)"
+if [ "$ROLE" = node ]; then
+  say "  - skip      the voice packages: a node needs none"
+else
+  say "  - install   Pointe's Python packages into $(pretty "$DEST")/.venv (about 180 MB to download, 530 MB on disk)"
+fi
 say "  - link      ~/.local/bin/pointe, so pointe is a command"
 [ -z "$RESTART" ] || say "  - restart   Pointe on $VERSION (a call in progress ends)"
 while IFS= read -r dir; do [ -z "$dir" ] || say "  - remove    $(pretty "$dir") (Pointe $(version_in "$dir"))"; done <<<"$OLD"
@@ -167,7 +198,17 @@ if [ "$MODE" = update ]; then say "Pointe is updated to $VERSION."; exit 0; fi
 
 say ""
 case "$ON_PATH" in *":$HOME/.local/bin:"*) CMD="pointe" ;; *) CMD="~/.local/bin/pointe" ;; esac
+if [ "$ROLE" = node ]; then
+  say "Next, on the hub: pointe hub invite. Then here: $CMD node join '<the line it prints>'"
+  say "  This machine's sessions then join the hub's voice: /pointe:voice in Claude Code, pointe join opencode or codex."
+  exit 0
+fi
 say "Next: $CMD setup"
-say "  About 5 minutes: one question, your key (it goes to your Keychain, never a file), and your first call."
+if [ "$(uname -s)" = Darwin ]; then
+  say "  About 5 minutes: one question, your key (it goes to your Keychain, never a file), and your first call."
+else
+  say "  About 5 minutes: one question, your key (typed hidden, kept in your login keyring through secret-tool, never a"
+  say "  file), and your first call. Without a keyring: docs/linux.md, \"Keys\"."
+fi
 say "  It then sets up Codex (pointe join codex) and OpenCode (/voice), if you have them."
 say "  With Claude Code, the plugin is the other way in. Both can be installed: the newer one runs."

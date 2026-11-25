@@ -114,6 +114,41 @@ def test_the_installer_runs_without_sudo_and_never_pipes_a_download_into_a_shell
     assert check < unpack, "the SHA-256 is checked before anything from the archive is unpacked"
 
 
+# ---------- Linux: hub or node ----------
+
+@pytest.fixture
+def linux(mac):
+    """The same throwaway HOME, with `uname` saying Linux."""
+    (mac.fake / "uname").write_text('#!/bin/sh\n[ "$1" = -s ] && echo Linux || /usr/bin/uname "$@"\n')
+    (mac.fake / "uname").chmod(0o755)
+    return mac
+
+
+def test_on_linux_yes_installs_a_hub_and_says_where_keys_go(linux, releases):
+    got = install(linux, releases["9.9.1"], "9.9.1", "--sha256", sha_of(releases["9.9.1"]))
+    assert got.returncode == 0, got.stdout + got.stderr
+    assert "1. hub" in got.stdout and "2. node" in got.stdout and "--yes: hub" in got.stdout
+    assert "only run as a node of a Mac" not in got.stdout
+    assert (linux.pointe_home / "9.9.1" / ".venv").is_dir()
+    assert "Next: ~/.local/bin/pointe setup" in got.stdout and "login keyring" in got.stdout and "Keychain" not in got.stdout
+
+
+def test_on_linux_a_node_skips_the_voice_packages_and_says_how_to_join(linux, releases):
+    got = install(linux, releases["9.9.1"], "9.9.1", "--sha256", sha_of(releases["9.9.1"]), "--node")
+    assert got.returncode == 0, got.stdout + got.stderr
+    root = linux.pointe_home / "9.9.1"
+    assert (root / ".pointe-install").exists() and not (root / ".venv").exists()
+    assert "skip      the voice packages" in got.stdout and "pointe hub invite" in got.stdout
+    assert "node join" in got.stdout and "pointe setup" not in got.stdout
+    assert linux.sh(linux.link, "version").stdout == "Pointe 9.9.1\n"
+
+
+def test_on_linux_with_no_terminal_to_ask_on_nothing_changes(linux, releases):
+    got = linux.sh("bash", INSTALL, "--version", "9.9.1", "--url", releases["9.9.1"].as_uri(), input="2\n",
+                   start_new_session=True)
+    assert got.returncode == 1 and "add --hub or --node" in got.stdout and not linux.pointe_home.exists()
+
+
 # ---------- update and uninstall ----------
 
 def test_pointe_update_installs_the_newer_release_checked_and_removes_the_older(mac, releases, tmp_path):
@@ -275,6 +310,27 @@ def test_the_terminal_setup_uses_the_keys_there_and_starts_the_first_call(mac, t
     assert "Your Anthropic and Soniox and ElevenLabs and Gemini keys fill the Fastest and most accurate voice setup." in out
     assert terminal == [("voice-daemon", "ensure")] and "The page: pointe open." in out
     assert (Path(mac.env["CLAUDE_VOICE_STATE"]) / "setup-done").exists()
+
+
+def test_the_terminal_setup_runs_on_linux_and_names_the_keyring(mac, terminal, monkeypatch, capsys):
+    monkeypatch.setattr(terminal_setup.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(terminal_setup, "missing", lambda s: list(s.keys))
+    monkeypatch.setattr("builtins.input", lambda q: "")
+    assert terminal_setup.main(["--no-open"]) == 0
+    out = capsys.readouterr().out
+    assert "needs macOS" not in out and "Step 1 of 4: this machine." in out
+    assert "pointe key gemini (asks with hidden typing; the key goes to your login keyring)" in out
+
+
+def test_on_linux_with_no_desktop_the_first_call_is_from_the_phone_or_another_machine(mac, terminal, monkeypatch, capsys):
+    monkeypatch.setattr(terminal_setup.platform, "system", lambda: "Linux")
+    monkeypatch.delenv("DISPLAY", raising=False)
+    monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
+    monkeypatch.setattr(terminal_setup, "missing", lambda s: [])
+    monkeypatch.setattr("builtins.input", lambda q: "")
+    assert terminal_setup.main([]) == 0
+    out = capsys.readouterr().out
+    assert "pointe pair link" in out and ("voice-open",) not in terminal and ("voice-daemon", "ensure") in terminal
 
 
 def test_bin_pointe_setup_without_a_terminal_still_lists_the_setups(mac):

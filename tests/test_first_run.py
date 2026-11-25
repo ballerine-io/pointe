@@ -72,7 +72,7 @@ def test_daemon_finds_uv_where_its_installer_put_it(stranger):
 def test_no_key_advice_points_to_the_keychain_window_not_a_terminal():
     assert "pointe key gemini" in doctor.NO_KEY
     assert "/pointe:setup" in doctor.NO_KEY
-    assert doctor.NO_KEY.index("pointe key gemini") < doctor.NO_KEY.index("export ")
+    assert doctor.NO_KEY.index("pointe key gemini") < doctor.NO_KEY.index("GOOGLE_API_KEY=")  # the environment is the last resort
 
 
 REFUSALS = {

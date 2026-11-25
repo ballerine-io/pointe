@@ -57,7 +57,14 @@ def missing(s: setups.Setup) -> list[str]:
 
 
 def chrome() -> bool:
+    if platform.system() != "Darwin":
+        return any(shutil.which(b) for b in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser"))
     return any((d / "Google Chrome.app").exists() for d in (Path("/Applications"), Path.home() / "Applications"))
+
+
+def desktop() -> bool:
+    """A screen to open the page on: always on a Mac; on Linux only in a desktop session (not over SSH)."""
+    return platform.system() == "Darwin" or bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
 def pick_setup() -> setups.Setup | None:
@@ -91,14 +98,18 @@ def pick_setup() -> setups.Setup | None:
 
 
 def first_setup(no_open: bool) -> int:
-    say("Step 1 of 4: this Mac.")
-    if platform.system() != "Darwin":
-        say("Pointe's voice needs macOS. On this machine it can run as a node of a Mac: pointe node join (docs/multi-machine.md).")
-        return 1
-    if not chrome():
+    mac = platform.system() == "Darwin"
+    say(f"Step 1 of 4: this {'Mac' if mac else 'machine'}.")
+    if mac and not chrome():
         say("Pointe's page needs Google Chrome. Install it from google.com/chrome, then run pointe setup again.")
         return 1
-    say("ok       macOS, Chrome")
+    if mac:
+        say("ok       macOS, Chrome")
+    elif chrome() and desktop():
+        say("ok       Linux, Chrome (a hub: docs/linux.md)")
+    else:
+        say("ok       Linux (a hub: docs/linux.md). No Chrome or no desktop here: you will talk from your phone or "
+            "another machine's Chrome (pointe pair tailscale, wifi or host <name>, then pointe pair link).")
 
     say("\nStep 2 of 4: your setup.")
     chosen = pick_setup()
@@ -116,10 +127,17 @@ def first_setup(no_open: bool) -> int:
     for vendor in missing(chosen):
         name = setups.NAMES[vendor]
         if no_open:
-            say(f"Save the {name} key: pointe key {vendor} (opens its page and a Mac window; the key goes to your Keychain).")
+            say(f"Save the {name} key: pointe key {vendor} (opens its page and a Mac window; the key goes to your Keychain)."
+                if mac else f"Save the {name} key: pointe key {vendor} (asks with hidden typing; the key goes to your "
+                "login keyring).")
             continue
-        say(f"Opening {name}'s key page in your browser, and a small Mac window. Create a key there, copy it, paste it "
-            "in the window and press Save. It goes straight into your Mac's Keychain, never into a file or this terminal.")
+        if mac:
+            say(f"Opening {name}'s key page in your browser, and a small Mac window. Create a key there, copy it, paste "
+                "it in the window and press Save. It goes straight into your Mac's Keychain, never into a file or this "
+                "terminal.")
+        else:
+            say(f"Create a {name} key on its page, then paste it below (the typing is hidden). It goes to your login "
+                "keyring through secret-tool, never into a file.")
         run("pointe", "key", vendor, "--no-restart")
         if vendor in missing(chosen):
             say(f"No {name} key was saved. pointe key {vendor} opens the window again; then pointe setup.")
@@ -138,6 +156,10 @@ def first_setup(no_open: bool) -> int:
         return 1
     if no_open:
         say("The page: pointe open. Then press Connect and say hello.")
+    elif not desktop():
+        say("No desktop here to open the page on. Talk from your phone or another machine: make this machine reachable "
+            "(pointe pair tailscale, pointe pair wifi, or pointe pair host <name>), then pointe pair link prints the "
+            "address to open there once. docs/linux.md says more.")
     else:
         run("voice-open")
         say("Put on headphones, allow the microphone, press Connect, and say hello.")
