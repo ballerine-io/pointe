@@ -122,7 +122,7 @@ public enum NewSession {
         public var tag: String { failed ? NewSessionCopy.failed : NewSessionCopy.starting }
         /// The reason under a failed row; nothing under one that is still starting.
         public var why: String? { failed ? detail.flatMap { $0.isEmpty ? nil : $0 } : nil }
-        public var agent: String { label.flatMap { $0.isEmpty ? nil : $0 } ?? Harness.mark(harness).name }
+        public var agent: String { label.flatMap { $0.isEmpty ? nil : $0 } ?? Harness.name(harness) }
     }
 
     /// What the voice read back and waits to start (`start_pending` in /voice/status): `line` is its exact words.

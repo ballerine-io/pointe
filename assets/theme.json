@@ -42,9 +42,9 @@
     "scrim":        {"light": "rgba(10,4,0,.35)", "dark": "rgba(0,0,0,.60)"}
   },
   "harnesses": {
-    "claude-code": {"name": "Claude", "glyph": "C"},
-    "codex": {"name": "Codex", "glyph": "X"},
-    "opencode": {"name": "OpenCode", "glyph": "O"},
-    "pi": {"name": "Pi", "glyph": "P"}
+    "claude-code": {"name": "Claude"},
+    "codex": {"name": "Codex"},
+    "opencode": {"name": "OpenCode"},
+    "pi": {"name": "Pi"}
   }
 }

@@ -89,14 +89,15 @@ final class HarnessMarkTests: XCTestCase {
         try! JSONDecoder().decode(API.Status.self, from: Data(json.utf8))
     }
 
-    func testEachKnownAgentHasItsNameAndLetterAndAnUnknownOneFallsBackToItsOwn() {
-        XCTAssertEqual(Harness.mark("claude-code").name, "Claude"); XCTAssertEqual(Harness.mark("claude-code").glyph, "C")
-        XCTAssertEqual(Harness.mark("codex").name, "Codex"); XCTAssertEqual(Harness.mark("codex").glyph, "X")
-        XCTAssertEqual(Harness.mark("opencode").name, "OpenCode"); XCTAssertEqual(Harness.mark("opencode").glyph, "O")
-        XCTAssertEqual(Harness.mark("pi").name, "Pi"); XCTAssertEqual(Harness.mark("pi").glyph, "P")
-        XCTAssertEqual(Harness.mark(nil).name, "Claude", "an older Mac sends no harness: Claude Code")
-        XCTAssertEqual(Harness.mark("").name, "Claude")
-        XCTAssertEqual(Harness.mark("aider").name, "aider"); XCTAssertEqual(Harness.mark("aider").glyph, "A")
+    func testEachKnownAgentIsMarkedByItsNameAndAnUnknownOneByItsOwn() {
+        XCTAssertEqual(Harness.name("claude-code"), "Claude")
+        XCTAssertEqual(Harness.name("codex"), "Codex", "never a lone X: in a box it read as a close button")
+        XCTAssertEqual(Harness.name("opencode"), "OpenCode")
+        XCTAssertEqual(Harness.name("pi"), "Pi")
+        XCTAssertEqual(Harness.name(nil), "Claude", "an older Mac sends no harness: Claude Code")
+        XCTAssertEqual(Harness.name(""), "Claude")
+        XCTAssertEqual(Harness.name("aider"), "aider")
+        XCTAssertTrue(Harness.names.values.allSatisfy { $0.count > 1 }, "a mark is a whole name")
     }
 
     func testASessionNamesItsAgentFromTheSameTable() {
@@ -121,7 +122,7 @@ final class HarnessMarkTests: XCTestCase {
         XCTAssertEqual(view.names, ["studio", "devbox", "laptop"], "this Mac first, each machine by its own name")
         XCTAssertEqual(view.onMachine("studio").map(\.name), ["billing"])
         XCTAssertEqual(byAttention(view.onMachine("devbox")).map(\.name), ["shop", "api"], "inside a machine: what needs you first")
-        XCTAssertEqual(view.onMachine("devbox").map { Harness.mark($0.harness).glyph }, ["X", "O"])
+        XCTAssertEqual(view.onMachine("devbox").map { Harness.name($0.harness) }, ["Codex", "OpenCode"])
         XCTAssertTrue(view.isOffline("laptop")); XCTAssertFalse(view.isOffline("devbox"))
         XCTAssertEqual(view.header("studio"), "studio · this Mac")
         XCTAssertEqual(view.header("devbox"), "devbox · Linux · 23 ms")

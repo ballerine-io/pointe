@@ -478,7 +478,7 @@ struct API {
         var id: String { name }
         var isOffline: Bool { online == false }
 
-        var agent: String { Harness.mark(harness).name }
+        var agent: String { Harness.name(harness) }
         /// An agent without approvals (Pi, for one) never gets Approve or Deny.
         var canApprove: Bool { capabilities?.approvals != false }
     }

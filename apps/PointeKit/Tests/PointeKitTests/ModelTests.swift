@@ -4,9 +4,9 @@ import Testing
 
 @Suite struct ModelTests {
     @Test func anUnknownHarnessStillGetsAMark() {
-        #expect(Harness.mark(nil).name == "Claude")
-        #expect(Harness.mark("").glyph == "C")
-        #expect(Harness.mark("aider").glyph == "A")
+        #expect(Harness.name(nil) == "Claude")
+        #expect(Harness.name("") == "Claude")
+        #expect(Harness.name("aider") == "aider")
     }
 }
 

@@ -164,27 +164,26 @@ enum Theme: String, CaseIterable, Identifiable {
     static func stored(_ raw: String?) -> Theme { raw.flatMap(Theme.init(rawValue:)) ?? fallback }
 }
 
-/// The agent's tile, as on the page: its name is the label and the tooltip, not text in the row, so the session's
-/// name gets the width.
+/// The agent that runs a session, as on the page: its name in small plain text, with nothing around it. A letter in a
+/// hairline box read as a button, and Codex's "X" as "close this session".
 struct HarnessMark: View {
     let harness: String?
 
     var body: some View {
-        let mark = Harness.mark(harness)
-        Text(mark.glyph).font(.brand(size: 9.5, .semibold))
-            .frame(width: 15, height: 15)
-            .overlay(RoundedRectangle(cornerRadius: 3).stroke(Brand.lineStrong))
+        let name = Harness.name(harness)
+        Text(name).font(.brand(.caption2, .medium))
             .foregroundStyle(Brand.muted)
-            .help(mark.name)
+            .lineLimit(1).fixedSize()
+            .help(name)
             .environment(\.layoutDirection, .leftToRight)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("runs on \(mark.name)")
+            .accessibilityLabel("runs on \(name)")
             .accessibilityIdentifier("harnessMark.\((harness ?? "").isEmpty ? "claude-code" : harness!)")
     }
 }
 
 extension Font {
-    /// Instrument Sans at a fixed size (a glyph in a tile, a number in a ring).
+    /// Instrument Sans at a fixed size (a number in a ring).
     static func brand(size: CGFloat, _ weight: Font.Weight = .regular) -> Font { .custom(Brand.textFace(weight), fixedSize: size) }
 }
 

@@ -131,8 +131,6 @@ code { font-family: var(--font-mono); font-size: 12.5px; }
 .hv-card { fill: var(--card); stroke: var(--line-strong); }
 .hv-lit { fill: none; stroke: var(--orange); stroke-width: 1.6; opacity: 0; }
 .hv-dot { fill: var(--line-strong); }
-.hv-g { fill: none; stroke: var(--line-strong); }
-.hv-gt { font: 600 10px var(--font-sans); fill: var(--muted); }
 .hv-nm { font-family: var(--font-sans); font-weight: 600; fill: var(--text); }
 .hv-sub { font-family: var(--font-sans); fill: var(--dim); }
 .hv-body { fill: #0A0400; }

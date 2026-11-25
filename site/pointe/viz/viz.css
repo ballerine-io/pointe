@@ -56,8 +56,6 @@
 .o-st.o-is-approve { fill: var(--orange); }
 .o-tag { font-size: 11.5px; fill: var(--muted) !important; }
 .o-tag.o-is-approve { fill: var(--accent) !important; font-weight: 600; }
-.o-hg { fill: none; stroke: var(--line-strong); }
-.o-hgt { font-size: 9.5px; font-weight: 600; fill: var(--muted) !important; }
 .o-nm { font-size: 14px; font-weight: 500; }
 .o-ag { font-size: 12px; fill: var(--dim) !important; }
 

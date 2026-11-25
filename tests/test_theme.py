@@ -251,17 +251,29 @@ def test_the_daemon_serves_a_pinned_font_and_nothing_else(d, monkeypatch):
 # ---------- sessions: grouped by machine, a harness mark on every row ----------
 
 def test_both_surfaces_carry_the_same_harness_marks():
-    want = {k: (v["name"], v["glyph"]) for k, v in THEME["harnesses"].items()}
+    want = {k: v["name"] for k, v in THEME["harnesses"].items()}
     page = re.search(r"const HARNESSES = \{(.*?)\};", PAGE, re.S).group(1)
-    assert {k: (n, g) for k, n, g in re.findall(r"'?([\w-]+)'?: \{name: '(\w+)', glyph: '(\w)'\}", page)} == want
+    assert dict(re.findall(r"'?([\w-]+)'?: \{name: '(\w+)'\}", page)) == want
     marks = (ROOT / "apps" / "PointeKit" / "Sources" / "PointeKit" / "Harness.swift").read_text()  # one table, for both apps
-    assert dict((k, (n, g)) for k, n, g in re.findall(r'"([\w-]+)": \(name: "(\w+)", glyph: "(\w)"\)', marks)) == want
+    assert dict(re.findall(r'"([\w-]+)": "(\w+)"', marks)) == want
     assert "typealias Harness = PointeKit.Harness" in (ROOT / "apps" / "PointeKit" / "Sources" / "PointeUI" / "Shared.swift").read_text()
-    # the same words for a screen reader, and no vendor logo on either: the marks are letters (docs/design/brand-v6.md)
-    assert "'runs on ' + h.name" in PAGE and 'accessibilityLabel("runs on \\(mark.name)")' in BRAND
+    # the same words for a screen reader, and no vendor logo on either: the marks are names (docs/design/brand-v6.md)
+    assert "'runs on ' + h.name" in PAGE and 'accessibilityLabel("runs on \\(name)")' in BRAND
     sessions = (ROOT / "apps" / "PointeKit" / "Sources" / "PointeUI" / "Sessions.swift").read_text()
     assert sessions.count("HarnessMark(harness: s.harness") == 2  # the strip and the Sessions sheet
     assert "harnessMark(x), tools" in PAGE
+
+
+def test_the_harness_mark_is_the_agents_name_in_plain_text_never_a_boxed_letter():
+    """A letter in a box read as a button: Codex's "X" as "close this session". The mark is the agent's name, with no
+    box around it, on the page and in the apps; no table holds a one-letter glyph any more."""
+    assert all(set(v) == {"name"} and len(v["name"]) > 1 for v in THEME["harnesses"].values())
+    assert "glyph: '" not in PAGE
+    assert "glyph" not in (ROOT / "apps" / "PointeKit" / "Sources" / "PointeKit" / "Harness.swift").read_text()
+    mark = BRAND[BRAND.index("struct HarnessMark"):BRAND.index("extension Font")]
+    assert "stroke" not in mark and ".background(" not in mark and "frame(width" not in mark, "no tile around the name"
+    rule = re.search(r"\.hmark \{([^}]*)\}", PAGE).group(1)
+    assert "box-shadow" not in rule and "border" not in rule and "cursor" not in rule and ".hmark .hg" not in PAGE
 
 
 def machines_status(machines: int, offline: str | None = None) -> dict:
@@ -279,7 +291,8 @@ def machines_status(machines: int, offline: str | None = None) -> dict:
 LIST = """(() => [...document.querySelectorAll('#list > *')].map(e => e.classList.contains('mh')
     ? {machine: e.querySelector('.mn').textContent, state: e.querySelector('.ml').getAttribute('aria-label'), away: e.classList.contains('away')}
     : {session: e.querySelector('.nm').firstChild.textContent, harness: e.querySelector('.hmark').dataset.harness,
-       label: e.querySelector('.hmark').getAttribute('aria-label'), glyph: e.querySelector('.hmark .hg').textContent,
+       label: e.querySelector('.hmark').getAttribute('aria-label'), shown: e.querySelector('.hmark').textContent,
+       boxed: (c => c.boxShadow !== 'none' || c.borderTopWidth !== '0px' || c.backgroundColor !== 'rgba(0, 0, 0, 0)')(getComputedStyle(e.querySelector('.hmark'))),
        tip: e.querySelector('.hmark').title, tag: e.querySelector('.tag').textContent,
        cut: e.querySelector('.nm').scrollWidth > e.querySelector('.nm').clientWidth}))()"""
 
@@ -312,8 +325,9 @@ def test_the_page_groups_sessions_by_named_machine_with_a_harness_mark_on_each()
     sessions = [r for r in rows if "session" in r]
     for r in sessions:
         mark = THEME["harnesses"][r["harness"]]
-        assert (r["glyph"], r["label"], r["tip"]) == (mark["glyph"], f"runs on {mark['name']}", mark["name"])
-        assert not r["cut"], f"{r['session']} is cut short: the name gets the row's width, the agent is a mark"
+        assert (r["shown"], r["label"], r["tip"]) == (mark["name"], f"runs on {mark['name']}", mark["name"])
+        assert not r["boxed"], f"{r['session']}: the agent's name sits in a box, which reads as a button"
+        assert not r["cut"], f"{r['session']} is cut short: the session's name is whole beside the agent's"
     assert {r["harness"] for r in sessions} == {"claude-code", "codex", "opencode", "pi"}
 
 
@@ -324,7 +338,7 @@ def test_one_machine_shows_no_machine_header_and_still_marks_each_session():
         row["harness"] = "claude-code"
     rows = asyncio.run(_list(status))
     assert [r for r in rows if "machine" in r] == [] and len(rows) == 3
-    assert all((r["glyph"], r["label"]) == ("C", "runs on Claude") for r in rows)
+    assert all((r["shown"], r["label"]) == ("Claude", "runs on Claude") for r in rows)
 
 
 @needs_chrome

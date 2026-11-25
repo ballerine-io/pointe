@@ -77,9 +77,7 @@ def row(x, y, w, h, session, agent_x, last):
            f'<rect class="o-row-bar" x="{n(x)}" y="{n(y)}" width="2" height="{n(h)}"/>']
     for s in STATES:
         out.append(f'<circle class="o-st o-is-{s}" cx="{n(x + 15)}" cy="{n(mid)}" r="3"/>')
-    out.append(f'<rect class="o-hg" x="{n(x + 28)}" y="{n(mid - 8)}" width="16" height="16" rx="3"/>')
-    out.append(f'<text class="o-hgt" x="{n(x + 36)}" y="{n(mid + 3.4)}" text-anchor="middle">{mark["glyph"]}</text>')
-    out.append(f'<text class="o-nm" x="{n(x + 54)}" y="{n(mid + 4.6)}">{escape(name)}</text>')
+    out.append(f'<text class="o-nm" x="{n(x + 28)}" y="{n(mid + 4.6)}">{escape(name)}</text>')
     out.append(f'<text class="o-ag" x="{n(x + agent_x)}" y="{n(mid + 4.2)}">{escape(mark["name"])}</text>')
     for s, word in STATES.items():
         out.append(f'<text class="o-tag o-is-{s}" x="{n(x + w - 14)}" y="{n(mid + 4.2)}" text-anchor="end">{word}</text>')

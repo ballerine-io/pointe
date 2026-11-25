@@ -158,14 +158,14 @@ Asked for with the restyle, and built on what multi-machine already had.
 - **One machine: no header and no divider.** The page shows the plain list; the phone's sheet keeps its one "On the
   voice" section title. A header that names the only machine is clutter.
 - **No machine badge on a row.** The header or the divider says it.
-- **Harness mark.** Every session shows a small monochrome tile beside its name for the coding agent that runs it, on
-  both surfaces, with the label "runs on Claude" (and so on) for a screen reader. **The session's name gets the
-  width:** on the page's rows and the phone's chips the agent is the tile only, with its name as the label and the
-  tooltip. The phone's Sessions sheet has the room, so there the agent's name is written beside the tile once the
-  voice mixes agents.
+- **Harness mark.** Every session shows the name of the coding agent that runs it beside its own name, on every
+  surface: "Claude", "Codex", "OpenCode", "Pi", in small plain muted text with nothing around it, and the label "runs
+  on Claude" (and so on) for a screen reader. It is text, not a tile: until 0.8.4 the mark was one letter in a hairline
+  box, and a boxed "X" for Codex read as a button that closes the session. Nothing with a border or a fill sits in a
+  session's row unless it can be pressed.
 - **Voice is unchanged.** "The sessions on devbox" and routing by machine name work as before; no session is renamed.
 
-**Why letters, not logos.** Each vendor's own terms were read on 2026-11-15:
+**Why names, not logos.** Each vendor's own terms were read on 2026-11-15:
 
 | Agent | Terms | Result |
 |---|---|---|
@@ -174,9 +174,8 @@ Asked for with the restyle, and built on what multi-machine already had.
 | OpenCode (Anomaly) | Brand page: tools that work with OpenCode "can say so" with a badge or lockup, but "do not recolor the logo". | Allowed only in its own two tones, so not as a monochrome mark. |
 | Pi | A press kit with no usage terms. | Unclear. |
 
-So no vendor logo is bundled. The mark is a neutral letter in a hairline tile (C, X, O, P) with the agent's name, the
-same on both surfaces (`assets/theme.json` → `harnesses`). If a vendor grants permission later, its mark replaces the
-letter in one place per surface.
+So no vendor logo is bundled. The mark is the agent's name as text, the same on every surface (`assets/theme.json` →
+`harnesses`). If a vendor grants permission later, its mark replaces the name in one place per surface.
 
 ## 10. Tests
 
