@@ -179,8 +179,8 @@ def test_every_harness_declares_how_it_stops():
 
 
 def test_wait_over_pointes_answer_does_not_stop_a_session_the_user_sent_nothing(d, monkeypatch, tmp_path):
-    """Measured (bar-01): "Wait, wait. Just tell me about quarry." cut Pointe's rundown. Quarry happened to be in a turn
-    of its own, so the words were taken as a redirect of quarry's work: its turn was stopped, the question was held
+    """Measured (bar-01): "Wait, wait. Just tell me about lantern." cut Pointe's rundown. lantern happened to be in a turn
+    of its own, so the words were taken as a redirect of lantern's work: its turn was stopped, the question was held
     behind that stop, and the user heard "One second." and nothing more. A redirect ends only work the user handed over."""
     monkeypatch.setattr(harnesses.HOST, "state_dir", tmp_path)
     s = _working(d, tmp=tmp_path)
