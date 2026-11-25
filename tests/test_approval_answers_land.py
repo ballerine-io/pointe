@@ -236,15 +236,30 @@ def test_read_it_brings_the_request_again_and_the_yes_after_it_counts(d, monkeyp
 
 def test_mm_hm_after_should_it_is_asked_for_a_yes_or_a_no_once(d, monkeypatch):  # noqa: F811
     """Measured (brv-02): "Mm-hm." right after "Should it?" met silence, then the whole request again 39 s later. It is
-    not a word that may approve; Pointe says which words it needs, once, and the yes after that counts."""
+    not a word that may approve; Pointe asks, once, and the yes after that counts. Tester round 4's judge called "I need a
+    yes or a no." a needless confirmation of a clear "Mm-hm": the question is now asked as a person asks it."""
     active, posts, said = _read_out_setup(d, monkeypatch)
     _heard_out(d, active)
     said.clear()
     d.state.user_started_at = time.time() - 1
     asyncio.run(d.on_user_utterance("Mm-hm."))
-    assert said == ["I need a yes or a no."] and verdicts(posts) == [] and d.state.utterance_spent
+    assert said == ["Is that a yes?"] and verdicts(posts) == [] and d.state.utterance_spent
 
     d.ECHO.stopped_at = time.time() - 5
     d.state.user_started_at = time.time() - 1
     asyncio.run(d.on_user_utterance("Mm-hm."))  # a second one: not asked twice
-    assert said == ["I need a yes or a no."]
+    assert said == ["Is that a yes?"]
+
+
+def test_the_yes_after_is_that_a_yes_approves(d, monkeypatch):  # noqa: F811
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    _heard_out(d, active)
+    said.clear()
+    d.state.user_started_at = time.time() - 1
+    asyncio.run(d.on_user_utterance("Mm-hm."))
+    assert said == ["Is that a yes?"]
+    d.ECHO.stopped_at = time.time() - 5
+    d.state.user_started_at = time.time() - 1
+    d.state.utterance_spent = False
+    asyncio.run(d.on_user_utterance("Yes."))
+    assert verdicts(posts) == [{"request_id": "p1", "behavior": "allow"}]

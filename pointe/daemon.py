@@ -2881,7 +2881,7 @@ class State:
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
     overview_at: float = 0.0  # when every session was last asked where it stands (_overview)
-    unclear_asked: str | None = None  # the request for which "I need a yes or a no" was said (once a request)
+    unclear_asked: str | None = None  # the request for which "Is that a yes?" was said (once a request)
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
@@ -5949,7 +5949,7 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
         # "Mm-hm" or "okay" right after "Should it?" is an answer of a kind, and not one that may approve: Pointe
         # says which words it needs, once for a request, and the window stays open for them.
         state.unclear_asked, state.utterance_spent = session.permission_id, True
-        await _say_fixed("צריך כן או לא." if re.search(r"[\u0590-\u05ff]", text) else "I need a yes or a no.")
+        await _say_fixed("זה כן?" if re.search(r"[\u0590-\u05ff]", text) else "Is that a yes?")
         return
     if verdict is None:
         if window_open:  # a question first: a later yes may answer the bot's reply, not the permission
