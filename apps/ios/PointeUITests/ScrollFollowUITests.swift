@@ -36,8 +36,11 @@ final class ScrollFollowUITests: XCTestCase {
         let app = launch()
         let pill = readAbove(app)
         let scroll = app.scrollViews["conversation"]
-        // A line arrives every 1.5 s: on a slow runner four swipes ended a line short of the end, the pill still up.
-        for _ in 0..<10 where pill.exists { scroll.swipeUp(velocity: .fast) }
+        // A drag, not swipeUp: on the iOS 26 simulator a fast swipe up left the view where it was.
+        for _ in 0..<10 where pill.exists {
+            scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
+                .press(forDuration: 0.05, thenDragTo: scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)), withVelocity: .fast, thenHoldForDuration: 0)
+        }
         XCTAssertTrue(pill.waitForNonExistence(timeout: 4), "scrolled to the end by hand: the pill goes")
         sleep(4)
         XCTAssertFalse(pill.exists, "and the view follows the next lines")

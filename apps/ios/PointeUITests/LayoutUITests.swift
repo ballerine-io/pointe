@@ -129,6 +129,11 @@ final class LayoutUITests: XCTestCase {
         app.launch()
         let button = app.buttons["problemTryAgain"]  // a failed connection shows the problem card (ProblemCard)
         XCTAssertTrue(button.waitForExistence(timeout: 20), "the problem card's Try again")
+        // At this size the card is taller than the stage, which scrolls: Try again is in reach once scrolled to.
+        let dock = app.segmentedControls["micModeSwitch"]
+        for _ in 0..<6 where button.frame.maxY > (dock.exists ? dock.frame.minY : app.windows.firstMatch.frame.maxY) {
+            app.otherElements["connectionProblem"].swipeUp(velocity: .slow)
+        }
         onScreen(app, button, "Try again")
         XCTAssertTrue(button.isHittable, "Try again takes a tap")
         onScreen(app, app.buttons["Settings"], "the menu")

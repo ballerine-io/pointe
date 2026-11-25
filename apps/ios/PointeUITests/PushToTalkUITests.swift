@@ -21,6 +21,7 @@ final class PushToTalkUITests: XCTestCase {
         XCTAssertTrue(picker.waitForExistence(timeout: 5), "Settings has \(setting)")
         picker.tap()
         let choice = app.buttons[option].firstMatch
+        if !choice.waitForExistence(timeout: 3) { picker.tap() }  // a tap while the sheet still settles opens no menu
         XCTAssertTrue(choice.waitForExistence(timeout: 5))
         choice.tap()
         app.closeSettings()
@@ -99,6 +100,7 @@ final class PushToTalkUITests: XCTestCase {
         XCTAssertGreaterThan(heldMs(ring) ?? 0, 1000, "\(ring.value ?? "")")
         app.descendants(matching: .any)["conversation"].firstMatch.press(forDuration: 1.0)  // a long press on the words toggles too
         XCTAssertTrue(waitFor(line, "Talking · tap to send"), line.label)
+        RunLoop.current.run(until: Date().addingTimeInterval(1.5))  // the open gate's line scrolls the view: a touch on a scrolling view stops it
         app.descendants(matching: .any)["conversation"].firstMatch.press(forDuration: 1.0)
         XCTAssertTrue(waitFor(line, "Tap to talk", timeout: 3), line.label)
     }
