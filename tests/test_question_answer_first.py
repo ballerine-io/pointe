@@ -53,3 +53,13 @@ def test_the_asked_sessions_own_report_is_not_held_behind_its_question(call):  #
         await the_floor_frees(call)
     asyncio.run(run())
     assert any("index on customer id" in t for t in call.inj.asked_to_speak())
+
+
+def test_an_urgent_item_is_not_held_behind_the_question(call):  # noqa: F811
+    async def run():
+        _question_out(call, ago=3)
+        call.inj._bot_speaking = True
+        await call.inj.inject("[gamma is waiting for a permission, not the active session] It wants to run the deploy.", True)
+        await the_floor_frees(call)
+    asyncio.run(run())
+    assert any("deploy" in t for t in call.inj.asked_to_speak())

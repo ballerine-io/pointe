@@ -1071,7 +1071,7 @@ class FeedInjector(FrameProcessor):
         # One answer at a time: the next waits until the last one offered has had time to start being said.
         skipped = time.time() - self._skipped_at < SKIP_NEXT_SECS  # the owner asked for the next one: no quiet gap
         asked = None if awaited or skipped else _question_out()
-        if asked is not None and not any(_report_of(t) == asked.name for _, t in self._updates.items):
+        if asked is not None and not any(_report_of(t) == asked.name or flow.priority(t) < 0 for _, t in self._updates.items):
             return False  # the answer to the user's newest question comes first (orc-03)
         if self._bot_speaking or self._held or (not awaited and not skipped and time.time() - self._asked_at < REPLY_WAIT_SECS) \
                 or (awaited and time.time() - self._offered_at < REPLY_WAIT_SECS) \
