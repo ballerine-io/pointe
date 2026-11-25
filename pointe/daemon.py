@@ -434,6 +434,7 @@ SWITCH_WORDS_SECS = 10.0  # a switch asked this recently still counts when anoth
 # How long a final transcript waits for silence before it is the turn: turns.LEVELS, by the "turns.patience" setting.
 HEARING_SECS = 3.0  # live words older than this are stale: the user stopped
 VAD_STOP_SECS = 0.2  # the voice detector says "stopped" this long after the sound ended (pipecat's default, set in _call_ears)
+SPEAK_AFTER_CUT_SECS = 0.3  # a line said this soon after the user cut the voice waits out the rest: the cut would flush it
 READ_OUT_AWAITED_SECS = 60.0  # a request this soon after the user's own send to that session is one they wait for
 REPLY_RESUME_SECS = 2.5  # a cut with no words this long after it was a noise: the reply goes on. 0: never resumed
 REPLY_RESUME_MIN_WORDS = 4  # fewer words than this left unsaid: not worth coming back for
@@ -1814,6 +1815,12 @@ class BrainFront(FrameProcessor):
             state.meeting_may_speak_until = 0.0  # one reply per ask
         if request_id is None:  # a read-out stays exact: its command may contain a session's name
             text = _name_once(_spoken_names(text))
+        # A line said in the instant the user cut the voice rides behind that cut through the pipeline and is flushed
+        # with what it cut: "I need the yes after I finish." was logged as said and never heard, and the request then
+        # waited forty seconds for its reminder. It waits for the cut to pass.
+        since_cut = time.time() - state.voice_cut_at
+        if 0 <= since_cut < SPEAK_AFTER_CUT_SECS:
+            await asyncio.sleep(SPEAK_AFTER_CUT_SECS - since_cut)
         state.bot_spoke.append((time.time(), text))
         # in a meeting the bot's words can quote the room, which the log never keeps
         logger.info(f"speak: ({len(text)} chars, meeting)" if state.meeting else f"speak: {text!r}")
@@ -2041,6 +2048,11 @@ class SonioxEars(FrameProcessor):
     above the echo level cuts the bot off at once; otherwise only live words it did not just say do,
     and echoed transcripts never reach the model or the consent check.
     """
+
+    async def broadcast_interruption(self) -> None:
+        """The user cut the voice. Stamped, so a line said in the same instant waits for the cut to pass (BrainFront._speak)."""
+        state.voice_cut_at = time.time()
+        await super().broadcast_interruption()
 
     async def process_frame(self, frame: Frame, direction: FrameDirection):
         await super().process_frame(frame, direction)
@@ -2745,6 +2757,7 @@ class State:
     turn_signals: dict = field(default_factory=dict)  # what set the settle time of the turn being taken, for its timing line
     last_message: str = ""  # the last delivered request, word for word
     sidetracked: str | None = None  # a permission the user turned away from with another question
+    voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
     early_yeses: tuple[str | None, int] = (None, 0)  # (request, yeses refused for coming over the bot)
     tap_told: str | None = None  # the request a yes could not approve that the user was told needs a tap (said once)
@@ -5596,6 +5609,7 @@ async def on_user_utterance(text: str, typed: bool = False) -> None:
         _challenge_note("rebuttal", text)
 
 
+REDIRECT_STOP_SECS = 900.0  # "no wait, do X" ends a turn only in a session the user sent work to this recently
 STOP_SETTLE_SECS = 90.0  # a send after "stop, and do X" waits this long for a next-step stop to land
 
 
@@ -5623,6 +5637,10 @@ async def _stop_by_voice(text: str) -> None:
     if not named and len(working) > 1:
         focus = _thread() or REGISTRY.active
         working = [focus] if focus in working else working
+    if kind == "redirect":
+        # "Wait, wait. Just tell me about quarry." over Pointe's own answer is about that answer, not about a turn
+        # quarry happens to be in. A redirect ends only work the user handed over by voice ("no wait, put them in out").
+        working = [s for s in working if s.last_delegation_at and time.time() - s.last_delegation_at < REDIRECT_STOP_SECS]
     if not working:
         return  # nothing runs: "stop" is about the voice, or a word for the brain
     spent_already = state.utterance_spent
@@ -5744,7 +5762,10 @@ async def _answer_permission(text: str, deny_only: bool = False) -> None:
     if verdict == "allow" and (ECHO.speaking or time.time() - ECHO.stopped_at < YES_AFTER_BOT_SECS or begun_over_the_bot):
         # It may be an answer to something earlier, or the bot coming back through the speakers: it never approves.
         state.utterance_spent = True
-        await _early_yes(session, heard_it=session.permission_delivered_at != float("inf"))
+        # Heard to its end: not when this yes is what cut the read-out. The cut is noted when the interruption reaches
+        # the front, which can be after these words do: the read-out still being said is the surer sign.
+        cut_it = ECHO.speaking and state.last_line_id == session.permission_id
+        await _early_yes(session, heard_it=session.permission_delivered_at != float("inf") and not cut_it)
         return
     if window_open and time.time() - session.permission_delivered_at > PERMISSION_ANSWER_SECS:
         state.utterance_spent = True

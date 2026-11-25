@@ -133,3 +133,30 @@ def test_a_request_nobody_just_asked_for_still_waits_for_a_gap(d, monkeypatch): 
 
     asyncio.run(run())
     assert said == []
+
+
+def test_a_yes_that_cut_the_read_out_hears_the_request_again_even_before_the_cut_is_noted(d, monkeypatch):  # noqa: F811
+    """Measured (apr-08): the yes that cut the read-out reached the approval check before the interruption reached the
+    front, so the read-out still counted as heard to its end and the user got the short line with no request in it."""
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    asyncio.run(d._read_out(active))  # the read-out is being said: the window's clock is set, nothing has cut it yet
+    d.ECHO.bot_started()
+    d.state.user_started_at = time.time() - 0.3
+    asyncio.run(d.on_user_utterance("Yes."))
+    assert verdicts(posts) == []
+    assert len(said) == 2 and said[1].startswith("I need the yes after I finish.") and "rm -rf build" in said[1]
+
+
+def test_a_line_said_in_the_instant_of_a_cut_waits_for_the_cut_to_pass(d, monkeypatch):  # noqa: F811
+    from test_no_silent_turn import _call
+    front, spoken, asked, say = _call(d, monkeypatch, [])
+    monkeypatch.setattr(d, "SPEAK_AFTER_CUT_SECS", 0.2)
+
+    async def run():
+        d.state.voice_cut_at = time.time()
+        t0 = time.time()
+        await front._speak("I need the yes after I finish. Say it again.", d.KEEP_WINDOW)
+        return time.time() - t0
+
+    waited = asyncio.run(run())
+    assert spoken == ["I need the yes after I finish. Say it again."] and waited >= 0.18

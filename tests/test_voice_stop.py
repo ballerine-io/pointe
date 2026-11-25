@@ -114,6 +114,7 @@ def test_a_stop_with_nothing_running_is_left_to_the_conversation(d, monkeypatch)
 def test_a_redirect_waits_for_the_stop_to_land_before_its_request_goes(d, monkeypatch, tmp_path):
     monkeypatch.setattr(harnesses.HOST, "state_dir", tmp_path)
     s = _working(d, tmp=tmp_path)
+    s.last_delegation_at = time.time() - 20  # the work being redirected is what the user sent it by voice
     d.state.front = Speaker()
     asyncio.run(d.on_user_utterance("No wait, write them to the archive folder."))
     assert not d.state.utterance_spent  # the brain sends the rest
@@ -175,3 +176,16 @@ def test_every_harness_declares_how_it_stops():
     assert harnesses.get("claude-code").capabilities()["interrupt"] == "next_step"
     assert harnesses.get("opencode").capabilities()["interrupt"] == "now"
     assert harnesses.get("codex").capabilities()["interrupt"] == "now"
+
+
+def test_wait_over_pointes_answer_does_not_stop_a_session_the_user_sent_nothing(d, monkeypatch, tmp_path):
+    """Measured (bar-01): "Wait, wait. Just tell me about quarry." cut Pointe's rundown. Quarry happened to be in a turn
+    of its own, so the words were taken as a redirect of quarry's work: its turn was stopped, the question was held
+    behind that stop, and the user heard "One second." and nothing more. A redirect ends only work the user handed over."""
+    monkeypatch.setattr(harnesses.HOST, "state_dir", tmp_path)
+    s = _working(d, tmp=tmp_path)
+    s.last_delegation_at = 0.0  # in a turn of its own: nothing was sent to it by voice
+    d.state.front = Speaker()
+    asyncio.run(d.on_user_utterance(f"Wait, wait. Just tell me about {s.name}."))
+    assert s.stop_asked_at is None and not d.state.utterance_spent
+    assert not any("new request" in text for text, _ in d.state.conn.injector.fed)
