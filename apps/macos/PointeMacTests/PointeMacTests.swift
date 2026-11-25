@@ -163,12 +163,14 @@ final class PointeMacTests: XCTestCase {
         XCTAssertFalse(BubbleRule.shows(on: false, pinned: true, phase: .live), "turned off, by × or the menu: never")
     }
 
-    /// Always on, or in push to talk the shortcut as the person set it, with Hold or Tap.
+    /// Always on, Say “Pointe”, or in push to talk the shortcut as the person set it, with Hold or Tap.
     func testTheTalkModeNamesTheShortcut() {
-        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: false, hold: true, shortcut: "⌥Space"), "Always on")
-        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, hold: true, shortcut: "⌥Space"), "Hold ⌥Space")
-        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, hold: false, shortcut: Shortcut.standard.display), "Tap ⌃⌥Space")
-        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, hold: true, shortcut: nil), "Push to talk", "no shortcut that works: none named")
+        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: false, addressed: false, hold: true, shortcut: "⌥Space"), "Always on")
+        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, addressed: false, hold: true, shortcut: "⌥Space"), "Hold ⌥Space")
+        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, addressed: false, hold: false, shortcut: Shortcut.standard.display), "Tap ⌃⌥Space")
+        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: true, addressed: false, hold: true, shortcut: nil), "Push to talk", "no shortcut that works: none named")
+        XCTAssertEqual(BubbleRule.talkMode(pushToTalk: false, addressed: true, hold: true, shortcut: "⌥Space"), "Say “Pointe”",
+                       "Only when I say Pointe: not Always on, as the window and the bubble said")
         XCTAssertNotEqual(BubbleRule.talkModeGlyph(pushToTalk: true), BubbleRule.talkModeGlyph(pushToTalk: false))
     }
 

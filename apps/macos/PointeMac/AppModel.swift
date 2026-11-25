@@ -151,7 +151,7 @@ final class AppModel {
 
     /// The talk mode as the bubble and the window say it: "Always on", or "Hold ⌥Space" in push to talk.
     var talkMode: String {
-        BubbleRule.talkMode(pushToTalk: session.pushToTalk, hold: session.holdToTalk, shortcut: shortcutNote == nil ? shortcut?.display : nil)
+        BubbleRule.talkMode(pushToTalk: session.pushToTalk, addressed: session.addressed, hold: session.holdToTalk, shortcut: shortcutNote == nil ? shortcut?.display : nil)
     }
 
     /// Keeps the bubble and the window in step with the call: the bubble shows or hides, a call the person placed that

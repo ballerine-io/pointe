@@ -58,6 +58,8 @@ public final class MacSession: CallShell {
 
     public var live: Bool { phase == .live }
     public var pushToTalk: Bool { call.talk.ptt }
+    /// "Only when I say Pointe" is on (Addressed.swift).
+    public var addressed: Bool { status?.addressed?.on == true }
     public var talking: Bool { call.talk.ptt && call.talk.shows(macOpen: status?.ptt?.open == true) }
     public var muted: Bool { demo == nil ? call.muted : demo?.screen == .muted }
     public var speaking: Bool { demo == nil ? call.botSpeaking : demo?.screen == .speaking && !demoSkipped }

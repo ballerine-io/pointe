@@ -13,11 +13,11 @@ extension API {
 }
 
 /// The page's words (ui_addressed.html) and addressed.COPY, word for word (tests/test_addressed.py).
-enum AddressedCopy {
+public enum AddressedCopy {
     static let mode = "addressed"
     static let setting = "Only when I say Pointe"
-    static let short = "Say “Pointe”"
-    static let hint = "Pointe hears everything and acts only on words that start with its name, or a session's: “Pointe, what's billing doing”, “billing, run the tests”. Anything else is dropped, and its words are not kept."
+    public static let short = "Say “Pointe”"
+    public static let hint = "Pointe hears everything and acts only on words that start with its name, or a session's: “Pointe, what's billing doing”, “billing, run the tests”. Anything else is dropped, and its words are not kept."
     static let idle = "Say “Pointe” to talk"
     static let open = "Listening"
 

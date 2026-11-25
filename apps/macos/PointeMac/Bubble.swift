@@ -10,10 +10,10 @@ enum BubbleRule {
     /// clutter, not a control.
     static func shows(on: Bool, pinned: Bool, phase: MacSession.Phase) -> Bool { on && (pinned || phase != .off) }
 
-    /// "Always on", or in push to talk the shortcut that talks from any app ("Hold ⌥Space"); "Push to talk" with no
-    /// working shortcut.
-    static func talkMode(pushToTalk: Bool, hold: Bool, shortcut: String?) -> String {
-        guard pushToTalk else { return "Always on" }
+    /// "Always on", "Say “Pointe”" when only words that name Pointe or a session count, or in push to talk the shortcut
+    /// that talks from any app ("Hold ⌥Space"); "Push to talk" with no working shortcut.
+    static func talkMode(pushToTalk: Bool, addressed: Bool, hold: Bool, shortcut: String?) -> String {
+        guard pushToTalk else { return addressed ? AddressedCopy.short : "Always on" }
         guard let shortcut else { return "Push to talk" }
         return "\(hold ? "Hold" : "Tap") \(shortcut)"
     }

@@ -58,7 +58,8 @@ struct MainWindow: View {
                             .accessibilityIdentifier("skipShortcut")
                     }
                     Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
-                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac." : "Always on: Pointe hears you while the call is up.")
+                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac."
+                              : model.session.addressed ? AddressedCopy.hint : "Always on: Pointe hears you while the call is up.")
                         .accessibilityIdentifier("talkMode")
                 }
                 .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
