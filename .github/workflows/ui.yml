@@ -2,10 +2,12 @@ name: ui
 # The tests that put windows on a screen: the iPhone app's UI tests in the Simulator, the Mac smoke (the Accessibility
 # API) and the Mac app's XCUITests. They take the keyboard and the pointer, so on a person's Mac they refuse to start
 # (tools/ui_guard.py); here nobody is at the screen. Each job uploads its screenshots: a release takes them from the run
-# on its version commit (docs/releasing.md), never from a Mac somebody works at.
+# on its version commit (docs/releasing.md), never from a Mac somebody works at. They run when apps/ or this workflow
+# changes, and on a tag push whatever changed (GitHub does not evaluate path filters on tags).
 on:
   push:
     branches: [main]
+    tags: ["v*"]
     paths: ["apps/**", "tools/ui_guard.py", ".github/workflows/ui.yml"]
   pull_request:
     paths: ["apps/**", "tools/ui_guard.py", ".github/workflows/ui.yml"]

@@ -1,0 +1,93 @@
+name: apps
+# The two apps and the package they share, built and unit-tested on macOS. macOS runners are few and these jobs take 5
+# to 13 minutes, so they run only when something they build or read changes: apps/, the `pointe apps` command, and the
+# files outside apps/ that the Swift tests read to hold the apps' words and routes to the daemon's and the page's
+# (tests/test_ci_triggers.py fails when a Swift test reads a file missing here). A tag push runs them whatever changed
+# (GitHub does not evaluate path filters on tags), and so does a dispatch. The offline suite and the supply-chain gate
+# run on every push (test.yml).
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths: &paths
+      - "apps/**"
+      - ".github/workflows/apps.yml"
+      - "bin/pointe"
+      - "bin/pointe-apps"
+      - "pointe/apps.py"
+      - "install.sh"
+      - "pointe/daemon.py"
+      - "pointe/newsession.py"
+      - "pointe/prefs.py"
+      - "pointe/progress.py"
+      - "pointe/skip.py"
+      - "pointe/thinking.py"
+      - "pointe/whisper.py"
+      - "pointe/ui.html"
+      - "pointe/ui_dictionary.html"
+      - "pointe/ui_skip.html"
+      - "pointe/ui_thinking.html"
+      - "pointe/ui_whisper.html"
+  pull_request:
+    paths: *paths
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  # The iPhone app: a simulator build, unsigned, the tests that need the app around them (PointeTests), and the shared
+  # module's unit tests. The UI tests need a test daemon or drive the simulator for minutes; they run locally (apps/ios/e2e/,
+  # tests/e2e/ios_app.py).
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: Build for the simulator and run PointeTests
+        working-directory: apps/ios
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=$SIM" -only-testing:PointeTests \
+            CODE_SIGNING_ALLOWED=NO -quiet
+      # The screens, the call, the models and the rules are the shared module's (apps/PointeKit, PointeUI): the same tests
+      # the macos job runs with `swift test`, here on the iPhone.
+      - name: The shared module's unit tests, in the simulator
+        working-directory: apps/PointeKit
+        run: |
+          SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
+          xcodebuild test -scheme PointeKit-Package -destination "id=$SIM" -only-testing:PointeUIUnitTests -quiet
+  # The Mac app (docs/design/macos-app.md): the package the two apps share, on its own (swift test, no simulator), then the
+  # Mac app built ad hoc with its unit tests. Its UI tests need a person to unlock macOS's Automation Mode and its live
+  # test needs a microphone and keys: both run locally (apps/macos/test.sh ui, apps/macos/e2e/live.py).
+  macos:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      # bin/pointe apps (apps.py), on a Mac with no Apple Account and no iPhone: the doctor must still find the Mac app
+      # and the Simulator buildable, and each command must plan its build. Nothing is signed; the team is an invented one.
+      - name: pointe apps, the build-from-source command, without signing
+        run: |
+          bin/pointe apps doctor
+          bin/pointe apps mac --dry-run
+          bin/pointe apps ios --sim --dry-run
+          POINTE_TEAM_FILE="$RUNNER_TEMP/team" bin/pointe apps ios --dry-run --team ABCDE12345
+      - name: The package the iPhone and Mac apps share (every screen, the call, the models), on the Mac
+        working-directory: apps/PointeKit
+        run: swift test
+      - name: Build the Mac app and its UI tests, and run PointeMacTests
+        working-directory: apps/macos
+        run: |
+          xcodebuild test -project PointeMac.xcodeproj -scheme PointeMac -destination 'platform=macOS' \
+            -only-testing:PointeMacTests CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= -quiet

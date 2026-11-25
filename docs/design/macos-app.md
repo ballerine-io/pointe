@@ -351,7 +351,7 @@ state titles and the session tags), and the existing parity tests find each Swif
 | Words | the Mac's copy against the page's | `tests/test_macos_parity.py` (offline suite) |
 | Versions | the Mac app's `MARKETING_VERSION` equals the plugin's | `tests/test_version.py` |
 
-CI (`.github/workflows/test.yml`, job `macos`): `swift test` for the package, then `xcodebuild test` of the Mac app's
+CI (`.github/workflows/apps.yml`, job `macos`): `swift test` for the package, then `xcodebuild test` of the Mac app's
 unit tests, signed ad hoc (it also builds the UI tests). The UI tests run locally: macOS lets XCUITest drive apps only
 after a person unlocks Automation Mode (`automationmodetool`: "requires user authentication"), which lapses, so they
 cannot run unattended. The live run does not use XCUITest for that reason.
