@@ -46,6 +46,11 @@ The same rows judged at the other two levels (`report --level quick`, `--level p
 | Patient | 7 (2%) | 1.80 s |
 | The candidate (0.3 / 0.6 / 1.0 s by two signals) | 112 (38%) | 0.60 s |
 
+**Since this run.** "Normal, today's default" in these tables is the 1.0 s rule that was the default when the clips
+were heard. Normal now waits 1.3 s and knows more unfinished endings (commit 3fc57171): replayed on the same rows,
+cut-ins on these pauses fall from 23.4% to 9.3% (19.9% to 7.6% on speakers held out from the tuning), and a whole turn
+is taken 1.3 s after its last sound. `bench/turn_rules.py` replays any rule on the rows with no new spend.
+
 **What it says.**
 
 - At Normal, Pointe takes the turn inside almost one real mid-sentence pause in four. Nearly all of them are pauses
