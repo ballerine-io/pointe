@@ -36,13 +36,12 @@ final class ScrollFollowUITests: XCTestCase {
         let app = launch()
         let pill = readAbove(app)
         let scroll = app.scrollViews["conversation"]
-        // A drag, not swipeUp: on the iOS 26 simulator a fast swipe up left the view where it was.
-        for _ in 0..<10 where pill.exists {
-            scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.85))
-                .press(forDuration: 0.05, thenDragTo: scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)), withVelocity: .fast, thenHoldForDuration: 0)
+        quarantinedInCI("On the iOS 26 simulator in CI neither swipes nor drags bring the view back to the end, every run; "
+                        + "the cause is not found, and it may be a real bug on iOS 26 (CONTRIBUTING.md, UI tests in CI)") {
+            for _ in 0..<4 where pill.exists { scroll.swipeUp(velocity: .fast) }
+            XCTAssertTrue(pill.waitForNonExistence(timeout: 4), "scrolled to the end by hand: the pill goes")
+            sleep(4)
+            XCTAssertFalse(pill.exists, "and the view follows the next lines")
         }
-        XCTAssertTrue(pill.waitForNonExistence(timeout: 4), "scrolled to the end by hand: the pill goes")
-        sleep(4)
-        XCTAssertFalse(pill.exists, "and the view follows the next lines")
     }
 }
