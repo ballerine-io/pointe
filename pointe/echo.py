@@ -16,6 +16,8 @@ LATE_ECHO_SECS = 8.0  # a final transcript can trail by this much; only a run of
 BOT_MEMORY_SECS = 30.0
 MIRROR_RECENT_SECS = 12.0  # the mirror trails the audio by a few seconds at most
 AUDIO_TAIL_SECS = 1.0  # words said up to this long after the bot stopped can hold its voice: playback buffers, the room
+BEFORE_BOT_SECS = 0.3  # words begun this long before the bot's voice cannot be its echo
+BEFORE_BOT_WORDS = 4  # and only a short answer: a long one may run on into the bot's voice and carry its words
 BOT_SENTENCE_WORDS = 4  # whole sentences of the bot's at the start of the user's transcript are taken off from this many words
 PLAYBACK_LAG_SECS = 0.3  # the speakers play the bot's last word up to this long after it stopped sending audio
 REPLY_GAP_SECS = 1.0  # the voice stopping for less than this is one reply going on, not a new one
@@ -192,6 +194,15 @@ class EchoGuard:
         if self._played and not self._played[-1][1]:
             self._played[-1][1] = self.stopped_at
 
+    def _began_before_bot(self, spoken: tuple[float, float] | None) -> bool:
+        """These words began before the bot's latest line was in the air, and not while an earlier one was."""
+        if spoken is None or not self._played:
+            return False
+        start = spoken[0]
+        if any(began - BEFORE_BOT_SECS <= start < (stopped or time.time()) + AUDIO_TAIL_SECS for began, stopped in self._played):
+            return False
+        return start < self._played[-1][0] - BEFORE_BOT_SECS
+
     def said_over_bot(self, spoken: tuple[float, float] | None) -> bool:
         """Some of these words were said while the bot's voice could still be in the air (AudioClock.span)."""
         return self._over_bot(spoken, AUDIO_TAIL_SECS)
@@ -285,6 +296,8 @@ class EchoGuard:
         however late the transcript; one or two of them only against what the bot was saying then (_said_then).
         `while_talking`: they arrived while it talked; judged so even after a barge-in has stopped it."""
         heard = words(text)
+        if len(heard) <= BEFORE_BOT_WORDS and self._began_before_bot(spoken):
+            return text  # "The API." begun before "Toll API or toll web?" was in the air: an echo cannot come first
         over = self.said_over_bot(spoken) or while_talking
         late = not over and time.time() - self.stopped_at > LATE_ECHO_SECS
         if not late and self._model.chunks and heard == words(self._model.chunks[-1][1]):
