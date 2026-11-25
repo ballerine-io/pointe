@@ -48,6 +48,13 @@ def pytest_runtest_teardown(item):
         vendors._found.clear()
 
 
+@pytest.fixture
+def on_a_mac(monkeypatch):
+    """A test of the macOS Keychain path: keys.py, vendors.py and uninstall.py take the login keyring's path on Linux,
+    where CI runs (tests/test_linux_keys.py tests that one)."""
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+
 def pytest_addoption(parser):
     parser.addoption("--runslow", action="store_true", help="run the tests marked slow too (CI and the release gate do)")
 

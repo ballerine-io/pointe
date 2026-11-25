@@ -117,6 +117,7 @@ def offline(monkeypatch):
         monkeypatch.setattr(module, name, refuse)
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_the_key_is_never_an_argument_and_the_tools_output_is_never_shown(offline, monkeypatch, capsys):
     """Offline: a stand-in `security` that saves what its standard input says. The key reaches it only there, never
     argv (which `ps` shows), and what it prints, which can hold the key, goes nowhere."""
@@ -136,6 +137,7 @@ def test_the_key_is_never_an_argument_and_the_tools_output_is_never_shown(offlin
     assert LONG not in shown.out + shown.err
 
 
+@pytest.mark.usefixtures("on_a_mac")
 @pytest.mark.parametrize("stored, exit_status", [(LONG[:128], 0), ("", 44)], ids=["cut-at-128", "missing"])
 def test_a_save_that_does_not_read_back_says_so_and_never_works(offline, monkeypatch, capsys, stored, exit_status):
     """The reported failure, offline: the Keychain keeps the first 128 characters. `pointe key` says it could not save
@@ -156,6 +158,7 @@ def test_a_save_that_does_not_read_back_says_so_and_never_works(offline, monkeyp
     assert "works" not in out and LONG[:16] not in out and not restarted
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_the_daemon_reads_a_long_key_whole(offline, tmp_path, monkeypatch):
     """The daemon's reader keeps all of what `security find-generic-password -w` prints, past 128 characters."""
     monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))

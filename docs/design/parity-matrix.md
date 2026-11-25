@@ -37,7 +37,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3355` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:275` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:251` |
 | A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3314` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` |
 | Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3305` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` |
-| Clean up my words <br>`call.polish` | yes `ui.html:1658` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:178` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:178` |
+| Clean up my words <br>`call.polish` | yes `ui.html:1658` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:179` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:179` |
 | The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1653` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:120` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:120` |
 | Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1215` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` |
 | How full the voice model's context is <br>`call.context` | yes `ui.html:1187` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:422` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:422` |
@@ -75,7 +75,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1592` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` |
 | The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1742` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` |
 | Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1494` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:95` |
-| Permissions for new sessions: Skip permission prompts (default) or Ask before actions <br>`sessions.new.permissions` | yes `ui.html:1490` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:200` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:200` |
+| Permissions for new sessions: Skip permission prompts (default) or Ask before actions <br>`sessions.new.permissions` | yes `ui.html:1490` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:201` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:201` |
 | The risk line under a start, the first time a session skips permission prompts <br>`sessions.new.notice` | yes `ui.html:2183` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:110` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:110` |
 | Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1331` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:9` |
 | Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1343` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:131` |
@@ -173,13 +173,13 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 |---|---|---|---|
 | Show the code that pairs a phone, list the paired phones, unpair <br>`pair.show` | yes `ui.html:1353` | n/a | yes `apps/PointeKit/Sources/PointeUI/PhoneSheet.swift:235` |
 | Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone <br>`pair.read` | n/a | yes `apps/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a |
-| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1530` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:242` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:242` |
+| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1530` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:243` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:243` |
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1537` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` |
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1157` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1421` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:56` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:56` |
 | The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (44 topics)` | yes `product_help.json (44 topics)` | yes `product_help.json (43 topics)` |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` |
-| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3352` | n/a | yes `apps/macos/PointeMac/Panels.swift:174` |
+| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3352` | n/a | yes `apps/macos/PointeMac/Panels.swift:175` |
 
 ## The Mac shell
 
@@ -188,7 +188,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | A menu bar item with the state and who needs you <br>`mac.menubar` | n/a | n/a | yes `apps/macos/PointeMac/PointeMacApp.swift:16` |
 | A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × <br>`mac.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:144` |
 | The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:154` |
-| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:216` |
+| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:218` |
 | Open at login <br>`mac.login` | n/a | n/a | yes `apps/macos/PointeMac/Platform.swift:4` |
 | Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:215` |
 | Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1425` | n/a | yes `apps/macos/PointeMac/AppModel.swift:401` |
@@ -202,7 +202,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Talk to Pointe from Control Center, the Lock Screen or the Action button: one press opens Pointe talking to the orchestrator, the next sends <br>`ios.control` | n/a | yes `apps/ios/PointeWidget/TalkControl.swift:8` | n/a |
 | The call on the Lock Screen and in the Dynamic Island, with Send, Cancel, Talk and Hang up <br>`ios.live-activity` | n/a | yes `apps/ios/PointeWidget/TalkLiveActivity.swift:12` | n/a |
 | A Home Screen tile: Talk to Pointe, with the Mac's status where the app group allows <br>`ios.widget` | n/a | yes `apps/ios/PointeWidget/TalkWidget.swift:8` | n/a |
-| Turn Talk from outside the app on or off <br>`ios.outside-setting` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:170` | n/a |
+| Turn Talk from outside the app on or off <br>`ios.outside-setting` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:171` | n/a |
 
 ## Bound to a platform
 

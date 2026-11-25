@@ -81,7 +81,7 @@ def test_the_installer_installs_a_checked_release_end_to_end(mac, releases):
 
 
 def test_the_installer_asks_first_and_changes_nothing_on_no(mac, releases):
-    got = mac.sh("bash", INSTALL, "--version", "9.9.1", "--url", releases["9.9.1"].as_uri(), input="n\n")
+    got = mac.sh("bash", INSTALL, "--hub", "--version", "9.9.1", "--url", releases["9.9.1"].as_uri(), input="n\n")  # --hub: Linux's question
     assert got.returncode == 1 and "Go ahead?" in got.stdout and "Nothing changed." in got.stdout
     for step in ("download", "check", "unpack", "uv", "Python packages", "~/.local/bin/pointe", "pointe uninstall"):
         assert step in got.stdout, step

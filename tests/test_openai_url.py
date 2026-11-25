@@ -111,6 +111,7 @@ def test_the_doctor_names_the_host(state, capsys):
     assert "example-resource.openai.azure.com" in capsys.readouterr().out
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_a_key_another_tool_keeps_under_the_old_name_is_never_sent_to_that_host(state, monkeypatch):
     """`openai-api-key`, the name of pre-release builds, may be another tool's key for OpenAI itself: with openai_url set, only
     the item `pointe key openai` saves is read, because the key goes to a host the person chose for Pointe."""
@@ -132,6 +133,7 @@ def test_a_key_another_tool_keeps_under_the_old_name_is_never_sent_to_that_host(
     assert vendors.key("openai") == "synthetic-other-tools-key"
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_a_key_read_under_the_old_name_before_the_setting_is_not_used_after_it(state, monkeypatch):
     """The daemon keeps a Keychain key in memory: one read from `openai-api-key` must not reach a host set later."""
     monkeypatch.delenv("OPENAI_API_KEY")

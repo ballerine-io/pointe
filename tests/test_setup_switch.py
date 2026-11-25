@@ -55,6 +55,7 @@ def test_voice_stays_local_with_no_text_key_is_refused_on_the_page(d, client, mo
     assert got.status_code == 409 and "pointe key anthropic" in got.json()["detail"] and not ran
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_saved_never_keeps_the_key_in_this_process(d, monkeypatch):
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 

@@ -413,7 +413,7 @@ def test_key_check_says_works_refused_or_unreachable_and_never_shows_the_key(key
 # ---------- pointe key: opens the vendor's page, asks, checks, asks again when refused, saves, restarts ----------
 
 @pytest.fixture
-def key_cli(keys, monkeypatch):
+def key_cli(keys, monkeypatch, on_a_mac):
     """`pointe key` with the Mac window, the browser, the Keychain and the daemon replaced by records."""
     import keys as keys_cli
 
@@ -491,6 +491,7 @@ def test_check_tries_a_key_before_it_is_saved_and_leaves_the_environment_as_it_w
     assert seen == ["synthetic-new"] and "GOOGLE_API_KEY" not in os.environ
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_keys_are_saved_under_pointes_own_name_and_the_old_name_still_reads(tmp_path, monkeypatch):
     """1.20.0 moved the Keychain items to pointe.<vendor>-api-key: a key saved before then must keep working, and an item
     another tool keeps under the plain name is read only when Pointe has none of its own."""

@@ -56,9 +56,14 @@ esac
                             "claude": lambda: (tmp_path / "claude-calls").read_text() if (tmp_path / "claude-calls").exists() else ""})
 
 
+# uninstall.py as on a Mac (its Keychain, not Linux's login keyring), wherever the suite runs: tests/test_linux_keys.py
+# runs the Linux path.
+AS_A_MAC = "import runpy, sys; sys.platform = 'darwin'; sys.argv = sys.argv[1:]; runpy.run_path(sys.argv[0], run_name='__main__')"
+
+
 def run(mac, *args, answers=""):
-    return subprocess.run([sys.executable, "-I", str(ROOT / "pointe" / "uninstall.py"), *args], env=mac.env, input=answers,
-                          capture_output=True, text=True, timeout=60)
+    return subprocess.run([sys.executable, "-I", "-c", AS_A_MAC, str(ROOT / "pointe" / "uninstall.py"), *args], env=mac.env,
+                          input=answers, capture_output=True, text=True, timeout=60)
 
 
 # ---------- pointe on the PATH ----------
@@ -126,6 +131,7 @@ def test_delete_keys_removes_only_pointes_own_items(mac):
     assert not (mac.keychain / "pointe.gemini-api-key").exists() and (mac.keychain / "soniox-api-key").exists()
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_each_group_has_its_own_question(mac, monkeypatch):
     """In a terminal: one answer per group, and a no keeps that group."""
     asked = []
@@ -208,6 +214,7 @@ def test_a_checkout_repairs_a_pointe_command_whose_copy_is_gone(tmp_path):
     assert f"exec {ROOT / 'bin' / 'pointe'}" in _linked_to(home)
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_keeping_pointes_own_files_is_not_called_removed(mac, monkeypatch, capsys):
     answers = iter(["n", "y", "n"])
     monkeypatch.setattr(uninstall.sys.stdin, "isatty", lambda: True)

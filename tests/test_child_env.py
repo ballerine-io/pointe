@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 
@@ -111,6 +113,7 @@ def _keychain(monkeypatch):
     monkeypatch.setattr(vendors, "_found", {}, raising=False)
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_a_keychain_key_stays_out_of_the_environment_and_is_still_masked(monkeypatch):
     import readout
 
@@ -124,6 +127,7 @@ def test_a_keychain_key_stays_out_of_the_environment_and_is_still_masked(monkeyp
     assert SECRET not in readout.mask(f"the key is {SECRET}")
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_the_claude_fork_and_the_roster_get_no_vendor_key(monkeypatch, tmp_path):
     for env in vendors.KEY_ENVS:
         monkeypatch.setenv(env, f"from-the-shell-{env}")
@@ -160,6 +164,7 @@ def _anthropic_keychain(monkeypatch):
     monkeypatch.setattr(vendors, "_found", {}, raising=False)
 
 
+@pytest.mark.usefixtures("on_a_mac")
 def test_a_copy_that_is_not_signed_in_is_asked_once_more_with_pointes_anthropic_key(monkeypatch, tmp_path):
     """A session signed in by an ANTHROPIC_API_KEY (the conversation suite's sessions; anyone who runs Claude Code on a
     key) has nothing a copy can sign in with: `claude -p --fork-session` ends "Not logged in", exit 1, nothing on stderr,

@@ -51,8 +51,9 @@ def test_with_tmux_and_claude_a_session_can_start_on_linux(linux):
     assert harnesses.get("claude-code").can_start() is None
 
 
-def test_without_tmux_the_start_is_refused_with_how_to_start_it_yourself(linux):
+def test_without_tmux_the_start_is_refused_with_how_to_start_it_yourself(linux, monkeypatch):
     (linux.fake / "tmux").unlink()
+    monkeypatch.setenv("PATH", str(linux.fake))  # CI's Ubuntu has a tmux in /usr/bin
     why = harnesses.get("claude-code").can_start()
     assert "tmux" in why and "/pointe:voice" in why and "Mac" not in why
 
