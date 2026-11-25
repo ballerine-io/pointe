@@ -1,0 +1,15 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 4.5,
+ "n": 2,
+ "runs": {
+  "acc-02-send-plain": {
+   "score": 5,
+   "evidence": "Request at 5.3 was delivered by 11.8 and acknowledged at 12.2 with a one-line 'sent to quarry', no read-back or confirmation. Result reported at 21.0 in two concise sentences stating the useful facts (docstring added, no tests run, uncommitted)."
+  },
+  "apr-07-word-for-word": {
+   "score": 4,
+   "evidence": "Replies were quick (1.8 s at 10.0, 0.5 s at 27.1) and concise, with the permission request correctly relayed at 15.2 and a result at 33.3. One small flaw: the 'word for word' command read-back at 15.2 was garbled and slightly over-long, and the final report trailed into unneeded detail."
+  }
+ }
+}

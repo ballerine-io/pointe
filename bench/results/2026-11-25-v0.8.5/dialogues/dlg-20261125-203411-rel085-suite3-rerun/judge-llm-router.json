@@ -1,0 +1,15 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.0,
+ "n": 2,
+ "runs": {
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "Silence of ~18 s before the first reply at 27.0, and the user's 'Yes' at 28.9 was spoken over by the assistant reading a long command list until 44.6. The report from 45.7 to 95.5 is a 50-second ramble that buries the answer ('zero tests') and continues talking over the user's 'Yes' at 84.9."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "User finished at 11.0, delivery at 16.4, and the voice reply only began at 24.2 — a 13-second silence. The reply (24.2–54.7) rambles for 30 seconds about name-resolution details and ends in garbled Hebrew, when a one-line 'done' would do."
+  }
+ }
+}

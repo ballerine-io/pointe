@@ -1,0 +1,13 @@
+{
+ "run_id": "dlg-20261125-200017-rel085-suite1-rerun",
+ "arms": [
+  "llm-router"
+ ],
+ "dialogues": [
+  "lat-02-general-knowledge"
+ ],
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "pointe_dirty": false,
+ "label": "rel085-suite1-rerun",
+ "started": "2026-11-25T20:00:17+0200"
+}

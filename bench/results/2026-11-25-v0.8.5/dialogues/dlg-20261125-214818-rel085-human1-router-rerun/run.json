@@ -1,0 +1,20 @@
+{
+ "run_id": "dlg-20261125-214818-rel085-human1-router-rerun",
+ "arms": [
+  "llm-router"
+ ],
+ "dialogues": [
+  "hum-yes-002",
+  "hum-no-002",
+  "hum-yes-007",
+  "hum-no-009",
+  "hum-yes-012",
+  "hum-no-012",
+  "hum-no-016",
+  "hum-yes-017"
+ ],
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "pointe_dirty": false,
+ "label": "rel085-human1-router-rerun",
+ "started": "2026-11-25T21:48:18+0200"
+}

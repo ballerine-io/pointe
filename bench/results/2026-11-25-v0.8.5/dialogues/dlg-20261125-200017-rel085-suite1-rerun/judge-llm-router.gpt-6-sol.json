@@ -1,0 +1,11 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.0,
+ "n": 1,
+ "runs": {
+  "lat-02-general-knowledge": {
+   "score": 2,
+   "evidence": "The answer began at 19.2, nearly 10 seconds after the user finished at 9.3. It answered the question in one sentence, but the long silence made a quick exchange feel slow."
+  }
+ }
+}

@@ -1,0 +1,49 @@
+{
+ "agent_model": "claude-haiku-5-5",
+ "arms": [
+  "keyboard-canonical",
+  "null",
+  "llm-router",
+  "pointe"
+ ],
+ "benchmark": "hlk",
+ "budget_usd": 300.0,
+ "claude_code_version": "2.1.332",
+ "cost_limit_per_run": 0.6,
+ "ears_model": "soniox:stt-rt-v6",
+ "errors": 0,
+ "finished": "2026-11-25T22:55:04+0200",
+ "jobs": 360,
+ "keys_present": [
+  "anthropic",
+  "elevenlabs",
+  "gemini",
+  "openai",
+  "soniox"
+ ],
+ "kind": "paid",
+ "order_seed": 20261123,
+ "permission_mode": "acceptEdits",
+ "planning_estimate_usd": 51.84,
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "preflight": {
+  "api_key_source": "ANTHROPIC_API_KEY",
+  "claude_code_version": "2.1.332",
+  "login_credentials_in_config": false,
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "permission_mode": "acceptEdits",
+  "probe_cost_usd": 0.00087707,
+  "problems": []
+ },
+ "repo_commit": "d639817722176c5c5d54eb324891f9263183f000",
+ "router_brain": "anthropic:claude-sonnet-5-5",
+ "rows": 360,
+ "run_id": "hlk-20261125-170854",
+ "scoring_recognizer": "mlx-community/whisper-large-v3-turbo@a4aaeec0636e6fef84abdcbe3544cb2bf7e9f6fb",
+ "spent_usd": 25.0953,
+ "started": "2026-11-25T17:08:58+0200",
+ "stopped": null,
+ "unpublished_manifest_sha256": null,
+ "workers": 2
+}

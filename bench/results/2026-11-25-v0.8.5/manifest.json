@@ -1,0 +1,117 @@
+{
+ "release": "v0.8.5",
+ "commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "date": "2026-11-25",
+ "harness": "branch bench-integrity of ballerine-io/pointe (see git log of bench/); Pointe ran from a clean export of the tag",
+ "agent": "claude-haiku-5-5 in Claude Code 2.1.332",
+ "machine": "Apple M5 Pro (Mac17,9), 18 cores, 64 GB, macOS 27.0, shared with other work; 1-minute load at each row's start and end is in the rows",
+ "vendors": {
+  "Pointe": "default setup: brain and reader anthropic:claude-sonnet-5-5, checker gemini:gemini-3.5-flash-lite, ears soniox stt-rt-v6, mouth elevenlabs eleven_v4_turbo",
+  "router": "soniox stt-rt-v6, anthropic:claude-sonnet-5-5 (effort low), elevenlabs eleven_v4_turbo (dialogues) or local Kokoro (HLK)",
+  "judges": "anthropic claude-fable-5-1 and openai gpt-6-sol, effort low, one dialogue at a time, arm name removed",
+  "synthetic voices": "Kokoro-82M v1.0 (four native, four accented voices), OpenAI gpt-4o-mini-tts for Hebrew and mixed speech",
+  "recorded people": "Speech Commands v0.02 test set (Warden 2018, CC BY 4.0); AMI Meeting Corpus headset audio (Carletta et al. 2005, CC BY 4.0)"
+ },
+ "benchmarks": {
+  "dialogues": {
+   "arms": [
+    "pointe",
+    "llm-router"
+   ],
+   "runs": [
+    [
+     "dlg-20261125-164424-rel085-suite1",
+     "dlg-20261125-200017-rel085-suite1-rerun",
+     "dlg-20261125-200140-rel085-suite1-rerun",
+     "dlg-20261125-202752-rel085-suite1-rerun"
+    ],
+    [
+     "dlg-20261125-174807-rel085-suite2",
+     "dlg-20261125-200458-rel085-suite2-rerun",
+     "dlg-20261125-200749-rel085-suite2-rerun",
+     "dlg-20261125-203114-rel085-suite2-rerun"
+    ],
+    [
+     "dlg-20261125-185235-rel085-suite3",
+     "dlg-20261125-201041-rel085-suite3-rerun",
+     "dlg-20261125-201644-rel085-suite3-rerun",
+     "dlg-20261125-203411-rel085-suite3-rerun"
+    ]
+   ]
+  },
+  "human": {
+   "arms": {
+    "pointe": [
+     [
+      "dlg-20261125-182028-rel085-human1-pointe",
+      "dlg-20261125-203630-rel085-human1-pointe-rerun"
+     ],
+     [
+      "dlg-20261125-203027-rel085-human2",
+      "dlg-20261125-215804-rel085-human2-rerun",
+      "dlg-20261125-220511-rel085-human2-rerun",
+      "dlg-20261125-221829-rel085-human2-rerun"
+     ]
+    ],
+    "llm-router": [
+     [
+      "dlg-20261125-194351-rel085-human1-router",
+      "dlg-20261125-214818-rel085-human1-router-rerun",
+      "dlg-20261125-221056-rel085-human1-router-rerun",
+      "dlg-20261125-224325-rel085-human1-router-rerun"
+     ],
+     [
+      "dlg-20261125-203027-rel085-human2",
+      "dlg-20261125-215804-rel085-human2-rerun",
+      "dlg-20261125-220511-rel085-human2-rerun",
+      "dlg-20261125-221829-rel085-human2-rerun"
+     ]
+    ]
+   }
+  },
+  "turns": {
+   "headline": "fresh run at 0.8.5",
+   "rows": {
+    "fresh run at 0.8.5": "turn-human.jsonl",
+    "earlier run, same clips, replayed": "turn-human.earlier.jsonl"
+   }
+  },
+  "hlk": {
+   "runs": [
+    "hlk-20261125-170854"
+   ],
+   "rows": "bench/conversational/hlk/results/<run>/rows.jsonl",
+   "frozen": "bench/conversational/hlk/FROZEN.json"
+  }
+ },
+ "aborted": {
+  "dlg-20261125-181858-rel085-human1-pointe": "port 9840 was taken by another agent's daemon; every row errored at once and nothing was scored"
+ },
+ "commands": [
+  "uv sync --locked --extra local",
+  "uv run --locked --extra local python bench/conversational/dialogues/run.py run --arm pointe,llm-router --commit v0.8.5 --workers 3 --port-base 9800 --label rel085-suiteN --budget-usd <ledger total + run>",
+  "uv run --locked --extra local python bench/conversational/dialogues/run.py judge <run-id> [--judge openai:gpt-6-sol]",
+  "uv run --locked --extra local python bench/conversational/dialogues/run.py run --suite bench/conversational/dialogues/human.toml --arm pointe --commit v0.8.5 --workers 2 --port-base 9888 --label rel085-humanN-pointe",
+  "uv run --locked --extra local python bench/conversational/dialogues/run.py run --suite bench/conversational/dialogues/human.toml --arm llm-router --only 'hum-yes-*,hum-no-*' --commit v0.8.5 --workers 2 --port-base 9888 --label rel085-humanN-router",
+  ".venv/bin/python -I bench/human_turns.py run --concurrency 2 && .venv/bin/python -I bench/human_turns.py prune --max-load 20 && .venv/bin/python -I bench/human_turns.py run",
+  "git worktree add --detach /tmp/pointe-085 v0.8.5 && HLK_POINTE_CHECKOUT=/tmp/pointe-085 uv run --locked --extra local python bench/conversational/hlk/run.py hlk --adapter keyboard-canonical,null,llm-router,pointe --runs 3 --workers 2 --port-base 9300 --budget-usd <ledger total + run>",
+  "uv run --locked --extra local python bench/conversational/hlk/run.py report",
+  ".venv/bin/python -I bench/release_report.py bench/results/2026-11-25-v0.8.5 && .venv/bin/python -I bench/publish.py bench/results/2026-11-25-v0.8.5"
+ ],
+ "spend": {
+  "Conversation suite: 3 runs, both arms, and the reruns the rule required": 25.99,
+  "Naturalness judges (Claude Fable and gpt-6-sol)": 4.9,
+  "Recorded yes, no, stop and mm-hm, with reruns": 24.21,
+  "HLK: smoke and the run": 28.48,
+  "End of turn on recorded pauses (Soniox, computed from seconds streamed)": 0.28,
+  "Smoke of the suite": 0.15,
+  "All": 84.01
+ },
+ "notes": [
+  "HLK: one row (noisy-paths-0, llm-router, run 0) recorded a 1-minute load of 21.7 at its start, read just after the gate let it through; it is kept, as the frozen rule only gates the start.",
+  "HLK: three Pointe runs wrote a check script outside the task folder (/tmp) and are invalid by HLK's rule, so left out of its passes; counted as failures Pointe has 85 of 108.",
+  "Recorded people: repeat 2 ran the yes and no dialogues only; stop and mm-hm ran once.",
+  "Rows dropped by the load rule were run again, up to four times for four router rows, until each was taken at load 20 or under.",
+  "Pointe v0.8.6 was committed to main during these runs but not tagged when they began, so 0.8.5 is what was measured."
+ ]
+}

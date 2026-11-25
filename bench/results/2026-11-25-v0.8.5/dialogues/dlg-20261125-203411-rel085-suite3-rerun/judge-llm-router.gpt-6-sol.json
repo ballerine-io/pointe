@@ -1,0 +1,15 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.0,
+ "n": 2,
+ "runs": {
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "After the request ended at 9.0s, the assistant stayed silent until 27.0s, then read a lengthy command and asked for confirmation. Its report ran from 45.7s to 95.5s, repeating that no tests ran and talking over the developer at 84.9s."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "After the request ended at 11.0s, the developer waited until 24.2s for a reply. The reply ran to 54.7s, with a lengthy explanation and garbled ending."
+  }
+ }
+}

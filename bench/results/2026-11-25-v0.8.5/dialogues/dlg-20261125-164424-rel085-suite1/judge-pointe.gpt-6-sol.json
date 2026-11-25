@@ -1,0 +1,187 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 3.24,
+ "n": 45,
+ "runs": {
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "ב־24.0 העוזר דיבר לפני שהמשתמש סיים, וב־33.9–54.4 הקריא פקודה ארוכה במקום לבקש אישור בקצרה. ב־83.8 הוא חזר לבקש תשובה אחרי כמעט 30 שניות של שקט."
+  },
+  "brv-04-short-answer": {
+   "score": 4,
+   "evidence": "The assistant said “Asking tariff-api” at 12.4, 3.6 seconds after the user finished. It gave the requested one-word answer, “Tuesday,” at 15.6."
+  },
+  "orc-01-overview": {
+   "score": 3,
+   "evidence": "At 8.4s, the assistant starts promptly after the question ends at 6.5s. Its status update runs until 21.2s and ends with an unclear reference to “that file.”"
+  },
+  "rec-03-noisy-name": {
+   "score": 2,
+   "evidence": "At 10.8s, the assistant misheard “dedupe rows” as “the two rows” and asked for clarification. At 24.1s, it repeated that mistaken interpretation and reported that nothing was edited."
+  },
+  "apr-02-hedge-not-yes": {
+   "score": 3,
+   "evidence": "At 16.9s, the assistant asked for permission, and at 29.5s it answered the developer’s question after a 2.2-second pause. The explanation ran nearly 14 seconds and ended with another confirmation request; at 72.8s, it prompted again."
+  },
+  "heb-04-switch-language": {
+   "score": 5,
+   "evidence": "At 8.8, the assistant responds within two seconds and gives the reviewer’s name at 10.7. At 22.7, it acknowledges the Hebrew question and gives a concise plan at 24.9."
+  },
+  "apr-01-yes-readable": {
+   "score": 4,
+   "evidence": "At 12.9 seconds, the assistant promptly confirmed it had sent the request, and at 14.7 seconds it relayed billing’s permission request. The result came at 32.9 seconds after an eight-second wait, followed by a speculative aside about old notes."
+  },
+  "amb-03-explicit-is-clear": {
+   "score": 3,
+   "evidence": "At 13.7 seconds, the assistant promptly confirmed the instruction was sent. At 19.0 seconds, it gave a lengthy permission request, then repeated that it was waiting at 71.6 seconds."
+  },
+  "acc-01-send-identifier": {
+   "score": 2,
+   "evidence": "At 20.5–30.6, the assistant spent ten seconds reading a permission request, then spoke again at 72.3 without a new question. When asked what changed at 88.7, it waited 3.4 seconds and gave only file-level details, not the edits."
+  },
+  "apr-04-destructive-read-in-full": {
+   "score": 3,
+   "evidence": "At 19–29 seconds, the assistant gave a fragmented permission request despite the instruction not to check first. It approved the user’s answer promptly at 32 seconds, but the final report did not arrive until 41 seconds."
+  },
+  "acc-04-batch-size": {
+   "score": 4,
+   "evidence": "At 12.3s, the assistant promptly confirmed the instruction had been sent. At 25.5s, it gave a useful completion update, though the added file-edit and test details were a little more than needed."
+  },
+  "rec-02-correction": {
+   "score": 3,
+   "evidence": "At 30.0–40.7, the assistant gave a lengthy unsolicited update about the misdirected billing request. At 49.1, it answered the question but added a needless offer to ask Quarry to run the type checker."
+  },
+  "net-03-loss-send": {
+   "score": 5,
+   "evidence": "After the request ended at 7.8s, the assistant responded at 9.6s. It gave the reviewer’s name concisely at 11.6s."
+  },
+  "net-02-reconnect-mid-turn": {
+   "score": 2,
+   "evidence": "After the question ended at 7.3s, the first reply came at 15.6s and did not answer it. The branch name arrived only at 29.2s, after more silence and a stray “Billing.”"
+  },
+  "lat-05-reviewer": {
+   "score": 4,
+   "evidence": "After the question ended at 7.3s, the assistant spoke at 10.6s, a slightly long pause. It then gave the useful answer at 12.4s, though “Asking Quarry” was unnecessary."
+  },
+  "bar-01-redirect-mid-reply": {
+   "score": 2,
+   "evidence": "At 12.5 seconds, the assistant gave only a brief status instead of the requested full rundown, and the user interrupted at 14.0 seconds. After the user asked about quarry, the reply at 19.4 seconds mentioned Tori; useful quarry details arrived in fragments from 33.0 to 44.4 seconds."
+  },
+  "orc-03-report-while-focused": {
+   "score": 2,
+   "evidence": "At 27.8–35.1, the reply about quarry gives timing figures but no plan for speeding it up. At 56.4–66.7, the assistant adds an unsolicited billing update after the user’s question was already answered."
+  },
+  "orc-02-multi-send": {
+   "score": 3,
+   "evidence": "After the request ended at 12.0, the first reply came at 17.0 and gave a useful status update. The unsolicited update at 30.8 trailed into an awkward “if you want it” at 39.1."
+  },
+  "brv-01-plain-instruction-no-readback": {
+   "score": 5,
+   "evidence": "At 11.2 seconds, the assistant promptly confirmed the request was sent. At 20.1 seconds, it reported the completed change and noted that tests were not run."
+  },
+  "apr-06-compound-command": {
+   "score": 3,
+   "evidence": "At 19.2s, the assistant read a permission request in awkward, hard-to-follow wording. After approval at 31.2s, it waited 7 seconds to report the result, then added an unresolved caveat through 54.6s."
+  },
+  "bar-04-pause-mid-sentence": {
+   "score": 3,
+   "evidence": "At 12.8s, the assistant promptly confirmed the instruction was sent. The update at 20.0–32.9s was awkwardly phrased and longer than needed for a simple logging change."
+  },
+  "lat-01-quick-status": {
+   "score": 3,
+   "evidence": "After the question ended at 6.9s, the useful answer began at 10.5s, following an unnecessary “Asking Billing.” The second answer likewise followed a status announcement and repeated a caveat about not checking current test status."
+  },
+  "lat-02-general-knowledge": {
+   "score": 4,
+   "evidence": "The answer began 2 seconds after the question ended at 9.2 and clearly explained both terms. It used two sentences despite the request for one."
+  },
+  "amb-01-shared-word": {
+   "score": 2,
+   "evidence": "At 23.3–31.8, the assistant gives a drawn-out permission request and then adds a separate “Should it?” At 73.0, after 41 seconds of silence, it repeats the request awkwardly."
+  },
+  "bar-03-stop-running-job": {
+   "score": 5,
+   "evidence": "At 12.6, the assistant promptly confirmed the billing instruction. At 24.1, it responded promptly to the stop request and explained when billing would stop."
+  },
+  "brv-02-backchannel-while-working": {
+   "score": 4,
+   "evidence": "At 12.4s, the assistant promptly confirmed that it had sent the request to Quarry. The update at 28.1s was useful, but somewhat long for a spoken status report."
+  },
+  "amb-02-which-session-status": {
+   "score": 3,
+   "evidence": "At 11.6, the assistant asked which project the user meant after a 4.4-second pause. It gave the version at 24.9, then added an unnecessary clarification at 32.2."
+  },
+  "net-01-loss-status": {
+   "score": 4,
+   "evidence": "At 10.6 the assistant said it was asking Quarry, then gave the plan at 14.0. It promptly sent the billing instruction at 33.1 and later reported completion, though the Quarry answer had a slightly awkward extra detail."
+  },
+  "heb-05-accent-english": {
+   "score": 4,
+   "evidence": "At 11.8 seconds, the assistant promptly confirmed it had sent the request to Atlas. At 20.9 seconds, it gave a useful explanation of why Atlas could not make the change, though the follow-up came after a noticeable pause."
+  },
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "After the user said “Yes for billing” at 24.2–25.4, the assistant waited nearly nine seconds to clarify that Atlas was requesting permission. It then left the developer waiting until 63.4 before repeating that Atlas still needed an answer."
+  },
+  "acc-03-two-part-instruction": {
+   "score": 3,
+   "evidence": "At 15.0s, the assistant confirmed the request had been sent after a short pause. At 26.9s, the test-permission request was hard to understand, and the 81.2s reminder still left the developer without a result."
+  },
+  "acc-02-send-plain": {
+   "score": 4,
+   "evidence": "At 12.1s, the assistant promptly confirmed it had sent the request to Quarry. At 22.6s, it gave a useful completion update, though the report was longer than this small change needed."
+  },
+  "rec-01-truncated": {
+   "score": 4,
+   "evidence": "At 10.6s, the assistant asked for clarification because the request had stopped mid-sentence. It confirmed delivery at 22.7s and reported the completed docstring at 34.0s; the initial pause was a little long."
+  },
+  "orc-04-hold": {
+   "score": 4,
+   "evidence": "At 12.0, the assistant promptly confirmed the request to Atlas and respected the pause in reports at 19.9. At 48.7, it gave a useful update, though the reply ran a little long for a quick status question."
+  },
+  "apr-03-no": {
+   "score": 1,
+   "evidence": "At 12.1, the clear request for Python’s unittest module was relayed as “UNIREST,” leading to an irrelevant permission request at 20.1. By 41.1, Atlas still had not run the tests, and the assistant asked which test to run."
+  },
+  "brv-03-thanks-silence": {
+   "score": 4,
+   "evidence": "At 8.6 seconds, the assistant starts answering about two seconds after the question and gives a clear next step. The spoken reply runs until 19.9 seconds and has a slightly awkward “asking Atlas. Next step” lead-in."
+  },
+  "acc-05-focus-pronoun": {
+   "score": 3,
+   "evidence": "After the question ended at 7.7s, the first response came at 11.6s and the answer at 19.1s; it also called a 56-byte file the biggest while mentioning a 143-byte file. The follow-up was handled, but the update came at 52.2s after another long pause."
+  },
+  "lat-04-ask-then-send": {
+   "score": 2,
+   "evidence": "The Lighthouse question at 5.3 seconds received no answer before the developer spoke again at 15.7 seconds. The permission request was split across 34.8–41.4 seconds, followed by nearly 40 seconds of silence before the assistant spoke again."
+  },
+  "rec-04-say-again": {
+   "score": 4,
+   "evidence": "At 9.3 seconds, the assistant responded promptly, then gave the 2.3 MB answer at 11.7 seconds. When asked to repeat it at 24.9 seconds, it did, but added an unnecessary verification question."
+  },
+  "heb-01-status-hebrew": {
+   "score": 3,
+   "evidence": "At 11.7s, the assistant said it had asked billing instead of answering. At 15.2s, it gave the useful count—three—but took 13 seconds to explain a simple answer."
+  },
+  "apr-07-word-for-word": {
+   "score": 3,
+   "evidence": "At 10.0, the assistant promptly confirmed the billing request, but its permission request at 13.1 was wordy. At 28.3, it read the command awkwardly, making the exchange feel mechanical."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "At 18.9 seconds, the developer said yes, but the assistant continued speaking and repeated the same permission request at 26.8 seconds. It eventually reported at 42.9 seconds that unittest found no tests, then asked where the tests were."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 3,
+   "evidence": "After the question ended at 7.1s, the first reply came at 9.2s and said only that nothing needed attention. The Billing update ran from 10.9s to 15.5s, overlapping the developer’s acknowledgment and ending with an offer of more rather than a clear full status."
+  },
+  "heb-02-mixed-send": {
+   "score": 4,
+   "evidence": "At 13.4, the assistant promptly confirmed the request made at 5.3–11.0. At 24.8, it gave a useful completion update, though the 9-second explanation was longer than needed."
+  },
+  "lat-03-status-two-sessions": {
+   "score": 4,
+   "evidence": "At 9.5s, the assistant promptly acknowledged the question and gave the 47-minute answer by 21.0s, though the answer was awkwardly split at 12.3s. At 28.5s, it answered the follow-up directly after a short pause."
+  }
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.0,
+ "n": 2,
+ "runs": {
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "After the 11.2 request, nothing was heard until 19.6 (8.4 s silence), and after the 45.1 'yes' the next VOICE came at 55.8 (10.7 s). The permission reads at 19.6–42.5 and 55.8–75.9 are long verbatim command recitations rather than a short summary, making each turn tiring."
+  },
+  "apr-07-word-for-word": {
+   "score": 2,
+   "evidence": "After the user's request at 8.1 the assistant was silent until 21.0 (~13 s), and after 'Yes' at 29.8 another 10 s of silence before the reply at 39.8. The final answer (39.8–59.9) runs 20 seconds with details about log file mechanics the developer never asked for."
+  }
+ }
+}

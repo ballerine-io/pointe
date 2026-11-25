@@ -1,0 +1,11 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.0,
+ "n": 1,
+ "runs": {
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "The initial relay was quick (sent at 13.0 after a 9.4 request), but the permission prompt at 19.6 was garbled and the user's 'yes for billing' at 28.1 was met with a 3-second pause and a clarifying question instead of acting. The assistant then went silent for 35 seconds (36.8 to 71.8) before a nagging re-prompt, leaving the request unresolved."
+  }
+ }
+}

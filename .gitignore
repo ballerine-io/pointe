@@ -27,3 +27,4 @@ bench/.human/
 dist/
 site/pointe/install.sh
 .wrangler/
+bench/conversational/dialogues/results/

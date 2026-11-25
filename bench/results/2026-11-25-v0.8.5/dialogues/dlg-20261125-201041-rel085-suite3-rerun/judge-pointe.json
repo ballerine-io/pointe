@@ -1,0 +1,19 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.33,
+ "n": 3,
+ "runs": {
+  "heb-02-mixed-send": {
+   "score": 3,
+   "evidence": "The instruction was delivered quickly (12.9) with a short confirmation at 13.2, but the relayed text was garbled ('ל הוסיף') and the report at 25.9 came after ~11 s of silence. The report itself was padded with a confusing name-correction aside ('אמרת די-דיו-פרוז') rather than simply stating the docstring was added."
+  },
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "The relay at 13.9 dropped 'unittest' wording slightly but delivered within ~4s; however at 28.6 the assistant talked over the user ('או שיר' started before the user finished at 28.9) and then said the approval was already given, confusing. After the 38.4 permission request the developer got no response and the assistant re-prompted at 88.7 after a 41s silence, with garbled command read-out."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "At 15.2 the permission readback was long and repeated itself, and the user's 'Yes' at 15.9 was ignored while the assistant kept talking until 27.6, forcing a second 'Yes' at 30.6. The initial relay was quick (12.1) and the result report at 39.8 was useful, but the talk-over and repetition made it tiring."
+  }
+ }
+}

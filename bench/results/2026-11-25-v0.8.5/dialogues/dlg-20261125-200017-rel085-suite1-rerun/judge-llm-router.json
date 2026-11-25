@@ -1,0 +1,11 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 3.0,
+ "n": 1,
+ "runs": {
+  "lat-02-general-knowledge": {
+   "score": 3,
+   "evidence": "The developer asked at 9.3 and heard nothing until 19.2, a ~10 s silence for a trivial general question that was needlessly routed to the billing session at 16.8. The answer itself (19.2–32.3) was correct and appropriately one sentence with no padding or check-backs."
+  }
+ }
+}

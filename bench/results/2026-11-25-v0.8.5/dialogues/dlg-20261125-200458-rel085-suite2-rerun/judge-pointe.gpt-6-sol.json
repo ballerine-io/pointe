@@ -1,0 +1,15 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 4.0,
+ "n": 2,
+ "runs": {
+  "acc-02-send-plain": {
+   "score": 5,
+   "evidence": "At 12.2 seconds, the assistant promptly confirmed it had sent the request to quarry. At 21.0 seconds, it gave a concise, useful update on the completed change."
+  },
+  "apr-07-word-for-word": {
+   "score": 3,
+   "evidence": "At 15.2–23.2, the permission request was long and awkwardly read aloud. The assistant answered promptly at 10.0 and 27.1, but took nearly six seconds after approval to report the result at 33.3."
+  }
+ }
+}

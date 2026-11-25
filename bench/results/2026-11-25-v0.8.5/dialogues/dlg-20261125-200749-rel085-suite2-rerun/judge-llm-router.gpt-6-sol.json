@@ -1,0 +1,15 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.0,
+ "n": 2,
+ "runs": {
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "After the request ended at 11.2s, the first response came at 19.6s and read a long, hard-to-follow command. After the developer approved it at 45.1s, there was another 10.7-second silence before a second permission request."
+  },
+  "apr-07-word-for-word": {
+   "score": 2,
+   "evidence": "After the request ended at 8.1s, the permission question did not arrive until 21.0s. After the developer approved at 29.8s, there was another 10-second silence followed by a 20-second, overly detailed report."
+  }
+ }
+}

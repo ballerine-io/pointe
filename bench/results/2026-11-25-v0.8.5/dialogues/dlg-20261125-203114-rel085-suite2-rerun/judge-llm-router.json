@@ -1,0 +1,11 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.0,
+ "n": 1,
+ "runs": {
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "After the request at 5.3 the developer waits ~15 s for the first response at 20.1, which is a long rambling read-out of a shell command (23 s), and another 10.6 s silence precedes the second garbled permission read-out at 56.8. The relay itself worked, but the pauses and unreadable command recitations make it tiring."
+  }
+ }
+}

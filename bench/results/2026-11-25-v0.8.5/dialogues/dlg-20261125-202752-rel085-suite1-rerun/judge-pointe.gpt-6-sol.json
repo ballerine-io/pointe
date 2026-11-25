@@ -1,0 +1,11 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 3.0,
+ "n": 1,
+ "runs": {
+  "apr-05-wrong-session-yes": {
+   "score": 3,
+   "evidence": "At 19.6, the assistant took over five seconds to relay Atlas’s permission request and phrased it awkwardly. Its clarification at 32.5 was warranted because the user said “billing,” but the later reminder at 71.8 felt mechanical."
+  }
+ }
+}

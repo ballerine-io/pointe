@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.67,
+ "n": 3,
+ "runs": {
+  "heb-02-mixed-send": {
+   "score": 4,
+   "evidence": "ב־13.2 העוזר אישר בקצרה ששלח את הבקשה, כשתיים שניות אחרי סיום דברי המשתמש. ב־25.9 הוא מסר עדכון מועיל, אך הניסוח היה מעט מסורבל."
+  },
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "After the user said כן, תריץ at 27.3–28.9, the assistant spoke over the end of the reply and later asked again for permission at 38.4. It then waited until 88.7 to repeat the question, leaving a long silence."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "At 15.2–27.6, the assistant repeated its permission question and talked over the developer’s first “Yes” at 15.9. The developer had to say “Yes” again at 30.6 before it approved the command."
+  }
+ }
+}

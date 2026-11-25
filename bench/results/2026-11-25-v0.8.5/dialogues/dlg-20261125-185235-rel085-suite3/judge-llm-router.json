@@ -1,0 +1,184 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.18,
+ "n": 44,
+ "runs": {
+  "heb-04-switch-language": {
+   "score": 3,
+   "evidence": "Both answers were correct and led with the useful fact, but each came after ~7 s of silence (7.0→14.1 and 26.2→33.5). The second reply (33.5–47.1) ran long with a garbled, padded explanation before the citation."
+  },
+  "apr-02-hedge-not-yes": {
+   "score": 3,
+   "evidence": "Developer asked at 8.5 and heard nothing until 15.8 (7.3 s gap), then after the 29.5 question waited until 34.3 (4.8 s). The permission question is legitimate, but the 34.3 reply reads the shell command back verbatim with 'ampersand greater than' noise instead of simply explaining it, and the explanation ran nearly 15 s."
+  },
+  "lat-03-status-two-sessions": {
+   "score": 3,
+   "evidence": "Answers were concise and useful, but the developer waited 6.5 s after finishing at 7.7 before the voice replied at 14.2, and 6.9 s after 25.6 before the 32.5 reply. Two pauses well over 4 s make it clearly machine-like despite good content."
+  },
+  "brv-02-backchannel-while-working": {
+   "score": 2,
+   "evidence": "After the 10.6 s request the developer waited 17 s in silence before the first VOICE line at 27.6, with no acknowledgment of delivery at 16.1. The permission read-back dumps a raw shell command verbatim rather than summarizing it, though the question itself was appropriate."
+  },
+  "rec-03-noisy-name": {
+   "score": 1,
+   "evidence": "At 13.4 the request 'dedupe rows' was delivered as 'loop rows', so the agent acted on a misheard instruction and put a comment in the wrong place. The reply at 18.5 came after a 10 s silence and rambled for 16 s about a guess based on the wrong words."
+  },
+  "acc-01-send-identifier": {
+   "score": 2,
+   "evidence": "Permission request at 25.7 read a raw shell command verbatim for 18s and came 13s after the instruction, then the user's question at 93.4 got a 7s silence before a 25s reply. Delivery to billing (17.9) also lagged 5s, and the answer padded with unrelated rounding-failure notes."
+  },
+  "rec-04-say-again": {
+   "score": 1,
+   "evidence": "The question at 5.2 never gets an answer; instead at 14.7 the assistant reads a garbled permission request (\"git //execls-l\") that ran until 48.9 and then left the developer in silence until they asked to repeat at 87.5. The developer was misunderstood and left with nothing useful across the whole call."
+  },
+  "brv-03-thanks-silence": {
+   "score": 4,
+   "evidence": "The answer at 13.6 was concise and led with the useful fact, but the developer waited about 6.8 s after finishing at 6.8. One long-ish pause is the only flaw in an otherwise natural exchange."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 1,
+   "evidence": "At 5.3 the developer asked for the status of each session, but after a 4.2 s pause the assistant at 11.2 asked which one they wanted, a needless check that ignored the clear request. The developer's reply at 17.7 got no answer at all, leaving them with no useful information and silence."
+  },
+  "apr-04-destructive-read-in-full": {
+   "score": 2,
+   "evidence": "Instruction delivered at 18.8 but the reply started only at 24.4 (~11 s after the user finished at 13.6) and rambled for 30 s with spelled-out paths and a needless 'Thank you', despite the user explicitly saying not to check anything. The user's 'Yes' at 69.1 gets no answer, leaving the conversation unresolved."
+  },
+  "acc-02-send-plain": {
+   "score": 3,
+   "evidence": "The developer finished speaking at 10.4 and the voice reply didn't start until 21.9, an 11.5-second silence with no acknowledgment. The reply itself was useful but padded with extra sentences about order preservation and not running tests."
+  },
+  "net-03-loss-send": {
+   "score": 3,
+   "evidence": "User finished at 7.9 and the answer didn't start until 15.9, an 8-second silence with delivery at 12.7 in between. The reply itself was concise and led with the useful answer (Priya), with no needless confirmation."
+  },
+  "apr-05-wrong-session-yes": {
+   "score": 3,
+   "evidence": "Delivery to atlas took 7s (9.3→16.7) and the permission read-back at 19.0 was a garbled 19-second recitation of the full command. The clarification at 45.6 was warranted since the user said 'billing' when the prompt was for Atlas, but another ~5s pause preceded it."
+  },
+  "orc-04-hold": {
+   "score": 2,
+   "evidence": "Instruction at 5.3 was delivered only at 15.3 and the report came at 26.9 (16 s silence), then the assistant talked over the user at 45.6 and ignored the hold request. After the user returned at 73.6, there was a 12 s gap and the reply at 86.0 was a rambling, truncated restatement of the earlier report rather than a short answer."
+  },
+  "orc-01-overview": {
+   "score": 2,
+   "evidence": "At 5.4 the developer asked for a status of all sessions, yet after a 4.8 s silence the assistant at 11.5 asked which single session they meant. The question was clear (\"everywhere\"), so this is a needless clarification plus a long pause, leaving the developer with no answer."
+  },
+  "rec-01-truncated": {
+   "score": 2,
+   "evidence": "The clarifying question at 10.9 came 4.7s after the user trailed off (acceptable), but after the instruction at 16.4 there was a 14-second silence until the report at 30.4. The report itself ran 17 seconds with padding (listing docstring contents, noting no tests run) when a brief 'done' would do."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 1,
+   "evidence": "The first permission readout at 19.4 is a 42-second stream of path fragments and gibberish, and the assistant talks over the user's 'Yes' at 23.9 and 78.9 rather than responding. The final answer at 103.7 only arrives ~98 seconds after the request and runs 50 seconds with padding, so the developer experienced a broken, exhausting exchange."
+  },
+  "amb-03-explicit-is-clear": {
+   "score": 2,
+   "evidence": "The developer spoke at 5.3-11.6 and got no spoken acknowledgment until 23.0, an 11-second silence. The reply 'Tariff Web wants to run. Should it?' is vague about what needs permission and ran 31 seconds (23.0-53.9), far too long for its content."
+  },
+  "heb-01-status-hebrew": {
+   "score": 2,
+   "evidence": "User asked at 5.2–8.0 and the answer only began at 18.0, a 10-second silence (with delivery at 14.0 in between). The reply itself was useful and led with the number, but it was long-ish (20 s) with an added caveat and offer."
+  },
+  "lat-01-quick-status": {
+   "score": 2,
+   "evidence": "After the question at 6.9 the developer waited ~8.8 s (VOICE at 15.7), and again ~7.8 s after 40.1 (VOICE at 47.9). Both answers also ran long with caveats and extra details (e.g., 15.7–34.2 is ~18 s for a count of three failures)."
+  },
+  "amb-01-shared-word": {
+   "score": 1,
+   "evidence": "Clarification at 11.6 came after a 4.4 s pause but was reasonable; after the user answered at 18.7 the assistant waited 4.7 s and then at 23.4 asked what to tell TariffWeb, forgetting the original 'bump the version' request. The instruction was never delivered, so the developer got no useful result despite being clear."
+  },
+  "acc-05-focus-pronoun": {
+   "score": 1,
+   "evidence": "At 14.9 the assistant answered a 7.6 s question only with a garbled 17-second read-aloud of a shell command, and the developer waited through 56 s of silence (32.3–88.7) with no answer to the biggest-file question. At 100.9 the lazy-loading instruction got another long command read-back (26 s) instead of any useful report, so the developer never received an answer to either request."
+  },
+  "lat-05-reviewer": {
+   "score": 2,
+   "evidence": "After the question at 7.3 the developer sat in silence for 9 seconds until the reply at 16.3. The reply was only a clarifying question, and arguably a needless one since 'quarry change' points to the Quarry session."
+  },
+  "heb-05-accent-english": {
+   "score": 2,
+   "evidence": "After the user finished at 10.1, delivery took until 15.9 and the first spoken response came at 24.5, a 14-second silence. The reply then rambled with file-path details and was cut off mid-sentence at 43.0 rather than giving a crisp answer."
+  },
+  "apr-01-yes-readable": {
+   "score": 2,
+   "evidence": "The developer waited ~8.4 s after the first request (9.3 to 17.7) and ~8.5 s after approving (30.1 to 38.6), both long silences. The final reply (38.6–71.0) ran over 30 seconds with rambling speculation about branches and notes.md after the useful 'tests pass' was already said."
+  },
+  "acc-03-two-part-instruction": {
+   "score": 3,
+   "evidence": "The instruction was delivered at 16.7 with no spoken acknowledgment, leaving the developer in silence until 28.7 (17 s after they finished at 11.7). The permission read-out at 28.7 is appropriate in content but was mangled into a verbose command recitation rather than a short summary."
+  },
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "The user's request at 5.6 was delivered at 15.4 and the permission readout came at 17.3 (7s silence), then after 'yes, run it' at 30.5 the result arrived only at 41.3 (~11s wait). The 41.3 reply was useful at first but then devolved into a 40-second garbled repetitive ramble until 84.5, making the exchange tiring and partly broken."
+  },
+  "apr-03-no": {
+   "score": 3,
+   "evidence": "The instruction at 5.3–8.9 was delivered at 14.2 with a ~9.5s silence before the first VOICE at 18.4; the permission readout ran 16 seconds with clunky repeated 'and and'. Denial at 36.8 was relayed at 42.2, another 4s gap, and no spoken confirmation came back."
+  },
+  "brv-01-plain-instruction-no-readback": {
+   "score": 2,
+   "evidence": "After the user's request ending at 9.1, delivery came at 13.9 with no spoken acknowledgment, and the next voice line only arrived at 22.2, a 13-second silence. The permission read-back at 22.2-40.0 is an 18-second verbatim command dump rather than a short summary of what billing wants to run."
+  },
+  "orc-02-multi-send": {
+   "score": 2,
+   "evidence": "After the user's request ending at 12.0 the assistant waited 4.8 s and then misheard 'billing and quarry' as 'billing inquiry' (16.8), asking a needless clarifying question instead of acting. No instruction was delivered and the user received no useful result."
+  },
+  "brv-04-short-answer": {
+   "score": 3,
+   "evidence": "The answer at 15.6 was perfectly terse and correct in form, but the developer waited 6.8 s of silence after finishing at 8.8 before hearing it. That single 4+ s pause with no interim acknowledgement is the only flaw, but it is a noticeable one."
+  },
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "After the 11.2 request the assistant stayed silent until 18.9 and then read a raw shell command aloud for 23 seconds (18.9–42.3) instead of summarizing; after 'yes' at 44.9 there was an 8-second gap before another 49-second verbatim path dump (53.0–101.8). Needlessly literal read-backs and long silences make it tiring, though the instruction was delivered correctly at 16.2."
+  },
+  "bar-04-pause-mid-sentence": {
+   "score": 3,
+   "evidence": "After the user finished at 11.0, delivery came at 16.2 and the spoken reply only at 23.7, a 12.7 s silence. The report itself was accurate and useful but padded with details (print vs logging, no tests) beyond what was asked."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "User finished at 11.0 but the reply only began at 27.5, a 16.5s silence, and delivery took 7.5s with the function name mangled. The 31-second reply rambles about name-matching and ends in garbled text instead of a short confirmation."
+  },
+  "lat-02-general-knowledge": {
+   "score": 3,
+   "evidence": "The developer asked a general knowledge question at 5.4 and waited until 16.0 (about 6.7 s of silence) because the assistant routed it to the billing agent at 14.1 instead of answering directly. The answer itself was accurate and one sentence as requested, though a bit long-winded."
+  },
+  "net-01-loss-status": {
+   "score": 2,
+   "evidence": "First answer took 8.3 s (7.4→15.7) and ran 22 s with extra detail; second took 14.9 s (44.9→59.8) and rambled 40 s reading the whole docstring aloud. Content was correct and no interruptions, but the long silences and bloated replies are tiring."
+  },
+  "lat-04-ask-then-send": {
+   "score": 2,
+   "evidence": "The first answer arrived 7.4 s after the user finished (8.0 to 15.4) and the second response took 8.7 s (35.7 to 44.4). The permission read-out from 44.4 to 81.4 was a 37-second verbatim recitation of a shell command instead of a short summary."
+  },
+  "orc-03-report-while-focused": {
+   "score": 2,
+   "evidence": "Long silences: 10.5→25.8 (15 s) before the first reply, and the assistant kept talking over the user at 46.1 while its 36-second report ran until 61.5. Replies are padded (rounding work, branch name, tests not run) and the 'did billing finish' answer at 104.6 re-explains the whole edit after an 8 s wait."
+  },
+  "rec-02-correction": {
+   "score": 2,
+   "evidence": "The first reply took ~12 s (7.8→19.6) and rambled for 32 s, talking over the user's correction at 43.3; the second answer also arrived after a ~13 s silence (45.3→58.4). At 88.6 'Is it done?' was pointlessly relayed to the agent and answered 7 s later with a garbled read-out of a shell command instead of a direct yes/no."
+  },
+  "apr-07-word-for-word": {
+   "score": 2,
+   "evidence": "Developer waited ~8.7s (8.1→16.8) for the permission relay and ~9.1s (25.7→34.8) after saying yes. The final report ran 17 seconds with unneeded detail about log-file mechanics after a simple 'run it' request."
+  },
+  "bar-03-stop-running-job": {},
+  "bar-01-redirect-mid-reply": {
+   "score": 2,
+   "evidence": "User asked for all sessions at 5.3 but after a 4.7s pause the assistant asked a needless 'which session' at 14.5; the user then waited ~10s (23.8 to 34.1) for a reply. The 40-second answer at 34.1 rambled with padding and an offer instead of leading with the status."
+  },
+  "acc-04-batch-size": {
+   "score": 3,
+   "evidence": "After the request ended at 11.7 the developer waited 13 seconds in silence before the answer at 24.8, and the reply ran 21 seconds with padding like 'it was the only batch size default in the codebase'. The core result (changed 500 to 2000) came first, so it was usable but clearly machine-paced."
+  },
+  "net-02-reconnect-mid-turn": {
+   "score": 3,
+   "evidence": "The developer asked at 5.2–7.2 and waited in silence until 13.8, a 6.6 s gap before any reply. The answer itself was correct and concise, with no needless confirmation, but the single long pause makes it feel like a machine."
+  },
+  "amb-02-which-session-status": {
+   "score": 1,
+   "evidence": "After a 4s pause the assistant asked a reasonable clarification at 11.5, but at 23.5 (another ~5s silence) it replied 'What should tariff API do?', ignoring the version question entirely. The developer never gets an answer and is misunderstood."
+  }
+ }
+}

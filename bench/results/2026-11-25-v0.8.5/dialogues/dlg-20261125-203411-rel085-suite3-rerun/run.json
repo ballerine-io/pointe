@@ -1,0 +1,14 @@
+{
+ "run_id": "dlg-20261125-203411-rel085-suite3-rerun",
+ "arms": [
+  "llm-router"
+ ],
+ "dialogues": [
+  "apr-08-yes-before-readout-ends",
+  "heb-02-mixed-send"
+ ],
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "pointe_dirty": false,
+ "label": "rel085-suite3-rerun",
+ "started": "2026-11-25T20:34:11+0200"
+}

@@ -1,0 +1,93 @@
+<!doctype html>
+<!-- Written by bench/publish.py from the release's results. Do not edit by hand. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pointe benchmarks</title>
+<meta name="description" content="Pointe measured on a tagged release against a plain router baseline: first word, accuracy, coding tasks by voice, and recorded people saying yes, no and pausing. Raw rows and commands included.">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Pointe benchmarks">
+<meta property="og:description" content="Pointe measured on a tagged release against a plain router baseline, with n, spread, limits and raw rows.">
+<meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
+<meta property="og:url" content="https://eng.ballerine.com/pointe/benchmarks/">
+<meta name="twitter:card" content="summary_large_image">
+<script>
+  // The old address: Cloudflare Pages cannot redirect by host, so the page does it.
+  if (location.hostname === 'pointe.ballerine.com') location.replace('https://eng.ballerine.com/pointe/benchmarks/' + location.hash);
+</script>
+<link rel="icon" href="../brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="../brand/apple-touch-icon.png">
+<link rel="stylesheet" href="../style.css">
+<link rel="stylesheet" href="../pages.css">
+<style>
+  .bm-scroll { overflow-x: auto; margin: 8px 0 8px; }
+  .bm-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  .bm-cap { margin-top: 18px; max-width: 80ch; }
+  .bm-table th, .bm-table td { text-align: left; vertical-align: top; padding: 10px 16px 10px 0; border-bottom: 1px solid var(--line); color: var(--body); }
+  .bm-table thead th { color: var(--text); font-weight: 500; border-bottom: 1px solid var(--line-strong); }
+  .bm-table tbody th { color: var(--text); font-weight: 500; white-space: nowrap; }
+  .bm-num td { white-space: nowrap; }
+  .bm-fig { margin: 24px 0 8px; }
+  .bm-svg { display: block; width: 100%; max-width: 860px; height: auto; font-family: var(--font-sans); }
+  .bm-svg text { fill: var(--body); font-size: 13px; }
+  .bm-svg .bm-tick { fill: var(--dim); font-size: 12px; }
+  .bm-svg .bm-label { fill: var(--text); }
+  .bm-svg .bm-val { font-variant-numeric: tabular-nums; }
+  .bm-grid { stroke: var(--line); stroke-width: 1; }
+  .bm-zero { stroke: var(--line-strong); stroke-width: 1.5; }
+  .bm-ci { stroke-width: 2; stroke-linecap: round; }
+  .bm-other .bm-ci { stroke: var(--dim); } .bm-other .bm-dot { fill: var(--dim); }
+  .bm-me .bm-ci { stroke: var(--accent); } .bm-me .bm-dot, .bm-me-fill { fill: var(--accent); }
+  .bm-dot { stroke: var(--bg); stroke-width: 2; }
+  .bm-span { stroke: var(--line-strong); }
+  .bm-kb { fill: none; stroke: var(--text); stroke-width: 1.5; }
+  .bm-rt { fill: var(--dim); stroke: var(--bg); stroke-width: 1; }
+  .bm-hit { fill: transparent; }
+  g:hover > .bm-hit { fill: var(--line-faint); }
+  .bm-findings { margin-top: 16px; display: grid; gap: 8px; max-width: 80ch; }
+  .bm-findings li { padding-left: 16px; position: relative; color: var(--body); }
+  .bm-findings li::before { content: ""; position: absolute; left: 0; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+  .bm-meta { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+  .bm-links { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 24px; font-weight: 500; }
+  .bm-q { margin-top: 10px; max-width: 70ch; font-size: 18px; line-height: 28px; color: var(--body); }
+  @media (max-width: 640px) { .bm-table { min-width: 600px; } .bm-table tbody th { white-space: normal; }
+    .bm-table th, .bm-table td { padding-right: 12px; }
+    .bm-svg text { font-size: 16px; } .bm-svg .bm-tick { font-size: 15px; } }
+  .bm-code { margin: 16px 0; padding: 14px 16px; overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; line-height: 20px; }
+</style>
+</head>
+<body class="pg">
+<a class="pg-skip" href="#main">Skip to content</a>
+<header class="pg-wrap pg-header">
+  <a class="pg-wordmark" href="../"><picture><source srcset="../brand/lockup-small-on-dark.svg" media="(prefers-color-scheme: dark)"><img src="../brand/lockup-small.svg" width="112" height="32" alt="Pointe"></picture></a>
+  <nav aria-label="Pages">
+    <a href="../features/">Features</a>
+    <a href="../docs/">Docs</a>
+    <a href="./" aria-current="page">Benchmarks</a>
+    <a href="../roadmap/">Roadmap</a>
+    <a href="../contribute/">Contribute</a>
+    <a class="pg-gh" href="https://github.com/ballerine-io/pointe">GitHub</a>
+  </nav>
+</header>
+<main id="main" class="pg-wrap">
+{{MAIN}}
+
+</main>
+<footer class="pg-footer">
+  <div class="pg-wrap pg-footer-grid">
+    <p class="pg-small">Built and open-sourced by <a href="../../">Ballerine Engineering</a>. MIT licensed. Pointe <span data-version>{{VERSION}}</span>.</p>
+    <nav aria-label="Project links" class="pg-footer-links">
+      <a href="../">Pointe</a>
+      <a href="../docs/">Docs</a>
+      <a href="hlk/">Humanity's Last Keystroke</a>
+      <a href="https://github.com/ballerine-io/pointe/tree/main/bench">Source</a>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>

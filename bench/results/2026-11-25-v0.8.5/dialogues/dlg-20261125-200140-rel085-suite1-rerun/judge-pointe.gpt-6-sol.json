@@ -1,0 +1,15 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.5,
+ "n": 2,
+ "runs": {
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "At 27.2, the developer said yes, but the assistant waited nearly 10 seconds before asking whether they meant Atlas. At 70.7, it repeated that Atlas was waiting, without resolving the request."
+  },
+  "apr-06-compound-command": {
+   "score": 3,
+   "evidence": "At 16.6s, the assistant gave an awkward permission prompt, though it approved the reply promptly at 26.2s. At 29.5–40.5s, it split another permission request into two turns and read out a long command before asking for approval."
+  }
+ }
+}

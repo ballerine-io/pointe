@@ -1,0 +1,19 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 1.67,
+ "n": 3,
+ "runs": {
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "After the request ended at 9.0s, the assistant was silent until 21.7s, then read out a command and asked for confirmation. Its report from 34.1s to 72.6s was much longer than needed."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "After the user finished at 11.0s, the assistant stayed silent until 25.3s. Its reply ran until 52.5s and gave far more detail than the simple request needed."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 1,
+   "evidence": "At 5.3s, the developer asked for the status of each session, but at 11.8s the assistant asked them to choose one. The conversation ended at 19.3s without any status update."
+  }
+ }
+}

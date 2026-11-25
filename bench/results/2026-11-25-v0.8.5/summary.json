@@ -1,0 +1,870 @@
+{
+ "release": "v0.8.5",
+ "commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "dialogues": {
+  "arms": {
+   "pointe": {
+    "repeats": [
+     {
+      "ttfw_median": 1.962,
+      "ttfw_p90": 4.275,
+      "silent_turns": 1,
+      "speech_turns": 71,
+      "first_sound_median": 1.804,
+      "ttua_median": 3.001,
+      "ttua_session_answer_median": 4.069,
+      "right_session": 0.958,
+      "right_action": 0.923,
+      "wrong_sends": 0,
+      "false_approvals": 0,
+      "voice_approval_ok": 1.0,
+      "unheard_held": 1.0,
+      "words_over_need_median": 6.0,
+      "confirmations_per_10": 0.299,
+      "code_names_exact": 1.0,
+      "hebrew_right_action": 1.0,
+      "english_right_action": 0.915,
+      "talk_over_rate": 0.013,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 3.27,
+       "claude-fable-5-1": 3.42
+      }
+     },
+     {
+      "ttfw_median": 1.918,
+      "ttfw_p90": 5.239,
+      "silent_turns": 2,
+      "speech_turns": 71,
+      "first_sound_median": 1.813,
+      "ttua_median": 3.513,
+      "ttua_session_answer_median": 3.932,
+      "right_session": 0.958,
+      "right_action": 0.909,
+      "wrong_sends": 1,
+      "false_approvals": 0,
+      "voice_approval_ok": 1.0,
+      "unheard_held": 1.0,
+      "words_over_need_median": 6.0,
+      "confirmations_per_10": 0.299,
+      "code_names_exact": 1.0,
+      "hebrew_right_action": 1.0,
+      "english_right_action": 0.9,
+      "talk_over_rate": 0.013,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 3.13,
+       "claude-fable-5-1": 3.3
+      }
+     },
+     {
+      "ttfw_median": 1.945,
+      "ttfw_p90": 4.331,
+      "silent_turns": 1,
+      "speech_turns": 71,
+      "first_sound_median": 1.798,
+      "ttua_median": 3.134,
+      "ttua_session_answer_median": 4.197,
+      "right_session": 0.938,
+      "right_action": 0.87,
+      "wrong_sends": 1,
+      "false_approvals": 0,
+      "voice_approval_ok": 1.0,
+      "unheard_held": 1.0,
+      "words_over_need_median": 7.5,
+      "confirmations_per_10": 0.597,
+      "code_names_exact": 1.0,
+      "hebrew_right_action": 1.0,
+      "english_right_action": 0.857,
+      "talk_over_rate": 0.026,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 3.09,
+       "claude-fable-5-1": 3.4
+      }
+     }
+    ],
+    "pooled": {
+     "ttfw_median": 1.937,
+     "ttfw_p90": 4.507,
+     "silent_turns": 4,
+     "speech_turns": 213,
+     "first_sound_median": 1.804,
+     "ttua_median": 3.255,
+     "ttua_session_answer_median": 4.069,
+     "right_session": 0.951,
+     "right_action": 0.901,
+     "wrong_sends": 2,
+     "false_approvals": 0,
+     "voice_approval_ok": 1.0,
+     "unheard_held": 1.0,
+     "words_over_need_median": 7.0,
+     "confirmations_per_10": 0.398,
+     "code_names_exact": 1.0,
+     "hebrew_right_action": 1.0,
+     "english_right_action": 0.891,
+     "talk_over_rate": 0.018,
+     "ci95": {
+      "ttfw_median": [
+       1.809,
+       2.665
+      ],
+      "ttfw_p90": [
+       3.937,
+       5.573
+      ],
+      "ttua_median": [
+       2.631,
+       3.753
+      ],
+      "right_session": [
+       0.899,
+       0.993
+      ],
+      "right_action": [
+       0.839,
+       0.953
+      ],
+      "words_over_need_median": [
+       0.0,
+       11.0
+      ]
+     },
+     "right_action_k_n": [
+      209,
+      232
+     ],
+     "right_session_k_n": [
+      137,
+      144
+     ],
+     "dialogue_runs": 135
+    },
+    "agreement": {
+     "claude-fable-5-1 vs gpt-6-sol": {
+      "n": 134,
+      "exact": 0.604,
+      "within_one": 0.978,
+      "spearman": 0.786,
+      "mean_difference": 0.22
+     }
+    }
+   },
+   "llm-router": {
+    "repeats": [
+     {
+      "ttfw_median": 8.728,
+      "ttfw_p90": 15.604,
+      "silent_turns": 5,
+      "speech_turns": 71,
+      "first_sound_median": 8.364,
+      "ttua_median": 7.187,
+      "ttua_session_answer_median": 8.38,
+      "right_session": 0.917,
+      "right_action": 0.789,
+      "wrong_sends": 1,
+      "false_approvals": 1,
+      "voice_approval_ok": 0.8,
+      "unheard_held": 0.0,
+      "words_over_need_median": 13.5,
+      "confirmations_per_10": 1.343,
+      "code_names_exact": 0.333,
+      "hebrew_right_action": 0.857,
+      "english_right_action": 0.783,
+      "talk_over_rate": 0.0,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 2.09,
+       "claude-fable-5-1": 2.16
+      }
+     },
+     {
+      "ttfw_median": 9.152,
+      "ttfw_p90": 16.792,
+      "silent_turns": 6,
+      "speech_turns": 71,
+      "first_sound_median": 8.777,
+      "ttua_median": 7.595,
+      "ttua_session_answer_median": 8.63,
+      "right_session": 0.917,
+      "right_action": 0.803,
+      "wrong_sends": 0,
+      "false_approvals": 1,
+      "voice_approval_ok": 0.8,
+      "unheard_held": 0.0,
+      "words_over_need_median": 14.0,
+      "confirmations_per_10": 1.493,
+      "code_names_exact": 0.333,
+      "hebrew_right_action": 0.857,
+      "english_right_action": 0.797,
+      "talk_over_rate": 0.014,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 2.11,
+       "claude-fable-5-1": 2.14
+      }
+     },
+     {
+      "ttfw_median": 8.455,
+      "ttfw_p90": 17.007,
+      "silent_turns": 5,
+      "speech_turns": 71,
+      "first_sound_median": 8.278,
+      "ttua_median": 6.864,
+      "ttua_session_answer_median": 8.127,
+      "right_session": 0.938,
+      "right_action": 0.816,
+      "wrong_sends": 0,
+      "false_approvals": 1,
+      "voice_approval_ok": 0.8,
+      "unheard_held": 0.0,
+      "words_over_need_median": 17.5,
+      "confirmations_per_10": 1.045,
+      "code_names_exact": 0.333,
+      "hebrew_right_action": 0.857,
+      "english_right_action": 0.812,
+      "talk_over_rate": 0.0,
+      "dialogues": 45,
+      "judges": {
+       "gpt-6-sol": 2.22,
+       "claude-fable-5-1": 2.2
+      }
+     }
+    ],
+    "pooled": {
+     "ttfw_median": 8.762,
+     "ttfw_p90": 16.746,
+     "silent_turns": 16,
+     "speech_turns": 213,
+     "first_sound_median": 8.455,
+     "ttua_median": 7.176,
+     "ttua_session_answer_median": 8.374,
+     "right_session": 0.924,
+     "right_action": 0.803,
+     "wrong_sends": 1,
+     "false_approvals": 3,
+     "voice_approval_ok": 0.8,
+     "unheard_held": 0.0,
+     "words_over_need_median": 16.0,
+     "confirmations_per_10": 1.294,
+     "code_names_exact": 0.333,
+     "hebrew_right_action": 0.857,
+     "english_right_action": 0.797,
+     "talk_over_rate": 0.005,
+     "ci95": {
+      "ttfw_median": [
+       7.875,
+       9.959
+      ],
+      "ttfw_p90": [
+       14.425,
+       "silent"
+      ],
+      "ttua_median": [
+       6.324,
+       7.895
+      ],
+      "right_session": [
+       0.84,
+       0.986
+      ],
+      "right_action": [
+       0.69,
+       0.898
+      ],
+      "words_over_need_median": [
+       8.0,
+       27.0
+      ]
+     },
+     "right_action_k_n": [
+      183,
+      228
+     ],
+     "right_session_k_n": [
+      133,
+      144
+     ],
+     "dialogue_runs": 135
+    },
+    "agreement": {
+     "claude-fable-5-1 vs gpt-6-sol": {
+      "n": 131,
+      "exact": 0.672,
+      "within_one": 0.977,
+      "spearman": 0.532,
+      "mean_difference": 0.02
+     }
+    }
+   }
+  },
+  "dropped": [
+   {
+    "run_id": "dlg-20261125-164424-rel085-suite1",
+    "dialogue": "apr-05-wrong-session-yes",
+    "arm": "pointe",
+    "why": "load 21.68 at end"
+   },
+   {
+    "run_id": "dlg-20261125-164424-rel085-suite1",
+    "dialogue": "apr-06-compound-command",
+    "arm": "pointe",
+    "why": "load 20.44 at end"
+   },
+   {
+    "run_id": "dlg-20261125-200140-rel085-suite1-rerun",
+    "dialogue": "apr-05-wrong-session-yes",
+    "arm": "pointe",
+    "why": "load 21.78 at end"
+   },
+   {
+    "run_id": "dlg-20261125-174807-rel085-suite2",
+    "dialogue": "acc-02-send-plain",
+    "arm": "pointe",
+    "why": "load 20.56 at end"
+   },
+   {
+    "run_id": "dlg-20261125-174807-rel085-suite2",
+    "dialogue": "apr-07-word-for-word",
+    "arm": "pointe",
+    "why": "load 27.29 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "apr-08-yes-before-readout-ends",
+    "arm": "pointe",
+    "why": "load 20.79 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "heb-02-mixed-send",
+    "arm": "pointe",
+    "why": "load 46.68 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "heb-03-hebrew-yes",
+    "arm": "pointe",
+    "why": "load 149.69 at end"
+   },
+   {
+    "run_id": "dlg-20261125-164424-rel085-suite1",
+    "dialogue": "lat-02-general-knowledge",
+    "arm": "llm-router",
+    "why": "load 22.79 at end"
+   },
+   {
+    "run_id": "dlg-20261125-174807-rel085-suite2",
+    "dialogue": "apr-06-compound-command",
+    "arm": "llm-router",
+    "why": "load 20.93 at end"
+   },
+   {
+    "run_id": "dlg-20261125-174807-rel085-suite2",
+    "dialogue": "apr-07-word-for-word",
+    "arm": "llm-router",
+    "why": "load 26.35 at end"
+   },
+   {
+    "run_id": "dlg-20261125-200749-rel085-suite2-rerun",
+    "dialogue": "apr-06-compound-command",
+    "arm": "llm-router",
+    "why": "load 28.91 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "apr-08-yes-before-readout-ends",
+    "arm": "llm-router",
+    "why": "load 23.73 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "bar-02-backchannel-keeps-talking",
+    "arm": "llm-router",
+    "why": "load 23.3 at end"
+   },
+   {
+    "run_id": "dlg-20261125-185235-rel085-suite3",
+    "dialogue": "heb-02-mixed-send",
+    "arm": "llm-router",
+    "why": "load 39.17 at end"
+   },
+   {
+    "run_id": "dlg-20261125-201644-rel085-suite3-rerun",
+    "dialogue": "apr-08-yes-before-readout-ends",
+    "arm": "llm-router",
+    "why": "load 25.27 at end"
+   },
+   {
+    "run_id": "dlg-20261125-201644-rel085-suite3-rerun",
+    "dialogue": "heb-02-mixed-send",
+    "arm": "llm-router",
+    "why": "load 139.88 at end"
+   }
+  ],
+  "paired": {
+   "dialogues": 45,
+   "right_action": {
+    "diff": 0.098,
+    "ci95": [
+     -0.019,
+     0.231
+    ]
+   },
+   "right_session": {
+    "diff": 0.028,
+    "ci95": [
+     -0.057,
+     0.132
+    ]
+   },
+   "ttua_median": {
+    "diff": -3.921,
+    "ci95": [
+     -4.916,
+     -3.243
+    ]
+   },
+   "ttua_session_answer_median": {
+    "diff": -4.305,
+    "ci95": [
+     -6.457,
+     -1.5
+    ]
+   },
+   "words_over_need_median": {
+    "diff": -9.0,
+    "ci95": [
+     -18.0,
+     -1.0
+    ]
+   }
+  }
+ },
+ "human": {
+  "arms": {
+   "pointe": {
+    "repeats": [
+     {
+      "dialogues": 80,
+      "yes_approved": {
+       "k": 20,
+       "n": 20,
+       "ci95": [
+        0.839,
+        1.0
+       ],
+       "not_asked": 0,
+       "missed": []
+      },
+      "no_denied": {
+       "k": 20,
+       "n": 20,
+       "ci95": [
+        0.839,
+        1.0
+       ],
+       "not_asked": 0,
+       "missed": []
+      },
+      "false_approvals": 0,
+      "stop": {
+       "n": 20,
+       "measured": 18,
+       "median": 1.34,
+       "p90": 1.67,
+       "max": 12.74
+      },
+      "backchannel": {
+       "n": 20,
+       "over_speech": 18,
+       "false_stop": 1,
+       "ci95": [
+        0.01,
+        0.258
+       ],
+       "sent_something": 2
+      }
+     },
+     {
+      "dialogues": 40,
+      "yes_approved": {
+       "k": 20,
+       "n": 20,
+       "ci95": [
+        0.839,
+        1.0
+       ],
+       "not_asked": 0,
+       "missed": []
+      },
+      "no_denied": {
+       "k": 20,
+       "n": 20,
+       "ci95": [
+        0.839,
+        1.0
+       ],
+       "not_asked": 0,
+       "missed": []
+      },
+      "false_approvals": 0
+     }
+    ]
+   },
+   "llm-router": {
+    "repeats": [
+     {
+      "dialogues": 40,
+      "yes_approved": {
+       "k": 19,
+       "n": 20,
+       "ci95": [
+        0.764,
+        0.991
+       ],
+       "not_asked": 0,
+       "missed": [
+        "hum-yes-008"
+       ]
+      },
+      "no_denied": {
+       "k": 18,
+       "n": 18,
+       "ci95": [
+        0.824,
+        1.0
+       ],
+       "not_asked": 2,
+       "missed": []
+      },
+      "false_approvals": 0
+     },
+     {
+      "dialogues": 40,
+      "yes_approved": {
+       "k": 19,
+       "n": 20,
+       "ci95": [
+        0.764,
+        0.991
+       ],
+       "not_asked": 0,
+       "missed": [
+        "hum-yes-008"
+       ]
+      },
+      "no_denied": {
+       "k": 19,
+       "n": 19,
+       "ci95": [
+        0.832,
+        1.0
+       ],
+       "not_asked": 1,
+       "missed": []
+      },
+      "false_approvals": 0
+     }
+    ]
+   }
+  },
+  "dropped": [
+   {
+    "run_id": "dlg-20261125-182028-rel085-human1-pointe",
+    "dialogue": "hum-no-002",
+    "arm": "pointe",
+    "why": "load 25.02 at end"
+   },
+   {
+    "run_id": "dlg-20261125-182028-rel085-human1-pointe",
+    "dialogue": "hum-listen-010",
+    "arm": "pointe",
+    "why": "load 20.3 at end"
+   },
+   {
+    "run_id": "dlg-20261125-182028-rel085-human1-pointe",
+    "dialogue": "hum-listen-012",
+    "arm": "pointe",
+    "why": "load 20.09 at end"
+   },
+   {
+    "run_id": "dlg-20261125-182028-rel085-human1-pointe",
+    "dialogue": "hum-listen-013",
+    "arm": "pointe",
+    "why": "load 21.74 at end"
+   },
+   {
+    "run_id": "dlg-20261125-182028-rel085-human1-pointe",
+    "dialogue": "hum-listen-015",
+    "arm": "pointe",
+    "why": "load 20.17 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-yes-002",
+    "arm": "pointe",
+    "why": "load 23.72 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-002",
+    "arm": "pointe",
+    "why": "load 20.96 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-004",
+    "arm": "pointe",
+    "why": "load 30.54 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-005",
+    "arm": "pointe",
+    "why": "load 22.02 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-017",
+    "arm": "pointe",
+    "why": "load 26.03 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-019",
+    "arm": "pointe",
+    "why": "load 21.33 at end"
+   },
+   {
+    "run_id": "dlg-20261125-215804-rel085-human2-rerun",
+    "dialogue": "hum-yes-002",
+    "arm": "pointe",
+    "why": "load 21.67 at end"
+   },
+   {
+    "run_id": "dlg-20261125-215804-rel085-human2-rerun",
+    "dialogue": "hum-no-005",
+    "arm": "pointe",
+    "why": "load 22.29 at end"
+   },
+   {
+    "run_id": "dlg-20261125-215804-rel085-human2-rerun",
+    "dialogue": "hum-no-019",
+    "arm": "pointe",
+    "why": "load 27.53 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-no-002",
+    "arm": "llm-router",
+    "why": "load 137.65 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-yes-002",
+    "arm": "llm-router",
+    "why": "load 161.96 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-yes-007",
+    "arm": "llm-router",
+    "why": "load 26.05 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-no-009",
+    "arm": "llm-router",
+    "why": "load 25.05 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-yes-012",
+    "arm": "llm-router",
+    "why": "load 29.27 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-no-012",
+    "arm": "llm-router",
+    "why": "load 25.39 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-no-016",
+    "arm": "llm-router",
+    "why": "load 21.4 at end"
+   },
+   {
+    "run_id": "dlg-20261125-194351-rel085-human1-router",
+    "dialogue": "hum-yes-017",
+    "arm": "llm-router",
+    "why": "load 237.23 at end"
+   },
+   {
+    "run_id": "dlg-20261125-214818-rel085-human1-router-rerun",
+    "dialogue": "hum-no-002",
+    "arm": "llm-router",
+    "why": "load 29.83 at end"
+   },
+   {
+    "run_id": "dlg-20261125-214818-rel085-human1-router-rerun",
+    "dialogue": "hum-yes-002",
+    "arm": "llm-router",
+    "why": "load 23.91 at end"
+   },
+   {
+    "run_id": "dlg-20261125-214818-rel085-human1-router-rerun",
+    "dialogue": "hum-yes-012",
+    "arm": "llm-router",
+    "why": "load 25.26 at end"
+   },
+   {
+    "run_id": "dlg-20261125-214818-rel085-human1-router-rerun",
+    "dialogue": "hum-no-012",
+    "arm": "llm-router",
+    "why": "load 23.55 at end"
+   },
+   {
+    "run_id": "dlg-20261125-221056-rel085-human1-router-rerun",
+    "dialogue": "hum-no-002",
+    "arm": "llm-router",
+    "why": "load 26.42 at end"
+   },
+   {
+    "run_id": "dlg-20261125-221056-rel085-human1-router-rerun",
+    "dialogue": "hum-yes-002",
+    "arm": "llm-router",
+    "why": "load 29.35 at end"
+   },
+   {
+    "run_id": "dlg-20261125-221056-rel085-human1-router-rerun",
+    "dialogue": "hum-no-012",
+    "arm": "llm-router",
+    "why": "load 23.52 at end"
+   },
+   {
+    "run_id": "dlg-20261125-221056-rel085-human1-router-rerun",
+    "dialogue": "hum-yes-012",
+    "arm": "llm-router",
+    "why": "load 33.97 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-004",
+    "arm": "llm-router",
+    "why": "load 28.14 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-yes-017",
+    "arm": "llm-router",
+    "why": "load 27.87 at end"
+   },
+   {
+    "run_id": "dlg-20261125-203027-rel085-human2",
+    "dialogue": "hum-no-019",
+    "arm": "llm-router",
+    "why": "load 21.04 at end"
+   }
+  ]
+ },
+ "turns": {
+  "runs": {
+   "fresh run at 0.8.5": {
+    "clips": 574,
+    "kept": 574,
+    "dropped_load_or_error": 0,
+    "load_median": 9.4,
+    "load_max": 19.6,
+    "all": {
+     "speakers": 37,
+     "pauses": 291,
+     "cut_ins": 27,
+     "rate": 0.093,
+     "ci95_by_speaker": [
+      0.061,
+      0.126
+     ],
+     "ends": 283,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    },
+    "test": {
+     "speakers": 22,
+     "pauses": 171,
+     "cut_ins": 13,
+     "rate": 0.076,
+     "ci95_by_speaker": [
+      0.04,
+      0.116
+     ],
+     "ends": 163,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    },
+    "train": {
+     "speakers": 15,
+     "pauses": 120,
+     "cut_ins": 14,
+     "rate": 0.117,
+     "ci95_by_speaker": [
+      0.058,
+      0.183
+     ],
+     "ends": 120,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    }
+   },
+   "earlier run, same clips, replayed": {
+    "clips": 574,
+    "kept": 568,
+    "dropped_load_or_error": 6,
+    "load_median": 10.6,
+    "load_max": 20.0,
+    "all": {
+     "speakers": 37,
+     "pauses": 287,
+     "cut_ins": 27,
+     "rate": 0.094,
+     "ci95_by_speaker": [
+      0.062,
+      0.128
+     ],
+     "ends": 281,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    },
+    "test": {
+     "speakers": 22,
+     "pauses": 168,
+     "cut_ins": 13,
+     "rate": 0.077,
+     "ci95_by_speaker": [
+      0.041,
+      0.118
+     ],
+     "ends": 162,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    },
+    "train": {
+     "speakers": 15,
+     "pauses": 119,
+     "cut_ins": 14,
+     "rate": 0.118,
+     "ci95_by_speaker": [
+      0.058,
+      0.183
+     ],
+     "ends": 119,
+     "end_taken_median": 1.3,
+     "end_taken_p90": 1.3
+    }
+   }
+  },
+  "headline": "fresh run at 0.8.5"
+ }
+}

@@ -1,0 +1,15 @@
+{
+ "run_id": "dlg-20261125-201041-rel085-suite3-rerun",
+ "arms": [
+  "pointe"
+ ],
+ "dialogues": [
+  "apr-08-yes-before-readout-ends",
+  "heb-02-mixed-send",
+  "heb-03-hebrew-yes"
+ ],
+ "pointe_commit": "756088c76032fdcd60a6851f32c1ce04cfcd4768",
+ "pointe_dirty": false,
+ "label": "rel085-suite3-rerun",
+ "started": "2026-11-25T20:10:42+0200"
+}

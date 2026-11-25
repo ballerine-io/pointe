@@ -4,21 +4,19 @@
  "subtitle": "a pilot voice-only coding benchmark, v0.1, synthetic speech, n = 36 in 12 families",
  "unit": "family",
  "runs": [
-  "hlk-20261123-040919",
-  "hlk-20261123-085104",
-  "hlk-20261123-161156"
+  "hlk-20261125-170854"
  ],
  "dates": [
-  "2026-11-23"
+  "2026-11-25"
  ],
  "agent_model": [
   "claude-haiku-5-5"
  ],
  "claude_code": [
-  "2.1.330"
+  "2.1.332"
  ],
  "permission_mode": "acceptEdits",
- "pointe_commit": "84eafbccc24a",
+ "pointe_commit": "756088c76032",
  "router_brain": [
   "anthropic:claude-sonnet-5-5"
  ],
@@ -38,32 +36,22 @@
  ],
  "arms": [
   "keyboard-canonical",
-  "keyboard-transcript",
   "pointe",
   "llm-router",
-  "naive",
   "null"
  ],
  "passes": {
   "keyboard-canonical": [
-   70,
-   72
-  ],
-  "keyboard-transcript": [
-   65,
-   72
+   104,
+   108
   ],
   "pointe": [
-   27,
-   72
+   85,
+   105
   ],
   "llm-router": [
-   62,
-   72
-  ],
-  "naive": [
-   47,
-   72
+   93,
+   108
   ],
   "null": [
    0,
@@ -73,252 +61,152 @@
  "per_family": {
   "keyboard-canonical": {
    "twin-symbols": [
-    5,
-    6
+    9,
+    9
    ],
    "homophone-files": [
-    6,
-    6
+    9,
+    9
    ],
    "dictated-literals": [
-    6,
-    6
+    9,
+    9
    ],
    "spelled-out": [
-    6,
-    6
+    9,
+    9
    ],
    "noisy-paths": [
-    6,
-    6
+    9,
+    9
    ],
    "self-correction": [
-    6,
-    6
+    9,
+    9
    ],
    "long-dictation": [
-    6,
-    6
+    9,
+    9
    ],
    "read-then-decide": [
-    6,
-    6
+    9,
+    9
    ],
    "deny-the-decoy": [
-    6,
-    6
+    8,
+    9
    ],
    "mid-task-redirect": [
-    6,
-    6
+    9,
+    9
    ],
    "two-repo-handoff": [
-    6,
-    6
+    9,
+    9
    ],
    "impossible-as-stated": [
-    5,
-    6
-   ]
-  },
-  "keyboard-transcript": {
-   "twin-symbols": [
-    4,
-    6
-   ],
-   "homophone-files": [
     6,
-    6
-   ],
-   "dictated-literals": [
-    6,
-    6
-   ],
-   "spelled-out": [
-    4,
-    6
-   ],
-   "noisy-paths": [
-    6,
-    6
-   ],
-   "self-correction": [
-    6,
-    6
-   ],
-   "long-dictation": [
-    6,
-    6
-   ],
-   "read-then-decide": [
-    6,
-    6
-   ],
-   "deny-the-decoy": [
-    6,
-    6
-   ],
-   "mid-task-redirect": [
-    5,
-    6
-   ],
-   "two-repo-handoff": [
-    6,
-    6
-   ],
-   "impossible-as-stated": [
-    4,
-    6
+    9
    ]
   },
   "pointe": {
    "twin-symbols": [
-    0,
-    6
+    1,
+    9
    ],
    "homophone-files": [
-    1,
-    6
+    8,
+    9
    ],
    "dictated-literals": [
-    5,
-    6
+    9,
+    9
    ],
    "spelled-out": [
-    4,
-    6
+    7,
+    9
    ],
    "noisy-paths": [
-    0,
-    6
+    7,
+    8
    ],
    "self-correction": [
-    3,
-    6
+    7,
+    9
    ],
    "long-dictation": [
-    3,
-    6
+    4,
+    7
    ],
    "read-then-decide": [
-    1,
-    6
+    9,
+    9
    ],
    "deny-the-decoy": [
-    5,
-    6
+    9,
+    9
    ],
    "mid-task-redirect": [
-    1,
-    6
+    7,
+    9
    ],
    "two-repo-handoff": [
-    1,
-    6
+    8,
+    9
    ],
    "impossible-as-stated": [
-    3,
-    6
+    9,
+    9
    ]
   },
   "llm-router": {
    "twin-symbols": [
-    5,
-    6
+    7,
+    9
    ],
    "homophone-files": [
-    6,
-    6
+    7,
+    9
    ],
    "dictated-literals": [
-    6,
-    6
+    9,
+    9
    ],
    "spelled-out": [
-    6,
-    6
+    9,
+    9
    ],
    "noisy-paths": [
-    5,
-    6
+    9,
+    9
    ],
    "self-correction": [
-    6,
-    6
+    9,
+    9
    ],
    "long-dictation": [
-    6,
-    6
+    9,
+    9
    ],
    "read-then-decide": [
-    6,
-    6
+    9,
+    9
    ],
    "deny-the-decoy": [
-    6,
-    6
+    9,
+    9
    ],
    "mid-task-redirect": [
     0,
-    6
+    9
    ],
    "two-repo-handoff": [
-    4,
-    6
+    9,
+    9
    ],
    "impossible-as-stated": [
-    6,
-    6
-   ]
-  },
-  "naive": {
-   "twin-symbols": [
-    1,
-    6
-   ],
-   "homophone-files": [
-    6,
-    6
-   ],
-   "dictated-literals": [
-    6,
-    6
-   ],
-   "spelled-out": [
-    3,
-    6
-   ],
-   "noisy-paths": [
-    4,
-    6
-   ],
-   "self-correction": [
-    3,
-    6
-   ],
-   "long-dictation": [
-    2,
-    6
-   ],
-   "read-then-decide": [
-    6,
-    6
-   ],
-   "deny-the-decoy": [
-    6,
-    6
-   ],
-   "mid-task-redirect": [
-    0,
-    6
-   ],
-   "two-repo-handoff": [
-    5,
-    6
-   ],
-   "impossible-as-stated": [
-    5,
-    6
+    7,
+    9
    ]
   },
   "null": {
@@ -374,40 +262,32 @@
  },
  "gaps": {
   "keyboard-canonical minus pointe": [
-   0.5972222222222222,
-   0.4305555555555556,
-   0.75
+   0.15343915343915338,
+   0.0010482180293500676,
+   0.3273744041070773
   ],
   "keyboard-canonical minus llm-router": [
-   0.11111111111111105,
-   -0.01388888888888895,
-   0.3055555555555556
+   0.10185185185185175,
+   -0.0185185185185186,
+   0.2870370370370371
   ],
   "pointe minus llm-router": [
-   -0.48611111111111116,
-   -0.6527777777777778,
-   -0.3055555555555556
+   -0.051587301587301626,
+   -0.234337140879197,
+   0.14587700908455625
   ]
  },
  "flips": {
   "keyboard-canonical": [
-   2,
-   36
-  ],
-  "keyboard-transcript": [
-   3,
+   0,
    36
   ],
   "pointe": [
-   13,
+   7,
    36
   ],
   "llm-router": [
    2,
-   36
-  ],
-  "naive": [
-   5,
    36
   ],
   "null": [
@@ -415,19 +295,10 @@
    0
   ]
  },
- "unpublished": {
-  "keyboard-canonical": [
-   12,
-   12
-  ],
-  "pointe": [
-   6,
-   12
-  ]
- },
- "pointe_failed": 45,
- "pointe_failed_refused_yes": 31,
- "pointe_failed_refused_yes_files_changed": 9,
- "spend_usd": 43.11,
+ "unpublished": {},
+ "pointe_failed": 20,
+ "pointe_failed_refused_yes": 0,
+ "pointe_failed_refused_yes_files_changed": 0,
+ "spend_usd": 68.69,
  "cap_usd": 55
 }

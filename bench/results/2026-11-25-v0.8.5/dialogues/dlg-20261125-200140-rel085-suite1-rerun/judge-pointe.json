@@ -1,0 +1,15 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 2.0,
+ "n": 2,
+ "runs": {
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "Initial relay at 12.6 was quick, but the user's 'Yes for billing' at 27.2 got no response until 38.1 (~10 s silence), and the assistant then asked again rather than resolving the obvious yes. Another 28 s gap to 70.7 with a repeated prompt, so Atlas never actually got its answer."
+  },
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "Initial relay was quick (sent at 14.4 after user finished at 11.2), but the permission read at 31.2–40.5 was a rambling command dump, and the developer was then left in silence until 82.5 with no answer to the 'should it?' prompt. The 'L.S.' garble at 16.6 and the repeated permission nag at 82.5 made it feel mechanical and tiring."
+  }
+ }
+}

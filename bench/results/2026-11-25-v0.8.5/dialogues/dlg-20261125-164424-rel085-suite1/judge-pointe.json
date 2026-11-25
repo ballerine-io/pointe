@@ -1,0 +1,187 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 3.47,
+ "n": 45,
+ "runs": {
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "Fast relay at 11.6 after a 5.2s request, but at 24.0 the assistant spoke 'או שיר' over the user's 22.9 answer and then at 26.3 volunteered an unrequested status update. The 33.9–54.4 permission read-back is a 20-second verbatim recitation of a shell command, followed by silence until 83.8 where it nags the user to answer."
+  },
+  "brv-04-short-answer": {
+   "score": 4,
+   "evidence": "User asked at 5.4–8.8, first voice feedback came at 12.4 (~3.6s silence), then the one-word answer 'Tuesday' at 15.6. Answer was appropriately terse and direct, with only a moderate pause as the flaw."
+  },
+  "orc-01-overview": {
+   "score": 4,
+   "evidence": "Reply began at 8.4 after a 1.9s pause and led with the useful summary, then gave per-session status by 21.2. The trailing 'Next move. Ask your question about that file.' is odd filler that doesn't fit the question."
+  },
+  "rec-03-noisy-name": {
+   "score": 1,
+   "evidence": "At 5.0 the developer said 'dedupe rows' but the assistant misheard it as 'the 2 rows' (10.8, 13.3), asking a needless question and relaying a wrong instruction to Quarry. The result at 24.1 is a non-answer built on the misunderstanding, so the developer got no useful action and must repeat themselves."
+  },
+  "apr-02-hedge-not-yes": {
+   "score": 3,
+   "evidence": "Delivery was quick (5.3→11.6 confirm) and the permission request at 16.9 was concise, but the explanation at 29.5 ran 14 s and came after a 2 s pause. At 43.4 the user was left in ~30 s of silence until a nag at 72.8 rather than a natural wait, making it feel machine-like."
+  },
+  "heb-04-switch-language": {
+   "score": 5,
+   "evidence": "Both questions got a brief bridge within ~1.5 s (8.8, 22.7) and a direct answer by 10.7 and 24.9 with no needless checks. The assistant switched to Hebrew at 18.1 seamlessly and answered concisely with the useful fact first."
+  },
+  "apr-01-yes-readable": {
+   "score": 4,
+   "evidence": "Delivery and confirmation came at 12.3-12.9 after a 3.7s wait, and the permission relay at 14.7 and approval at 24.3 were prompt and terse. The report at 32.9-45.3 led with the result but tacked on a speculative 'notes are stale' sentence and a 'there's more' offer that padded it slightly."
+  },
+  "amb-03-explicit-is-clear": {
+   "score": 4,
+   "evidence": "Relay confirmed quickly at 13.7 after the 11.7 request, and the permission ask at 19.0 was concise and necessary. The only flaw is the 40-second gap before the 71.6 reminder, which is a reasonable nudge rather than a failure."
+  },
+  "acc-01-send-identifier": {
+   "score": 3,
+   "evidence": "Delivery and ack were fast (14.6 after 12.9), but the permission relay at 20.5 ran ~10s and was followed by a 42s gap before a reminder at 72.3 that offered a 'read it' option rather than progress. The 'what did it change' answer took 3.4s and was useful but admitted not seeing the edits, with a trailing 'there's more if you want it.'"
+  },
+  "apr-04-destructive-read-in-full": {
+   "score": 4,
+   "evidence": "Fast ack at 15.4 and approval at 32.0 within ~1s of 'Yes' at 30.9; the 15s wait before the 41.5 report is work-bound. The permission read-out at 23.0 was choppy and fragmentary ('Read only. Find. Also in slash TMP...') and the 41.5 summary runs a bit long, though it honestly flags that the search was done despite instructions."
+  },
+  "acc-04-batch-size": {
+   "score": 4,
+   "evidence": "Request at 5.4 was relayed and confirmed by 12.3 with a terse 'Sent to Quarry', then the completion report at 25.5 was useful and led with the result. The only flaw is the ~7s gap after the user's 'Okay' at 17.4 and a slightly extra trailing sentence about commits/tests."
+  },
+  "rec-02-correction": {
+   "score": 3,
+   "evidence": "Replies were prompt and brief (9.7, 22.3), and the correction was handled cleanly, but the 30.0–40.7 billing report was an unrequested interruption padded with an obvious explanation. The 45.0 question waited 4.1 s and the answer ended with a needless 'want me to run the type checker?' offer."
+  },
+  "net-03-loss-send": {
+   "score": 5,
+   "evidence": "Request at 5.3-7.8 was relayed by 9.2 and acknowledged at 9.6 with a brief 'Asking Quarry', then the answer arrived at 11.6 within ~4s of the question ending. The reply was concise, led with the useful fact (Priya), and had no needless confirmation or padding."
+  },
+  "net-02-reconnect-mid-turn": {
+   "score": 2,
+   "evidence": "User asked at 5.3s; a non-answer status line came at 15.6s (8s silence), and the actual branch name only arrived at 29.2s, ~22s later, after a stray 'Billing' fragment. The replies also padded with needless 'nothing needs you' lines."
+  },
+  "lat-05-reviewer": {
+   "score": 4,
+   "evidence": "User asked at 5.3, first voice response ('Asking Quarry') at 10.6, a 3.3 s silence, then the answer at 12.4. Answer was short and direct, with only a slight needless citation of 'Notes Line 6'."
+  },
+  "bar-01-redirect-mid-reply": {
+   "score": 2,
+   "evidence": "At 14.0 the user interrupted the VOICE line which was still speaking (12.5–15.2), and the second reply at 19.4 came 3s later but just repeated 'idle, needs nothing' before relaying the real question; the actual quarry rundown only arrived at 34.1–44.4, ~18s after the ask. Interim chatter at 23.2 ('I asked Quarry') and a stray 'quarry.' at 33.0 pad the wait, and the final answer omits the goal that was asked about."
+  },
+  "orc-03-report-while-focused": {
+   "score": 3,
+   "evidence": "Responses were prompt (12.4 after 10.5; 24.2 after 20.3) and the quarry answer arrived at 27.8, but the quarry reply was clipped and ended with an odd \"Do you have it?\" (27.8–35.1). The billing answer at 42.2 was useful, yet a split, padded read-back followed (47.6, 56.4) with an unsolicited 10-second recap long after the question."
+  },
+  "orc-02-multi-send": {
+   "score": 3,
+   "evidence": "The reply at 17.0 came ~5s after the user finished at 12.0, and the delivered messages at 15.2/15.9 omitted 'owner is Sam' even though the voice line claimed it included it. The 30.8 update was useful but trailed off oddly with 'There's more.' and a dangling 'if you want it.' at 39.1."
+  },
+  "brv-01-plain-instruction-no-readback": {
+   "score": 5,
+   "evidence": "User finished at 9.1, delivery at 10.9 and confirmation at 11.2 — about two seconds, no needless check. Report at 20.1 is concise, leads with the result, and the gap was waiting on the agent rather than the assistant."
+  },
+  "apr-06-compound-command": {
+   "score": 4,
+   "evidence": "Responses were prompt (confirmation at 14.4 after 11.4, approval at 30.8 after 29.2) and the permission read-back at 19.2 was appropriate. The final report at 38.2 ran 15 seconds with speculative padding about stale notes and a trailing 'Claude hasn't checked which' at 53.6, slightly rambling."
+  },
+  "bar-04-pause-mid-sentence": {
+   "score": 4,
+   "evidence": "The relay was quick and confirmed at 12.8 within ~2s of the user finishing at 11.0, with the result reported back around 20-33s. The report-back was slightly garbled/choppy (20.0-23.5 'Load batches in. Load now prints load batches') and a bit verbose, but otherwise a natural, useful exchange."
+  },
+  "lat-01-quick-status": {
+   "score": 4,
+   "evidence": "Both answers arrived about 3-4 s after the question (6.9→8.7 'Asking Billing', answer at 10.5; 26.6→28.3, answer at 30.2), useful fact first. Minor flaw: the caveat about Notes and not rerunning tests is repeated at 17.4 and 30.2, adding a somewhat needless extra sentence each time."
+  },
+  "lat-02-general-knowledge": {
+   "score": 5,
+   "evidence": "Answer started at 11.2, two seconds after the question ended at 9.2, and gave a crisp two-part definition with no padding or check-back. The user asked for one sentence and got two short ones ending at 20.4, a minor stretch but still tight and natural."
+  },
+  "amb-01-shared-word": {
+   "score": 2,
+   "evidence": "The clarifying question at 11.6 was fair, but the user's answer of 'web' at 16.7 was contradicted by the delivery at 19.8 which told tariff-web to bump the version in the tariff-api repo. The permission prompt at 23.3–31.8 was fine, yet silence then stretched to 73.0 before a nagging, stuttering re-prompt that the developer never answered."
+  },
+  "bar-03-stop-running-job": {
+   "score": 4,
+   "evidence": "At 10.9→12.6 the first ack came in under two seconds and was crisp ('Sent to billing'). The stop at 22.5→24.1 took 1.6s and the reply added a mild qualifier ('after the step it's on') rather than a pure confirmation, a small but acceptable detail."
+  },
+  "brv-02-backchannel-while-working": {
+   "score": 4,
+   "evidence": "The instruction was delivered promptly (12.0) with a crisp 'Sent to Quarry' at 12.4, and the report at 28.1 was useful and concise, though it followed about 9 s of silence after the user's 'Mm-hm' at 19.2. Minor flaw: the report sentence was slightly garbled/clipped at the end."
+  },
+  "amb-02-which-session-status": {
+   "score": 3,
+   "evidence": "The clarifying question at 11.6 was reasonable (two tariff projects) but came after a 4.4 s pause, and the answer landed at 24.9, 7 s after the user's reply at 17.9. The version was stated first, but the trailing sentence at 32.2 about 'tariff on' being misheard is needless padding."
+  },
+  "net-01-loss-status": {
+   "score": 4,
+   "evidence": "First question answered at 14.0 after a 3.2s wait with a filler 'Asking Quarry' at 10.6, and the reply at 14.0–24.8 is somewhat long with a needless 'There's more if you want it.' The relay at 31.5–33.1 was quick and terse, and the 42.8 report was useful and concise."
+  },
+  "heb-05-accent-english": {
+   "score": 4,
+   "evidence": "Instruction delivered and confirmed within ~1.7 s (11.8 after 10.1), short ack with no needless check. Follow-up report at 20.9 was useful and concise, though the ~8 s gap after the ack was a bit long while Atlas responded."
+  },
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "Response to the request was quick (12.6s) and the permission relay was prompt (15.3s), but after the user said 'Yes for billing' at 24.2 there was a ~9s silence before the clarifying question at 34.2. The clarification itself was reasonable, yet the assistant then nagged at 63.4 and 66.7 without resolution, leaving the exchange stalled."
+  },
+  "acc-03-two-part-instruction": {
+   "score": 4,
+   "evidence": "The instruction was relayed and confirmed by 15.0, about 3 s after the user finished at 11.8, and the pytest permission request was read clearly at 26.9. The only soft spot is the 47 s gap before the 81.2 reminder, though the question itself was a legitimate permission prompt rather than a needless check."
+  },
+  "acc-02-send-plain": {
+   "score": 5,
+   "evidence": "User finished at 10.4, instruction delivered at 11.8 and confirmed aloud at 12.1 with a terse 'Sent to Quarry.' The result report at 22.6 came as soon as the agent finished, led with the outcome, and added no padding or needless checks."
+  },
+  "rec-01-truncated": {
+   "score": 3,
+   "evidence": "The user's trailing sentence at 5.4 left a 4.3s gap before a reasonable clarification at 10.6, and the follow-up at 17.5 was confirmed at 22.7 after a ~3s pause. The 34.0 report back was concise and useful, but the extra unprompted sentence at 41.7 and two 3-4s pauses make it feel machine-like."
+  },
+  "orc-04-hold": {
+   "score": 4,
+   "evidence": "Responses were prompt (1.7s at 12.0, 1.7s at 19.9, 2.6s at 48.7) and concise, with the instruction relayed without needless confirmation. The only flaw is the slightly long pause and a somewhat wordy report at 48.7, plus the report relays Atlas's question rather than just stating the result."
+  },
+  "apr-03-no": {
+   "score": 2,
+   "evidence": "At 12.1 the developer's 'unittest' was relayed as 'UNIREST', leading atlas to propose a wrong command at 20.1 that the developer had to deny at 29.7. The final report at 41.1 is useful but the task made no progress because of the misunderstanding, with a 3.6 s gap before the first reply."
+  },
+  "brv-03-thanks-silence": {
+   "score": 4,
+   "evidence": "Reply began at 8.6 after the question ended at 6.8, a ~1.8s pause with a brief 'asking Atlas' bridge, then a concise, useful answer (Hero.png to WebP, 2.3 MB, Lighthouse 71). The answer ran until 19.9 which is a bit long for 'one or two sentences', and the leading 'asking Atlas. Next step.' is minor filler; user was satisfied at 24.3."
+  },
+  "acc-05-focus-pronoun": {
+   "score": 3,
+   "evidence": "First answer took ~11s (7.7 to 19.1 with a filler at 11.6) and was self-contradictory, claiming 56-byte hero is biggest while notes is 143. Second request was relayed in ~4s and the follow-up at 52.2 was useful, but 'Sent to Atlas' is padding before the real answer."
+  },
+  "lat-04-ask-then-send": {
+   "score": 1,
+   "evidence": "The 5.3 s Lighthouse question was never answered at all; the user had to move on at 15.7 s with no reply. The relay at 23.8 garbled 'webp' to 'web', the permission report at 34.8–41.4 was fragmented and self-contradictory ('Fine' then 'Should it?'), followed by 40 s of silence."
+  },
+  "rec-04-say-again": {
+   "score": 4,
+   "evidence": "Answer arrived at 11.7 after a question at 7.6 with an 'Asking Atlas' bridge at 9.3, and the repeat came promptly at 27.8 with the key number first. One small flaw: the trailing 'Want it to verify?' at 34.0 is a needless check, and the ~4s initial wait is a touch long."
+  },
+  "heb-01-status-hebrew": {
+   "score": 3,
+   "evidence": "User asked at 5.5 and got only a filler 'I asked billing' at 11.7 after a 3.4s pause, with the real answer arriving at 15.2 (~7s wait). The answer itself is useful and leads with the count, but ends with a caveat sentence of padding."
+  },
+  "apr-07-word-for-word": {
+   "score": 4,
+   "evidence": "Replies came promptly (8.1→10.0, 25.7→26.2) and were brief, with the command permission read out at 28.3 and a sensible reminder at 73.3 when the developer stayed silent. Minor clunkiness in the verbatim 'shscripts slash slow underscore check' readout and the slightly needless 'Approve' echo keep it short of a 5."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "Pause of 3.7s before the first ack at 12.7, then the permission prompt at 18.5 ran 7.5s and told the user to wait, so their 'Yes' at 18.9 was ignored and the question repeated at 26.8 before approval at 35.7. The final report at 42.9–56.6 was useful but came with a long tail and the whole exchange felt clunky and repetitive."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 4,
+   "evidence": "Response started 2.1 s after the question (7.1→9.2) with the useful headline first, then a short status at 10.9. The user's 'Mm-hm' at 11.1 overlapped the assistant's sentence, but it was a backchannel rather than the assistant talking over the developer; the 'there's more if you want it' tail is slightly padded."
+  },
+  "heb-02-mixed-send": {
+   "score": 4,
+   "evidence": "The request at 5.3–11.0 was relayed by 13.1 and acknowledged at 13.4 with a crisp 'sent to quarry'. The result came at 24.8, a ~10 s wait after the ack, but it was a concise, useful report with no needless confirmation."
+  },
+  "lat-03-status-two-sessions": {
+   "score": 4,
+   "evidence": "The first answer started at 9.5 with 'Asking Quarry' and the substantive reply at 11.7-21.0, about 4s after the question, with a small stutter at 12.3. The follow-up at 25.4 was answered promptly (28.5) and tersely, though it repeated info already given rather than adding anything."
+  }
+ }
+}

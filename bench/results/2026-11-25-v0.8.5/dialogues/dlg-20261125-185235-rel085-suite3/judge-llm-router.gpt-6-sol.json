@@ -1,0 +1,187 @@
+{
+ "model": "gpt-6-sol",
+ "mean": 2.22,
+ "n": 45,
+ "runs": {
+  "heb-04-switch-language": {
+   "score": 3,
+   "evidence": "The first answer starts 7.1 seconds after the question ends (7.0–14.1). The second takes 7.3 seconds to start (26.2–33.5) and is longer than the question needs."
+  },
+  "apr-02-hedge-not-yes": {
+   "score": 3,
+   "evidence": "At 15.8, the assistant responded after a 7.3-second silence with a hard-to-follow command and an approval question. At 34.3, it took another 4.8 seconds to explain the command, then repeated the approval question."
+  },
+  "lat-03-status-two-sessions": {
+   "score": 3,
+   "evidence": "After the question ended at 7.7s, the answer began at 14.2s; the follow-up had a similar 6.9-second pause. Both answers were direct and useful."
+  },
+  "brv-02-backchannel-while-working": {
+   "score": 2,
+   "evidence": "After the request ended at 10.6s, the assistant stayed silent until 27.6s. Its 27.6–43.4s reply read out a long, hard-to-follow command instead of briefly asking for permission."
+  },
+  "rec-03-noisy-name": {
+   "score": 2,
+   "evidence": "After the request ended at 8.6s, the reply did not start until 18.5s. The assistant changed “dedupe rows” to “loop rows” and reported commenting on status rows instead."
+  },
+  "acc-01-send-identifier": {
+   "score": 2,
+   "evidence": "After the request ended at 12.7s, the developer waited until 25.7s for a long, hard-to-follow permission question. After asking what changed at 93.4s, they waited until 101.6s for an answer padded with unrelated details."
+  },
+  "rec-04-say-again": {
+   "score": 1,
+   "evidence": "After the question at 5.2s, the assistant waited until 14.7s and gave an unclear permission request instead of the image size. The developer asked for a repeat at 87.5s and received no answer."
+  },
+  "brv-03-thanks-silence": {
+   "score": 4,
+   "evidence": "The answer began at 13.6, about seven seconds after the question ended at 6.8. It gave a clear next step, and the developer replied, “Great, thanks,” at 27.2."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 1,
+   "evidence": "At 5.3–7.0, the developer asked for the status of each session. After a 4.2-second pause, the assistant asked them to choose one instead and gave no status."
+  },
+  "apr-04-destructive-read-in-full": {
+   "score": 2,
+   "evidence": "After the request ended at 13.6 seconds, the first reply did not start until 24.4 seconds. The 30-second reply asked for a path instead of simply passing along the instruction, and no response followed the developer’s “Yes” at 69.6 seconds."
+  },
+  "acc-02-send-plain": {
+   "score": 2,
+   "evidence": "After the request ended at 10.4 seconds, the developer waited 11.5 seconds for a response. The reply from 21.9 to 40.7 seconds was much longer than needed for a simple docstring update."
+  },
+  "net-03-loss-send": {
+   "score": 2,
+   "evidence": "The developer waited 8 seconds after finishing at 7.9 before hearing a response at 15.9. The answer was useful and direct: Priya reviews the index change."
+  },
+  "apr-05-wrong-session-yes": {
+   "score": 2,
+   "evidence": "After the request ended at 9.3s, the developer waited until 19.0s for a long, hard-to-follow permission prompt. After the reply at 40.7s, another 4.9s passed before the assistant asked for clarification."
+  },
+  "orc-04-hold": {
+   "score": 2,
+   "evidence": "After the request ended at 10.3s, the assistant waited until 26.9s to respond, then gave a long report and spoke over the user at 45.6s. When the user returned at 73.6s, the answer did not start until 86.0s and repeated the placeholder explanation."
+  },
+  "orc-01-overview": {
+   "score": 3,
+   "evidence": "At 5.4s, the developer asked what was going on everywhere, implying all sessions. After a 4.8-second pause, the assistant asked which session at 11.5s instead of giving a status update."
+  },
+  "rec-01-truncated": {
+   "score": 2,
+   "evidence": "At 10.9, the assistant appropriately clarified the incomplete request, but only after a 4.7-second pause. After the user answered at 16.4, the developer waited 14 seconds for a lengthy report starting at 30.4."
+  },
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "After the request ended at 9.0, the first voice response did not start until 19.4 and became a long, garbled permission readout. The developer answered “Yes” at 23.9 and 78.9 while the assistant was still speaking, and the useful result did not arrive until 103.7."
+  },
+  "amb-03-explicit-is-clear": {
+   "score": 2,
+   "evidence": "After the request ended at 11.6 seconds, the developer waited until 23.0 seconds for a response. The response only asked “Should it?” without explaining what Tariff Web wanted to run."
+  },
+  "heb-01-status-hebrew": {
+   "score": 2,
+   "evidence": "After the question ended at 8.0s, the answer did not start until 18.0s. The reply ran until 38.6s for a simple count, with extra detail and an offer to rerun the tests."
+  },
+  "lat-01-quick-status": {
+   "score": 2,
+   "evidence": "After the question at 6.9s, the developer waited until 15.7s for an answer that ran for 18 seconds. The follow-up ended at 40.1s, but the answer did not start until 47.9s and included more detail than the question needed."
+  },
+  "amb-01-shared-word": {
+   "score": 3,
+   "evidence": "At 11.6s, the assistant reasonably clarified which tariff session the developer meant, but only after a 4.4-second pause. After the developer answered at 18.7s, it waited another 4.7 seconds and asked what to tell TariffWeb rather than acting on the request."
+  },
+  "acc-05-focus-pronoun": {
+   "score": 1,
+   "evidence": "After the question at 5.3s, the assistant waited until 14.9s and read a long command instead of naming the biggest file. After the instruction at 88.7s, it again read a lengthy permission request at 100.9s without confirming the task."
+  },
+  "lat-05-reviewer": {
+   "score": 2,
+   "evidence": "After the user’s question ended at 7.3 seconds, the assistant waited 9 seconds to respond. At 16.3 seconds, it asked which session to check instead of answering the quarry question."
+  },
+  "heb-05-accent-english": {
+   "score": 2,
+   "evidence": "After the user finished at 10.1 seconds, the assistant waited until 24.5 seconds to respond. Its 18.5-second reply gave a useful explanation but was overly long and ended mid-thought."
+  },
+  "apr-01-yes-readable": {
+   "score": 2,
+   "evidence": "At 17.7, the assistant spoke after a 6.4-second pause and read out a cumbersome test command. After the developer approved at 30.1, it waited 8.5 seconds, then gave a 32-second report for a simple test result."
+  },
+  "acc-03-two-part-instruction": {
+   "score": 2,
+   "evidence": "After the user finished at 11.7 seconds, the assistant stayed silent until 28.7 seconds. Its 28.7–39.0-second reply was a long, hard-to-follow permission request rather than a concise update."
+  },
+  "heb-03-hebrew-yes": {
+   "score": 2,
+   "evidence": "After the developer said to run the tests at 30.5s, the answer did not start until 41.3s. The useful result was followed by repetitive, unintelligible speech through 84.5s."
+  },
+  "apr-03-no": {
+   "score": 2,
+   "evidence": "After the request ended at 8.9s, the assistant waited until 18.4s to speak. Its 16-second reply read out a confusing command list and asked for permission rather than giving a concise update."
+  },
+  "brv-01-plain-instruction-no-readback": {
+   "score": 2,
+   "evidence": "After the user finished at 9.1s, the assistant was silent until 22.2s. It then spent nearly 18 seconds reading a cumbersome command request before asking for approval."
+  },
+  "orc-02-multi-send": {
+   "score": 3,
+   "evidence": "After the user finished at 12.0, the assistant waited 4.8 seconds to respond. At 16.8, it asked which session to contact first instead of starting the two requested updates."
+  },
+  "brv-04-short-answer": {
+   "score": 4,
+   "evidence": "The answer came 6.8 seconds after the user finished speaking (8.8–15.6), a noticeable pause. At 15.6, the assistant gave exactly the requested day: “Tuesday.”"
+  },
+  "apr-06-compound-command": {
+   "score": 2,
+   "evidence": "At 18.9, the assistant spent 23 seconds reading a command aloud instead of briefly stating the permission request. After the developer approved it at 44.9, there was an eight-second silence before another lengthy permission request began at 53.0."
+  },
+  "bar-04-pause-mid-sentence": {
+   "score": 2,
+   "evidence": "After the request ended at 11.0s, the developer waited until 23.7s for a response. The reply then ran to 44.5s and gave more implementation detail than the brief request needed."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "After the user finished at 11.0, the assistant stayed silent until 27.5. Its reply then ran for 31 seconds, with unnecessary detail and a confusing ending."
+  },
+  "lat-02-general-knowledge": {
+   "score": 4,
+   "evidence": "After the question ended at 9.3 seconds, the answer began at 16.0 seconds—a noticeable pause. The response was accurate and kept to the requested one sentence."
+  },
+  "net-01-loss-status": {
+   "score": 2,
+   "evidence": "The first answer starts 8.3 seconds after the question and runs from 15.7 to 38.1 with more detail than the question needs. The billing update starts 14.9 seconds after the request and continues for 40 seconds, reading out the docstring rather than briefly confirming the change."
+  },
+  "lat-04-ask-then-send": {
+   "score": 2,
+   "evidence": "The first answer started 7.4 seconds after the question ended (8.0–15.4), though it gave a useful caveat. After the second request, there was an 8.7-second pause (35.7–44.4), followed by a 37-second readout of a command and a permission question."
+  },
+  "orc-03-report-while-focused": {
+   "score": 2,
+   "evidence": "After the first request ended at 10.5s, the reply did not start until 25.8s and then ran for 36 seconds with unnecessary detail. The developer asked about quarry at 46.1s while the assistant was still speaking, and the later replies were also longer than the questions needed."
+  },
+  "rec-02-correction": {
+   "score": 2,
+   "evidence": "At 19.6, the assistant began a 32-second reply and kept talking after the user corrected it at 43.3. After “Is it done?” at 87.8, it waited until 96.0 and read a lengthy command request instead of answering directly."
+  },
+  "apr-07-word-for-word": {
+   "score": 2,
+   "evidence": "After the request ended at 8.1, the first reply did not start until 16.8. After “Yes” at 25.7, there was another nine-second silence before a lengthy status report."
+  },
+  "bar-03-stop-running-job": {
+   "score": 2,
+   "evidence": "At 19.9 seconds, the developer said to stop, but the assistant began reading a permission request at 21.3 seconds instead of acknowledging it. The readout continued until 36.5 seconds, talking over the developer’s change of instruction."
+  },
+  "bar-01-redirect-mid-reply": {
+   "score": 2,
+   "evidence": "At 14.5s, the assistant asks which session despite the request for all sessions. After the developer specifies Quarry at 23.8s, it waits until 34.1s and gives a 40-second reply."
+  },
+  "acc-04-batch-size": {
+   "score": 2,
+   "evidence": "After the request ended at 11.7s, the developer waited until 24.8s for a reply. The reply ran to 45.7s and included unnecessary detail for a simple change."
+  },
+  "net-02-reconnect-mid-turn": {
+   "score": 4,
+   "evidence": "The answer began at 13.8, 6.6 seconds after the question ended at 7.2. It gave the branch name directly, though the Notes.md attribution was unnecessary."
+  },
+  "amb-02-which-session-status": {
+   "score": 1,
+   "evidence": "At 11.5s, the assistant asked which Tariff session the developer meant after a four-second pause. After the developer clarified “The API” at 17.6s, it asked an unrelated question at 23.5s and never gave a version."
+  }
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "model": "claude-fable-5-1",
+ "mean": 1.67,
+ "n": 3,
+ "runs": {
+  "apr-08-yes-before-readout-ends": {
+   "score": 2,
+   "evidence": "User finished at 9.0 but delivery came at 16.7 and the first VOICE at 21.7 (12.7s silence), then the permission read-out ran over the user's 'Yes' at 23.0 until 33.0. The 34.1 reply rambles for 38 seconds with repeated command read-back and offers instead of a crisp 'no tests found'."
+  },
+  "heb-02-mixed-send": {
+   "score": 2,
+   "evidence": "After the user finished at 11.0 the instruction was delivered at 17.8 and the first spoken response came at 25.3, a 14-second silence. The reply then ran 27 seconds, rambling through naming details and implementation notes when a one-line confirmation would do."
+  },
+  "bar-02-backchannel-keeps-talking": {
+   "score": 1,
+   "evidence": "At 5.3 the user asked for the status of each session, but after a 4.8 s pause the assistant at 11.8 asked which one, misunderstanding a clear request for all three. The user's 'Mm-hm' at 18.3 is never answered, leaving them with silence and no status."
+  }
+ }
+}
