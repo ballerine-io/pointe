@@ -18,7 +18,7 @@ permission to create iOS App Store provisioning profiles".
 
 | Field | Value |
 |---|---|
-| Name (30 max) | Pointe: Conversational Coding |
+| Name (30 max) | Pointe: Voice Coding |
 | Subtitle (30 max) | Voice layer for coding agents |
 | Category | Developer Tools (primary), none secondary |
 | Age rating | 4+: every answer in the questionnaire is None or No (no web browser in the app, no chat between people, no user content) |
