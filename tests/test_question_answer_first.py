@@ -1,7 +1,7 @@
 """News waits while the answer to the user's newest question is on its way.
 
-orc-03 in tester round 4 (2 of 4) and r9: "Meanwhile, what's the plan for speeding up quarry?" got "Asking quarry.", then
-billing's report of the comment it had just added, and only then quarry's answer. The question the user just asked comes
+orc-03 in tester round 4 (2 of 4) and r9: "Meanwhile, what's the plan for speeding up lantern?" got "Asking lantern.", then
+billing's report of the comment it had just added, and only then lantern's answer. The question the user just asked comes
 first; other news waits for it (at most QUESTION_FIRST_SECS).
 
 uv run pytest -q tests/test_question_answer_first.py
