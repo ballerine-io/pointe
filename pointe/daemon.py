@@ -3101,7 +3101,7 @@ async def feed(session: Session, text: str, respond: bool) -> None:
             item = _about(quick[:MAX_FEED_CHARS], session.name, "report", text.split(FINAL_MARK, 1)[-1].strip()[:300])
             line = _verbatim_answer(text.split(FINAL_MARK, 1)[-1], state.last_utterance) if FRONT == "brain" else None
             if line:
-                _VERBATIM[item] = line
+                _VERBATIM[item] = _about_the_session(line, _spoken_names(session.name).split("/")[0])
             await state.conn.injector.inject(item, True)
             return
         state.digesting += 1
@@ -3288,6 +3288,63 @@ def _invented_paths(message: str, said: str, targets: list[Session]) -> list[str
     return out
 
 
+_I_FORMS = {"i'm": "is", "i am": "is", "i've": "has", "i have": "has", "i haven't": "hasn't", "i'll": "will",
+            "i'd": "would", "i don't": "doesn't", "i do": "does", "i was": "was", "i wasn't": "wasn't"}
+_I_KEEP = {"did", "didn't", "can", "can't", "could", "couldn't", "will", "won't", "would", "wouldn't", "should", "shouldn't",
+           "must", "might", "may", "had", "hadn't", "found", "made", "ran", "wrote", "left", "kept", "put", "set", "got",
+           "took", "saw", "read", "built", "began", "chose", "gave", "knew", "meant", "sent", "spent", "thought", "told"}
+_YOU_VERBS = {"wants": "want", "needs": "need", "has": "have", "is": "are", "was": "were", "does": "do", "says": "say",
+              "asks": "ask", "prefers": "prefer", "likes": "like", "means": "mean"}
+
+
+def _third_person_verb(word: str) -> str:
+    """"recommend" -> "recommends", after "Billing" or "it"; a past form or a modal stays as it is."""
+    low = word.lower()
+    if low in _I_KEEP or (low.endswith("ed") and not low.endswith("eed")):  # "need", "proceed" are not past forms
+        return word
+    if low in ("go", "do"):
+        return word + "es"
+    if re.search(r"[^aeiou]y$", low):
+        return word[:-1] + "ies"
+    if re.search(r"(?:s|sh|ch|x|z)$", low):
+        return word + "es"
+    return word + "s"
+
+
+def _about_the_session(line: str, name: str) -> str:
+    """A session's words said as they came, said about it and to the user: its "I" is its name at the start of a
+    sentence and "it" inside one ("I added…, and I did not run tests" -> "Billing added…, and it did not run tests"),
+    "my" is "its", and "the owner"/"the user" is "you" (tester round 5: "I bumped the version", "say if he wanted…").
+    English only: a Hebrew line is left as it came."""
+    if re.search(r"[\u0590-\u05ff]", line):
+        return line
+    subject = name[:1].upper() + name[1:]
+
+    out = re.sub(r"(^|(?<=[.!?]) )?\b(I(?:'m|'ve|'ll|'d)?\b(?: (?:am|have|haven't|don't|do|was|wasn't))?(?: \w+[\w']*)?)",
+                 lambda m: _i_sub(m, subject), line)
+    out = re.sub(r"\bmy\b", "its", out)
+    out = re.sub(r"\b[Tt]he (?:owner|user)'s\b", lambda m: "Your" if m.group(0)[0] == "T" else "your", out)
+    out = re.sub(r"\b([Tt])he (?:owner|user)\b(?: (\w+))?",
+                 lambda m: ("You" if m.group(1) == "T" else "you") + ((" " + _YOU_VERBS.get(m.group(2), m.group(2))) if m.group(2) else ""),
+                 out)
+    return out
+
+
+def _i_sub(m: re.Match, subject: str) -> str:
+    """One "I …" of a session's line: its name at a sentence start, "it" inside a sentence, with the verb agreeing."""
+    words = m.group(2)
+    at_start = m.group(1) is not None
+    who = subject if at_start else "it"
+    low = words.lower()
+    for form, verb in sorted(_I_FORMS.items(), key=lambda kv: -len(kv[0])):
+        if low == form or low.startswith(form + " "):
+            return f"{m.group(1) or ''}{who} {verb}{words[len(form):]}"
+    parts = words.split(" ", 2)  # "I", the verb, and nothing else: the pattern takes at most one word after "I"
+    if len(parts) < 2:
+        return f"{m.group(1) or ''}{who}"
+    return f"{m.group(1) or ''}{who} {_third_person_verb(parts[1])}"
+
+
 def _quick_report(session: Session, text: str) -> str | None:
     """The line for a short finished turn of work the user sent this session (not a question: _quick_answer has those),
     said as Claude wrote it: the session's name first when several are on the call. None for anything the reader must
@@ -3301,6 +3358,9 @@ def _quick_report(session: Session, text: str) -> str | None:
     line = _verbatim_answer(final, state.last_utterance)
     if not line:
         return None
+    about = _about_the_session(line, _spoken_names(session.name).split("/")[0])
+    if about != line:
+        return about  # its "I" is its name now: the line says whose work it was
     return f"{_spoken_names(session.name)}: {line}" if len(REGISTRY.sessions) > 1 else line
 
 

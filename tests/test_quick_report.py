@@ -50,3 +50,17 @@ def test_a_report_nobody_asked_for_or_a_long_one_goes_through_the_reader(d, monk
     monkeypatch.setattr(d, "_digest_turn", digest)
     asyncio.run(d.feed(s, _finished(d, "Docstring added."), True))  # the user sent it nothing
     assert not any(t in d._VERBATIM for t, _ in d.state.conn.injector.fed)
+
+
+def test_a_report_in_the_sessions_first_person_is_said_about_it(d, monkeypatch):  # noqa: F811
+    """Tester round 5: "I bumped the version", said in the voice's own mouth with one session on the call."""
+    s = add(d, "g", "granary")
+    d.state.conn = fake_conn()
+    d.state.unconfirmed["g"] = ["Bump the version."]
+
+    async def digest(session, text):
+        return {}
+    monkeypatch.setattr(d, "_digest_turn", digest)
+    asyncio.run(d.feed(s, _finished(d, "I bumped the version to 0.9.1. I did not commit it."), True))
+    fed = d.state.conn.injector.fed
+    assert d._VERBATIM[fed[-1][0]] == "Granary bumped the version to 0.9.1. Granary did not commit it."
