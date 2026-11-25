@@ -1523,15 +1523,22 @@ def _first_hello_done(why: str = "first hello answered") -> None:
 WAITING_GREETING_SECS = 300.0  # a question sent this recently and not answered is what a call coming back greets with
 
 
+def _questions_out(now: float) -> list[str]:
+    """The sessions a question was sent to in the last WAITING_GREETING_SECS that have not answered it."""
+    if now - state.last_delegation_at >= WAITING_GREETING_SECS:
+        return []
+    return [sid for sid, sent in state.unconfirmed.items()
+            if any("?" in m and m not in state.dropped.get(sid, []) for m in sent)]
+
+
 def fixed_greeting() -> str | None:
     """Before anything is read there is nothing to say, so no model call and nothing to get wrong."""
     if first_call():
         return FIRST_GREETING
     if state.carried:  # back from a drop with the answer the user waited for: that answer is the greeting's news
         return "Back."
-    asked = [x for x in REGISTRY.sessions.values()
-             if any("?" in m and m not in state.dropped.get(x.id, []) for m in state.unconfirmed.get(x.id, []))]
-    if asked and time.time() - state.last_delegation_at < WAITING_GREETING_SECS:
+    asked = [x for x in REGISTRY.sessions.values() if x.id in (state.asked_before_connect or _questions_out(time.time()))]
+    if asked:
         names = [_spoken_names(x.name).split("/")[0] for x in asked]
         return (f"Back. Still waiting on {names[0]}'s answer." if len(names) == 1 else
                 f"Back. Still waiting on answers from {', '.join(names[:-1])} and {names[-1]}.")
@@ -2916,6 +2923,7 @@ class State:
     overview_focus: str | None = None  # "just tell me about quarry" while they answer: only that session is said
     unclear_asked: str | None = None  # the request for which "Is that a yes?" was said (once a request)
     voice_allowed_at: float = 0.0  # when a spoken yes last approved a request: "run it" just after is that yes's tail
+    asked_before_connect: list = field(default_factory=list)  # sessions a question was out to when this call connected
     unheard_asked: str | None = None  # the request for which "I didn't catch that" was said (once a request)
     voice_cut_at: float = 0.0  # when the user's voice last cut the bot's (SonioxEars.broadcast_interruption)
     answers_question: bool = False  # the latest words came while a question of Pointe's own was open: they answer it
@@ -10542,6 +10550,7 @@ async def _on_connect(conn: Connection) -> None:
         if s.machine and s.permission_id and online(s):
             state.remote_held[s.id] = (s.permission_id, getattr(paired_machine(s.machine), "link", 0))
     _notify_call()
+    state.asked_before_connect = _questions_out(now)  # before the reset below: what a call coming back greets with
     state.connected_at = now
     state.last_delegation_at = state.last_switch_at = now
     state.last_utterance = ""
