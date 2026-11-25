@@ -7014,7 +7014,12 @@ def _mostly_same(message: str, earlier: str) -> bool:
 def _asked_of_several(said: str) -> bool:
     """One thing the user said is one delivery, unless they asked for more: an injected model must not fan out on a yes."""
     return (len(clauses(said)) > 1 or len(name_groups(said, list(REGISTRY.sessions.values()))) > 1
-            or bool(re.search(r"\b(?:both|each|two)\b|שניהם|שתיהן", said.lower())))
+            or bool(re.search(r"\b(?:both|each|two)\b|שניהם|שתיהן", said.lower())) or bool(_AND_ALSO_ASKED.search(said)))
+
+
+# "…, and also, how many tests failed in billing?": a question joined to an instruction is a second thing asked (adv-03)
+_AND_ALSO_ASKED = re.compile(r"\S.*?(?:,|\.|\band)\s+also\b[\s,]*(?:how|what|what's|which|when|where|who|who's|why|did|does|"
+                             r"do|is|are|has|have|can|could)\b", re.I)
 
 
 _THE_OTHER_ONE = re.compile(r"\bthe other (?:one|session|project|repo|agent)\b|(?<![֐-׿])(?:השני|האחר|השנייה|האחרת)(?![֐-׿])", re.I)
