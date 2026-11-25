@@ -38,6 +38,13 @@ CI must be green on the version commit. For a minor version, or when the install
 [docs/install-verification.md](install-verification.md). The paid end-to-end suites (`tests/e2e/run_all.sh`) run
 when the call path changed; say in the notes whether they ran.
 
+**Screenshots come from CI.** The `ui` workflow (`.github/workflows/ui.yml`) runs the iPhone UI tests in the Simulator,
+the Mac smoke and the Mac XCUITests on a hosted runner, and uploads their pictures: `ios-ui-screenshots`,
+`mac-smoke-screenshots` and `mac-xcuitest-screenshots`. Every screenshot in the notes, the site or a review comes from
+that run on the version commit (`gh run download <run> -R ballerine-io/pointe`). Never take one by running UI tests
+on a Mac somebody works at: they take the screen, the keyboard and the pointer, and the scripts refuse to start there
+(`tools/ui_guard.py`).
+
 ## 3. The tag
 
 ```

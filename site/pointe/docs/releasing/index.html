@@ -153,6 +153,12 @@ python3 tools/check_action_pins.py                       # each GitHub Action is
 <code>docs/install.md</code> again on a clean environment and add the run on top of
 <a href="https://github.com/ballerine-io/pointe/blob/main/docs/install-verification.md">docs/install-verification.md</a>. The paid end-to-end suites (<code>tests/e2e/run_all.sh</code>) run
 when the call path changed; say in the notes whether they ran.</p>
+<p><strong>Screenshots come from CI.</strong> The <code>ui</code> workflow (<code>.github/workflows/ui.yml</code>) runs the iPhone UI tests in the Simulator,
+the Mac smoke and the Mac XCUITests on a hosted runner, and uploads their pictures: <code>ios-ui-screenshots</code>,
+<code>mac-smoke-screenshots</code> and <code>mac-xcuitest-screenshots</code>. Every screenshot in the notes, the site or a review comes from
+that run on the version commit (<code>gh run download &lt;run&gt; -R ballerine-io/pointe</code>). Never take one by running UI tests
+on a Mac somebody works at: they take the screen, the keyboard and the pointer, and the scripts refuse to start there
+(<code>tools/ui_guard.py</code>).</p>
 <h2 id="3-the-tag">3. The tag</h2>
 <div class="dx-code"><pre><code>git tag -a vX.Y.Z -m &quot;Pointe X.Y.Z&quot; &lt;the version commit, or a later docs-only commit&gt;
 git push origin vX.Y.Z</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
