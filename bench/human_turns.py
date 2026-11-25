@@ -346,6 +346,7 @@ def main() -> None:
     p.add_argument("--concurrency", type=int, default=2)
     p.add_argument("--max-load", type=float, default=20.0)
     p.add_argument("--level", default="normal")
+    p.add_argument("--policies", default="before,after", help="run: the report needs both")
     a = p.parse_args()
     if a.cmd == "fetch":
         fetch()
@@ -353,7 +354,7 @@ def main() -> None:
         build(a.pin)
     elif a.cmd == "run":
         tb = bench()
-        asyncio.run(tb.collect(a.concurrency, a.max_load))
+        asyncio.run(tb.collect(a.concurrency, a.max_load, tuple(a.policies.split(","))))
     elif a.cmd == "prune":
         # A row taken on a busy machine holds that machine's lateness, not the rule's: dropped, and `run` hears it again.
         out = bench().OUT
