@@ -146,7 +146,10 @@ def turn_scores(row: dict) -> list:
             elif kind == "approve":
                 ok = bool(ran)
                 ttua = (ran[0]["t"] - a) if ran else None
-                if exp.get("readout"):  # the read-out must have said these words before the yes (a delete, in full)
+                # The read-out must have said these words before the yes (a delete, in full). Scored only when the
+                # request the yes answered is that kind of request: a session that asks to look first puts another
+                # request in its place, and a yes to that says nothing about how a delete is read.
+                if exp.get("readout") and re.search(exp.get("request", "."), wanted):
                     heard = " ".join(x for s, _, x in said if asked[-1]["t"] - 1 <= s < t["start"])
                     r["read_in_full"] = match_all(exp["readout"], heard)
             elif kind == "deny":

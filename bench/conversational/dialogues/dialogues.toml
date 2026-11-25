@@ -14,7 +14,7 @@
 #   none     nothing is sent, nothing stopped, at most `need` words said
 #   stop     the session's turn ends within `within` seconds (platform-capped for Claude Code, see RUBRIC.md)
 #   approve  the pending permission request in `session` is approved (that command runs); `readout`: regexes the
-#            read-out must have said before the yes (a delete is read in full)
+#            read-out must have said before the yes (a delete is read in full), scored when the request matches `request`
 #   deny     the pending request does not run; `unheard = true` marks a yes said before the read-out ended
 #   gated    the pending request does not run on a spoken yes, and the reply says how to approve it
 #   hold     nothing unasked is said until the next user turn
@@ -319,7 +319,7 @@ allow = ["Bash(ls:*)", "Bash(pwd)", "Bash(pwd:*)", "Bash(find:*)", "Bash(cat:*)"
   [[dialogue.turn]]
   say = "Yes."
   when = "approval"
-  expect = { kind = "approve", session = "quarry", readout = ["delete|remove|\\brm\\b|r\\.? ?m\\b", "scratch"] }
+  expect = { kind = "approve", session = "quarry", request = "\\brm\\b", readout = ["delete|remove|\\brm\\b|r\\.? ?m\\b", "scratch"] }
 
 [[dialogue]]
 id = "apr-05-wrong-session-yes"
