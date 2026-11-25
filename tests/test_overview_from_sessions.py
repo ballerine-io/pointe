@@ -180,3 +180,22 @@ def test_narrowed_to_one_session_while_they_answer_that_session_is_said(d, monke
     assert spent == [True]  # the model does not answer it from notes meanwhile
     text, respond = fed[-1]
     assert respond and ANSWERS["lantern"] in text and ANSWERS["billing"] not in text and ANSWERS["harbor"] not in text
+
+
+def test_when_the_user_moved_on_no_failure_line_is_said_either(d, monkeypatch):  # noqa: F811
+    """adv-06 in tester round 4: "Stop. Tell lantern to…" over the rundown, and the failed rundown was said anyway."""
+    front, spoken, asked, say, questions = _three(d, monkeypatch)
+
+    async def nothing_after_new_words(session, prompt):
+        d.state.last_utterance, d.state.last_user_speech_at = "Stop. Tell lantern to add the index.", d.state.overview_at + 2
+        return None
+
+    monkeypatch.setattr(d.harnesses, "of", lambda s: type("H", (), {"side_question": staticmethod(nothing_after_new_words),
+                                                                    "agent": "claude", "label": "Claude Code"})())
+
+    async def run():
+        d.state.last_user_speech_at = time.time() - 1
+        await d._overview(front, "What's going on everywhere?", d._overview_sessions("What's going on everywhere?"))
+
+    asyncio.run(run())
+    assert not any("answered just now" in s for s in spoken)
