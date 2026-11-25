@@ -6,6 +6,7 @@ latency, and a typed line is acknowledged quickly and taken once. No vendor and 
 Measured before and after protocol 5 with the same rig (the old app and daemon): docs/phone.md, "On a weak network".
 """
 
+import fcntl
 import json
 import os
 import subprocess
@@ -16,11 +17,24 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCENARIOS = {"t-outage": 9750, "t-switch": 9760, "t-capped": 9770}  # each takes its port and the next: 9700-9799 is ours
+pytestmark = pytest.mark.serial  # it measures a call's latency: beside other workers a busy runner adds to it
 
 
 @pytest.fixture(scope="module")
-def runs():
-    """The three runs at once, each in its own process and state folder: about 25 s together."""
+def runs(tmp_path_factory):
+    """The three runs at once, each in its own process and state folder: about 25 s together. Under xdist every worker
+    with a test here asks for them: the first runs them, the rest read its result, so the fixed ports are bound once."""
+    if not os.environ.get("PYTEST_XDIST_WORKER"):
+        return _run_all()
+    shared = tmp_path_factory.getbasetemp().parent / "bad-network.json"  # one folder per session, every worker's parent
+    with open(shared.with_suffix(".lock"), "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if not shared.exists():
+            shared.write_text(json.dumps(_run_all()))
+        return json.loads(shared.read_text())
+
+
+def _run_all() -> dict:
     procs = {name: subprocess.Popen([sys.executable, "-I", str(ROOT / "tests" / "net_bench.py"), name, "new"],
                                     env={**os.environ, "POINTE_NET_PORT": str(port)},
                                     stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
