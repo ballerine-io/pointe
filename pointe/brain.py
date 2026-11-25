@@ -315,7 +315,7 @@ class Brain:
         seen = self._foreseen
         if seen is not None and same_words(seen.text, text) and not (seen.task.done() and (
                 seen.task.cancelled() or seen.task.exception() is not None)):
-            return  # the live words, read ahead at the voice detector's silence, and now their final: one step
+            return  # the same words again (a final repeated after the echo check): one step
         self.forget()
         if not text.strip() or self.busy or self._tools_running or self._user_turns or self._waiting:
             return
@@ -334,8 +334,10 @@ class Brain:
     def forget(self) -> None:
         """What was started ahead is not wanted: the user went on talking."""
         seen, self._foreseen = self._foreseen, None
-        if seen is not None and not seen.task.done():
-            seen.task.cancel()
+        if seen is not None:
+            logger.info("brain step started ahead of its turn was dropped: the words changed, or more came")
+            if not seen.task.done():
+                seen.task.cancel()
 
     def append(self, text: str) -> None:
         if not (text and text.strip()):

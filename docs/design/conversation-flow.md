@@ -357,7 +357,9 @@ What changed, largest first:
   the turn would send now; if the user said more, news arrived or the state changed, it is cancelled and the turn asks
   as before. Not read ahead: an unfinished sentence, words in a hold, a brain dump, a meeting or a challenge, words
   that an approval, a briefing or a dump's review may take as its answer, and the phrases the daemon answers itself.
-  A dropped request costs about 200 fresh input tokens.
+  A dropped request costs about 200 fresh input tokens. The step starts at the final transcript and not sooner: one
+  started from the live words at the voice detector's stop was dropped on 10 of 12 turns, because those words lack
+  the last one to three that the final brings, so it was removed.
 - **The first sentence is said while the model writes the rest** (`Brain._say_first`, `vendors._anthropic_stream`).
   The sentence passes every check a reply passes, as if it were the whole reply, so nothing is heard that would have
   been sent back. The whole reply is then checked as ever. Sent back (§3.1's retry for length, or any other reason),

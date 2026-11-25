@@ -1941,9 +1941,8 @@ class SonioxEars(FrameProcessor):
             self._voiced = False
             if _patience() != "patient" and not state.ptt.collecting and (pcm := self._audio.audio()):
                 self._judging_sound = asyncio.ensure_future(self._judge_sound(pcm, state.user_stopped_at))
-            # The live words are usually whole when the voice detector hears the silence, about half a second before
-            # their final: the model starts reading them now, and the final keeps that step if its words are the same.
-            self._foresee_live()
+            # No model step starts here from the live words: at this stop they lack the last one to three words, which
+            # come with the final, so the request was thrown away (0 kept in 76 model turns of the dialogue suite).
         if isinstance(frame, BotStartedSpeakingFrame):
             ECHO.bot_started()
             if state.meeting is not None:  # what the page and the app show as "speaking to the room"
@@ -2073,12 +2072,6 @@ class SonioxEars(FrameProcessor):
             return  # a short sound that ended, and no words: a cough, a knock
         logger.info("barge-in: voice well above the echo")
         await self.broadcast_interruption()
-
-    def _foresee_live(self) -> None:
-        live = state.hearing[1] if state.hearing else ""
-        if (FRONT == "brain" and isinstance(state.front, BrainFront) and live and not self._held and not ECHO.speaking
-                and not state.ptt.collecting and _foreseeable(live)):
-            state.front.brain.foresee(live)
 
     async def _judge_sound(self, pcm: bytes, stopped: float) -> None:
         """How finished the voice sounded at this stop, on this Mac (turnsound.py, about 40 ms), off the call's loop.

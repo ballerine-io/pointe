@@ -700,9 +700,8 @@ def test_the_latency_suite_times_a_filler_turn_by_the_reply_not_the_filler(monke
 
 
 def test_a_step_read_ahead_from_the_live_words_is_kept_when_the_final_differs_only_in_punctuation(monkeypatch):
-    """From the conversation suite: the model step started only once Soniox's final arrived, about 0.7 s after the last
-    word, though the live words were whole at 0.2 s, when the voice detector heard the silence. A step started from them
-    is kept when the final says the same words ("... branch" then "... branch?"), and is the turn's own step."""
+    """A step started from words is kept when the same words come again with other punctuation ("... branch" then
+    "... branch?"), and is the turn's own step."""
     b, requests, spoken = _foreseeing_brain(monkeypatch, ["Rebase it.", "unused"], delay=0.05)
 
     async def run():
@@ -715,7 +714,11 @@ def test_a_step_read_ahead_from_the_live_words_is_kept_when_the_final_differs_on
     assert len(requests) == 1 and requests[0]["ended"] == "answered" and spoken == ["Rebase it."]
 
 
-def test_the_voice_detectors_silence_starts_the_step_from_the_live_words(d, monkeypatch):  # noqa: F811
+def test_the_voice_detectors_silence_starts_no_step_from_the_live_words(d, monkeypatch):  # noqa: F811
+    """Measured: at the voice detector's stop Soniox's live words lack the last one to three words ("What time zone is
+    Tel" for "What time zone is Tel Aviv in?"). A step started from them was dropped when the final came: 10 of 12
+    turns on tests/e2e/latency.py sent a request for nothing, and none of 76 model turns of the dialogue suite kept
+    one. The step starts at the final transcript."""
     from pipecat.frames.frames import VADUserStoppedSpeakingFrame
     from pipecat.processors.frame_processor import FrameDirection
 
@@ -729,4 +732,4 @@ def test_the_voice_detectors_silence_starts_the_step_from_the_live_words(d, monk
     async def run():
         await ears.process_frame(VADUserStoppedSpeakingFrame(), FrameDirection.DOWNSTREAM)
     asyncio.run(run())
-    assert seen == ["how many tests failed in billing"]
+    assert seen == []
