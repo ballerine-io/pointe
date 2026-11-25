@@ -69,21 +69,21 @@ def test_the_reminder_of_a_request_already_read_is_one_short_line(d, monkeypatch
 
 
 def test_a_sibling_project_is_said_by_its_name_next_to_the_project(tmp_path):
-    """amb-01: "also in the folder above the project, /tmp/pccb/dlg-…/amb-01-shared-word-pointe/tariff-api", 25 seconds
+    """amb-01: "also in the folder above the project, /tmp/pccb/dlg-…/amb-01-shared-word-pointe/toll-api", 25 seconds
     of path for the project next door. Its name and where it sits say the same place."""
-    (tmp_path / "tariff-web").mkdir()
-    (tmp_path / "tariff-api").mkdir()
-    cwd = str(tmp_path / "tariff-web")
-    out = readout.looking(f"cd {tmp_path}/tariff-api && ls && git status && cat NOTES.md", cwd)
-    assert out == "look around, read only: ls, git status and cat, also in tariff-api, next to the project"
-    assert readout.looking(f"cat {tmp_path}/tariff-api/NOTES.md", cwd) == \
-        "look around, read only: cat, also in tariff-api/NOTES.md, next to the project"
-    hidden = readout.looking(f"cat {tmp_path}/tariff-api/.env.example", cwd)
+    (tmp_path / "toll-web").mkdir()
+    (tmp_path / "toll-api").mkdir()
+    cwd = str(tmp_path / "toll-web")
+    out = readout.looking(f"cd {tmp_path}/toll-api && ls && git status && cat NOTES.md", cwd)
+    assert out == "look around, read only: ls, git status and cat, also in toll-api, next to the project"
+    assert readout.looking(f"cat {tmp_path}/toll-api/NOTES.md", cwd) == \
+        "look around, read only: cat, also in toll-api/NOTES.md, next to the project"
+    hidden = readout.looking(f"cat {tmp_path}/toll-api/.env.example", cwd)
     assert hidden is None or "next to the project" not in hidden  # hidden or secret-looking: never shortened
-    assert readout.place(f"{tmp_path}/tariff-api/build", cwd).endswith("/tariff-api/build")  # what an action reaches: whole
+    assert readout.place(f"{tmp_path}/toll-api/build", cwd).endswith("/toll-api/build")  # what an action reaches: whole
 
 
 def test_a_place_inside_the_project_is_still_not_said(tmp_path):
-    (tmp_path / "tariff-web" / "src").mkdir(parents=True)
-    cwd = str(tmp_path / "tariff-web")
-    assert readout.looking(f"ls {tmp_path}/tariff-web/src; cat src/app.py", cwd) == "look around, read only: ls and cat"
+    (tmp_path / "toll-web" / "src").mkdir(parents=True)
+    cwd = str(tmp_path / "toll-web")
+    assert readout.looking(f"ls {tmp_path}/toll-web/src; cat src/app.py", cwd) == "look around, read only: ls and cat"

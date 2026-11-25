@@ -109,7 +109,7 @@ def test_the_overview_may_say_a_sentence_for_each_session():
 
 
 def test_when_no_session_answers_one_plain_line_is_said_not_one_failure_per_session(d, monkeypatch):  # noqa: F811
-    """Tester round 4's first sample (orc-01, bar-02): "Billing. I couldn't reach it in time. Quarry. Couldn't reach it
+    """Tester round 4's first sample (orc-01, bar-02): "Billing. I couldn't reach it in time. Lantern. Couldn't reach it
     either. Atlas. Same. No answer in time." Three failures read out one by one, and no model step is needed to say so."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
 
@@ -132,7 +132,7 @@ def test_when_no_session_answers_one_plain_line_is_said_not_one_failure_per_sess
 
 @pytest.mark.parametrize("words,said", [("Mm-hm.", True), ("Okay.", True), ("Wait, just tell me about lantern.", False)])
 def test_a_backchannel_while_the_sessions_answer_does_not_drop_the_overview(d, monkeypatch, words, said):  # noqa: F811
-    """Tester round 4's first sample, bar-02: "Mm-hm." over "Asking billing, quarry and atlas." counted as the user
+    """Tester round 4's first sample, bar-02: "Mm-hm." over "Asking billing, lantern and atlas." counted as the user
     speaking again, so the answers were kept as news and never said. Only new words do that."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
 
@@ -154,8 +154,8 @@ def test_a_backchannel_while_the_sessions_answer_does_not_drop_the_overview(d, m
 
 @pytest.mark.parametrize("words", ["Wait, wait. Just tell me about lantern.", "Only lantern.", "What about lantern?"])
 def test_narrowed_to_one_session_while_they_answer_that_session_is_said(d, monkeypatch, words):  # noqa: F811
-    """bar-01: "Wait, wait. Just tell me about quarry." over "Asking billing, quarry and atlas." kept every answer as
-    news, and the model answered from notes that held only how quarry joined: "It joined Pointe, read its notes file,
+    """bar-01: "Wait, wait. Just tell me about lantern." over "Asking billing, lantern and atlas." kept every answer as
+    news, and the model answered from notes that held only how lantern joined: "It joined Pointe, read its notes file,
     and replied ready." The words are taken by the overview, which then says that session's own answer alone."""
     front, spoken, asked, say, questions = _three(d, monkeypatch)
     fed = d.state.conn.injector.fed
