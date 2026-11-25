@@ -24,9 +24,13 @@ final class ParityUITests: XCTestCase {
 
     func testSettingsShowTheMacsLocalModeReadOnly() throws {
         launch("call")
-        _ = app.settingsItem("localMode")  // the list scrolls to it
+        app.openSettings()
         let line = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "Voice stays on your Mac · models here")).firstMatch
+        // A read-only line takes no tap, so settingsItem, which scrolls until its item is hittable, scrolled past it
+        // and back: scroll until the line is drawn on the screen.
+        let bottom = app.windows.firstMatch.frame.maxY
+        for _ in 0..<10 where !(line.exists && line.frame.maxY < bottom) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
         shot("settings-local")
         XCTAssertTrue(line.waitForExistence(timeout: 5), "the local mode line is in Settings")
     }
@@ -62,8 +66,14 @@ final class ParityUITests: XCTestCase {
         let ask = app.staticTexts["Disconnect docs from the voice? It keeps running in its terminal."]
         XCTAssertTrue(ask.waitForExistence(timeout: 5), "a swipe asks before it disconnects")
         shot("disconnect-confirm")
-        // outside the popover, above it, whatever the screen size: cancel
-        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: ask.frame.midX, dy: max(30, ask.frame.minY - 80))).tap()
+        // outside the popover: cancel. The region that dismisses it covers the screen; above the popover is the status
+        // bar on a tall iPhone, where a tap reaches nothing.
+        let outside = app.otherElements["PopoverDismissRegion"]
+        if outside.exists {
+            outside.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.9)).tap()
+        } else {
+            app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: ask.frame.midX, dy: max(30, ask.frame.minY - 80))).tap()
+        }
         XCTAssertTrue(ask.waitForNonExistence(timeout: 5))
         XCTAssertTrue(row.exists, "Cancel keeps the session")
     }

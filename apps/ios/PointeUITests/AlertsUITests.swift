@@ -69,17 +69,18 @@ final class AlertsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["alertsHelp"].label.contains("never the hidden full text"))
         XCTAssertTrue(labelled(app, "not at all after you swipe it away").exists, "says plainly what works when suspended")
         shot("alerts-sheet")
+        turnOnPhoneAlerts()  // before the passcode prompt below: where it cannot be closed (a CI simulator), it covers the app
         // Turning it on lowers what an Approve needs: the passcode (Face ID) first. Cancelled, it stays off.
         let watch = app.switches["alertsWatchApprove"]
         flip(watch)
         let prompt = labelled(springboard, "Enter iPhone Passcode")
         if prompt.waitForExistence(timeout: 5) {
             shot("alerts-passcode")
-            app.coordinate(withNormalizedOffset: CGVector(dx: 0.094, dy: 0.115)).tap()  // the sheet's close button
+            let cancel = springboard.buttons["Cancel"].firstMatch
+            if cancel.exists { cancel.tap() } else { app.coordinate(withNormalizedOffset: CGVector(dx: 0.094, dy: 0.115)).tap() }  // the sheet's close button
         }
         Thread.sleep(forTimeInterval: 1.5)
         XCTAssertTrue(waitFor(watch, value: "0"), "not confirmed by the owner: it stays off")
-        turnOnPhoneAlerts()
     }
 
     /// A real call; the app leaves the screen with a request pending; the notification shows the read-out form; Approve

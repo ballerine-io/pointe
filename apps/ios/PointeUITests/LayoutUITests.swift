@@ -127,8 +127,8 @@ final class LayoutUITests: XCTestCase {
         app.launchEnvironment["POINTE_PAIR"] = "pointe://pair?v=1&host=127.0.0.1&port=1&fp=\(String(repeating: "ab", count: 32))&key=\(String(repeating: "k", count: 40))"
         app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXL"]
         app.launch()
-        let button = app.buttons["connectButton"]
-        XCTAssertTrue(NSPredicate(format: "label == %@", "Try again").wait(for: button, timeout: 20))
+        let button = app.buttons["problemTryAgain"]  // a failed connection shows the problem card (ProblemCard)
+        XCTAssertTrue(button.waitForExistence(timeout: 20), "the problem card's Try again")
         onScreen(app, button, "Try again")
         XCTAssertTrue(button.isHittable, "Try again takes a tap")
         onScreen(app, app.buttons["Settings"], "the menu")

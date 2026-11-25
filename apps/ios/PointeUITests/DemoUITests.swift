@@ -52,7 +52,8 @@ final class DemoUITests: XCTestCase {
         let field = app.descendants(matching: .any)["typeField"].firstMatch
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
-        field.typeText("ship the change log too\n")
+        field.typeText("ship the change log too")
+        field.typeText("\n")  // Return on its own: typed with the words, a slow runner hands the field both in one change
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "ship the change log too")).firstMatch
             .waitForExistence(timeout: 5), "the typed line shows in the conversation")
         app.buttons["Type"].tap()
