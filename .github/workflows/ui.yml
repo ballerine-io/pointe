@@ -19,8 +19,6 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 90
     env:
-      DD: ${{ runner.temp }}/dd
-      OUT: ${{ runner.temp }}/ios-ui
       # xcodebuild hands the test runner the variables named TEST_RUNNER_*, without the prefix. CI=true is what the
       # bundle's own guard asks for (apps/ios/PointeUITests/UIGuard.swift).
       TEST_RUNNER_CI: "true"
@@ -33,7 +31,8 @@ jobs:
           sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
           xcodebuild -version
           SIM="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin)["devices"]; print(next(x["udid"] for r in sorted(d, reverse=True) if "iOS" in r for x in d[r] if x["name"].startswith("iPhone")))')"
-          echo "SIM=$SIM" >> "$GITHUB_ENV"
+          DD="$RUNNER_TEMP/dd" OUT="$RUNNER_TEMP/ios-ui"
+          { echo "SIM=$SIM"; echo "DD=$DD"; echo "OUT=$OUT"; } >> "$GITHUB_ENV"
           xcrun simctl list devices available | grep "$SIM"
           mkdir -p "$OUT/shots"
       - name: Build the app and its UI tests for the simulator
