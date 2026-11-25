@@ -69,6 +69,9 @@ jobs:
             mkdir -p "$dir"
             export "TEST_RUNNER_${suite}_SHOTS=$dir"
           done
+          # A failed test leaves the screen and the app's element tree here (FailureShots, in UIGuard.swift).
+          mkdir -p "$OUT/failures"
+          export TEST_RUNNER_FAILURE_SHOTS="$OUT/failures"
           xcrun simctl boot "$SIM" || true
           xcrun simctl privacy "$SIM" grant microphone io.ballerine.pointe || true
           # A dispatch with `only` runs those suites or tests; each name is checked before it reaches xcodebuild.
@@ -85,8 +88,6 @@ jobs:
             -derivedDataPath "$DD" "${TESTS[@]}" -resultBundlePath "$OUT/PointeUITests.xcresult" \
             CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild.log" 2>&1
           status=$?
-          # What the screen showed when a test failed: a few megabytes, where the whole result bundle is half a gigabyte.
-          xcrun xcresulttool export attachments --path "$OUT/PointeUITests.xcresult" --output-path "$OUT/failures" --only-failures > /dev/null 2>&1 || true
           set -e
           grep -E "error:|Test Case .*(passed|failed|skipped)|Executed [0-9]+ tests|\*\* TEST" "$OUT/xcodebuild.log" || tail -40 "$OUT/xcodebuild.log"
           {
