@@ -157,7 +157,8 @@ struct CallSettingsSheet: View, Equatable {
                             .accessibilityIdentifier("sessionTonesSetting")
                         }
                     } header: { Text(ThinkingCopy.section).brandKicker() } footer: {
-                        Text("\(ThinkingCopy.cueHint) \(ThinkingCopy.progressHint)").font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                        Text([ThinkingCopy.cueHint, ThinkingCopy.progressHint, model.sessionTones == nil ? nil : TonesCopy.hint]
+                                .compactMap { $0 }.joined(separator: " ")).font(.brand(.footnote)).foregroundStyle(Brand.muted)
                             .accessibilityIdentifier("waitFooter")
                     }
                 }

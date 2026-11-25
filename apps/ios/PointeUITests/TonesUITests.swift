@@ -14,6 +14,9 @@ final class TonesUITests: XCTestCase {
             XCTAssertTrue(tones.exists, "Settings has session tones")
             XCTAssertEqual(tones.label, "Session tones")
             XCTAssertEqual(tones.value as? String, "0", "off unless turned on")
+            let footer = app.descendants(matching: .any)["waitFooter"].firstMatch
+            XCTAssertTrue(footer.waitForExistence(timeout: 5) && footer.label.contains("A short tone before a background session's report"),
+                          "the footer says what the switch does: \(footer.label)")
             if let folder = ProcessInfo.processInfo.environment["TONES_SHOTS"] {
                 try? XCUIScreen.main.screenshot().pngRepresentation.write(to: URL(fileURLWithPath: "\(folder)/iphone-tones-settings-\(dark ? "dark" : "light").png"))
             }
