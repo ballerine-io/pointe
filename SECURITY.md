@@ -106,8 +106,8 @@ The voice never passes a yes on in words: a message to a session that vouches fo
 merge or a post ("the owner confirms by voice: yes, delete…") is refused in code, whether or not that session has asked
 for one (`owner_yes_relay`). And the model may not say a waiting request was approved or is running.
 
-The short form drops output-only flags and shortens paths plainly inside the project to their name. In our own Claude
-Code history, about 13% of shell commands have a short form; the rest are read word for word.
+The short form drops output-only flags and shortens paths plainly inside the project to their name. A command without
+one is read word for word.
 
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.

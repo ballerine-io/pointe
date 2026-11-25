@@ -6,6 +6,10 @@ bench/.audio/
 bench/results/*
 !bench/results/*.md
 !bench/results/report.txt
+!bench/results/raw/
+!bench/results/20??-??-??-v*/
+bench/.human
+bench/conversational/dialogues/.human
 tests/e2e/.cache/
 bench/recordings/
 .DS_Store

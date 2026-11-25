@@ -90,9 +90,9 @@ The reports and commands are in [`bench/results/local.md`](../../bench/results/l
 
 | | Fully local | Best keyed (published) |
 |---|---|---|
-| Brain, 78 cases x 3, pass ignoring length | 76.9% (67.9% to 85.5%) | Sonnet 91.9% (85.9% to 97.0%) |
-| Brain, reply p50 / p95 | 3.4 / 9.2 s | Sonnet 1.8 s median |
-| Brain, unwanted sends of 234 | 16 (5 refused in code) | Sonnet 9 (all refused in code) |
+| Brain, 78 cases x 3, pass ignoring length | 76.9% (67.9% to 85.5%) | not traceable (1) |
+| Brain, reply p50 / p95 | 3.4 / 9.2 s | not traceable (1) |
+| Brain, unwanted sends of 234 | 16 (5 refused in code) | not traceable (1) |
 | Reader, 17 cases x 3, pass | 51.0%, 7.5 s median | Sonnet 100%, 3.8 s |
 | Ears, 560 clips, intent right | 85.7%, 0.76 s median | Soniox 95.4%, 0.36 s |
 | Mouth, first English audio p50 | 1.28 s (whole reply) | eleven_v4_turbo 0.21 s |
@@ -100,6 +100,9 @@ The reports and commands are in [`bench/results/local.md`](../../bench/results/l
 | Memory while running | 17 GB (text model) | |
 | Disk | 17.7 GB of models and server, plus about 0.9 GB of Python packages | |
 | Cost | $0 | about $1 a busy hour |
+
+(1) The Sonnet figures that stood here (91.9%, 1.8 s, 9 unwanted sends) came from a run with no report or raw rows
+behind it, so they were removed on 2026-11-25. Sonnet on the 84 cases of 2026-11-25: [docs/benchmarks.md](../benchmarks.md#brain-2026-11-25).
 
 In the audio suite every approval and safety check passed: a delete asked by voice waited for the user, silence
 approved nothing, a spoken yes approved and a no denied, and a reconnect replayed nothing. What failed: speed first.
@@ -114,11 +117,12 @@ models already downloaded. A fresh download is 17.3 GB; 1.5 GB took 37 s here, s
 
 ## Limits
 
-- **It is slower.** A reply takes 3.4 s at the median and 9.2 s at p95 to decide, against 1.8 s for Sonnet; the brain's 8 s
+- **It is slower.** A reply takes 3.4 s at the median and 9.2 s at p95 to decide (stub tools, 78 synthetic cases); a plain
+  question end to end took 11.6 s. The brain's 8 s
   step limit cuts some off ("I lost my connection to the model"). Add the ears (0.76 s) and the first sentence of
   speech (Kokoro: 1.3 s at the median for an English reply, up to 4.5 s). These were measured with other work on the
   Mac; a quiet Mac should do better, by an amount not measured.
-- **It makes more mistakes.** The brain passed 76.9% of cases against 91.9% for Sonnet. It never asked what an unclear
+- **It makes more mistakes.** The brain passed 76.9% of 78 synthetic cases. It never asked what an unclear
   request meant: it sent it. The gate, the same local model, checks each send against what you said, and approvals keep
   every rule in code, but more wrong requests reach your sessions. Reports pass 51% against 100%.
 - **Speech starts late.** kokoro-onnx makes a whole sentence before any of it plays. Kokoro on MLX (mlx-audio) started

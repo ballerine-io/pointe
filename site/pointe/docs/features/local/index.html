@@ -67,7 +67,7 @@
 <ul>
 <li><a href="../../models/">Models and setups</a></li>
 <li><a href="../../setups/">Setups: which keys Pointe needs, and for what</a></li>
-<li><a href="../../benchmarks/">Benchmarks</a></li>
+<li><a href="../../benchmarks/">Speech component benchmarks</a></li>
 </ul>
 <p class="dx-nav-h">Architecture</p>
 <ul>
@@ -243,17 +243,17 @@ The reports and commands are in <a href="https://github.com/ballerine-io/pointe/
 <tr>
 <td>Brain, 78 cases x 3, pass ignoring length</td>
 <td>76.9% (67.9% to 85.5%)</td>
-<td>Sonnet 91.9% (85.9% to 97.0%)</td>
+<td>not traceable (1)</td>
 </tr>
 <tr>
 <td>Brain, reply p50 / p95</td>
 <td>3.4 / 9.2 s</td>
-<td>Sonnet 1.8 s median</td>
+<td>not traceable (1)</td>
 </tr>
 <tr>
 <td>Brain, unwanted sends of 234</td>
 <td>16 (5 refused in code)</td>
-<td>Sonnet 9 (all refused in code)</td>
+<td>not traceable (1)</td>
 </tr>
 <tr>
 <td>Reader, 17 cases x 3, pass</td>
@@ -292,6 +292,8 @@ The reports and commands are in <a href="https://github.com/ballerine-io/pointe/
 </tr>
 </tbody>
 </table></div>
+<p>(1) The Sonnet figures that stood here (91.9%, 1.8 s, 9 unwanted sends) came from a run with no report or raw rows
+behind it, so they were removed on 2026-11-25. Sonnet on the 84 cases of 2026-11-25: <a href="../../benchmarks/#brain-2026-11-25">docs/benchmarks.md</a>.</p>
 <p>In the audio suite every approval and safety check passed: a delete asked by voice waited for the user, silence
 approved nothing, a spoken yes approved and a no denied, and a reconnect replayed nothing. What failed: speed first.
 Replies came 7.4 s after the greeting's trigger and 11.6 s after a plain question (which got "one sec" first); side
@@ -304,13 +306,14 @@ models already downloaded. A fresh download is 17.3 GB; 1.5 GB took 37 s here, s
 <h2 id="limits">Limits</h2>
 <ul>
 <li>
-<p><strong>It is slower.</strong> A reply takes 3.4 s at the median and 9.2 s at p95 to decide, against 1.8 s for Sonnet; the brain's 8 s
+<p><strong>It is slower.</strong> A reply takes 3.4 s at the median and 9.2 s at p95 to decide (stub tools, 78 synthetic cases); a plain
+  question end to end took 11.6 s. The brain's 8 s
   step limit cuts some off ("I lost my connection to the model"). Add the ears (0.76 s) and the first sentence of
   speech (Kokoro: 1.3 s at the median for an English reply, up to 4.5 s). These were measured with other work on the
   Mac; a quiet Mac should do better, by an amount not measured.</p>
 </li>
 <li>
-<p><strong>It makes more mistakes.</strong> The brain passed 76.9% of cases against 91.9% for Sonnet. It never asked what an unclear
+<p><strong>It makes more mistakes.</strong> The brain passed 76.9% of 78 synthetic cases. It never asked what an unclear
   request meant: it sent it. The gate, the same local model, checks each send against what you said, and approvals keep
   every rule in code, but more wrong requests reach your sessions. Reports pass 51% against 100%.</p>
 </li>

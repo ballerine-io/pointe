@@ -67,7 +67,7 @@
 <ul>
 <li><a href="../models/">Models and setups</a></li>
 <li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
-<li><a href="../benchmarks/">Benchmarks</a></li>
+<li><a href="../benchmarks/">Speech component benchmarks</a></li>
 </ul>
 <p class="dx-nav-h">Architecture</p>
 <ul>
@@ -253,8 +253,8 @@ reopen, and new sessions under Ask before actions.</p>
 <p>The voice never passes a yes on in words: a message to a session that vouches for the user's yes to a delete, a push, a
 merge or a post ("the owner confirms by voice: yes, delete…") is refused in code, whether or not that session has asked
 for one (<code>owner_yes_relay</code>). And the model may not say a waiting request was approved or is running.</p>
-<p>The short form drops output-only flags and shortens paths plainly inside the project to their name. In our own Claude
-Code history, about 13% of shell commands have a short form; the rest are read word for word.</p>
+<p>The short form drops output-only flags and shortens paths plainly inside the project to their name. A command without
+one is read word for word.</p>
 <p>Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set <code>approvals: terminal</code>.</p>
 <h3 id="starting-a-session">Starting a session</h3>

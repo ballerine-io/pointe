@@ -67,7 +67,7 @@
 <ul>
 <li><a href="../models/">Models and setups</a></li>
 <li><a href="./" aria-current="page">Setups: which keys Pointe needs, and for what</a></li>
-<li><a href="../benchmarks/">Benchmarks</a></li>
+<li><a href="../benchmarks/">Speech component benchmarks</a></li>
 </ul>
 <p class="dx-nav-h">Architecture</p>
 <ul>
@@ -147,7 +147,7 @@
 <td><strong>Free start</strong> (<code>free</code>)</td>
 <td>Gemini</td>
 <td>Gemini: brain, reader, checker, ears, mouth</td>
-<td>28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19) (bench/results/combinations.md, "Gemini only")<br>brain 94.9% against Sonnet's 91.9%: within the margin (the 95% intervals overlap) (docs/benchmarks.md, "Brain and reader")<br>ears 92.0% of intents against Soniox's 95.9%; no echo guard, so use headphones (docs/benchmarks.md, ears table)</td>
+<td>28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19) (bench/results/combinations.md, "Gemini only")<br>brain: gemini-3.8-flash answered 61 of 84 test cases in time and was right on 88.5% of those; Sonnet was right on 81.5% (docs/benchmarks.md, "Brain, 2026-11-25")<br>ears 92.0% of intents against Soniox's 95.9%; no echo guard, so use headphones (docs/benchmarks.md, ears table)</td>
 <td>replies took 4.0 to 4.5 s (bench/results/combinations.md, "Gemini only")</td>
 <td>$0 until the free quota ends; about $0.70 to $0.95 with billing on</td>
 <td>Speech and session text go to Google. On the free tier Google may use and review them: not for confidential work.</td>
@@ -168,7 +168,7 @@
 <td>Soniox + Anthropic</td>
 <td>Anthropic: brain, reader, checker; Soniox: ears, mouth</td>
 <td>30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work (bench/results/combinations.md, "Anthropic, Soniox")<br>ears 95.9% of intents, the highest measured (docs/benchmarks.md, ears table, Soniox v6)</td>
-<td>whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice starts in 301 ms (the voice alone, not a call) (docs/benchmarks.md, "Brain and reader" and the mouth table)</td>
+<td>whole replies not measured; the brain's first sentence comes 2.21 s after the request at the median, with stub tools; in the voice benchmark the voice starts in 301 ms (the voice alone, not a call) (docs/benchmarks.md, "Brain, 2026-11-25" and the mouth table)</td>
 <td>about $1.20</td>
 <td>Speech goes to Soniox; session text to Anthropic.</td>
 <td>the best ears with two accounts, on laptop speakers</td>
@@ -177,7 +177,7 @@
 <td><strong>Fastest and most accurate voice</strong> (<code>full</code>)</td>
 <td>Anthropic + Soniox + ElevenLabs + Gemini</td>
 <td>Anthropic: brain, reader; Gemini: checker; Soniox: ears; ElevenLabs: mouth</td>
-<td>34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result (bench/results/combinations.md, "(default)")<br>ears 95.9% of intents (next: Gemini 92.0%) (docs/benchmarks.md, ears table)<br>voice word error 0.00 in English, the lowest (docs/benchmarks.md, mouth table, eleven_v4_turbo)<br>brain: Sonnet 91.9% against Gemini's 94.9%, within the margin; Sonnet is the faster one (docs/benchmarks.md, "Brain and reader")</td>
+<td>34 of 35 audio checks, echo guard 4 of 4: the highest whole-setup result (bench/results/combinations.md, "(default)")<br>ears 95.9% of intents (next: Gemini 92.0%) (docs/benchmarks.md, ears table)<br>voice word error 0.00 in English, the lowest (docs/benchmarks.md, mouth table, eleven_v4_turbo)<br>brain: Sonnet right on 81.5% with its first sentence in 2.21 s; gpt-6-sol 83.3%, within the margin (docs/benchmarks.md, "Brain, 2026-11-25")</td>
 <td>replies in 2.4 s at the median (2.0 to 2.6), the fastest measured (docs/features/voice-stays-local.md, "Measured")<br>in the voice benchmark the voice starts in 213 ms (the voice alone, not a call) (docs/benchmarks.md, mouth table)</td>
 <td>about $1</td>
 <td>Speech goes to Soniox; session text to Anthropic and Gemini (paid tier); the replies' text to ElevenLabs.</td>
@@ -197,7 +197,7 @@
 <td><strong>Fully local</strong> (<code>local</code>)<br>Needs an Apple-silicon Mac with 32 GB of memory, about 19 GB of disk, headphones; English only</td>
 <td>none</td>
 <td>this Mac: brain, reader, checker, ears, mouth</td>
-<td>10 of 19 one-session audio checks, every approval check among them (bench/results/combinations.md, "None: fully local")<br>brain 76.9% against Sonnet's 91.9% (docs/benchmarks.md, "Fully local")</td>
+<td>10 of 19 one-session audio checks, every approval check among them (bench/results/combinations.md, "None: fully local")<br>brain passed 76.9% of 78 test cases with stub tools (docs/benchmarks.md, "Fully local")</td>
 <td>replies took 5.8 to 11.6 s (bench/results/combinations.md, "None: fully local")</td>
 <td>$0</td>
 <td>Nothing leaves the Mac.</td>
@@ -230,7 +230,7 @@ with <code>pointe restart</code>. The page's Settings, Model keys, and the Mac a
 key, Use this setup for a setup, each shown with the key as In use, Needed or Optional.</p>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/setups.md">docs/setups.md</a> in the repository.</p>
-<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../models/"><span class="pg-small">Previous</span>Models and setups</a><a class="dx-next" href="../benchmarks/"><span class="pg-small">Next</span>Benchmarks</a></nav>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../models/"><span class="pg-small">Previous</span>Models and setups</a><a class="dx-next" href="../benchmarks/"><span class="pg-small">Next</span>Speech component benchmarks</a></nav>
 </main>
 
 </div>

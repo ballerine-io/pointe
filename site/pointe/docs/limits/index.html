@@ -67,7 +67,7 @@
 <ul>
 <li><a href="../models/">Models and setups</a></li>
 <li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
-<li><a href="../benchmarks/">Benchmarks</a></li>
+<li><a href="../benchmarks/">Speech component benchmarks</a></li>
 </ul>
 <p class="dx-nav-h">Architecture</p>
 <ul>
@@ -153,18 +153,20 @@
   to be tried on a phone. With a free Apple Account the widget is a plain button, with no Mac status (no App Groups).</p>
 </li>
 <li>
-<p><strong>Synthetic evidence.</strong> The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No
-  bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.</p>
+<p><strong>Mostly synthetic evidence.</strong> The benchmarks, the voice lock thresholds and the whisper numbers use synthetic
+  voices. Recorded people are used for two things only: a one-word yes or no after a read-out (Speech Commands) and
+  pauses and ends of turn in meetings (AMI). Use the voice lock at Approvals, and treat whisper recognition as limited.</p>
 </li>
 <li>
 <p><strong>Real hardware.</strong> Drive mode has not been measured on car hands-free audio. Phone alerts depend on the app being alive
   (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.</p>
 </li>
 <li>
-<p><strong>Approvals by voice cover plain commands.</strong> Pointe reads out only known programs in plain pipelines (<code>pointe/readout.py</code>).
-  A compound shell command (<code>pwd; ls | head</code>, an <code>if [ ... ]</code> test, <code>printf ... &gt; file</code>), a web fetch or a tool call
-  from an MCP server is not read out: it waits for a tap on the page, the phone or the terminal. With no screen in
-  reach, such a request waits until you have one.</p>
+<p><strong>A request without a short form is read word for word.</strong> Every request can be approved by voice, but a yes counts
+  only after the whole request was said (<code>pointe/guards.py</code>, <code>spoken_request</code>). Known programs in plain pipelines have
+  a short form (<code>pointe/readout.py</code>); anything else, a compound shell command or an MCP tool call, is read word for
+  word, which can take tens of seconds. A request that holds a credential-like value is never read out: it waits for a
+  tap on the page, the phone or the terminal.</p>
 </li>
 <li>
 <p><strong>Echo.</strong> On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases

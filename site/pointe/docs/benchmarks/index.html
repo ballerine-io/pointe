@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Benchmarks · Pointe docs</title>
-<meta name="description" content="The default models come from these runs. Scripts and reports are in bench/; re-run them with your own keys. All data is synthetic.">
+<title>Speech component benchmarks · Pointe docs</title>
+<meta name="description" content="These benchmarks chose Pointe&#x27;s default vendors: one role at a time (ears, brain, mouth, gate, voice lock), on synthetic speech and invented cases. Most…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Benchmarks">
-<meta property="og:description" content="The default models come from these runs. Scripts and reports are in bench/; re-run them with your own keys. All data is synthetic.">
+<meta property="og:title" content="Speech component benchmarks">
+<meta property="og:description" content="These benchmarks chose Pointe&#x27;s default vendors: one role at a time (ears, brain, mouth, gate, voice lock), on synthetic speech and invented cases. Most…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/benchmarks/">
 <meta name="twitter:card" content="summary_large_image">
@@ -67,7 +67,7 @@
 <ul>
 <li><a href="../models/">Models and setups</a></li>
 <li><a href="../setups/">Setups: which keys Pointe needs, and for what</a></li>
-<li><a href="./" aria-current="page">Benchmarks</a></li>
+<li><a href="./" aria-current="page">Speech component benchmarks</a></li>
 </ul>
 <p class="dx-nav-h">Architecture</p>
 <ul>
@@ -118,54 +118,25 @@
 </nav>
 <main id="main" class="dx-main">
 <article class="dx-doc">
-<h1 id="benchmarks">Benchmarks</h1>
-<p>The default models come from these runs. Scripts and reports are in <code>bench/</code>; re-run them with your own keys. All data
-is synthetic.</p>
-<ul>
-<li>
-<p><strong>Brain and reader:</strong> <code>bench/brain_bench.py</code>, report in <code>bench/results/brain.md</code>. Real tool and speech path; 78 brain
-  cases and 17 reader cases. On 78 cases with the daemon's own context block (2026-11-12), <code>claude-sonnet-5-5</code> passes
-  91.9% ignoring length (95% CI 85.9% to 97.0%), median reply 1.8 s; its fallback <code>claude-haiku-5-5</code> passes 88.0%; <code>gemini-3.8-flash</code> passes 94.9%
-  (89.7% to 98.7%), median reply 2.7 s, with no unwanted sends against Sonnet's 9. The intervals overlap. Sonnet's 9 are all attempts to relay an
-  approval that must be typed in the terminal; the daemon now refuses those in code, and the bench still counts the attempt.
-  The earlier ranking on 66 cases, in <code>bench/results/brain_substance.md</code>, had Sonnet at 95.5%; nothing tested there beat
-  it measurably, including Opus, Fable, high effort and 11 OpenAI models. Those prompts were tuned on Sonnet, which
-  favours it. From that earlier run, not re-measured: <code>gemini-4-argon</code> 93.5% but 17 s.</p>
-</li>
-<li>
-<p><strong>Gate:</strong> <code>tests/test_relevance_live.py</code>, report in <code>bench/results/gate.md</code>.</p>
-</li>
-<li>
-<p><strong>Fully local (<code>pointe local</code>):</strong> the same benchmarks on an M5 Pro with 64 GB, 2026-11-13, report in
-  <code>bench/results/local.md</code>. Brain <code>gemma-4-26b-a4b-it</code> (MLX 4-bit) passes 76.9% (67.9% to 85.5%) ignoring length,
-  median reply 3.4 s, against 91.9% and 1.8 s for <code>claude-sonnet-5-5</code>; as the reader it passes 51.0%
-  against 100% for Sonnet on 51 reports. Measured with other work running on the Mac.</p>
-</li>
-<li>
-<p><strong>Voice stays on your Mac (<code>pointe local voice</code>):</strong> local Whisper and Kokoro on MLX with the cloud brain, 2026-11-13,
-  in <a href="../features/voice-stays-local/#measured">docs/features/voice-stays-local.md</a>. Kokoro on MLX, as the daemon runs it,
-  starts English speech in 185 ms at the median (kokoro-onnx 750 ms in the same run); the whole setup passed 30 of 35
-  audio checks.</p>
-</li>
-<li>
-<p><strong>Which vendors and whole setups are covered, and what is not:</strong> <code>bench/results/combinations.md</code>.</p>
-</li>
-<li>
-<p><strong>Ears:</strong> <code>bench/stt_extra.py</code>, report in <code>bench/results/report.txt</code>. 70 utterances (English, Hebrew, mixed, short
-  yes/no) x 4 voices x clean/noisy = 560 clips, at real-time pace, with a blind intent judge.</p>
-</li>
-<li>
-<p><strong>Mouth:</strong> <code>bench/tts_bench.py</code>, report in <code>bench/results/tts.md</code>. Time to first audio, plus intelligibility by round trip
-  through a recognizer. Not covered: how it sounds to a person (samples are generated locally to listen to).</p>
-</li>
-</ul>
+<h1 id="speech-component-benchmarks">Speech component benchmarks</h1>
+<p>These benchmarks chose Pointe's default vendors: one role at a time (ears, brain, mouth, gate, voice lock), on
+<strong>synthetic speech and invented cases</strong>. Most were run once, between 2026-11-05 and 2026-11-25, on builds before 0.8.5,
+and they have not been re-run on 0.8.5. Each line gives its date, its method and where its raw rows are. The scripts
+are in <code>bench/</code>; re-run them with your own keys.</p>
+<p>What the whole product does on a call (first word, accuracy, approvals, turn-taking, recorded people) is measured
+separately, on a tagged release: <a href="../../benchmarks/">docs/benchmarks/README.md</a>, and on the
+<a href="https://eng.ballerine.com/pointe/benchmarks/">site</a>.</p>
+<p>Raw rows behind this page: <code>bench/results/raw/</code> (synthetic, no corpus audio).</p>
+<h2 id="ears-speech-to-text-2026-11-1112">Ears (speech to text), 2026-11-11/12</h2>
+<p><code>bench/stt_extra.py</code>; report <code>bench/results/report.txt</code>; raw <code>bench/results/raw/stt-results.jsonl</code> and
+<code>stt-judged.json</code>. 70 utterances (English, Hebrew, mixed, short yes/no) x 4 synthetic ElevenLabs voices x clean and
+12 dB noise = 560 clips, streamed at real-time pace, one run per clip.</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
 <th>ears</th>
-<th>intent correct</th>
-<th>word error</th>
-<th>latency p50 / p90</th>
+<th>intent correct (model judge)</th>
+<th>word error (computed)</th>
 </tr>
 </thead>
 <tbody>
@@ -173,70 +144,134 @@ is synthetic.</p>
 <td>Soniox stt-rt-v5</td>
 <td>95.4%</td>
 <td>0.062</td>
-<td>0.36 / 1.29 s</td>
 </tr>
 <tr>
-<td><strong>Soniox stt-rt-v6</strong></td>
+<td><strong>Soniox stt-rt-v6</strong> (default)</td>
 <td><strong>95.9%</strong></td>
 <td><strong>0.063</strong></td>
-<td><strong>0.38 / 2.18 s</strong></td>
 </tr>
 <tr>
 <td>gemini-3.5-transcribe-live</td>
 <td>92.0%</td>
 <td>0.094</td>
-<td>0.72 / 1.62 s</td>
 </tr>
 <tr>
 <td>OpenAI gpt-4o-transcribe</td>
 <td>90.9%</td>
 <td>0.209</td>
-<td>1.16 / 1.96 s</td>
 </tr>
 <tr>
 <td>OpenAI gpt-4o-mini-transcribe</td>
 <td>85.5%</td>
 <td>0.203</td>
-<td>1.09 / 1.97 s</td>
 </tr>
 <tr>
 <td>Gemini Live, as a whole</td>
 <td>79.6%</td>
 <td>0.240</td>
-<td>1.13 / 2.45 s</td>
 </tr>
 <tr>
 <td>OpenAI gpt-live-transcribe</td>
 <td>81.1%</td>
 <td>0.195</td>
-<td>0.66 / 1.59 s</td>
 </tr>
 <tr>
 <td>ElevenLabs scribe_v2_realtime</td>
 <td>68.9%</td>
 <td>0.378</td>
-<td>0.77 / 1.78 s</td>
 </tr>
 <tr>
-<td>Whisper large-v3-turbo, local (MLX, M5 Pro)</td>
+<td>Whisper large-v3-turbo, local (MLX, M5 Pro, 2026-11-13)</td>
 <td>85.7%</td>
 <td>0.219</td>
-<td>0.76 / 1.25 s</td>
 </tr>
 </tbody>
 </table></div>
-<p>The local row is from a run on 2026-11-13 on the same 560 clips and the same judge; its latency is the voice detector's
-0.2 s wait plus the time to transcribe the clip on the Mac, not a network path, so it compares with the others only roughly.
-Details: <a href="../features/local/#measured">docs/features/local.md</a>.</p>
-<p>The ears run Soniox <code>stt-rt-v6</code> since 2026-11-20 (a pre-release build) because Soniox removes <code>stt-rt-v5</code> on 2026-12-15, not because v6 measured
-better. Until then v5 was the default: in the table, with Soniox's default endpoint settings, v6 never finalised 3 clips
-of 560 and waited over 1 s more often (17.6% of clips against 13.9%). A second run on 2026-11-20 with the daemon's own
-settings (<a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/soniox-v6.md">bench/results/soniox-v6.md</a>) found v6 as accurate (intent 95.9% against 94.6%,
-Hebrew 98.3% for both) with the same median endpoint (0.38 s against 0.36 s) and a much longer tail: p90 2.67 s against
-0.82 s, Hebrew p90 3.04 s against 0.85 s, because on 35 of 560 clips v6 waits about 3.2 s before it ends the turn.
-Since 2026-11-20 (a pre-release build) the call asks Soniox for held words after 0.7 s of silence (<code>turns.finalize_due</code>): p90 0.76 s, Hebrew 0.80 s,
-no clip over 2.5 s, intent 96.1%; the cost is that a pause after a clause that reads whole no longer gets Soniox's
-occasional extra patience at Normal (60 of 60 such pauses taken, against 52 with v5).</p>
+<ul>
+<li>
+<p><strong>Intent is judged by a model</strong>, <code>gemini-3.5-flash</code> at temperature 0, blind to the vendor. It is from the same vendor
+  as two rows it grades. Its verdicts are noisy: of 417 groups of identical reference and transcript pairs, 37 got
+  verdicts that disagree with their group's majority, and it passed a Hebrew request transcribed into Arabic script.
+  A difference of a few points between rows is not a ranking. Word error is computed, not judged; it is a mean of
+  per-clip rates, so a one-word clip weighs as much as a sentence.</p>
+</li>
+<li>
+<p><strong>No latency column.</strong> The earlier table gave latency per vendor, but the vendors were not timed the same way:
+  Soniox at its first end token (some clips came out negative), ElevenLabs at its last commit after a 0.5 s pause,
+  OpenAI after a 500 ms server pause, Gemini with a fixed 0.4 s added, and clips that never gave a final were dropped
+  from the percentiles. Those numbers do not compare, so they are not published. The time Pointe takes end to end is
+  measured on the release benchmarks instead.</p>
+</li>
+<li>
+<p>Pointe uses <code>stt-rt-v6</code> because Soniox removes v5 on 2026-12-15, not because v6 measured better.</p>
+</li>
+</ul>
+<h2 id="brain-2026-11-25">Brain, 2026-11-25</h2>
+<p><code>bench/first_word_bench.py brains</code> with <code>bench/brain_bench.py</code>'s 84 cases, prompts, stub tools and rubric, through the
+real <code>brain.Brain</code>; raw <code>bench/results/raw/first_word.jsonl</code>; <code>.venv/bin/python bench/first_word_bench.py report</code>
+recomputes it. "Right" is the rubric's code checks, not a model judge. Load median 9.5.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>brain</th>
+<th>replies (84 cases x repeats)</th>
+<th>right</th>
+<th>first sentence median / p90</th>
+<th>$ a reply</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>anthropic:claude-sonnet-5-5</strong> (default)</td>
+<td>336</td>
+<td>81.5%</td>
+<td>2.21 / 3.82 s</td>
+<td>0.0048</td>
+</tr>
+<tr>
+<td>openai:gpt-6-sol</td>
+<td>252</td>
+<td>83.3%</td>
+<td>1.85 / 3.47 s</td>
+<td>0.0194</td>
+</tr>
+<tr>
+<td>anthropic:claude-haiku-5-5 (fallback)</td>
+<td>84</td>
+<td>78.6%</td>
+<td>2.23 / 3.38 s</td>
+<td>0.0004</td>
+</tr>
+<tr>
+<td>openai:gpt-6-luna</td>
+<td>84</td>
+<td>75.0%</td>
+<td>2.42 / 3.90 s</td>
+<td>0.0012</td>
+</tr>
+<tr>
+<td>gemini:gemini-3.5-flash-lite</td>
+<td>84</td>
+<td>72.6%</td>
+<td>1.27 / 2.23 s</td>
+<td>0.0033</td>
+</tr>
+<tr>
+<td>gemini:gemini-3.8-flash</td>
+<td>61 of 84 answered</td>
+<td>88.5%</td>
+<td>4.69 / 9.30 s</td>
+<td>0.0066</td>
+</tr>
+</tbody>
+</table></div>
+<p>On the same cases, Sonnet was right where gpt-6-sol was wrong 23 times, and the reverse 28 times, of 252: no
+difference. The prompts were written and tuned on Sonnet, which favours it. Synthetic cases; stub tools answer at once,
+so these times are shorter than on a call. The earlier figures on this page (78 cases, Sonnet 91.9%) had no report or
+raw rows behind them and were removed.</p>
+<h2 id="mouth-text-to-speech-2026-11-0506">Mouth (text to speech), 2026-11-05/06</h2>
+<p><code>bench/tts_bench.py run --reps 3</code>; report <code>bench/results/tts.md</code>; raw <code>bench/results/raw/tts-raw.jsonl</code>. 24 replies
+(8 English, 8 Hebrew, 8 mixed) x 3, one laptop, one network path, connection already open.</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
@@ -299,61 +334,46 @@ occasional extra patience at Normal (60 of 60 such pauses taken, against 52 with
 </tr>
 </tbody>
 </table></div>
-<p>Limits: voices are synthetic, latency is from one laptop and one network, the round trip uses one recognizer, and the benchmark author is a model from a vendor under test. Each report lists its own limits.</p>
-<h2 id="summary">Summary</h2>
-<p>The defaults come from benchmarks in <code>bench/</code>, all on synthetic data; re-run them with your own keys. The headline numbers:</p>
+<p>Word error is a round trip through a Soniox recognizer (Soniox is also a row here). The report names <code>stt-rt-v6</code>, but
+the run predates v6 and the rows do not record which model heard them. How a voice sounds to a person is not measured.</p>
+<h2 id="the-rest-each-once-synthetic">The rest, each once, synthetic</h2>
 <ul>
 <li>
-<p><strong>Ears:</strong> 560 clips (English, Hebrew, mixed, short yes/no; 4 voices; clean and noisy). Soniox stt-rt-v6, what runs
-  since Soniox removes v5 on 2026-12-15, got intent right 95.9% of the time, word error 0.063, latency p50 0.38 s; v5 had
-  95.4% and 0.36 s. v6 held some turns about 3 s; Pointe asks it for the words after a silence, which brings the p90
-  to 0.76 s (Hebrew 0.80 s).
-  <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/report.txt"><code>bench/results/report.txt</code></a>, <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/soniox-v6.md"><code>bench/results/soniox-v6.md</code></a></p>
+<p><strong>Gate</strong> (2026-11-06): <code>tests/test_relevance_live.py</code>, 24 cases, two runs per model; <code>gemini-3.5-flash-lite</code> failed
+  none. The cases were written while the gate was tuned on that model. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/gate.md"><code>bench/results/gate.md</code></a></p>
 </li>
 <li>
-<p><strong>Brain:</strong> 78 cases on the real tool and speech path. <code>claude-sonnet-5-5</code> passes 91.9% with a 1.8 s median reply;
-  <code>gemini-3.8-flash</code> 94.9% at 2.7 s; the confidence intervals overlap. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/brain.md"><code>bench/results/brain.md</code></a></p>
+<p><strong>Voice lock</strong>: 19 synthetic voices (other macOS voices as impostors). At the thresholds the daemon uses, a stranger's
+  sentence passes 1.6% of the time (16 of 1,026) and yours fails 3.5% (2 of 57); a short word after a match passes for a
+  stranger 1.3% (9 of 684) and fails for you 5.3% (2 of 38). <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/speaker.md"><code>bench/results/speaker.md</code></a></p>
 </li>
 <li>
-<p><strong>Gate:</strong> 24 cases, two runs per model; <code>gemini-3.5-flash-lite</code> failed none. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/gate.md"><code>bench/results/gate.md</code></a></p>
-</li>
-<li>
-<p><strong>Mouth:</strong> <code>eleven_v4_turbo</code> first audio 213 ms p50, word error 0.00 English, 0.02 Hebrew.
-  <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/tts.md"><code>bench/results/tts.md</code></a></p>
-</li>
-<li>
-<p><strong>Voice lock:</strong> equal error rate 1.9% on sentences, 2.7% on short answers, on 19 synthetic voices.
-  <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/speaker.md"><code>bench/results/speaker.md</code></a></p>
-</li>
-<li>
-<p><strong>Vocabulary:</strong> a misheard name spelled right 25 of 64 times without hints, 60 of 64 with them.
+<p><strong>Vocabulary</strong> (Soniox v5): a made-up name spelled right 25 of 64 times without hints, 60 of 64 with them.
   <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/vocab.md"><code>bench/results/vocab.md</code></a></p>
 </li>
 <li>
-<p><strong>Challenge me:</strong> 15/30 to 30/30 on Sonnet, 21/30 to 30/30 on Gemini Flash. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/challenge.md"><code>bench/results/challenge.md</code></a></p>
-</li>
-<li><strong>Whisper:</strong> Soniox word error 1.4% on a synthetic whisper at -18 dB, 18.4% at -30 dB. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/whisper.md"><code>bench/results/whisper.md</code></a></li>
-<li>
-<p><strong>Fully local</strong>, on an M5 Pro: brain 76.9% with a 3.4 s median reply, reader 51.0%, ears 85.7% intent at 0.76 s,
-  Kokoro's first English audio 1.3 s, 10 of 19 single-session audio checks. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/local.md"><code>bench/results/local.md</code></a></p>
+<p><strong>Challenge me</strong> (2026-11-12): 15/30 to 30/30 on Sonnet, 21/30 to 30/30 on Gemini Flash, on the same six cases the
+  brackets were designed on; no held-out cases. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/challenge.md"><code>bench/results/challenge.md</code></a></p>
 </li>
 <li>
-<p><strong>Voice stays on your Mac</strong>, on an M5 Pro: Kokoro on MLX starts English speech in 185 ms at the median (kokoro-onnx 750 ms,
-  ElevenLabs 213 ms); Whisper large-v3-turbo got 82.7% of intents in the same run as Soniox's 94.6%; 30 of 35 audio checks.
-  <a href="../features/voice-stays-local/">docs/features/voice-stays-local.md</a></p>
+<p><strong>Whisper</strong> (Soniox v5, made by lowering synthetic voices; no person whispered): word error 1.4% at -18 dB, 18.4% at
+  -30 dB. <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/whisper.md"><code>bench/results/whisper.md</code></a></p>
 </li>
 <li>
-<p><strong>Which setups were tested end to end:</strong> <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/combinations.md"><code>bench/results/combinations.md</code></a></p>
+<p><strong>Fully local</strong> (<code>pointe local</code>, M5 Pro, 2026-11-13, load 17 to 154): brain <code>gemma-4-26b-a4b-it</code> passed 76.9% of the
+  78 cases of that day, median reply 3.4 s with stub tools; a plain question end to end took 11.6 s.
+  <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/local.md"><code>bench/results/local.md</code></a></p>
+</li>
+<li>
+<p><strong>Voice stays on your Mac</strong> (<code>pointe local voice</code>, 2026-11-13): Kokoro on MLX starts English speech in 185 ms at the
+  median; 30 of 35 audio checks passed. <a href="../features/voice-stays-local/#measured">docs/features/voice-stays-local.md</a></p>
+</li>
+<li>
+<p><strong>Whole setups</strong> (2026-11-13, Soniox v5, one run each): <a href="https://github.com/ballerine-io/pointe/blob/main/bench/results/combinations.md"><code>bench/results/combinations.md</code></a>.
+  Its counts treat a skipped check as passed.</p>
 </li>
 </ul>
-<p>Not measured for any setup: a real human voice on a real call.</p>
-<p><strong>Conversational engineering benchmarks.</strong> Five benchmarks of what talking costs a coding agent, led by Humanity's Last
-Keystroke (small coding tasks finished by voice only), with one fixed agent and synthetic speech:
-<a href="../../benchmarks/">docs/benchmarks/</a>, and on the <a href="https://eng.ballerine.com/pointe/benchmarks/">site</a>. In the
-first run Pointe did not beat the LLM-router baseline we wrote on any of them, and fell well below it on most. Pointe
-fixed the defects it found and its arm was run again: it gained on routing (41 to 49 of 60 turns), identifiers (40 to
-42 of 48) and spoken answers (18 to 23 of 27), stayed below the baseline on most, and lost on HLK (34 to 27 of 72), a
-rerun during which the brain model was often slow. The pages show both runs, by how much and why.</p>
+<p>Not measured for any component here: a recorded person.</p>
 <h2 id="cost-arithmetic">Cost arithmetic</h2>
 <p>A busy hour on the best setup: brain 60 replies at $0.0045, about $0.27. Mouth 60 replies of 30 words, about 11,000 characters at $0.04 per
 1,000, about $0.43. Reader 10 reports at $0.01, about $0.10. Soniox $0.12 per stream hour with up to two streams, about $0.24. About $1 in all.
@@ -397,11 +417,11 @@ Prices read 2026-11-06; check them. This is arithmetic, not a metered bill.</p>
 </tr>
 <tr>
 <td>OpenAI only</td>
-<td>$0.16</td>
+<td>$0.16 to $1.16</td>
 <td>$0.04</td>
 <td>$0.39</td>
 <td>$0.36</td>
-<td>$0.95</td>
+<td>$0.95 to $1.95</td>
 </tr>
 <tr>
 <td>Anthropic, Gemini, voice on the Mac</td>
@@ -429,7 +449,9 @@ Prices read 2026-11-06; check them. This is arithmetic, not a metered bill.</p>
 </tr>
 </tbody>
 </table></div>
-<p>The gate adds a small amount on every setup.</p>
+<p>The gate adds a small amount on every setup. Two runs disagree on what <code>gpt-6-sol</code> costs a reply: $0.0027
+(<code>bench/results/brain_substance.md</code>) and $0.0194 (the 2026-11-25 brain run above); the two scripts count cache writes and
+thinking tokens differently, so the OpenAI row shows both.</p>
 <p>Where the ears prices come from, read on the vendors' pages on 2026-11-19: Soniox real-time transcription $0.12 an hour
 per stream (<a href="https://soniox.com/pricing">soniox.com/pricing</a>); <code>gemini-3.5-transcribe-live</code> $0.005 a minute of audio in
 and $0.004 a minute of text out, so $0.30 to $0.54 an hour (<a href="https://aistudio.google.com/docs/pricing">Google's pricing page</a>);
@@ -446,7 +468,10 @@ free tier and its limits: <a href="../install/#try-it-for-free-or-cheap">docs/in
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
-<li class="dx-l2"><a href="#summary">Summary</a></li>
+<li class="dx-l2"><a href="#ears-speech-to-text-2026-11-1112">Ears (speech to text), 2026-11-11/12</a></li>
+<li class="dx-l2"><a href="#brain-2026-11-25">Brain, 2026-11-25</a></li>
+<li class="dx-l2"><a href="#mouth-text-to-speech-2026-11-0506">Mouth (text to speech), 2026-11-05/06</a></li>
+<li class="dx-l2"><a href="#the-rest-each-once-synthetic">The rest, each once, synthetic</a></li>
 <li class="dx-l2"><a href="#cost-arithmetic">Cost arithmetic</a></li>
 </ul>
 </details>

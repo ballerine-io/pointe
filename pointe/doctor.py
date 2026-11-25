@@ -37,7 +37,8 @@ MEASURED = {
 NEXT_KEY = [
     ("soniox", "ears get 95.9% of intents right, against 92.0% on Gemini and 90.9% on OpenAI, and the echo guard lets "
                "you use speakers"),
-    ("anthropic", "the brain answers in 1.8 s at the median, against 2.7 s on Gemini; their accuracy is within the margin"),
+    ("anthropic", "the brain's first sentence comes in 2.2 s at the median, against 4.7 s on Gemini, which left 23 of 84 "
+                  "test cases unanswered"),
     ("elevenlabs", "the voice starts in 0.21 s, against 0.44 s on Gemini and 0.80 s on OpenAI"),
     ("gemini", "the check on each send is the fastest measured"),
 ]

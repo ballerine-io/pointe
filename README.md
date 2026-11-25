@@ -100,13 +100,15 @@ More: [docs/architecture.md](docs/architecture.md) and [docs/how-it-works.md](do
   busy hour of talk. Fully local mode needs a 32 GB Mac and is slower and less accurate.
 - **Claude Code cannot be interrupted from outside.** "Stop" ends its turn at the next tool step, and a command that is
   already running finishes first. Codex and OpenCode stop at once.
-- **Voice approves plain commands only.** In our own Claude Code history about 13% of shell commands could be read
-  out. Commands with `$`, globs or `sudo`, MCP calls and web fetches wait for a tap.
+- **A long command is read word for word before a yes counts.** Every request can be approved by voice once it has
+  been read in full; most have no short form, so the read-out is long. A request that holds a credential-like value
+  is never read out and waits for a tap.
 - **Use headphones.** On laptop speakers the echo guard works only with Soniox as the speech-to-text vendor.
 - **The iPhone reaches your Mac only over a network you set up** (Wi-Fi, Tailscale or a VPN). There is no relay.
 - **Vendor-hosted cloud sessions cannot be joined.** Claude Code on the web and Codex Cloud have no interface for it.
-- **The benchmarks use synthetic voices**, and in our own
-  [conversation benchmarks](docs/benchmarks/README.md) Pointe is below a simple LLM-router baseline on most.
+- **Most benchmark speech is synthetic.** Only the yes/no approvals and the end-of-turn pauses are measured on
+  recorded people. Against a plain LLM-router baseline Pointe is not ahead on every measure:
+  [the benchmarks](docs/benchmarks/README.md) say where it loses.
 
 The full list: [docs/limits.md](docs/limits.md). Similar tools, and where each is ahead:
 [docs/comparison.md](docs/comparison.md).

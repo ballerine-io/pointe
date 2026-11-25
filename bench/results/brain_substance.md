@@ -1,5 +1,10 @@
 ### Brain
 
+> **Read with care (audit, 2026-11-25).** The judge column is scored by `claude-sonnet-5-5`, which is also Pointe's
+> default brain and a row here; a second judge from another vendor agreed with it weakly (Spearman about 0.35), and
+> Gemini as judge gave its own replies 5.00. The judge scores are a model's reading, not people's. No date, commit or
+> command is recorded for this run.
+
 | Model (run) | Pass ignoring length (95% CI) | Failures of substance | Unwanted sends | Judge 1-5 (95% CI) | Pass with length | Reply p50 / p95 s | Steps over 8 s | $ per reply | Errors |
 |---|---|---|---|---|---|---|---|---|---|
 | claude-sonnet-5-5 (v6) | 95.5% (89.4% to 100.0%) | 15 of 198 | 9 | 3.77 (3.59 to 3.95) | 92.9% | 2.6 / 5.4 | 0.0% | $0.0045 | 0 |

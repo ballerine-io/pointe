@@ -56,8 +56,8 @@ SETUPS = (
     Setup("free", "Free start", ("gemini",), {"gemini": ("brain", "reader", "checker", "ears", "mouth")},
           measured=(("28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19)",
                      "bench/results/combinations.md, \"Gemini only\""),
-                    ("brain 94.9% against Sonnet's 91.9%: within the margin (the 95% intervals overlap)",
-                     "docs/benchmarks.md, \"Brain and reader\""),
+                    ("brain: gemini-3.8-flash answered 61 of 84 test cases in time and was right on 88.5% of those; "
+                     "Sonnet was right on 81.5%", "docs/benchmarks.md, \"Brain, 2026-11-25\""),
                     ("ears 92.0% of intents against Soniox's 95.9%; no echo guard, so use headphones",
                      "docs/benchmarks.md, ears table")),
           speed=(("replies took 4.0 to 4.5 s", "bench/results/combinations.md, \"Gemini only\""),),
@@ -82,9 +82,9 @@ SETUPS = (
           measured=(("30 of 35 audio checks (31 on a rerun); echo guard 3 of 4, so speakers work",
                      "bench/results/combinations.md, \"Anthropic, Soniox\""),
                     ("ears 95.9% of intents, the highest measured", "docs/benchmarks.md, ears table, Soniox v6")),
-          speed=(("whole replies not measured; the brain answers in 1.8 s at the median; in the voice benchmark the voice "
-                  "starts in 301 ms (the voice alone, not a call)",
-                  "docs/benchmarks.md, \"Brain and reader\" and the mouth table"),),
+          speed=(("whole replies not measured; the brain's first sentence comes 2.21 s after the request at the median, "
+                  "with stub tools; in the voice benchmark the voice starts in 301 ms (the voice alone, not a call)",
+                  "docs/benchmarks.md, \"Brain, 2026-11-25\" and the mouth table"),),
           cost="about $1.20", privacy="Speech goes to Soniox; session text to Anthropic.",
           pick_for="the best ears with two accounts, on laptop speakers",
           short="Soniox and Anthropic. Best ears, works on speakers."),
@@ -94,8 +94,8 @@ SETUPS = (
                      "bench/results/combinations.md, \"(default)\""),
                     ("ears 95.9% of intents (next: Gemini 92.0%)", "docs/benchmarks.md, ears table"),
                     ("voice word error 0.00 in English, the lowest", "docs/benchmarks.md, mouth table, eleven_v4_turbo"),
-                    ("brain: Sonnet 91.9% against Gemini's 94.9%, within the margin; Sonnet is the faster one",
-                     "docs/benchmarks.md, \"Brain and reader\"")),
+                    ("brain: Sonnet right on 81.5% with its first sentence in 2.21 s; gpt-6-sol 83.3%, within the margin",
+                     "docs/benchmarks.md, \"Brain, 2026-11-25\"")),
           speed=(("replies in 2.4 s at the median (2.0 to 2.6), the fastest measured",
                   "docs/features/voice-stays-local.md, \"Measured\""),
                  ("in the voice benchmark the voice starts in 213 ms (the voice alone, not a call)",
@@ -121,7 +121,7 @@ SETUPS = (
     Setup("local", "Fully local", (), {"this Mac": ("brain", "reader", "checker", "ears", "mouth")},
           measured=(("10 of 19 one-session audio checks, every approval check among them", "bench/results/combinations.md, "
                                                                                              "\"None: fully local\""),
-                    ("brain 76.9% against Sonnet's 91.9%", "docs/benchmarks.md, \"Fully local\"")),
+                    ("brain passed 76.9% of 78 test cases with stub tools", "docs/benchmarks.md, \"Fully local\"")),
           speed=(("replies took 5.8 to 11.6 s", "bench/results/combinations.md, \"None: fully local\""),),
           cost="$0", privacy="Nothing leaves the Mac.",
           pick_for="work where nothing may leave the Mac, on a 32 GB Mac",

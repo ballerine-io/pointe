@@ -21,14 +21,16 @@ What does not work yet, and what was not measured. Each feature page lists its o
   page works in a phone browser. Talk to Pointe (the Control, the Action button, the widget) ran in the simulator against
   a stand-in Mac, Control Center and the Home Screen widget included; the Action button and a real microphone are still
   to be tried on a phone. With a free Apple Account the widget is a plain button, with no Mac status (no App Groups).
-- **Synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic voices. No
-  bench on recorded people has been run, so use the voice lock at Approvals, and treat whisper recognition as limited.
+- **Mostly synthetic evidence.** The benchmarks, the voice lock thresholds and the whisper numbers use synthetic
+  voices. Recorded people are used for two things only: a one-word yes or no after a read-out (Speech Commands) and
+  pauses and ends of turn in meetings (AMI). Use the voice lock at Approvals, and treat whisper recognition as limited.
 - **Real hardware.** Drive mode has not been measured on car hands-free audio. Phone alerts depend on the app being alive
   (there is no push server). Conflict alarms have no live run with real OpenCode or Codex sessions.
-- **Approvals by voice cover plain commands.** Pointe reads out only known programs in plain pipelines (`pointe/readout.py`).
-  A compound shell command (`pwd; ls | head`, an `if [ ... ]` test, `printf ... > file`), a web fetch or a tool call
-  from an MCP server is not read out: it waits for a tap on the page, the phone or the terminal. With no screen in
-  reach, such a request waits until you have one.
+- **A request without a short form is read word for word.** Every request can be approved by voice, but a yes counts
+  only after the whole request was said (`pointe/guards.py`, `spoken_request`). Known programs in plain pipelines have
+  a short form (`pointe/readout.py`); anything else, a compound shell command or an MCP tool call, is read word for
+  word, which can take tens of seconds. A request that holds a credential-like value is never read out: it waits for a
+  tap on the page, the phone or the terminal.
 - **Echo.** On laptop speakers, only Soniox ears have the echo guard; with other ears, use headphones. Known echo cases
   that are not solved are listed in [docs/how-it-works.md](how-it-works.md#echo).
 - **Vendor-hosted cloud sessions are out of reach.** Claude Code on the web and Codex Cloud have no public interface to

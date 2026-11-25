@@ -142,8 +142,8 @@ module reaches onnxruntime without it.
   sound is for a person to judge: `uv run --locked --extra local python -I bench/local_tts_bench.py voices` writes them to
   `bench/.audio/voice-samples/`.
 - **Ears: Whisper large-v3-turbo**, as in fully local mode ([why](local.md#why-these)).
-- **Brain in the cloud.** The local brain was fully local mode's bottleneck: 76.9% of cases against 91.9% for Sonnet,
-  with replies of 3.4 s against 1.8 s at the median.
+- **Brain in the cloud.** The local brain was fully local mode's bottleneck: it passed 76.9% of 78 synthetic cases, with
+  replies of 3.4 s at the median ([local.md](local.md#measured)).
 
 ## Limits
 
