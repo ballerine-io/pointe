@@ -14,8 +14,8 @@
 # --url and --sha256 name another tarball and its hash (tests use a file:// one). Nothing is ever installed unchecked.
 set -euo pipefail
 
-POINTE_VERSION="0.8.4"  # the release a new install gets; tools/release_tarball.py pin writes these two lines
-POINTE_SHA256="8561d5f7584645c00f3e408562914689090941fed6359e732b7d3940fbb6a966"         # of pointe-$POINTE_VERSION.tar.gz as attached to its GitHub Release; empty: read the release's
+POINTE_VERSION="0.8.5"  # the release a new install gets; tools/release_tarball.py pin writes these two lines
+POINTE_SHA256="c591f75f2f5a8902b0a27f8d03c2279a70c5e20852a46ffd143fb09b40f2e1d8"         # of pointe-$POINTE_VERSION.tar.gz as attached to its GitHub Release; empty: read the release's
 REPO="https://github.com/ballerine-io/pointe"
 POINTE_HOME="${POINTE_HOME:-$HOME/.pointe}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
