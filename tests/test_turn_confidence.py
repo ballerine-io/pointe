@@ -199,3 +199,25 @@ def test_soniox_is_asked_sooner_only_for_a_voice_that_sounded_finished_and_the_a
     source = (ROOT / "pointe" / "daemon.py").read_text()
     assert "sound=state.turn_sound if turnsound.judged(" in source
     assert "self._asked = state.finalize_asked_at = now" in source
+
+
+# ---------- a first clause said ahead: measured, off on calls ----------
+
+def test_a_first_clause_counts_as_an_opening_only_when_asked_for_and_only_with_five_words():
+    import conversation
+
+    half = "The import took 47 minutes, most of it"
+    assert conversation.opening(half, 4) is None  # no whole sentence yet: nothing is said ahead on a call
+    assert conversation.opening(half, 4, clauses=True) == "The import took 47 minutes,"
+    assert conversation.opening("Yes, it is. The deploy", 4, clauses=True) is None  # "Yes," is a word, not a clause
+    assert conversation.opening("It loaded 1,200 rows and", 4, clauses=True) is None  # a comma inside a number
+    assert conversation.opening("Two rollbacks are on the table: the", 4, clauses=True) == "Two rollbacks are on the table:"
+    whole = "Three of the tests failed. All of them are in the refunds file, and"
+    assert conversation.opening(whole, 4, clauses=True) == conversation.opening(whole, 4)  # the sentence came first
+
+
+def test_the_brain_says_whole_sentences_ahead_unless_a_bench_asks_for_clauses():
+    import brain
+
+    assert brain.Brain("anthropic:x", "", [], lambda: "", None).early_clauses is False
+    assert "early_clauses = " not in (ROOT / "pointe" / "daemon.py").read_text()  # no call turns it on

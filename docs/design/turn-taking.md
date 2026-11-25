@@ -247,3 +247,29 @@ The live words cannot start the model sooner either. At the voice detector's sto
 one to three words ("What time zone is Tel" for "What time zone is Tel Aviv in?", 12 of 12 turns); the whole sentence
 arrives with the final.
 
+### On recorded people (`bench/human_turns.py`, AMI meeting speech)
+
+The same two rules on real mid-sentence pauses of 0.5 to 2.0 s and real ends of turn, rows taken at load 20 or under.
+The first two rows of rules are `human_turns.py report`; the narrower rules and the other levels were replayed from
+the same Soniox rows (the `before` streams) with `turns.settle` and a changed `agreed`, in a script that is not kept.
+
+| Rule | Cut-ins on 205 pauses | 193 ends: taken before 0.95 s | Mean wait at an end |
+|---|---|---|---|
+| Normal today | 47 (22.9%) | 10% | 1.05 s |
+| The candidate as tried (0.3 s, 0.6 s, Soniox asked sooner), 165 pauses and 164 ends heard under both | 65 (39%) against 37 (22%) | median 0.60 s against 1.00 s | |
+| Only when both agree: Soniox ended it itself and the sound is 0.8 or over, then 0.3 s; Soniox asked as today | 48 (23.4%) | 30% | 0.94 s |
+| The same with the sound at 0.98 or over | 47 (22.9%) | 18% | 1.01 s |
+| Quick today | 66 (32.2%) | 83% | 0.68 s |
+| Patient today | 4 (2.0%) | 4% | 1.86 s |
+
+- **The candidate stays off.** On people it cuts in on 39% of pauses against 22%: the 0.6 s wait on the sound alone,
+  with Soniox asked sooner, is what does it. A person's unfinished clause sounds finished to the model 41% of the
+  time (a finished turn: 58%).
+- **A narrower rule is safe on this set and small.** Waiting 0.3 s only when Soniox ended the words itself and the
+  sound agrees adds one cut-in in 205 and takes 30% of ends before 0.95 s instead of 10%. The median end is still
+  taken at 1.00 s, because Soniox rarely ends a person's turn by itself inside the first 0.7 s. On the synthetic
+  clips the same rule doubles the cut-ins (51% against 25%): those voices read half a sentence as a whole one.
+  To try it: `agreed=0.3` on Normal in `turns.LEVELS`, nothing else.
+- **What the people show about today.** Normal takes the turn inside 23% of real pauses of half a second or more
+  (55 to 64% of those of 0.8 s or more, where the words read whole); Patient inside 2%.
+

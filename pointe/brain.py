@@ -281,6 +281,7 @@ class Brain:
         self.speak_first: Callable[[str], Awaitable[None]] | None = None
         self.speak_rest: Callable[[str, str], Awaitable[None]] | None = None
         self.may_speak_early: Callable[[], bool] = lambda: True
+        self.early_clauses = False  # say a first clause ahead, not only a first sentence (bench/first_word_bench.py)
         # A plain send's acknowledgement in a few words, said at once instead of a second model step: (the send's
         # arguments, its result, the user's words) -> the line, or None when the model must write the reply.
         self.quick_ack: Callable[[dict, object, str], str | None] = lambda _args, _result, _asked: None
@@ -930,7 +931,7 @@ class Brain:
         to it as if it were the whole reply (a claim, a path, a made-up fact, news that is queued, the user's language,
         a repeat, the length), so nothing is heard that would have been sent back. The rest follows once the whole reply
         passed the same checks (_run)."""
-        while not (first := conversation.opening(spoken_code(plain(live.text)), EARLY_MIN_WORDS)) and not live.over:
+        while not (first := conversation.opening(spoken_code(plain(live.text)), EARLY_MIN_WORDS, self.early_clauses)) and not live.over:
             live.grew.clear()
             await live.grew.wait()
         if not first or live.over or generation != self._generation:

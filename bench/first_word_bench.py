@@ -82,9 +82,9 @@ def usd(model: str, usage: list[dict]) -> float:
     return total
 
 
-async def brain_once(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
+async def brain_once(choice: str, case: bc.BrainCase, frozen: dict, clauses: bool = False) -> dict:
     at: dict[str, float] = {}
-    calls, spoken, usage = [], [], []
+    calls, spoken, usage, first = [], [], [], []
     t0 = 0.0
 
     def stamp(name: str, when: float | None = None) -> None:
@@ -93,6 +93,10 @@ async def brain_once(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
     async def speak(text: str) -> None:
         stamp("speech")
         spoken.append(text)
+
+    async def speak_first(text: str) -> None:
+        first.append(text)
+        await speak(text)
 
     async def speak_rest(rest: str, _whole: str) -> None:
         if rest:
@@ -103,7 +107,7 @@ async def brain_once(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
     b = brain_module.Brain(choice, frozen["brain_system"], bb.stub_tools(case, frozen, calls), lambda: block, speak,
                            has_open=has_open, sent_lately=lambda: case.sent_lately, on_usage=usage.append,
                            on_tool=lambda name, *_a: stamp("tool") if name != "speak" else None, **bb.daemon_gates(case))
-    b.speak_first, b.speak_rest = speak, speak_rest
+    b.speak_first, b.speak_rest, b.early_clauses = speak_first, speak_rest, clauses
     b.limit = lambda trigger, asked: conversation.limit_for(trigger, asked)
     b.stage = lambda name, when=None: stamp(name, when)
     bb.seed_history(b, case)
@@ -114,7 +118,7 @@ async def brain_once(choice: str, case: bc.BrainCase, frozen: dict) -> dict:
     refused = [r["result"]["error"] for m in b.messages if m["role"] == "tool" for r in m["results"]
                if r["name"] == "speak" and isinstance(r["result"], dict) and "Not spoken" in str(r["result"].get("error"))]
     row = {"spoken": said, "calls": calls, "refused": refused, "fallback": said.startswith(bb.FALLBACKS), "steps": usage,
-           "at": at, "usd": round(usd(choice, usage), 5)}
+           "at": at, "usd": round(usd(choice, usage), 5), "first": " ".join(first)}
     if row["fallback"]:
         row["error"] = "the brain said a fallback line: the vendor failed"
     return row
@@ -151,7 +155,7 @@ async def opener_once(choice: str, case: bc.BrainCase) -> dict:
 
 
 async def collect(kind: str, models: list[str], repeats: int, max_load: float) -> None:
-    frozen = bb.freeze_prompts() if kind == "brain" else {}
+    frozen = bb.freeze_prompts() if kind != "opener" else {}
     done = {(r["model"], r["case"], r["rep"]) for r in rows(kind)}
     gates = {v: asyncio.Semaphore(PER_VENDOR) for v in {m.split(":")[0] for m in models}}
     lock = asyncio.Lock()
@@ -163,7 +167,8 @@ async def collect(kind: str, models: list[str], repeats: int, max_load: float) -
             while load() > max_load:
                 await asyncio.sleep(10)
             try:
-                got = await asyncio.wait_for(brain_once(model, case, frozen) if kind == "brain" else opener_once(model, case), 90)
+                got = await asyncio.wait_for(opener_once(model, case) if kind == "opener" else brain_once(
+                    model, case, frozen, clauses=kind == "clause"), 90)
             except Exception as e:
                 got = {"error": f"{type(e).__name__}: {bb.scrub(e)}"[:300]}
         row = {"kind": kind, "model": model, "case": case.name, "rep": rep, "load": load(), **got}
@@ -230,7 +235,7 @@ def report() -> None:
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("cmd", choices=["brains", "openers", "report"])
+    p.add_argument("cmd", choices=["brains", "clauses", "openers", "report"])
     p.add_argument("--models", default="")
     p.add_argument("--repeats", type=int, default=1)
     p.add_argument("--max-load", type=float, default=20.0)
@@ -239,8 +244,8 @@ def main() -> None:
     if a.cmd == "report":
         report()
     else:
-        kind = "brain" if a.cmd == "brains" else "opener"
-        models = a.models.split(",") if a.models else (BRAINS if kind == "brain" else OPENERS)
+        kind = {"brains": "brain", "clauses": "clause", "openers": "opener"}[a.cmd]
+        models = a.models.split(",") if a.models else {"brain": BRAINS, "clause": [DEFAULT], "opener": OPENERS}[kind]
         asyncio.run(collect(kind, models, a.repeats, a.max_load))
 
 

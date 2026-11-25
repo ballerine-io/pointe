@@ -61,14 +61,26 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?…])[\"'”’)]*\s+", text.strip()) if s]
 
 
-def opening(text: str, min_words: int = 1) -> str | None:
+CLAUSE_MIN_WORDS = 5  # a first clause said ahead holds at least this many words
+_CLAUSE_END = re.compile(r"[,;:—–](?=\s+\S)")  # followed by more words: the clause is whole ("1,200" has no space)
+
+
+def opening(text: str, min_words: int = 1, clauses: bool = False) -> str | None:
     """The first whole sentences of a reply still being written, enough of them to hold `min_words`; None until then.
-    The last sentence of `text` may be half written, so it never counts."""
+    The last sentence of `text` may be half written, so it never counts. `clauses`: a first clause of CLAUSE_MIN_WORDS
+    words that ends on a comma, a semicolon, a colon or a dash counts too, when it comes before such a sentence
+    (measured and not used on calls: bench/results/first-word.md)."""
     whole = split_sentences(text)[:-1]
-    for n in range(1, len(whole) + 1):
-        if count_words(" ".join(whole[:n])) >= min_words:
-            return " ".join(whole[:n])
-    return None
+    sentence = next((" ".join(whole[:n]) for n in range(1, len(whole) + 1)
+                     if count_words(" ".join(whole[:n])) >= min_words), None)
+    if clauses:
+        for m in _CLAUSE_END.finditer(text):
+            clause = text[:m.end()].strip()
+            if sentence is not None and len(clause) >= len(sentence):
+                break
+            if count_words(clause) >= max(min_words, CLAUSE_MIN_WORDS):
+                return clause
+    return sentence
 
 
 def asks(text: str) -> bool:

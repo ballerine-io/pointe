@@ -65,6 +65,45 @@ An opener that is safe by construction is a fixed phrase, and a fixed phrase nee
 **Keep the default.** Flash is 42 ms sooner at the median and steadier in the tail, and it cannot speak Hebrew. For a
 user who never speaks Hebrew it is a small gain: `CLAUDE_VOICE_MOUTH=elevenlabs:eleven_flash_v2_5`.
 
+## Asking Soniox for the final at once
+
+`bench/turn_bench.py run --policies now`: Soniox is asked for the words it holds when the voice detector says the
+voice stopped (0.2 s of silence), not 0.7 s after the sound. 280 synthetic clips, load median 15.
+
+| Clips | Rule | Final after the last sound, median | p90 | Word errors | Cut-ins |
+|---|---|---|---|---|---|
+| 40 whole turns | today | 0.43 s | 0.55 s | 1.9% | 0 |
+| 40 whole turns | at once | 0.42 s | 0.55 s | 1.9% | 0 |
+| 240 hesitations | today | 0.47 s | 0.85 s | 1.4% | 59 |
+| 240 hesitations | at once | 0.40 s | 0.55 s | 1.4% | 74 |
+
+**Not shipped.** On a whole turn Soniox's own endpoint is already as fast as its answer to a request (ask at 0.2 s,
+answer 0.25 s later), so the final comes no sooner. No word was lost. But a first part finalized inside its pause is
+a turn that can be taken: 15 more cut-ins of 240. The dialogue suite was not run for it: with no gain on a whole turn
+there was nothing for it to confirm.
+
+## A first clause said ahead, not a first sentence
+
+`bench/first_word_bench.py clauses`: the first clause of five words or more that ends on a comma, a semicolon, a colon
+or a dash is checked and said ahead, as a first sentence is. The default brain, 84 cases each way, run side by side.
+
+| First part said ahead | Right | Replies with a part ahead | First token to that part, median | Spoken replies: first speech, median / p90 | Speech sent back by the checks |
+|---|---|---|---|---|---|
+| a sentence (today) | 82.1% | 60 | 0.51 s | 1.44 / 3.15 s | 27 |
+| a clause | 82.1% | 64 | 0.36 s | 1.36 / 2.56 s | 24 |
+
+0.15 s sooner where a reply opens with such a clause, as right, and no more refusals.
+
+How it sounds was not settled. 18 replies were made both ways with the default mouth, each part its own request and
+the parts played back to back, and a model (gemini-3.8-flash, on the audio, both orders) was asked which sounds more
+natural: 16 votes each way and 4 for "the same", and for 9 of the 18 it changed its answer when the order changed.
+That is a judge at chance, not a finding of no difference. Measured on the sound: the silence at the join is 0.29 s
+at the median against 0.26 s, and up to 0.44 s after a colon ("Which one do you mean:").
+
+**Not turned on.** The rule was no audible degradation, and nobody has listened. `Brain.early_clauses` is off and no
+call sets it. To hear it: `python bench/first_word_bench.py clauses`, then say the two parts of a row's reply with
+the mouth, back to back.
+
 ## The floor with the best of each
 
 From the end of the user's sound, on a turn a model answers (`tests/e2e/latency.py`, stage medians):
@@ -76,6 +115,8 @@ From the end of the user's sound, on a turn a model answers (`tests/e2e/latency.
 | Mouth, first byte | 0.21 to 0.25 s | 0.17 s, English only |
 | Playback | 0.08 s | 0.08 s |
 | **First sound** | **1.65 to 2.05 s** | **1.6 to 2.0 s** |
+
+A first clause said ahead would take 0.15 s off the second row where it applies, if it sounds right to a person.
 
 Nothing measured here brings a model-answered turn to 1.0 s with the speech check kept and the replies right as often.
 What would: a brain whose first checked sentence is ready in 0.3 s (Flash-Lite's 0.77 s would give about 1.5 s, at 8.7
