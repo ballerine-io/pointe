@@ -438,6 +438,7 @@ def test_the_levels_in_code_are_the_three_the_clients_offer():
 
 
 
+@pytest.mark.serial  # real 0.3 to 1.2 s windows: a runner busy with other workers splits the turn
 def test_words_heard_live_but_not_yet_final_keep_the_sentence_before_them_from_being_taken_alone(d, monkeypatch):
     """From live runs on a busy Mac (tests/e2e/harness_matrix.py): "Ask lighthouse to run exactly one command." was taken
     as the turn and sent while "uname dash a, redirected into where.txt" was still on its way: the words had been heard

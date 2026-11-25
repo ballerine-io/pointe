@@ -124,7 +124,8 @@ Which jobs a push to `main` starts (`tests/test_ci_triggers.py` holds the filter
 A change to `apps.yml` or `ui.yml` (or `tools/ui_guard.py`, for `ui`) starts that workflow too.
 
 UI tests never run on a developer's Mac (see [The apps](#the-apps)). A new test that takes more than a second or two,
-or starts Chrome, gets `@pytest.mark.slow`; CI prints the slowest 50 (`--durations=50`).
+or starts Chrome, gets `@pytest.mark.slow`; CI prints the slowest 50 (`--durations=50`). A test that times real
+waits of a second or less gets `@pytest.mark.serial`: CI runs it alone, after the parallel run.
 
 ## Running the tests
 

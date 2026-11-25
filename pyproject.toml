@@ -65,4 +65,5 @@ test-tools = [
 markers = [
     "slow: skipped unless --runslow; CI and the release gate pass it, tools/test-changed does not",
     "chrome: drives the page in headless Chrome (set in tests/conftest.py); CI's page job runs these",
+    "serial: times real waits of a second or less; CI runs these after the parallel run, one at a time",
 ]

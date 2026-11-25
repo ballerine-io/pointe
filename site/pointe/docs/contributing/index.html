@@ -376,7 +376,8 @@ update it here.</p>
 </table></div>
 <p>A change to <code>apps.yml</code> or <code>ui.yml</code> (or <code>tools/ui_guard.py</code>, for <code>ui</code>) starts that workflow too.</p>
 <p>UI tests never run on a developer's Mac (see <a href="#the-apps">The apps</a>). A new test that takes more than a second or two,
-or starts Chrome, gets <code>@pytest.mark.slow</code>; CI prints the slowest 50 (<code>--durations=50</code>).</p>
+or starts Chrome, gets <code>@pytest.mark.slow</code>; CI prints the slowest 50 (<code>--durations=50</code>). A test that times real
+waits of a second or less gets <code>@pytest.mark.serial</code>: CI runs it alone, after the parallel run.</p>
 <h2 id="running-the-tests">Running the tests</h2>
 <p>Every command runs from the top of the repository, with paths from the <a href="#repository-layout">layout</a> above.</p>
 <h3 id="the-offline-suite">The offline suite</h3>

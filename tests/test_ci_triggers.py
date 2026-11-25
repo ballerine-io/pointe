@@ -50,7 +50,8 @@ def test_the_offline_suite_the_page_and_the_supply_chain_gate_run_on_every_push_
     assert {"offline", "page", "supply-chain"} <= doc["jobs"].keys()
     runs = {job: " ".join(step.get("run", "") for step in doc["jobs"][job]["steps"]) for job in ("offline", "page")}
     assert all("-n auto" in run and "--runslow" in run for run in runs.values())
-    assert '-m "not chrome"' in runs["offline"] and "-m chrome" in runs["page"], "between them, every test"
+    assert '-m "not chrome and not serial"' in runs["offline"] and '-m "serial and not chrome"' in runs["offline"]
+    assert "-m chrome" in runs["page"], "between them, every test"
 
 
 def test_a_newer_push_to_main_cancels_the_older_ui_run_and_nothing_cancels_a_tags_run():

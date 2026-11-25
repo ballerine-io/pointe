@@ -16,7 +16,10 @@ jobs:
           version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       # Every test but the page's, the slow ones too, on every core of the runner. The slowest 50 are listed in the log: a
       # new slow test gets @pytest.mark.slow so the inner loop (tools/test-changed) skips it.
-      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto -m "not chrome" --durations=50
+      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto -m "not chrome and not serial" --durations=50
+      # The tests that time real waits of a second or less, alone: beside other workers a busy runner stretches them.
+      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -m "serial and not chrome"
+        if: ${{ !cancelled() }}
   # The page (pointe/ui.html) in the runner's headless Chrome (tests/page_rig.py), beside offline: each test starts a
   # browser, and together they take longer than the rest of the suite.
   page:
