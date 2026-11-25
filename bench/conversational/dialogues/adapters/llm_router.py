@@ -1,7 +1,9 @@
 """llm-router: the baseline the headline deltas use. The same recognizer as Pointe's default setup (Soniox real-time),
 then one call per user utterance to the same brain model Pointe's default setup uses (resolved at run time from Pointe's
 own vendor order and the keys present, and recorded), with the published prompt in llm_router_prompt.txt. Speech out
-through local Kokoro. Written by Pointe's team; a pull request with a better prompt is welcome."""
+through the same ElevenLabs voice as Pointe (adapters/voice_base.py). It is handed each utterance whole once it ends,
+so it never decides when a turn is over and cannot cut in: its turn-taking is not comparable with Pointe's. Written
+by Pointe's team; a pull request with a better prompt is welcome."""
 
 import json
 import re

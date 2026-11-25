@@ -6,7 +6,8 @@
   "https://elevenlabs.io/pricing (docs/benchmarks.md mouth table, $0.04 per 1,000 characters)",
   "https://aistudio.google.com/docs/pricing (gemini-3.5-flash-lite, bench/brain_bench.py)",
   "claude-fable-5-1 from bench/brain_bench.py PRICES; gpt-4o-mini-tts ~$0.015 a minute of audio, charged here per 1,000 characters as an upper bound",
-  "claude-opus-5-5 from the claude-api model table (cached 2026-11-03): $4 in, $0.20 cache read, $20 out; cache write 1.25x input"
+  "claude-opus-5-5 from the claude-api model table (cached 2026-11-03): $4 in, $0.20 cache read, $20 out; cache write 1.25x input",
+  "gpt-6-sol from bench/brain_bench.py PRICES (https://developers.openai.com/api/docs/pricing, read 2026-11-06)"
  ],
  "_unit": "USD per million tokens: input, cache read, cache write (5 minutes), output",
  "tokens": {
@@ -39,6 +40,12 @@
    0.2,
    5.0,
    20.0
+  ],
+  "gpt-6-sol": [
+   2.0,
+   0.2,
+   2.0,
+   10.0
   ]
  },
  "soniox_stream_hour": 0.12,

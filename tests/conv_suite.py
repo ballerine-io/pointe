@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 BENCH = Path(__file__).resolve().parents[1] / "bench" / "conversational"
-KEYS = ("hlk", "identifiers", "actions", "bargein")
+KEYS = ("hlk", "identifiers", "actions", "bargein", "dialogues")
 NAMES = frozenset({"core", "adapters", "run", *KEYS})
 _kept: dict[str, dict] = {}
 _active: str | None = None

@@ -1,7 +1,11 @@
 """The naturalness judge: Fable reads one dialogue run at a time as a timed transcript (what the user said, what the
 voice said, when, and where the user's words were delivered), with the arm's name removed, and scores it 1 to 5 on the
 rubric below. Runs are judged one by one in a shuffled order, so a score is absolute, not a ranking against the arm
-beside it. Spend goes into the suite's ledger."""
+beside it. Spend goes into the suite's ledger.
+
+Fable is a Claude model, and both arms' brain is Claude Sonnet: `--judge openai:gpt-6-sol` scores the same transcripts
+with a model of another vendor (judge-<arm>.gpt-6-sol.json), so the two judges' agreement can be reported beside the
+score. A model's score is a model's reading of a transcript, not a person's rating of a call."""
 
 import json
 import os
@@ -48,6 +52,22 @@ def transcript(row: dict) -> str:
     return "\n".join(f"[{t - t0:6.1f}] {line}" for t, line in items)
 
 
+def judge_one_openai(client, model: str, text: str) -> tuple[dict, dict]:
+    resp = client.chat.completions.create(model=model, reasoning_effort="low",
+                                          messages=[{"role": "system", "content": RUBRIC}, {"role": "user", "content": text}])
+    out = resp.choices[0].message.content or ""
+    m = re.search(r"\{.*\}", out, re.S)
+    try:
+        got = json.loads(m.group(0)) if m else {}
+    except ValueError:
+        got = {}
+    u = resp.usage
+    cached = getattr(getattr(u, "prompt_tokens_details", None), "cached_tokens", 0) or 0
+    usage = {"input_tokens": u.prompt_tokens - cached, "output_tokens": u.completion_tokens,
+             "cache_read_input_tokens": cached, "cache_creation_input_tokens": 0}
+    return got, usage
+
+
 def judge_one(client, text: str) -> tuple[dict, dict]:
     resp = client.messages.create(model=MODEL, max_tokens=3000, system=RUBRIC, output_config={"effort": "low"},
                                   messages=[{"role": "user", "content": text}])
@@ -64,11 +84,21 @@ def judge_one(client, text: str) -> tuple[dict, dict]:
     return got, usage
 
 
-def main(run_ids: list, arms: str) -> int:
-    import anthropic
+def main(run_ids: list, arms: str, judge: str = "anthropic:" + MODEL) -> int:
     from core import ledger
     from run import key, load_rows
-    client = anthropic.Anthropic(api_key=key("ANTHROPIC_API_KEY", "anthropic-api-key"), max_retries=3)
+    vendor, model = judge.split(":", 1)
+    if vendor == "anthropic":
+        import anthropic
+        client = anthropic.Anthropic(api_key=key("ANTHROPIC_API_KEY", "anthropic-api-key"), max_retries=3)
+        one = judge_one
+    elif vendor == "openai":
+        import openai
+        client = openai.OpenAI(api_key=key("OPENAI_API_KEY", "openai-api-key"), max_retries=3)
+        one = lambda c, text: judge_one_openai(c, model, text)  # noqa: E731
+    else:
+        raise SystemExit(f"judge vendor {vendor}: anthropic or openai")
+    suffix = "" if model == MODEL else f".{model}"
     for rid in run_ids:
         rows = load_rows([rid])
         latest = {}
@@ -81,15 +111,15 @@ def main(run_ids: list, arms: str) -> int:
         for (dlg, arm), row in items:
             if arm not in arms.split(","):
                 continue
-            got, usage = judge_one(client, transcript(row))
-            usd += ledger.token_cost(MODEL, usage)
+            got, usage = one(client, transcript(row))
+            usd += ledger.token_cost(model, usage)
             out.setdefault(arm, {})[dlg] = got
             print(dlg, arm, got.get("score"), flush=True)
         for arm, scores in out.items():
             vals = [v.get("score") for v in scores.values() if isinstance(v.get("score"), (int, float))]
-            (HERE / "results" / rid / f"judge-{arm}.json").write_text(json.dumps(
-                {"model": MODEL, "mean": round(sum(vals) / len(vals), 2) if vals else None, "n": len(vals),
+            (HERE / "results" / rid / f"judge-{arm}{suffix}.json").write_text(json.dumps(
+                {"model": model, "mean": round(sum(vals) / len(vals), 2) if vals else None, "n": len(vals),
                  "runs": scores}, indent=1, ensure_ascii=False) + "\n")
-        ledger.append({"benchmark": "dialogues", "run_id": rid, "item": "judge", "arm": arms, "kind": "judge", "usd": round(usd, 4)})
+        ledger.append({"benchmark": "dialogues", "run_id": rid, "item": f"judge {model}", "arm": arms, "kind": "judge", "usd": round(usd, 4)})
         print(f"judge spend ${usd:.3f}")
     return 0

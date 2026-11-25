@@ -4,7 +4,7 @@
   uv run --locked --extra local python bench/conversational/dialogues/run.py run --arm pointe,llm-router --budget-usd 150
         [--only 'lat-*'] [--port-base 9800] [--workers 2] [--label before]
   uv run --locked --extra local python bench/conversational/dialogues/run.py score <run-id>[,<run-id>...] [...]
-  uv run --locked --extra local python bench/conversational/dialogues/run.py judge <run-id>
+  uv run --locked --extra local python bench/conversational/dialogues/run.py judge <run-id> [--judge openai:gpt-6-sol]
 
 Ports 9800-9899 only (never 7860/7443); every state folder under /tmp; keys from the Keychain or the environment into
 the one process that needs them. Results: results/<run-id>/rows.jsonl (scrubbed), results/ledger.jsonl (spend).
@@ -121,7 +121,7 @@ def run_cmd(args) -> int:
     if not api_key or not keys["soniox"]:
         raise SystemExit("an Anthropic and a Soniox key are needed")
     play.guard_bin()
-    commit = git("rev-parse", args.commit or "HEAD")
+    commit = git("rev-parse", f"{args.commit or 'HEAD'}^{{commit}}")  # a tag names its commit, not the tag object
     dirty = False if args.commit else bool(git("status", "--porcelain", "--", ".", ":!bench", ":!tests", ":!docs"))
     if dirty and "pointe" in arms:
         raise SystemExit("commit Pointe's changes first: the Pointe arm runs a pristine export of HEAD")
@@ -218,6 +218,7 @@ def main(argv: list) -> int:
     p.add_argument("--suite", default=None, help="another dialogues file in the same format (a tester's own dialogues)")
     p.add_argument("--commit", default=None, help="the Pointe commit to run (default HEAD, which must be clean)")
     p.add_argument("--turns", action="store_true")
+    p.add_argument("--judge", default="anthropic:claude-fable-5-1", help="judge: vendor:model (anthropic or openai)")
     args = p.parse_args(argv)
     if args.command == "corpus":
         return corpus_cmd(args)
@@ -232,7 +233,7 @@ def main(argv: list) -> int:
         return human.main()
     if args.command == "judge":
         from dialogues import judge
-        return judge.main(args.run_ids, args.arm)
+        return judge.main(args.run_ids, args.arm, args.judge)
     return 1
 
 

@@ -57,6 +57,9 @@ def turn_scores(row: dict) -> list:
         worded = [sp for sp in spans if re.search(r"\w", sp[2] or "")]
         if worded and kind in ANSWER_KINDS:
             r["ttfw"] = round(worded[0][0] - a, 3)
+        elif kind in ANSWER_KINDS:
+            # No word before the next turn: the slowest first word of all, not a turn left out of the median.
+            r["silent"] = True
         if spans and kind in ANSWER_KINDS:
             r["first_sound"] = round(spans[0][0] - a, 3)
         # talk-over: the arm starts while the user is still speaking (not a barge-in item, not already speaking)
@@ -123,12 +126,18 @@ def turn_scores(row: dict) -> list:
             # Ended: a Stop event, an Escape, or (a hook that stops the turn at its next step fires no Stop) the last
             # tool step finishing within the window with no new step started after it.
             within = float(exp.get("within", 15))
+            # A job only waiting on a permission request is not running: "stop" ending that turn tests nothing.
+            before = [h for h in row["sessions"].get(target, {}).get("hooks", []) if h["t"] < a]
+            last_pre = max((h["t"] for h in before if h["name"] == "PreToolUse"), default=None)
+            waiting = last_pre is not None and any(h["name"] == "PermissionRequest" and h["t"] >= last_pre for h in before) \
+                and not any(h["name"] in ("PostToolUse", "PostToolUseFailure") and h["t"] >= last_pre for h in before)
+            r["job_running"] = last_pre is not None and not waiting
             ended = hooks(row, target, "Stop", a, a + within)
             intr = row["sessions"].get(target, {}).get("interrupted_at", 0.0)
             posts = hooks(row, target, "PostToolUse", a, a + within)
             later = hooks(row, target, "PreToolUse", a, row["ended"])
             quiet = posts and not [h for h in later if h["t"] > posts[-1]["t"]]
-            ok = bool(ended) or a <= intr <= a + within or bool(quiet)
+            ok = (bool(ended) or a <= intr <= a + within or bool(quiet)) if r["job_running"] else None
             ttua = (ended[0]["t"] - a) if ended else ((intr - a) if a <= intr <= a + within else
                                                      (posts[-1]["t"] - a) if quiet else None)
         elif kind in ("approve", "deny", "gated"):
@@ -199,6 +208,8 @@ def pct(xs: list, p: float):
         return None
     k = (len(xs) - 1) * p
     lo, hi = int(k), min(int(k) + 1, len(xs) - 1)
+    if xs[hi] == float("inf"):  # a silent turn at the percentile: the time is longer than any window, so unknown
+        return xs[lo] if k == lo else float("inf")
     return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)
 
 
@@ -230,8 +241,11 @@ def metrics(rows: list, judge: dict | None = None) -> dict:
     scored = [t for t in T if t["ok"] is not None]
     m = {"dialogues": len(rows), "turns": len(T), "errors": sum(1 for r in rows if r.get("error")),
          "spend_usd": round(sum(r.get("spend_usd", 0) for r in rows), 3)}
-    m["ttfw_median"] = pct([t.get("ttfw") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.5)
-    m["ttfw_p90"] = pct([t.get("ttfw") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.9)
+    first = [t for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"]
+    m["ttfw_median"] = pct([float("inf") if t.get("silent") else t.get("ttfw") for t in first], 0.5)
+    m["ttfw_p90"] = pct([float("inf") if t.get("silent") else t.get("ttfw") for t in first], 0.9)
+    m["silent_turns"] = sum(1 for t in first if t.get("silent"))
+    m["speech_turns"] = len(first)
     m["first_sound_median"] = pct([t.get("first_sound") for t in T if t["kind"] in ANSWER_KINDS and t["when"] != "speaking"], 0.5)
     useful = [t for t in T if t["kind"] in ("answer", "send", "multi", "ask", "send_or_ask")]
     # a turn whose goal was never met counts at the floor (30 s) so failing fast does not look fast
@@ -330,6 +344,8 @@ def dims(m: dict) -> dict:
 def fmt(v) -> str:
     if v is None:
         return "n/a"
+    if v == float("inf"):
+        return "silent"
     if isinstance(v, float):
         return f"{v:.2f}"
     return str(v)
@@ -337,7 +353,7 @@ def fmt(v) -> str:
 
 def table(results: dict) -> str:
     """results: label -> metrics. A markdown table of the measures and the dimension scores."""
-    keys = ["ttfw_median", "ttfw_p90", "first_sound_median", "ttua_median", "ttua_session_answer_median", "talk_over_rate", "barge_stop_median",
+    keys = ["ttfw_median", "ttfw_p90", "silent_turns", "speech_turns", "first_sound_median", "ttua_median", "ttua_session_answer_median", "talk_over_rate", "barge_stop_median",
             "barge_honoured", "backchannel_false_stop", "cut_off_on_pause", "right_session", "wrong_session_rate",
             "right_action", "code_names_exact", "words_over_need_median", "confirmations_per_10", "naturalness",
             "truncated_recovered", "correction_applied", "drop_mid_turn", "ambiguous_asked", "overview", "overview_words",
