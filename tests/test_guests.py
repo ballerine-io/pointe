@@ -577,8 +577,8 @@ def test_the_snapshot_holds_this_machines_shared_sessions_only_each_with_its_own
         assert ids(snapshot) == ["s1", "s2"]
         shop = snapshot["sessions"][0]
         assert shop["name"] == "shop" and shop["harness"] == "fake" and shop["owner"] == "Avi" and shop["cwd"]
-        # Dana may answer this machine's prompts (phase 3). This one was not put to people: it waits on its owner.
-        assert shop["capabilities"]["approvals"] is True and shop["pending"] is None
+        # People answer this machine's prompts only once its owner turned that on (off as released): it waits on its owner.
+        assert shop["capabilities"]["approvals"] is False and shop["pending"] is None
         assert shop["blocked_on"] == "permission prompt"
         assert "pid" not in shop and "home" not in shop
         await voice.drop()
@@ -1053,7 +1053,7 @@ def test_a_person_is_offered_no_session_to_add_no_file_and_no_prompt_the_machine
         await dana.recv("sessions")
         await dana.send("permission.answer", id="s1", request_id="p1", verdict="allow", how="tap")
         assert await dana.recv("permission.answered") == {"t": "permission.answered", "request_id": "p1", "ok": False,
-                                                          "why": "stale"}  # tests/test_people_approve.py has the rest
+                                                          "why": "not_offered"}  # off as released; tests/test_people_approve.py has it on
         assert shop.permission_id == "p1"  # still its owner's to answer
         await dana.send("discover", req="d1", since=0.0, cap=40)
         assert await dana.recv("discovered") == {"t": "discovered", "req": "d1", "found": []}
@@ -1652,3 +1652,12 @@ def test_on_a_call_the_brain_is_told_whose_request_it_was(real):
     run(go())
     [(text, respond)] = injected
     assert respond is False and "Dana" in text and "not the user's" in text and text.endswith("run the tests")
+
+
+def test_released_off_until_the_owner_turns_each_on():
+    """A person approving a prompt or starting a session on the machine is off until the page and the apps have their
+    screens for it. The owner's own switch turns each on, and a machine that never touched them stays off."""
+    assert guests.settings_of(None)["approve"] == "off" and guests.settings_of({})["start"] == "off"
+    on = guests.settings_of({"approve": "anyone", "start": "on"})
+    assert (on["approve"], on["start"]) == ("anyone", "on")
+    assert guests.settings_of({"approve": "nonsense"})["approve"] == "off"

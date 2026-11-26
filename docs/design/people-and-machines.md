@@ -336,11 +336,15 @@ One set for everybody on the machine, in `people.json` under `settings` (only wh
 
 | Setting | Values | Default | Meaning |
 |---|---|---|---|
-| `approve` | `"anyone"`, `"off"` | `"anyone"` | People with the send grant may answer prompts, or nobody but the machine's owner may |
-| `start` | `"on"`, `"off"` | `"on"` | People with the send grant may start sessions here |
+| `approve` | `"anyone"`, `"off"` | `"off"` (see below) | People with the send grant may answer prompts, or nobody but the machine's owner may |
+| `start` | `"on"`, `"off"` | `"off"` (see below) | People with the send grant may start sessions here |
 | `sessions_ask` | `"default"`, `"ask"` | `"default"` | Sessions people start follow the owner's "Permissions for new sessions", or always ask before actions |
 | `owner_first_secs` | 0 to 120 | 20 | How long a prompt waits for its session's owner before the others may answer |
 | `people_hold_secs` | 10 to 280 | 45 | With no call of the machine owner's, how long a prompt waits for people before it goes to its terminal |
+
+**Off as released.** `approve` and `start` are off on every machine until the page and the apps have their screens
+for them (who is asked first, a machine in New session). The owner turns each on by hand with the commands below.
+The owner's decision is that both are on by default: the default changes in the release that ships those screens.
 
 Set from `pointe people approvals on|off`, `pointe people starts on|off`, `pointe people sessions default|ask`,
 `pointe people window <seconds>`, `pointe people hold <seconds>`, or the route below.
