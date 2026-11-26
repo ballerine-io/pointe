@@ -30,6 +30,7 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setattr(HOST, "state_dir", tmp_path)
     monkeypatch.setattr(HOST, "hold_permission", None)
     monkeypatch.setattr(HOST, "save_sessions", lambda: None, raising=False)
+    monkeypatch.setattr(HOST, "refresh_notes", None, raising=False)  # the daemon's, when a test before imported it: no reader here
     box = {"agent": None, "secret": TOKEN, "holds": [], "verdict": "allow"}
     monkeypatch.setattr(base, "CONFIG", lambda sid: box["agent"] if box["agent"] and box["agent"].session_id == sid else None)
     monkeypatch.setattr(base, "SECRET", lambda agent: box["secret"])
