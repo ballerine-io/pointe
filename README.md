@@ -45,7 +45,8 @@ Beta, for macOS, and for Linux as a hub ([Linux](docs/linux.md)). Setup takes ab
    [website](https://eng.ballerine.com/pointe/#install), drag it to Applications, and open it. The app installs the
    rest, puts your model key in the Keychain and starts your first call.
 2. **iPhone** (optional). Get [Pointe: Voice Coding](https://apps.apple.com/app/id6838678047) on the App Store, or try the next version early on
-   [TestFlight](https://testflight.apple.com/join/gkRJccpc).
+   [TestFlight](https://testflight.apple.com/join/gkRJccpc), or [build it from source](docs/iphone-app.md#getting-the-app)
+   with `pointe apps ios`.
 3. **Other ways.**
    - Claude Code plugin: run the command below, then `/pointe:setup` in a new session
      ([details](docs/install.md#claude-code)).
