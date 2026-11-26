@@ -188,7 +188,7 @@ _NAME_CUES = (re.compile(r"\b(?:function|method|class|constant|variable|helper)\
 
 
 # The recognizer's spellings of words of the trade (tester round 5: "dark string", "unitist", "Uniris", "UNIREST").
-_TRADE_SPELLINGS = {"docstring": r"\b(?:dark|doc|dock) ?strings?\b", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
+_TRADE_SPELLINGS = {"docstring": r"[\"'“‘]?\b(?:dark|doc|dock)\b[\"'”’]? ?strings?\b", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
 # "Convert hero dot png to webp" is heard "to web" (lat-04, by Soniox and by Whisper): an image converted to "web" is WebP,
 # and "web" that is a place ("move it to web", "web folder") or a thing of the web ("a web app", "web-safe") stays.
 _IMAGE_TO_WEB = re.compile(
@@ -203,9 +203,9 @@ def trade_words(message: str, known: set[str]) -> str:
     converted to WebP (whatever the code calls "web")."""
     for word, pattern in _TRADE_SPELLINGS.items():
         def fix(m: re.Match, word: str = word) -> str:
-            heard = m.group(0)
+            heard = re.sub(r"[\"'“”‘’]", "", m.group(0))  # the model may quote the misheard word: 'a "dark" string'
             if heard.lower().replace(" ", "") in known or heard.lower() in known:
-                return heard
+                return m.group(0)
             return word + ("s" if heard.lower().endswith("strings") else "")
         message = re.sub(pattern, fix, message, flags=re.I)
     return _IMAGE_TO_WEB.sub(r"\1WebP", message)

@@ -24,6 +24,9 @@ import relay  # noqa: E402
     ("Check whether the Uniris module is importable.", "Check whether the unittest module is importable."),
     ("Run python3 -c import UNIREST", "Run python3 -c import unittest"),
     ("Add a doc string to refund.", "Add a docstring to refund."),
+    # t3-02 at bb36fafb (2 of 2): the model quoted the misheard word, and the session wrote a docstring reading "dark"
+    ('Add a "dark" string to calc_total.', "Add a docstring to calc_total."),
+    ("Add a 'dark' string to calc_total.", "Add a docstring to calc_total."),
     ("Rename calc_total to compute_total.", "Rename calc_total to compute_total."),
 ])
 def test_a_misspelled_trade_word_is_written_right(message, sent):
