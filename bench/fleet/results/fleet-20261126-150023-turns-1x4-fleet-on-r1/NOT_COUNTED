@@ -1,0 +1,1 @@
+Stopped by the operator after 8 turns, when main changed under it (the fleet switch's default): it ran on 92325e9a and its rows have no fleet.on from the daemon. Run again whole on the next build.
