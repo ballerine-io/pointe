@@ -10,35 +10,31 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
-- **Unreleased** (beta): Several people can use one machine, each from their own voice, and your voice can hold a machine somebody invited you to
+- **0.10.0** (2026-11-26, beta): Machines running different Pointe versions say which one to update and how, a correction takes a request back from the wrong session, mute holds through quick taps, and Linux hubs, the iPhone and the Mac get their fixes
 
-  The owner of a machine invites a person by name (`pointe people invite dana`, or Invite a person on the page, the
-  iPhone and the Mac). The person adds the machine to their own Pointe with the one-time line (`pointe machine add`, or
-  Add a machine: paste it, or scan it on the iPhone) and talks to its sessions from their own call, with their own
-  keys. Each session shows whose it is, the agent reads who sent each request, and the machine's journal records it. A
-  person can be invited to watch only, the owner keeps a session to themselves with Private, and removing one person
-  touches nobody else. A session that works on somebody else's request refuses yours until you say "send it anyway".
-  You hear the reports of the turns you started; the others wait for "anything from the others?". The screens and the
-  docs now say "your voice", "machines" and "people"; `pointe hub` and `pointe node` work as before. Limits: a person
-  invited to a machine can make its agents run commands as that machine's account, cannot approve its permission
-  prompts yet, and cannot start a session there ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine),
-  [SECURITY.md](SECURITY.md#people-on-a-machine)).
-- **Unreleased** (beta): An old part of Pointe next to a new one fails in one sentence with the command that fixes it
+  What is in it:
+  - Several people can use one machine, each from their own voice, and your voice can hold a machine somebody invited you to
 
-  The first step of Pointe over many machines and several people. A node and its hub each say the oldest and newest
-  link protocol they speak, and their features: with none in common the node says which side to update, and the hub
-  keeps the machine listed, offline, with the same line. Every script, hook and command says its version to the Pointe
-  on its machine (`X-Pointe-Client`), which answers one of another version with `426` and the command. A script prints
-  one sentence for any refusal, and a refused permission hook leaves the prompt in the terminal
-  ([docs/multi-machine.md](docs/multi-machine.md#versions-an-old-pointe-next-to-a-new-one)).
-- **Unreleased** (beta): New Claude Code sessions Pointe starts skip permission prompts by default, with a setting to ask
-  before actions and "start a session that asks first" for one session
+    The owner of a machine invites a person by name (`pointe people invite dana`, or Invite a person on the page, the
+    iPhone and the Mac). The person adds the machine to their own Pointe with the one-time line (`pointe machine add`, or
+    Add a machine: paste it, or scan it on the iPhone) and talks to its sessions from their own call, with their own
+    keys. Each session shows whose it is, the agent reads who sent each request, and the machine's journal records it. A
+    person can be invited to watch only, the owner keeps a session to themselves with Private, and removing one person
+    touches nobody else. A session that works on somebody else's request refuses yours until you say "send it anyway".
+    You hear the reports of the turns you started; the others wait for "anything from the others?". The screens and the
+    docs now say "your voice", "machines" and "people"; `pointe hub` and `pointe node` work as before. Limits: a person
+    invited to a machine can make its agents run commands as that machine's account, cannot approve its permission
+    prompts yet, and cannot start a session there ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine),
+    [SECURITY.md](SECURITY.md#people-on-a-machine)).
+  - An old part of Pointe next to a new one fails in one sentence with the command that fixes it
 
-  The owner's decision, 2026-11-25, for everyone and for the public release (SECURITY.md, "Starting a session"). The
-  risk, once: such a session can edit files and run commands without asking, so there are no requests to approve.
-  Settings → Permissions for new sessions on the page, the iPhone and the Mac; "new sessions ask first" by voice. Pointe
-  says the risk the first time, and asks for Claude Code's one-time consent out loud instead of leaving it in a
-  terminal. Joined and reopened sessions, night shifts, Codex and OpenCode are not changed.
+    The first step of Pointe over many machines and several people. A node and its hub each say the oldest and newest
+    link protocol they speak, and their features: with none in common the node says which side to update, and the hub
+    keeps the machine listed, offline, with the same line. Every script, hook and command says its version to the Pointe
+    on its machine (`X-Pointe-Client`), which answers one of another version with `426` and the command. A script prints
+    one sentence for any refusal, and a refused permission hook leaves the prompt in the terminal
+    ([docs/multi-machine.md](docs/multi-machine.md#versions-an-old-pointe-next-to-a-new-one)).
+
 - **0.9.0** (2026-11-26, beta): Pointe runs as a hub on Linux (keys in the login keyring, sessions in tmux, pairing by QR in the terminal); new Claude Code sessions Pointe starts skip permission prompts by default, with a setting to ask first; a request aimed at a session by what it works on goes there, "Pointe." answers "which session?", and "Approved." over Pointe's own question answers it
 - **0.8.7** (2026-11-25, beta): The iPhone app is ready for App Store review (a privacy policy link, privacy manifests, no "beta" on the iPhone, the Sessions title whole), AirPods turn the mic off and on during a call on the Mac, an overview reaches a session signed in by a key, and a request's reminder and read-out are said as a person says them
 - **0.8.6** (2026-11-25, beta): "Only when I say Pointe" acts only on words that name Pointe or a session, an optional short tone before a background session's report, "What's going on everywhere?" is answered by the sessions themselves, and replies sound spoken: no greeting that ends in a question, a session by its plain name, a caveat in a few words
