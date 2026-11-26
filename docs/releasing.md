@@ -34,7 +34,7 @@ each does by hand:
    `ui` on `main` is reported, and the tag's own `ui` run gates the promotion). Nothing half-done: no `WIP`/`fixup!` commit since the last tag, no `DO-NOT-RELEASE` marker in a tracked
    file. Everything generated is current: the parity matrix with no unexplained gap on the page, the iPhone, the Mac or
    the Linux hub; the product help; the site's docs pages, version and app cards. The versions agree (step 1's tests),
-   and the skew matrix has the cut version's entry. The integration join (`tests/test_integration_join.py`). The full
+   and the skew matrix has the cut version's entry (or the version commit copies the newest one). The integration join (`tests/test_integration_join.py`). The full
    suite with `--runslow` on a Mac, on at most four workers (other work shares the Mac; `POINTE_RELEASE_WORKERS`
    sets another number). When the Mac is too loaded, `--suite-from-ci` takes CI's full suite on
    the same commit instead, and the report says the Mac-only tests did not run. The changelog since the last Latest release, grouped by what a person uses, as a
@@ -155,7 +155,8 @@ together:
 - `CHANGELOG.md`: one line on top, the same words as the commit subject
 - `tests/fixtures/skew_requests.json`: an entry for the new version, with the requests its scripts send (copy the
   newest entry and change what moved). `tests/test_skew.py` replays every release's requests against the new daemon,
-  and fails while the new version has no entry. It goes on `main` before the cut: `tools/release` checks it first
+  and fails while the new version has no entry. When `main` has none, `tools/release`'s version commit copies the
+  newest entry under the new version; a release whose scripts send something new edits the entry on `main` first
 - `python3 tools/site_version.py`: writes the version into the site's pages (`site/deploy.sh` runs it too)
 
 Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `git commit -s`.

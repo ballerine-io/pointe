@@ -153,6 +153,7 @@ def version_commit(ctx: Ctx) -> str:
     changed = sorted(f for f in sh(["git", "diff", "--name-only", "HEAD"], cwd=ctx.tree).stdout.split() if f)  # porcelain's columns break under strip()
     expected = {".claude-plugin/plugin.json", "pyproject.toml", "uv.lock", "CHANGELOG.md", "apps/ios/Pointe.xcodeproj/project.pbxproj",
                 "apps/macos/tools/make_project.py", "apps/macos/PointeMac.xcodeproj/project.pbxproj"}
+    expected.add("tests/fixtures/skew_requests.json")
     stray = [f for f in changed if f not in expected and not f.startswith(("site/", "docs/benchmarks/"))]
     if stray:
         raise Fail(f"the version bump changed files it should not: {stray}")
@@ -164,7 +165,7 @@ def version_commit(ctx: Ctx) -> str:
     git(ctx, "add", "-A")
     git(ctx, "commit", "-q", "-s", "-m", f"Version {ctx.version}: {summary}")
     sha = git(ctx, "rev-parse", "HEAD")
-    ctx.state.set(version_commit=sha, **builds)
+    ctx.state.set(version_commit=sha, **{k: v for k, v in builds.items() if k != "skew"})
     return f"{sha[:10]} Version {ctx.version} (iPhone build {builds['ios_build']}, Mac build {builds['mac_build']}); version tests pass"
 
 

@@ -106,6 +106,28 @@ def fold_changelog(text: str, line: str, shipped_first_lines: list[str]) -> str:
     return text[:at + 1] + entry + "\n" + text[at + 1:]
 
 
+SKEW = "tests/fixtures/skew_requests.json"
+
+
+def add_skew_entry(tree: Path, version: str) -> str:
+    """tests/test_skew.py needs an entry for the version: when it has none, the newest release's requests are copied under
+    it (what the scripts send changes rarely; a release that changes them edits the entry on main before the cut)."""
+    path = tree / SKEW
+    if not path.exists():
+        return ""
+    text = path.read_text()
+    data = json.loads(text)
+    if json.dumps(data, indent=1, ensure_ascii=False) + "\n" != text:
+        raise Fail(f"{SKEW} is not in the shape bump.py writes back: add the {version} entry by hand")
+    found = [r["release"] for r in data["releases"]]
+    if version in found:
+        return f"{SKEW} has {version}"
+    newest = max(data["releases"], key=lambda r: parse(r["release"]) if VERSION_RE.fullmatch(r["release"]) else (0, 0, 0))
+    data["releases"].append({**json.loads(json.dumps(newest)), "release": version})
+    path.write_text(json.dumps(data, indent=1, ensure_ascii=False) + "\n")
+    return f"{SKEW}: {version} added, a copy of {newest['release']}'s requests"
+
+
 def bump(tree: Path, version: str, summary: str, date: str | None = None, last_tag: str = "") -> dict:
     """Write `version` everywhere; return the new build numbers. The caller commits and runs the version tests."""
     old = current(tree)
@@ -133,6 +155,7 @@ def bump(tree: Path, version: str, summary: str, date: str | None = None, last_t
     mac_build = int(m.group(1)) + 1
     _sub(maker, r'^VERSION, BUILD = "[^"]*", "\d+"', f'VERSION, BUILD = "{version}", "{mac_build}"', 1)
 
+    skew = add_skew_entry(tree, version)
     log = tree / "CHANGELOG.md"
     _, drop = unreleased(tree, last_tag)
     log.write_text(fold_changelog(log.read_text(), changelog_line(version, summary, date), drop))
@@ -145,4 +168,4 @@ def bump(tree: Path, version: str, summary: str, date: str | None = None, last_t
     measured = sorted(p for p in (tree / "bench" / "results").glob("20??-??-??-v*") if (p / "manifest.json").exists())
     if measured and (tree / "bench" / "publish.py").exists():
         sh(["uv", "run", "--locked", "python", "-I", "bench/publish.py", str(measured[-1].relative_to(tree))], cwd=tree, timeout=600)
-    return {"ios_build": ios_build, "mac_build": mac_build, "date": date}
+    return {"ios_build": ios_build, "mac_build": mac_build, "date": date, "skew": skew}

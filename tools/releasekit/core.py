@@ -65,7 +65,14 @@ def sh(cmd: list[str], cwd: Path | None = None, env: dict | None = None, check: 
     """Run a command; its line and exit status go to the log, its output too (no command here is given a secret)."""
     LOG.write(f"$ {' '.join(cmd)}" + (f"   (in {cwd})" if cwd else ""))
     if stream:  # long runs (the suite, a build): the person sees them move, the log keeps the tail
-        proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        try:
+            proc = subprocess.Popen(cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        except OSError as e:  # not found, not executable: a failed command, not a crashed release run
+            out = subprocess.CompletedProcess(cmd, 126, "", f"{cmd[0]}: {e.strerror}")
+            LOG.write(f"  {out.stderr}")
+            if check:
+                raise Fail(out.stderr) from None
+            return out
         lines: list[str] = []
         assert proc.stdout
         for line in proc.stdout:
@@ -81,8 +88,8 @@ def sh(cmd: list[str], cwd: Path | None = None, env: dict | None = None, check: 
             LOG.write(f"  timed out after {timeout} s")
             out = subprocess.CompletedProcess(cmd, 124, (e.stdout or b"").decode(errors="replace") if isinstance(e.stdout, bytes)
                                               else (e.stdout or ""), "timed out")
-        except FileNotFoundError:
-            out = subprocess.CompletedProcess(cmd, 127, "", f"{cmd[0]}: not found")
+        except OSError as e:
+            out = subprocess.CompletedProcess(cmd, 127 if isinstance(e, FileNotFoundError) else 126, "", f"{cmd[0]}: {e.strerror}")
     LOG.write(f"  exit {out.returncode}\n" + "".join(f"  | {line}\n" for line in (out.stdout + out.stderr).splitlines()[-40:]))
     if check and out.returncode != 0 and NETWORK.search(out.stdout + out.stderr):
         raise Stop(f"the network dropped during `{' '.join(cmd[:3])}`: {tail(out.stderr or out.stdout, 2)}",

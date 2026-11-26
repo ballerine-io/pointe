@@ -90,14 +90,12 @@ def skew_releases(tree: Path) -> list[str]:
 
 
 def skew_entry(tree: Path, version: str) -> str:
-    """The version-skew matrix replays each release's requests against newer ones (tests/test_skew.py), so the cut version
-    needs its entry before the bump, or test_the_matrix_covers_this_release fails on the version commit."""
+    """The version-skew matrix replays each release's requests against newer ones (tests/test_skew.py). The version
+    commit adds the cut version's entry, a copy of the newest one, when main has none (bump.add_skew_entry)."""
     found = skew_releases(tree)
-    if (tree / SKEW_FIXTURE).exists() and version not in found:
-        pending = [v for v in found if v not in ("",)]
-        raise Fail(f"{SKEW_FIXTURE} has no entry for {version} (it has {', '.join(pending[-4:])}): add what this release's scripts "
-                   "send, or rename the pre-added entry to this version, on main")
-    return f"{SKEW_FIXTURE} has an entry for {version}"
+    if not (tree / SKEW_FIXTURE).exists() or version in found:
+        return f"{SKEW_FIXTURE} has an entry for {version}"
+    return f"{SKEW_FIXTURE} has no {version} entry: the version commit copies {found[-1]}'s"
 
 
 def skew(tree: Path, version: str | None = None) -> str:

@@ -117,12 +117,16 @@ def test_half_done_work_is_refused(tmp_path):
     assert "WIP: the new screen" in str(e.value) and "b.txt" in str(e.value)
 
 
-def test_the_cut_version_needs_its_skew_matrix_entry(tmp_path):
+def test_the_version_commit_adds_the_skew_matrix_entry_when_main_has_none(tmp_path):
     (tmp_path / "tests/fixtures").mkdir(parents=True)
-    (tmp_path / preflight.SKEW_FIXTURE).write_text(json.dumps({"releases": [{"release": "0.9.0"}, {"release": "0.10.0"}]}))
-    assert "0.10.0" in preflight.skew_entry(tmp_path, "0.10.0")
-    with pytest.raises(Fail, match="no entry for 0.9.1"):
-        preflight.skew_entry(tmp_path, "0.9.1")
+    fixture = tmp_path / preflight.SKEW_FIXTURE
+    data = {"what": "x", "releases": [{"release": "0.9.0", "requests": [1]}, {"release": "0.10.0", "requests": [2, 3]}]}
+    fixture.write_text(json.dumps(data, indent=1) + "\n")
+    assert "has an entry for 0.10.0" in preflight.skew_entry(tmp_path, "0.10.0")
+    assert "copies 0.10.0's" in preflight.skew_entry(tmp_path, "0.10.1")
+    assert "added" in bump.add_skew_entry(tmp_path, "0.10.1")
+    assert json.loads(fixture.read_text())["releases"][-1] == {"release": "0.10.1", "requests": [2, 3]}
+    assert "has 0.10.1" in bump.add_skew_entry(tmp_path, "0.10.1")  # once only
 
 
 # ---------- publishing ----------
