@@ -5,7 +5,7 @@
     tools/release cut X.Y.Z --summary "…"       cut it: preflight, version commit, tag, artifacts, verify, publish, distribution
     tools/release cut X.Y.Z --dry-run           every check, nothing published (no push, tag, release, upload or deploy)
     tools/release resume                        go on from where the last run stopped (an outage, a sign-in, a person's step)
-    tools/release status [X.Y.Z]                the steps and their state
+    tools/release status [X.Y.Z | --version X.Y.Z]   the steps and their state
 
 Options for cut and resume: --notes FILE (the release notes; default: the draft, which must be rewritten before the release
 is promoted), --no-wait (stop instead of waiting for CI), --site-approved (the owner has seen the site preview), --adopt
@@ -112,6 +112,7 @@ def cmd_resume(args) -> int:
 
 
 def cmd_status(args) -> int:
+    args.version = args.version or getattr(args, "version_flag", None)
     names = [args.version] if args.version else sorted(p.name for p in HOME.glob("*") if (p / "state.json").exists())
     for name in names:
         s = State(HOME / name / "state.json")
@@ -251,6 +252,7 @@ def main(argv: list[str]) -> int:
         c.add_argument("--platforms", help="the platforms this release ships, of iphone,mac,linux (default all); kept for resume")
     st = sub.add_parser("status")
     st.add_argument("version", nargs="?")
+    st.add_argument("--version", dest="version_flag", help="the same as the positional version")
     args = p.parse_args(argv)
     try:
         if args.command == "cut":
