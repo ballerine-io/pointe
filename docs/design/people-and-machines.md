@@ -193,8 +193,8 @@ again. The private-sessions list stays. They keep the machines this voice dials
 
 ## A big fleet
 
-The rules are in `pointe/scale.py` and the tests in `tests/test_fleet_scale.py`. `POINTE_FLEET=off` turns all of them
-off, so one build can be measured with and without them.
+The rules are in `pointe/scale.py` and the tests in `tests/test_fleet_scale.py`. They are off unless the daemon
+starts with `POINTE_FLEET=on`, until the fleet benchmark has measured them: one build is measured with and without them.
 
 **Tiers.** Every session is in one tier at a time. In focus: the active session, the thread, sessions that wait on the
 user, urgent ones, sessions sent to with no report yet, and sessions named or asked about in the last ten minutes;
