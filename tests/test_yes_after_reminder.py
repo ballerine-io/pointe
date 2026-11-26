@@ -1,7 +1,7 @@
 """A yes after Pointe's own reminder approves the one request it waits on, when that request was read in full and
 nothing but the reminder was said since.
 
-Tester round 6 (r6-04, t5-04; 6 of 6 samples): after "Quarry's still waiting on your yes or no", the user's "Yes, run
+Tester round 6 (r6-04, t5-04; 6 of 6 samples): after "Lantern's still waiting on your yes or no", the user's "Yes, run
 it" got the whole request read again and a second yes. The reminder asks for exactly that answer, so it no longer
 closes the window. The invariant holds: a yes covers only what was heard in full. Anything else said since the read-out,
 another request pending, or a read-out the user cut still means the request is read again first.
