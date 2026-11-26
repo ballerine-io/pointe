@@ -5,16 +5,6 @@ import XCTest
 final class DemoUITests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
-    /// A loaded CI simulator now and then drops the tap on Try a demo, and the pairing screen stays: tap until it goes,
-    /// at most three times. A tap that lands is never repeated.
-    private func tryTheDemo(_ app: XCUIApplication) {
-        let tryDemo = app.buttons["tryDemo"]
-        for _ in 0..<3 where tryDemo.exists {
-            tryDemo.tap()
-            if tryDemo.waitForNonExistence(timeout: 5) { return }
-        }
-    }
-
     func testTryADemoFromThePairingScreenAndLeaveIt() {
         let app = XCUIApplication()
         app.launchEnvironment["POINTE_FORGET"] = "1"
@@ -22,7 +12,7 @@ final class DemoUITests: XCTestCase {
 
         let tryDemo = app.buttons["tryDemo"]
         XCTAssertTrue(tryDemo.waitForExistence(timeout: 15), "the pairing screen offers the demo")
-        tryTheDemo(app)
+        app.tryTheDemo()
 
         let badge = app.buttons["demoBadge"]
         XCTAssertTrue(badge.waitForExistence(timeout: 10), "the demo says it is one")
@@ -46,7 +36,7 @@ final class DemoUITests: XCTestCase {
         app.launchEnvironment["POINTE_FORGET"] = "1"
         app.launch()
         XCTAssertTrue(app.buttons["tryDemo"].waitForExistence(timeout: 15))
-        tryTheDemo(app)
+        app.tryTheDemo()
         let line = app.descendants(matching: .any)["statusLine"].firstMatch
         XCTAssertTrue(line.waitForExistence(timeout: 10))
 
@@ -97,5 +87,17 @@ final class DemoUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["Approve"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["demoBadge"].exists, "screenshots and tests keep the plain header")
+    }
+}
+
+extension XCUIApplication {
+    /// A loaded CI simulator now and then drops the tap on Try a demo, and the pairing screen stays: tap until it goes,
+    /// at most three times. A tap that lands is never repeated.
+    func tryTheDemo() {
+        let tryDemo = buttons["tryDemo"]
+        for _ in 0..<3 where tryDemo.exists {
+            tryDemo.tap()
+            if tryDemo.waitForNonExistence(timeout: 5) { return }
+        }
     }
 }

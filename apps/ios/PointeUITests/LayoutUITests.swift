@@ -175,7 +175,7 @@ final class LayoutUITests: XCTestCase {
         XCTAssertTrue(demo.isHittable, "Try a demo is reached by scrolling")
         onScreen(app, demo, "Try a demo")
         XCTAssertTrue(app.buttons["Pair"].exists)
-        demo.tap()
+        app.tryTheDemo()
         XCTAssertTrue(app.buttons["micRing"].waitForExistence(timeout: 10), "and it opens the demo call")
     }
 
