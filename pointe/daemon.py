@@ -1724,7 +1724,7 @@ def _fast_ask(said: str) -> tuple[Session, str] | None:
     if not m or status_intent(said) or _OPINION.search(said) or re.search(r"(?<![֐-׿])מה קורה|מה המצב", said):
         return None
     sessions = list(REGISTRY.sessions.values())
-    named = name_groups(m["who"], sessions)
+    named = _fleet_twins(said, name_groups(m["who"], sessions), sessions)
     if len(named) != 1 or len(named[0]) != 1 or not _only_addresses(m["who"], sessions):
         return None
     question = m["q"].strip()
@@ -1779,7 +1779,7 @@ def _fast_send(said: str) -> tuple[Session, str] | None:
     if not m or unfinished(text) or broadcast_intent(text) or _needs_warning(text) or len(re.findall(r"[?？]", text)) > 0:
         return None
     sessions = list(REGISTRY.sessions.values())
-    named = name_groups(m["who"], sessions)
+    named = _fleet_twins(text, name_groups(m["who"], sessions), sessions)  # one name on several machines is a tie
     if len(named) != 1 or len(named[0]) != 1 or name_groups(m["task"] or m["q"], sessions):
         return None  # one session, named exactly, and none named inside the task
     if not _only_addresses(f"{m['verb']} {m['who']}", sessions):
@@ -6672,10 +6672,29 @@ def _fleet_machine_answer(said: str) -> Session | None:
     asked = _fleet_asked()
     machine = scale.machine_answer(said, [s.machine for s in asked]) if asked else None
     on = [s for s in asked if s.machine == machine] if machine is not None else []
-    return on[0] if len(on) == 1 else None
+    if len(on) != 1:
+        return None
+    state.fleet_ask = None  # answered: the next machine's name said alone answers nothing
+    return on[0]
 
 
-def _fleet_candidates(said: str, message: str, sessions: list[Session]) -> tuple[list[Session], bool, bool]:
+def _fleet_who(said: str, sessions: list[Session]) -> str:
+    """Whom the words address by a description and not by a name: "the session working on the coupon ledger" in "tell
+    the session working on the coupon ledger to ...". "" when they address a session by name, nobody, or the talk
+    ("tell it to ...", "ask the other one ..."), and in a fleet small enough to be routed as before."""
+    m = _FAST_SEND.match(said.strip())
+    if not m or len(sessions) <= scale.CANDIDATES_MAX or broadcast_intent(said) or not scale.who_words(m["who"]):
+        return ""
+    return m["who"]
+
+
+def _fleet_same_name(group: list[Session]) -> bool:
+    """The tie is one name on several machines ("shop" on four of them): no request's words tell those apart."""
+    return scale.enabled() and len({scale.base_name(s.name, s.machine).lower() for s in group}) == 1 \
+        and len({s.machine for s in group}) == len(group)
+
+
+def _fleet_candidates(said: str, message: str, sessions: list[Session], who: str = "") -> tuple[list[Session], bool, bool]:
     """Stage one of routing: (the sessions the classifier may pick among, whether one is a lexical match, whether a
     machine was named). Kept on the state with how each was picked, so a wrong send can be told apart: narrowed
     wrong, or picked wrong."""
@@ -6685,9 +6704,10 @@ def _fleet_candidates(said: str, message: str, sessions: list[Session]) -> tuple
     tier = _fleet_tiers()
     focus = sorted((s for s in sessions if tier.get(s.id) == scale.FOCUS), key=lambda s: (not _needs_user(s), s.name))
     thread = _thread()
-    picked, matched = scale.candidates(f"{said} {message}", _fleet_docs(sessions), thread.id if thread else None,
+    # Addressed by a description: only its words are matched. The task's words ("run the tests") fit every session.
+    picked, matched = scale.candidates(who or f"{said} {message}", _fleet_docs(sessions), thread.id if thread else None,
                                        REGISTRY.active_id, [s.id for s in focus], scope or None)
-    state.fleet_route = {"at": time.time(), "said": said, "of": len(sessions), "machines": scope, "matched": matched,
+    state.fleet_route = {"at": time.time(), "said": said, "who": who, "of": len(sessions), "machines": scope, "matched": matched,
                          "candidates": [{"id": c.id, "name": REGISTRY.sessions[c.id].name, "how": c.how, "score": c.score}
                                         for c in picked]}
     logger.info(f"fleet: routing candidates {[(c.id, c.how, c.score) for c in picked]} of {len(sessions)} sessions"
@@ -6704,6 +6724,19 @@ def _fleet_twins(said: str, groups: list[list[Session]], sessions: list[Session]
         return groups
     on = machines_named(said, sessions)
     base = lambda x: scale.base_name(x.name, x.machine).lower()  # noqa: E731
+    # "Tell the session working on the payroll archive to ...": a description. A name only heard in one of its words
+    # ("archive" as chive), with other words beside it that are no part of that name, names nobody: the description is
+    # matched instead. A name said a little wrong and alone ("tell chiv to") is still that session.
+    m = _FAST_SEND.match(said.strip())
+    if m and groups:
+        split = lambda text: set(re.findall(r"[^\W_]+", text.lower()))  # noqa: E731
+        literal, described = split(said), scale.who_words(m["who"])
+
+        def named(g: list[Session]) -> bool:
+            own = set().union(*(split(base(x)) | split(x.machine) for x in g))
+            beside = {w for w in described if not any(sessions_module._hears(v, w) for v in own)}
+            return not beside or any(split(base(x)) & literal for x in g)
+        groups = [g for g in groups if named(g)]
     # "Tell shop on avi-box": the shop there is the one named, and the same word no longer ties the other machines' shops.
     there = {base(g[0]) for g in groups if len(g) == 1 and g[0].machine in on}
     groups = [g for g in groups if not (all(base(x) in there and x.machine not in on for x in g))]
@@ -6756,6 +6789,8 @@ def _fleet_which(how: str, said: str) -> str | None:
         if scoped:
             return f"Which session on {route['machines'][0]} is it for?"
         state.fleet_ask = (time.time(), list(REGISTRY.sessions))
+        if route.get("who"):  # "tell nimbus to ...", "the session working on the passport scanner": there is none
+            return "I found no session like that. " + ("Which machine is it on?" if _multi_machine() else "Which session is it?")
         return "Which machine is it for?" if _multi_machine() else "Which session is it for?"
     tied = _tied_in(said) if how == "ambiguous" else []
     if len(tied) > scale.NAMES_IN_A_LINE and len({s.machine for s in tied}) == 1 and tied[0].machine:
@@ -6793,6 +6828,18 @@ def _fleet_select(args: dict) -> tuple[list[dict], int]:
             for s in sorted(REGISTRY.sessions.values(), key=lambda s: (order[tier[s.id]], not _waiting_items(s)))]
     pick = {k: str(args.get(k) or "").strip() for k in ("machine", "owner", "state", "query")}
     return scale.select(rows, **pick)
+
+
+def _fleet_slim(rows: list[dict]) -> list[dict]:
+    """list_sessions' rows on a big fleet: the whole row for a session in focus; for the others its name, machine and
+    state, without its latest lines and empty fields. Twenty whole rows were about 2,000 tokens in every later step."""
+    if not scale.enabled() or len(REGISTRY.sessions) <= scale.FOCUS_MAX:
+        return rows
+    tier = {REGISTRY.sessions[sid].name: t for sid, t in _fleet_tiers().items()}
+    keep = ("name", "agent", "machine", "working", "where_it_stands")
+    return [r if tier.get(r["name"]) == scale.FOCUS else
+            {**{k: r[k] for k in keep if r.get(k) not in (None, "")}, **({} if r["online"] else {"online": False}),
+             **({"needs_from_user": r["needs_from_user"]} if r["needs_from_user"] else {})} for r in rows]
 
 
 def _fleet_listing(args: dict) -> dict:
@@ -7085,6 +7132,8 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
         for group in groups:
             if len(group) > 1:
                 # From the user's words, not the brain's message: the brain may have written its own guess into it.
+                if _fleet_same_name(group):
+                    return [], "ambiguous"  # one name on several machines and no machine said: asked, never guessed
                 group = _fleet_tie(said, message, group)  # at most eight of them for the classifier; none: ask
                 picked = await _classify_target(said, group, tie=True) if group else None
                 if picked is None or picked is UNROUTABLE:
@@ -7101,17 +7150,24 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
     claude = [s for s in sessions if s.harness == "claude-code"]
     if len(claude) == 1 and len(claude) < len(sessions) and re.search(r"\bclaude code\b", said, re.I):
         return claude, "harness"
-    pool, scoped = sessions, False
+    pool, scoped, who = sessions, False, ""
     if scale.enabled():  # stage one, in code: the classifier sees at most eight sessions whatever the fleet's size
-        pool, matched, scoped = _fleet_candidates(said, message, sessions)
-        if not pool or (len(sessions) > scale.CANDIDATES_MAX and not matched and not scoped and _thread() is None):
-            return [], "unmatched"  # nothing in the words says which session, and no conversation to go on: ask
+        who = _fleet_who(said, sessions)
+        pool, matched, scoped = _fleet_candidates(said, message, sessions, who)
+        if not pool or (len(sessions) > scale.CANDIDATES_MAX and not matched and not scoped and (who or _thread() is None)):
+            # Nothing in the words says which session, and no conversation to go on: ask. "Tell nimbus to ..." with no
+            # nimbus is asked whatever the conversation: words for somebody else never go to the session talked with.
+            return [], "unmatched"
     picked = await _classify_target(message, pool)
     if picked is UNROUTABLE:
         return [], "ambiguous"  # ask which session rather than guess
     thread = _thread()
-    if picked is None and scoped and thread not in pool:
-        return [], "unmatched"  # a machine was named: never the thread or the active session of another one
+    if picked is None and (who or (scoped and thread not in pool)):
+        # They said whom it is for, by a description or a machine, and it is not clear which session that is: never the
+        # thread or the active session instead.
+        return [], "unmatched"
+    if picked is not None and who and scale.singled_out(who, _fleet_docs(sessions), picked.id):
+        return [picked], "auto"  # "whoever has ledger.py": only it has that, so the words point at it (off thread too)
     if thread is not None and picked is not None and picked is not thread and not (picked.open_questions or picked.needs) \
             and not _just_mentioned(picked) and not (_RETURNS_TO.search(said) and picked.last_delegation_at > state.connected_at) \
             and not _points_to(said, picked, [s for s in sessions if s is not picked]):
@@ -7309,7 +7365,8 @@ def _checker(attempt: int) -> str:
 
 def _in_a_tie(said: str, chosen: Session) -> bool:
     """The user's words name `chosen` only as one of several sessions that share the word they said."""
-    return any(len(g) > 1 and chosen in g for g in name_groups(said, list(REGISTRY.sessions.values())))
+    sessions = list(REGISTRY.sessions.values())
+    return any(len(g) > 1 and chosen in g for g in _fleet_twins(said, name_groups(said, sessions), sessions))
 
 
 async def _classify_target(message: str, sessions: list[Session], tie: bool = False) -> Session | None:
@@ -7673,7 +7730,7 @@ async def _send_now(message: str) -> dict:
             return {"error": f"Not delivered. {' '.join(set_aside)}"}
         return {"error": f"Not delivered to {', '.join(failed)}. Tell the user it did not reach the session."}
     now = time.time()
-    state.pending_route, state.blocked = None, []
+    state.pending_route, state.blocked, state.fleet_ask = None, [], None
     state.last_sent = (state.last_user_speech_at, targets[0].name)
     state.last_aimed = state.brain_target or targets[0].name
     if clause is not None:
@@ -7847,6 +7904,13 @@ def _brain_named(said: str, alone: bool = False) -> Session | None:
         return None
     if _in_a_tie(said, chosen):
         return None  # "the tariff one" with tariff-api and tariff-web: the brain's pick is a guess, and _route asks
+    # "Tell api on omer-lab": the brain, which is told only the sessions in focus, names the plain "api" of avi-box.
+    # The words name another session of that name, on the machine they say: the brain's pick is not it, _route's is.
+    base = lambda s: scale.base_name(s.name, s.machine).lower()  # noqa: E731
+    worded = [s for g in name_groups(said, list(REGISTRY.sessions.values())) for s in g]
+    if worded and chosen not in worded and (any(base(s) == base(chosen) for s in worded) or not (
+            set(re.findall(r"[^\W_]+", base(chosen))) & set(re.findall(r"[^\W_]+", said.lower())))):
+        return None  # or the words name a session and say only the machine of the brain's pick, never its name
     thread = _thread()
     if len(REGISTRY.sessions) == 2 and thread is not None and chosen is not thread and _THE_OTHER_ONE.search(said):
         return chosen  # two sessions, and "the other one": not the one they were talking with, so this one, and no question
@@ -8096,7 +8160,7 @@ async def list_sessions(params: FunctionCallParams):
                  "clocks": s.deadlines, "urgent": s.urgency == "high",
                  "where_it_stands": (_brief_of(s) or {}).get("state"),
                  "latest": recent_history(s, max_entries=1, max_chars=300)} for s in _fleet_listed(params.arguments)]
-    await params.result_callback({"sessions": sessions, **_fleet_listing(params.arguments)})
+    await params.result_callback({"sessions": _fleet_slim(sessions), **_fleet_listing(params.arguments)})
 
 
 def _switch_the_bot_offered() -> Session | None:

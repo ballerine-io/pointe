@@ -202,7 +202,7 @@ def test_the_budget_holds_at_the_plans_sizes_and_the_block_grows_by_machines_not
     assert sizes["30x40 off"] > 20 * sizes["30x40"]  # without the tiers it is a line per session
     lines = d._needs_now().split("\n")
     assert "- box-01 (Linux, 23 ms): 40 sessions, 0 working, 40 idle, none need you" in lines
-    assert lines[-1] == "- and 1 more machine: 39 sessions, 0 working, none need you"  # past a third of the budget: a count
+    assert lines[-1] == "- and 9 more machines: 359 sessions, 0 working, none need you"  # past a third of the budget: a count
     d.REGISTRY.sessions.clear()
     build(d, node, 2, 7)
     assert "- box-00 (Linux, 23 ms): 6 more, 0 working, 6 idle, none need you" in d._needs_now()  # the active one is above"
@@ -356,7 +356,8 @@ def test_shop_on_ten_machines_asks_which_machine_and_shop_on_one_of_them_routes(
         assert (targets, how) == ([s], "named")
     targets, how = route(d, "Curlew.")  # the answer to "which machine?"
     assert (targets, how) == ([shops[8]], "answered")
-    d.state.fleet_ask = (time.time() - d.PENDING_ROUTE_SECS - 1, d.state.fleet_ask[1])
+    assert d.state.fleet_ask is None  # answered once
+    d.state.fleet_ask = (time.time() - d.PENDING_ROUTE_SECS - 1, [s.id for s in shops])
     assert route(d, "Curlew.")[1] != "answered"  # the question is long over: a machine's name alone picks nothing
 
 

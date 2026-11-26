@@ -204,7 +204,9 @@ session the person marked ("keep tide quiet", lifted by "stop keeping tide quiet
 twenty most recent on its machine. Recent is by a session's activity when it joined and by the person's words since,
 not by its own work.
 
-**The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 3.5. Twelve sessions
+**The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 2.6: the
+brain's vendor counted this block at 2.82 to 3.1 characters a token in the fleet benchmark, so 2.6 keeps its own count
+under the budget with 8% to spare. Twelve sessions
 or fewer: a line each, as before. More: a full line for each session in focus, then one line per machine ("avi-box
 (Linux, 23 ms): 18 more, 15 working, 3 idle, none need you"), and "And 4 more need you: a, b, c, d" for sessions that
 wait on the user and found no place in focus. A machine's latency is told again only when it moved a lot, so the
@@ -215,6 +217,14 @@ best matches of the request's words against each session's name, goal, title, ke
 sessions in focus. No match and no thread: Pointe asks. A tie of more than eight (a machine named, with many sessions
 on it) is narrowed the same way. The same name on several machines is a tie unless the words name the machine; a
 session of the user's own on this machine keeps the plain name.
+
+Three rules decide without a model. A machine said with the name is that machine's session, whatever session the
+brain named ("tell shop on avi-box" never goes to this machine's shop). One name on several machines with no machine
+said is asked, also on the send that takes no model step. Words for a session by a description ("tell the session
+working on the coupon ledger to", "ask whoever has ledger.py to") or by a name no session has are never sent to the
+session talked with: no session fits, and Pointe asks; the model is not sure, and Pointe asks; the model picks the one
+session those words fit, and it is sent, also when the talk was about another session.
+`tests/test_fleet_dataset_routing.py` replays the fleet benchmark's turns against these rules.
 
 **"Which session?"** Three options at most, grouped by machine when they span machines. More: the machine first
 ("Which machine? shop is on avi-box, kestrel and 8 more."), and the machine's name alone answers it.

@@ -28,7 +28,10 @@ FOCUS_MAX = 12
 RECENT_PER_MACHINE = 20
 FOCUS_SECS = 600.0  # named, asked about or sent to this long ago: back to the background
 BUDGET_TOKENS = 1800
-CHARS_PER_TOKEN = 3.5  # brain.CHARS_PER_TOKEN, the repo's first guess for English prose; stricter than 4
+# The fleet benchmark's rows: the brain's vendor counted this block at 2.82 to 3.1 characters a token (names with
+# hyphens and digits cost more than prose; brain.CHARS_PER_TOKEN's 3.5 under-counted it, 1,811 tokens against 1,800).
+# 2.6 leaves 8% under the worst row, so the vendor's own count stays under the budget.
+CHARS_PER_TOKEN = 2.6
 CANDIDATES_MAX = 8
 LEXICAL_FIRST = 4  # places kept for the best lexical matches before the focus tier fills the rest
 SCORE_FLOOR = 1.5
@@ -169,7 +172,8 @@ def _need_line(names: list[str], chars: int) -> str:
 
 
 REST_HEAD = ("The other sessions, by machine. None of them is listed above; list_sessions with a machine, a state or a "
-             "query reads any of them:")
+             "query reads any of them. To send to one, call send_to_claude_code with the user's words and no look-up "
+             "first: the daemon finds the session by its name, its machine or what it works on, and asks when it cannot:")
 
 
 def fit(head: str, lines: list[str], machines: list[MachineLine] = (), needing: list[str] = (),
@@ -264,6 +268,23 @@ def scores(request: str, docs: list[Doc]) -> dict[str, float]:
         if total:
             out[sid] = round(total, 3)
     return out
+
+
+_WHO_NOISE = set("working whoever whomever other same agent claude code codex opencode one ones guy folks somebody "
+                 "someone anyone everybody everyone has have having got owns doing does handles handling".split())
+
+
+def who_words(who: str) -> set[str]:
+    """The words of an address that can describe a session ("the session working on the coupon ledger": coupon,
+    ledger). None left: a pronoun or "the other one", which points at the talk and not at a description."""
+    return words(who) - _WHO_NOISE
+
+
+def singled_out(who: str, docs: list[Doc], sid: str) -> bool:
+    """The words of the address fit this session over the floor, and no other two thirds as well."""
+    score = scores(who, docs)
+    top = score.get(sid, 0.0)
+    return top >= SCORE_FLOOR and all(other * 1.5 <= top for o, other in score.items() if o != sid)
 
 
 def candidates(request: str, docs: list[Doc], thread: str | None = None, active: str | None = None,
