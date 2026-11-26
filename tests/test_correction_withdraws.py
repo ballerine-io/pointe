@@ -63,3 +63,15 @@ def test_a_new_request_for_another_session_takes_nothing_back(d, monkeypatch):  
     open_gates(d, monkeypatch, "Tell lantern to run the nightly import.")
     _send(d, "Run the nightly import.", "lantern/main")
     assert len([m for name, m in sent if name == "billing/main"]) == 1
+
+
+def test_the_models_own_disregard_to_the_wrong_session_is_refused_and_the_request_goes(d, monkeypatch):  # noqa: F811
+    """r14 sample b at bb36fafb: the model sent "Disregard the earlier request..." aimed at billing first; routing took
+    it to lantern, the session the user named, and the request itself was then refused as a second send."""
+    billing, lantern, sent, posts = _misrouted(d, monkeypatch)
+    open_gates(d, monkeypatch, "No, sorry, I meant lantern, not billing.")
+    refused = _send(d, "Disregard the earlier request to add a type hint. It was meant for another session.",
+                    "billing/main")
+    assert "sent_to" not in refused and "lantern" in refused["error"]
+    assert _send(d, "Add a type hint to load batches.", "lantern/main")["sent_to"] == ["lantern/main"]
+    assert [name for name, _ in sent] == ["billing/main", "lantern/main", "billing/main"]  # the daemon's drop line

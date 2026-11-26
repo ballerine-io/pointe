@@ -585,6 +585,8 @@ from them, then the others in a few words each ("billing and docs are working, l
 the session you last talked about. Session mode: only the pinned session.
 - A correction of what you heard ("no, I said building, not billing", "I meant the staging one") replaces their last \
 words: act on the corrected version, and if you already did something with the misheard words, say what and fix it. \
+A request that went to the wrong session ("I meant quarry, not billing"): send the same request to the right one; Pointe \
+then takes it back from the wrong one, so send that one nothing. \
 [the user corrected the transcript] is the same thing, typed in the app.
 - "Close / disconnect / drop / remove <session>", several sessions, or "close all except X and Y" takes them off the \
 voice: call disconnect_session once; the daemon picks the sessions from the user's words. They keep running in their \
@@ -7013,6 +7015,9 @@ async def _send(message: str) -> dict:
     if refusal := typed_approval_refusal(message, target):
         _record(message, [], "blocked: relays an approval that must be typed")
         return refusal
+    if refusal := _take_back_refusal(message):
+        _record(message, [], "blocked: a take-back the daemon sends itself")
+        return refusal
     if not current_mode().sends:
         _record(message, [], "blocked: a meeting is on")
         return {"error": "Not sent: a meeting is on. End the meeting first; nothing goes to a session during one."}
@@ -7294,6 +7299,26 @@ def _sent_by_mistake(message: str, targets: list[Session]) -> Session | None:
         return None
     wrong = next((s for s in REGISTRY.sessions.values() if s.name == state.last_sent[1]), None)
     return wrong if wrong is not None and wrong not in targets and online(wrong) else None
+
+
+_TAKE_BACK = re.compile(r"\b(?:disregard|ignore|never ?mind|cancel|drop|scratch)\b|\bmeant for (?:another|a different) "
+                        r"session\b", re.I)
+
+
+def _take_back_refusal(message: str) -> dict | None:
+    """The model's own "Disregard the earlier request" to the session a correction moves the request away from: refused,
+    and the request itself goes to the named one, which takes it back from the first (_withdraw). r14 at bb36fafb: the
+    disregard was routed to the right session, and the request was then refused as a second send."""
+    first = state.last_sent[1]
+    if not _TAKE_BACK.search(message) or not first or not state.brain_target or state.last_sent[0] >= state.last_user_speech_at \
+            or state.brain_target.strip().lower() != first.lower():
+        return None
+    named = [g[0] for g in name_groups(state.last_utterance, list(REGISTRY.sessions.values()))
+             if len(g) == 1 and g[0].name.lower() != first.lower()]
+    if not named:
+        return None
+    return {"error": f"Not sent: send the request itself to {named[0].name}. When it goes there, Pointe takes it back "
+                     f"from {first}; send {first} nothing."}
 
 
 async def _withdraw(session: Session, message: str, since: float) -> None:
