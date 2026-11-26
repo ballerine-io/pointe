@@ -24,9 +24,9 @@ from test_no_silent_turn import _call  # noqa: E402
 from test_orchestrator import Params, add, client_for, d, fake_conn, no_classifier  # noqa: E402,F401
 from test_session_scope import Voice, _reports  # noqa: E402
 
-NAMES = ("tide harbor ferry lantern gully pelican orchard meadow cinder willow juniper marble thistle beacon saffron "
+NAMES = ("tide harbor skiff lantern gully pelican orchard pasture cinder alder juniper marble nettle beacon paprika "
          "anchor bramble copper drift ember fjord glacier heron islet jasper kelp lagoon mesa nectar otter prairie quill "
-         "reef summit tundra umber valley wharf yarrow zephyr").split()
+         "reef summit steppe umber valley wharf yarrow zephyr").split()
 BOXES = "avi-box kestrel osprey falcon merlin condor harrier plover curlew dunlin".split()
 TOPICS = ("invoice rounding", "webhook retries", "search reindex", "login throttle", "export queue", "avatar upload",
           "ledger audit", "fare table", "coupon stacking", "refund window")
@@ -283,7 +283,7 @@ def test_the_right_session_is_a_candidate_by_its_goal_its_file_or_its_machine_an
     asked = len(seen)
     assert route(d, "on box-07, do the thing") == ([], "ambiguous") and len(seen) == asked  # thirty there, none fits
     assert d._which_question("ambiguous", "on box-07, do the thing") == "Which session on box-07 is it for?"
-    assert "juniper-210, marble-211, thistle-212 and 27 more" in d._unrouted("ambiguous", "on box-07, do the thing")
+    assert "juniper-210, marble-211, nettle-212 and 27 more" in d._unrouted("ambiguous", "on box-07, do the thing")
 
 
 def test_a_request_that_matches_nothing_asks_and_the_model_is_not_called(d, node, fleet_on, monkeypatch):
@@ -311,11 +311,11 @@ def test_a_machine_named_never_falls_back_to_a_session_on_another_machine(d, nod
     build(d, node, 2, 3, here=2)
     assert d.REGISTRY.active.machine == ""
     assert route(d, "on box-01, run the tests") == ([], "ambiguous")  # asked among the three there, as before
-    assert d._which_question("ambiguous", "on box-01, run the tests") == "pelican 005, orchard 006 or meadow 007?"
+    assert d._which_question("ambiguous", "on box-01, run the tests") == "pelican 005, orchard 006 or pasture 007?"
     d.state.fleet_ask = (time.time(), list(d.REGISTRY.sessions))  # "Which machine is it for?" was asked
     assert route(d, "box-01") == ([], "unmatched")  # the machine alone: its sessions, never the active one elsewhere
     assert d.state.fleet_route["machines"] == ["box-01"] and len(d.state.fleet_route["candidates"]) == 3
-    assert d._which_question("unmatched", "box-01") == "pelican 005, orchard 006 or meadow 007?"
+    assert d._which_question("unmatched", "box-01") == "pelican 005, orchard 006 or pasture 007?"
 
 
 # ---------- "which session?" ----------
@@ -581,8 +581,8 @@ def test_thirty_sessions_finish_in_a_minute_four_lines_are_spoken_and_the_rest_a
 
 def test_the_speech_plan_coalesces_per_machine_names_a_question_and_never_holds_one():
     r = scale.Report
-    lines, held = scale.plan_speech([r("tide", "avi-box"), r("harbor", "avi-box"), r("ferry", "avi-box", True)], 0)
-    assert [x.text for x in lines] == ["Three on avi-box finished: ferry, tide and harbor; ferry has a question."] and not held
+    lines, held = scale.plan_speech([r("tide", "avi-box"), r("harbor", "avi-box"), r("skiff", "avi-box", True)], 0)
+    assert [x.text for x in lines] == ["Three on avi-box finished: skiff, tide and harbor; skiff has a question."] and not held
     lines, held = scale.plan_speech([r("tide", "avi-box"), r("harbor")], 0)
     assert [x.text for x in lines] == ["", ""] and not held  # two: each as it came
     many = [r(f"n{i}", f"box-{i % 6}", question=(i == 5)) for i in range(18)]
