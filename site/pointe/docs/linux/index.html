@@ -75,7 +75,7 @@
 <li><a href="../architecture/">Architecture</a></li>
 <li><a href="../how-it-works/">How it works</a></li>
 <li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
-<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../multi-machine/">Machines and people</a></li>
 <li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
 </ul>
 <p class="dx-nav-h">Features</p>
@@ -227,7 +227,8 @@ Code session skips permission prompts by default (<a href="../features/new-sessi
 <p><strong>Session names.</strong> A session that joins with <code>/pointe:voice</code> is named after its folder, with the git branch when it
 has one: a session in <code>~/alon-pointe</code> with no branch is <code>alon-pointe</code>. Rename it by voice ("rename it to shop").</p>
 <h2 id="other-machines-and-other-people">Other machines, and other people</h2>
-<p>Pointe is made for <strong>one person's voice</strong>. These shapes are supported:</p>
+<p>Each Pointe is <strong>one person's voice</strong>. A Linux machine can also be the machine other people are invited to: each of
+them reaches its sessions from their own voice, on their own machine. These shapes are supported:</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
@@ -239,8 +240,13 @@ has one: a session in <code>~/alon-pointe</code> with no branch is <code>alon-po
 <tbody>
 <tr>
 <td>Your other machines' sessions in your call</td>
-<td>Each runs as a node: <code>pointe hub invite</code> on the hub, <code>pointe node join '&lt;line&gt;'</code> on the machine</td>
-<td>A node has one hub. The hub's owner approves the node's prompts</td>
+<td><code>pointe hub invite</code> on the machine with your voice, <code>pointe node join '&lt;line&gt;'</code> on the other machine</td>
+<td>Such a machine serves one voice. Its prompts are approved from that voice</td>
+</tr>
+<tr>
+<td>Colleagues on one Linux machine</td>
+<td><code>pointe people invite &lt;name&gt;</code> on the machine, <code>pointe machine add '&lt;line&gt;'</code> on the colleague's own machine</td>
+<td>Below. No approval by an invited person yet</td>
 </tr>
 <tr>
 <td>Several phones</td>
@@ -259,14 +265,56 @@ has one: a session in <code>~/alon-pointe</code> with no branch is <code>alon-po
 </tr>
 </tbody>
 </table></div>
-<p><strong>Not supported: two people talking to the same hub at once.</strong> Everyone paired with a hub acts as its owner: they hear
-every session's reports and can send to any session and approve its prompts. Pair only your own devices, and give each
-person their own hub. A colleague's machine can be a node of your hub only if you are the one who voices it.</p>
-<p><strong>What multi-person use would take.</strong> The hub keeps one call: one conversation, one active session, one voice lock and
-one set of vendor keys. Several people at once would need a call per person, each with its own conversation and state;
-a person behind each phone, browser and node, with who may send to and approve which session; approvals recorded by
-person; a voice lock per person; and reports sent only to the person who owns the session. That is a redesign of the
-daemon's state, not a setting. One hub per person is the supported way.</p>
+<p><strong>A phone or a browser paired with a voice acts as its owner.</strong> It hears every session's reports, can send to any
+session and can approve its prompts. Pair only your own devices that way. For another person, use an invite: they get
+their own key, their name on what they send, and no approvals.</p>
+<h3 id="the-office-case-one-linux-machine-several-people">The office case: one Linux machine, several people</h3>
+<p>Avi runs his agents on a Linux machine, <code>avi-box</code>, under one account. It is his voice. Dana and Omer each have their
+own Pointe, on their own Mac or Linux machine, with their own model keys.</p>
+<p><strong>Before you invite anybody.</strong> A person you invite can make the agents on <code>avi-box</code> run commands as the account Pointe
+runs as, and a session Pointe starts skips permission prompts by default. Pointe does not separate people on one
+account. Invite only people you would give a shell on that account
+(<a href="../security/#people-on-a-machine">SECURITY.md</a>).</p>
+<ol>
+<li><strong>Avi installs Pointe on <code>avi-box</code> as a hub</strong> (<a href="#install">Install</a>), gives it his key and joins his sessions.</li>
+<li>
+<p><strong>Avi makes <code>avi-box</code> reachable on the private network</strong>, with one route from
+   <a href="#reach-it-from-other-devices">Reach it from other devices</a>: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
+   <code>pointe pair host &lt;alias&gt;</code>. A person's voice connects to the same listener a phone does.</p>
+</li>
+<li>
+<p><strong>What must be open:</strong> TCP port 7443 on <code>avi-box</code>, reachable from each colleague's machine over the private
+   network (Tailscale, Twingate or the LAN). It stays open while people are linked: each person's voice keeps one
+   connection to it. Do not put it on the public internet.</p>
+</li>
+<li>
+<p><strong>Avi invites Dana:</strong></p>
+<div class="dx-code"><pre><code>pointe people invite dana</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It prints one line that starts with <code>pointe://machine?</code>, valid once, for ten minutes, and waits. <code>--watch</code> invites
+ her to watch only. Avi sends Dana the line. Whoever uses the line first becomes "dana" on this machine, so send it
+ only to her.</p>
+</li>
+<li>
+<p><strong>Dana adds the machine, on her own machine:</strong></p>
+<div class="dx-code"><pre><code>pointe machine add &#x27;pointe://machine?v=1&amp;host=…&amp;port=7443&amp;fp=…&amp;code=K7PQ-2MXD&amp;name=avi-box&#x27;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Her voice checks the certificate of <code>avi-box</code> against the line, trades the code for her own key, and connects. The
+ command says whose machine it is, what she can do there, and which services her voice sends its transcripts to.
+ On <code>avi-box</code>, Avi's terminal prints who paired, from which address, with which key fingerprint.</p>
+</li>
+<li>
+<p><strong>Dana talks from her own call.</strong> The sessions on <code>avi-box</code> are in her conversation with Avi's name on them. A
+   session there that works on somebody else's request refuses hers; "send it anyway" pushes it through.</p>
+</li>
+<li>
+<p><strong>Avi keeps control on <code>avi-box</code>:</strong></p>
+<div class="dx-code"><pre><code>pointe people                      # who is invited, what each may do, who is linked
+pointe people grant dana watch     # or: send
+pointe share billing --private     # keep a session to himself; --shared shares it again
+pointe people remove dana          # delete her key and close her link</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+</li>
+</ol>
+<p>Permission prompts on <code>avi-box</code> are offered to Avi's voice and the session's terminal only. The whole guide, with the
+screens, what each person hears and the limits: <a href="../multi-machine/#a-shared-machine">Machines and people</a>.</p>
 <h2 id="limits-on-linux">Limits on Linux</h2>
 <ul>
 <li>
@@ -293,6 +341,7 @@ daemon's state, not a setting. One hub per person is the supported way.</p>
 <li class="dx-l2"><a href="#reach-it-from-other-devices">Reach it from other devices</a></li>
 <li class="dx-l2"><a href="#your-sessions">Your sessions</a></li>
 <li class="dx-l2"><a href="#other-machines-and-other-people">Other machines, and other people</a></li>
+<li class="dx-l3"><a href="#the-office-case-one-linux-machine-several-people">The office case: one Linux machine, several people</a></li>
 <li class="dx-l2"><a href="#limits-on-linux">Limits on Linux</a></li>
 </ul>
 </details>

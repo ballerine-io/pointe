@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Machines: one voice over sessions on several machines · Pointe docs</title>
-<meta name="description" content="Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the machine that holds…">
+<title>Machines and people · Pointe docs</title>
+<meta name="description" content="Two things are on this page:">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="Machines: one voice over sessions on several machines">
-<meta property="og:description" content="Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those machines with the machine that holds…">
+<meta property="og:title" content="Machines and people">
+<meta property="og:description" content="Two things are on this page:">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/multi-machine/">
 <meta name="twitter:card" content="summary_large_image">
@@ -75,7 +75,7 @@
 <li><a href="../architecture/">Architecture</a></li>
 <li><a href="../how-it-works/">How it works</a></li>
 <li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
-<li><a href="./" aria-current="page">Machines: one voice over sessions on several machines</a></li>
+<li><a href="./" aria-current="page">Machines and people</a></li>
 <li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
 </ul>
 <p class="dx-nav-h">Features</p>
@@ -119,26 +119,70 @@
 </nav>
 <main id="main" class="dx-main">
 <article class="dx-doc">
-<h1 id="machines-one-voice-over-sessions-on-several-machines">Machines: one voice over sessions on several machines</h1>
-<p>Your sessions do not all run on the machine with the call. Some run on another Mac, a Linux host or a VM. Pair those
-machines with the machine that holds the call, and their sessions join the same voice: you hear their reports, send to
-them, approve their prompts, and always see which machine each one is on.</p>
-<p>The machine with the call is the <strong>hub</strong>: a Mac, or a Linux machine (<a href="../linux/">Linux</a>). Each other machine runs a small
-Pointe called a <strong>node</strong>. A node has no
-microphone, no speaker, no models and no keys. It watches its own sessions, types your requests into them and holds
-their permission prompts. The design and the reasons: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine.md">design/multi-machine.md</a>.</p>
-<h2 id="set-it-up">Set it up</h2>
-<ol>
+<h1 id="machines-and-people">Machines and people</h1>
+<p>Two things are on this page:</p>
+<ul>
 <li>
-<p><strong>On the hub</strong>, make it reachable, as for the phone: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
-   <code>pointe pair host &lt;name&gt;</code>. A node reaches the same listener the phone does.</p>
+<p><strong>Your own other machines.</strong> Sessions on another Mac, a Linux host or a VM of yours join your voice: you hear their
+  reports, send to them, approve their prompts, and always see which machine each one is on.</p>
 </li>
 <li>
-<p><strong>Make a one-time code</strong> on the hub, in any of three places:</p>
+<p><strong>A shared machine.</strong> The owner of a machine invites other people to it. Each person adds the machine to their own
+  voice, and talks to its sessions from their own call, with their own keys. The owner keeps their own voice too.</p>
+</li>
+</ul>
+<p>The designs and the reasons: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine.md">design/multi-machine.md</a> and
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/people-and-machines.md">design/people-and-machines.md</a>.</p>
+<h2 id="words">Words</h2>
+<p>The docs and the screens say "your voice", "machines" and "people". The command line keeps its older words: every
+<code>pointe hub ...</code> and <code>pointe node ...</code> command still works.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>The docs and the screens say</th>
+<th>Meaning</th>
+<th>Before, and still in the commands</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Your voice</strong></td>
+<td>One person's Pointe: the call, the brain, the notes and the model keys. It runs on a Mac or a Linux machine</td>
+<td>The hub (<code>pointe hub ...</code>)</td>
+</tr>
+<tr>
+<td><strong>Machine</strong></td>
+<td>A computer whose sessions a voice can reach: the one your voice runs on, another one of yours, or one somebody invited you to</td>
+<td>A node (<code>pointe node ...</code>), or the hub itself</td>
+</tr>
+<tr>
+<td><strong>Person</strong></td>
+<td>Somebody the owner of a machine invited to it. A person reaches the machine from their own voice</td>
+<td>Did not exist</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>Of a machine: the person whose Pointe runs on it. Of a session: in this release, the owner of the machine it runs on</td>
+<td>Implied</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="your-own-other-machines">Your own other machines</h2>
+<p>Your sessions do not all run on the machine with your voice. Pair your other machines with it, and their sessions join
+the same voice. Each other machine runs a small Pointe (<code>pointe node ...</code>) with no microphone, no speaker, no models and
+no keys. It watches its own sessions, types your requests into them and holds their permission prompts.</p>
+<h3 id="set-it-up">Set it up</h3>
+<ol>
+<li>
+<p><strong>On the machine with your voice</strong>, make it reachable, as for the phone: <code>pointe pair tailscale</code>, <code>pointe pair wifi</code>
+   or <code>pointe pair host &lt;name&gt;</code>. The other machine reaches the same listener the phone does.</p>
+</li>
+<li>
+<p><strong>Make a one-time code</strong> there, in any of three places:</p>
 <ul>
 <li><code>pointe hub invite</code> in a terminal. It prints the whole line to paste.</li>
 <li>The page: Settings → Machines → <strong>Invite a machine</strong>.</li>
-<li>The iPhone app: menu → Machines → <strong>Invite a machine</strong>. The app asks for Face ID before it shows the code, and
+<li>The iPhone app: Settings → Machines → <strong>Invite a machine</strong>. The app asks for Face ID before it shows the code, and
    shows the whole line to copy.</li>
 </ul>
 <p>The code works once and lasts 10 minutes. Cancel it from the same place.</p>
@@ -146,22 +190,23 @@ their permission prompts. The design and the reasons: <a href="https://github.co
 <li>
 <p><strong>On the other machine</strong>, paste the line:</p>
 <div class="dx-code"><pre><code>pointe node join &#x27;pointe://hub?v=1&amp;host=…&amp;port=7443&amp;fp=…&amp;code=K7PQ-2MXD&#x27;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>The node checks the hub's certificate against the fingerprint in the line before it sends anything. It then says
- which vendors the hub uses, because your sessions' transcripts go there.</p>
+<p>The other machine checks your voice's certificate against the fingerprint in the line before it sends anything. It
+ then says which vendors your voice uses, because its sessions' transcripts go there.</p>
 </li>
 <li>
-<p><strong>Check the pairing.</strong> The hub shows the node's name, address and key fingerprint, for example
-   "devbox paired from 100.101.5.7 (Tailscale), key 3f2a…". <code>pointe node status</code> on the node shows the same
+<p><strong>Check the pairing.</strong> Your voice shows the machine's name, address and key fingerprint, for example
+   "devbox paired from 100.101.5.7 (Tailscale), key 3f2a…". <code>pointe node status</code> on the other machine shows the same
    fingerprint. If they differ, revoke it.</p>
 </li>
 <li>
-<p><strong>Join sessions on the node</strong> as you do on the hub: <code>/pointe:voice</code> in Claude Code, <code>pointe join opencode</code> or
-   <code>pointe join codex</code> in a folder.</p>
+<p><strong>Join sessions on the other machine</strong> as you do on the first: <code>/pointe:voice</code> in Claude Code, <code>pointe join opencode</code>
+   or <code>pointe join codex</code> in a folder.</p>
 </li>
 </ol>
-<p>A Linux node needs <code>uv</code> and either <code>lsof</code> or <code>ss</code> (from iproute2): <code>pointe node join</code> checks and says what to install.
-A node does not install the voice models: on Linux, <code>bash install.sh --node</code> installs it without them.</p>
-<h2 id="use-it">Use it</h2>
+<p>A Linux machine needs <code>uv</code> and either <code>lsof</code> or <code>ss</code> (from iproute2): <code>pointe node join</code> checks and says what to
+install. A machine paired this way does not install the voice models: on Linux, <code>bash install.sh --node</code> installs it
+without them.</p>
+<h3 id="use-it">Use it</h3>
 <p><strong>On the screens.</strong> With one machine, nothing changes. With more than one, on the page and in the app:</p>
 <ul>
 <li>
@@ -214,8 +259,8 @@ it gets the machine's name added: "shop devbox". Then:</p>
 <p>A machine's name counts only where it says who something is for ("tell devbox", "on devbox"). "Fix the devbox config"
 names no session. The voice says the machine when the name alone is not enough, when you switch to another machine, and
 in "everywhere" answers. It does not repeat it in every report.</p>
-<h2 id="when-a-machine-goes-offline">When a machine goes offline</h2>
-<p>A node that sleeps, or whose network drops, is marked offline within about 12 seconds:</p>
+<h3 id="when-a-machine-goes-offline">When a machine goes offline</h3>
+<p>A machine that sleeps, or whose network drops, is marked offline within about 12 seconds:</p>
 <ul>
 <li>Its sessions stay listed, dimmed, with "offline since 14:02". A send to one is refused ("devbox is offline").</li>
 <li>
@@ -225,47 +270,344 @@ in "everywhere" answers. It does not repeat it in every report.</p>
 <li>
 <p>You can still focus an offline session and ask what its notes say.</p>
 </li>
-<li>When the node comes back it reconnects by itself and sends the lines you missed. After 10 minutes offline its
+<li>When the machine comes back it reconnects by itself and sends the lines you missed. After 10 minutes offline its
   sessions are closed, as an exited session is.</li>
 </ul>
-<h2 id="approvals">Approvals</h2>
-<p>The hub keeps every rule it has for its own sessions (<a href="../security/">SECURITY.md</a>). The node checks again before it
-answers a prompt:</p>
+<h3 id="approvals">Approvals</h3>
+<p>Your voice keeps every rule it has for the sessions on its own machine (<a href="../security/">SECURITY.md</a>). The other
+machine checks again before it answers a prompt:</p>
 <ul>
 <li>
-<p>A <strong>spoken yes</strong> counts only if the hub read out exactly the text the node computed from the real request. A request
-  the node cannot read out cannot be approved by voice.</p>
+<p>A <strong>spoken yes</strong> counts only if your voice read out exactly the text the other machine computed from the real
+  request. A request that machine cannot read out cannot be approved by voice.</p>
 </li>
 <li>
-<p>A <strong>notification's Approve</strong> counts only for a request the node can read out.</p>
+<p>A <strong>notification's Approve</strong> counts only for a request that machine can read out.</p>
 </li>
 <li>
-<p>A <strong>tap</strong> on the page or in the app is trusted from the hub, as a tap on the hub's own sessions is. What the card
+<p>A <strong>tap</strong> on the page or in the app is trusted from your voice, as a tap on its own sessions is. What the card
   shows is the request with credentials masked; the exact request is in the session's own terminal.</p>
 </li>
 <li>
 <p>A <strong>no</strong> from anywhere denies.</p>
 </li>
 </ul>
-<p>To answer unreadable prompts only in the node's terminal, set <code>"remote_taps": "readable_only"</code> in that node's
-<code>~/.claude-voice/config.json</code>. Then a tap can approve only what could have been read out. <code>/pointe:doctor</code> on the node
-says which setting is on.</p>
-<h2 id="what-goes-where">What goes where</h2>
+<p>To answer unreadable prompts only in that machine's terminal, set <code>"remote_taps": "readable_only"</code> in its
+<code>~/.claude-voice/config.json</code>. Then a tap can approve only what could have been read out. <code>/pointe:doctor</code> on that
+machine says which setting is on.</p>
+<h3 id="what-goes-where">What goes where</h3>
 <ul>
 <li>
-<p><strong>To the hub:</strong> each session's transcript, with credentials masked on the node; its name, folder path, process id and
-  agent; up to 40 file names; permission requests in masked form and in read-out form. When you look for sessions to
-  add (<a href="../features/add-sessions/">features/add-sessions.md</a>): each listed session's name, folder, agent, age, title,
-  keywords and first and last request, cut to 160 characters, and nothing of a session you do not add after that.</p>
+<p><strong>To your voice:</strong> each session's transcript, with credentials masked on the machine it runs on; its name, folder
+  path, process id and agent; up to 40 file names; permission requests in masked form and in read-out form. When you
+  look for sessions to add (<a href="../features/add-sessions/">features/add-sessions.md</a>): each listed session's name, folder,
+  agent, age, title, keywords and first and last request, cut to 160 characters, and nothing of a session you do not
+  add after that.</p>
 </li>
 <li>
-<p><strong>From the hub:</strong> your requests to its sessions, and your answers to its prompts.</p>
+<p><strong>From your voice:</strong> your requests to its sessions, and your answers to its prompts.</p>
 </li>
-<li><strong>Never:</strong> vendor keys (a node has none), your voiceprint, the journal, session notes, the dictionary, the page or
-  phone keys, or the node's own key (the node proves it with a fresh challenge each time).</li>
+<li><strong>Never:</strong> vendor keys (the other machine has none), your voiceprint, the journal, session notes, the dictionary, the
+  page or phone keys, or the machine's own key (it proves the key with a fresh challenge each time).</li>
 </ul>
-<p>The hub treats a node's transcripts like its own: they go to the hub's reader and brain vendors. <code>pointe node join</code> and
-<code>pointe node status</code> name those vendors. A hub in fully local mode (<code>pointe local</code>) sends them to none.</p>
+<p>Your voice treats the other machine's transcripts like its own: they go to its reader and brain vendors.
+<code>pointe node join</code> and <code>pointe node status</code> name those vendors. A voice in fully local mode (<code>pointe local</code>) sends them
+to none.</p>
+<h2 id="a-shared-machine">A shared machine</h2>
+<p>One machine, one OS account, several people. The owner's Pointe runs there and is the owner's voice. Each other person
+runs their own Pointe on their own Mac or Linux machine, and adds the shared machine to it. Nobody shares a key or a
+call.</p>
+<p><strong>Read this first.</strong> A person you invite can make the machine's agents run commands as the account Pointe runs as, and
+a session Pointe starts skips permission prompts by default (<a href="../features/new-session/">New session</a>). Pointe does not
+isolate people from each other on one account. Invite only people you would give a shell on that account. The whole
+trust model: <a href="../security/#people-on-a-machine">SECURITY.md</a>.</p>
+<p>The examples use Avi, who owns the machine <code>avi-box</code>, and Dana, whom he invites.</p>
+<h3 id="the-owner-invites-a-person">The owner invites a person</h3>
+<p>The machine must be reachable first, as for a phone (<code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
+<code>pointe pair host &lt;name&gt;</code>): a person's voice connects to the same listener, port 7443. Without an address the invite
+says how to set one up.</p>
+<p>Avi makes an invite in any of four places:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Where</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A terminal</td>
+<td><code>pointe people invite dana</code>, or <code>pointe people invite dana --watch</code> for watch only. It prints the line, waits, and says who paired</td>
+</tr>
+<tr>
+<td>The page, on the machine itself</td>
+<td>Settings → Machines → <strong>Invite a person</strong>: a name, then <strong>Can talk to the sessions</strong> or <strong>Can only watch</strong>, then <strong>Show the invite</strong></td>
+</tr>
+<tr>
+<td>The iPhone app</td>
+<td>Settings → Machines → <strong>People</strong> → <strong>Invite a person</strong>. The app asks for Face ID first</td>
+</tr>
+<tr>
+<td>The Mac app</td>
+<td>The same screen as the iPhone's. It asks for Touch ID or the password first</td>
+</tr>
+</tbody>
+</table></div>
+<p>The invite is one line and, on the screens, a QR code of the same line:</p>
+<pre><code>  pointe://machine?v=1&amp;host=avi-box.example&amp;port=7443&amp;fp=&lt;64 hex&gt;&amp;code=K7PQ-2MXD&amp;name=avi-box
+</code></pre>
+<p>It works once and lasts ten minutes. One invite is out at a time: a new one replaces it. <strong>Cancel the invite</strong> ends it
+early. The page shows People only on the machine itself: a page opened in a phone's browser does not.</p>
+<p>A person's name is said aloud and stamped on what they send. It may hold letters, digits, spaces, dots and dashes, it
+must be a name the voice can tell apart, and it cannot be the owner's name or a name already on the machine.</p>
+<p>When Dana's voice pairs, the terminal prints two lines, and the apps say "Dana can reach this machine now.":</p>
+<pre><code>  dana paired from 100.101.5.9 (Tailscale), key 3f2a…
+  dana's voice sends this machine's transcripts to: Deepgram, Gemini.
+</code></pre>
+<h3 id="the-person-adds-the-machine">The person adds the machine</h3>
+<p>Dana needs her own Pointe with her own model keys, on the same private network as <code>avi-box</code> (Tailscale, Twingate or
+the LAN). She adds the machine in any of four places:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Where</th>
+<th>How</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A terminal</td>
+<td><code>pointe machine add '&lt;line&gt;'</code>, with <code>--name NAME</code> to call the machine something else in her voice</td>
+</tr>
+<tr>
+<td>The page, on her machine</td>
+<td>Settings → Machines → "Paste the line the machine's owner sent you" → <strong>Add</strong>. A pasted line is added at once</td>
+</tr>
+<tr>
+<td>The iPhone app</td>
+<td>Settings → Machines → <strong>Add a machine</strong>. The camera opens to scan the code on the owner's screen; <strong>Paste instead</strong> takes the line. The app asks for Face ID before it adds</td>
+</tr>
+<tr>
+<td>The Mac app</td>
+<td>Settings → Machines → <strong>Add a machine</strong>: paste the line or drop it on the field, then <strong>Add</strong>. The app asks for Touch ID or the password before it adds</td>
+</tr>
+</tbody>
+</table></div>
+<p>Her voice checks the machine's certificate against the fingerprint in the line before it sends anything, trades the
+code for her own key on that machine, and connects. There is no account and no second step.</p>
+<p>What a refusal says, each in one sentence:</p>
+<ul>
+<li>The line is not a machine invite, or is cut short.</li>
+<li>The certificate is not the one in the invite: "ask them for a new invite".</li>
+<li>The code is wrong, expired or already used.</li>
+<li>The machine cannot be reached: it must be on the same private network.</li>
+<li>The machine is her own, or is already in her voice.</li>
+<li>The machine's name is taken in her voice. The screens then ask for another name under <strong>Call it</strong>; the command takes
+  <code>--name</code>. A refused name does not use up the invite.</li>
+</ul>
+<p><strong>The disclosure, once.</strong> After the add, Dana's screens say one time where her voice sends that machine's
+transcripts, until she presses <strong>OK</strong>. The page says "Your voice sends the transcripts of the sessions on avi-box,
+with credentials masked, to: Deepgram, Gemini. avi sees this list next to your name." <code>pointe machine add</code> prints the
+same fact and the screens then do not repeat it. Avi sees the same list next to Dana's name.</p>
+<h3 id="what-the-person-sees-and-hears">What the person sees and hears</h3>
+<ul>
+<li>
+<p><code>avi-box</code> is in Settings → Machines, marked as Avi's, with its state and round trip, like a machine of her own.
+  <code>pointe machine list</code> (or <code>pointe machines</code>) prints every machine in her voice and whose each one is.</p>
+</li>
+<li>
+<p>Its shared sessions are in her one conversation, grouped under <code>avi-box</code>. Each one that is not hers carries its
+  owner's name ("avi's"). A session of her own never carries a name.</p>
+</li>
+<li>
+<p>A <strong>Mine</strong> chip joins the filter chips while any session in her voice is somebody else's. It shows only her own
+  sessions.</p>
+</li>
+<li>
+<p>She talks to those sessions as to her own: "tell shop to run the tests". The agent on <code>avi-box</code> reads the request
+  with her name on it: "[Voice request from dana, a person invited to this machine, relayed by dana's voice assistant".</p>
+</li>
+<li>
+<p>If a session on <code>avi-box</code> has the same name as one of hers, hers keeps the plain name and the other gets the
+  machine's name added: "shop avi-box".</p>
+</li>
+<li>
+<p>A session that waits on a permission prompt shows that it waits. It offers her no Approve and no Deny, and it
+  never asks her for an answer: the prompt is the owner's.</p>
+</li>
+</ul>
+<h3 id="send-or-watch">Send or watch</h3>
+<p>Each person has one grant on a machine:</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Grant</th>
+<th>The person can</th>
+<th>Set with</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>send</strong> (the default)</td>
+<td>See the shared sessions and their transcripts, and send requests to them</td>
+<td><code>pointe people invite dana</code>, <strong>Can talk to the sessions</strong></td>
+</tr>
+<tr>
+<td><strong>watch</strong></td>
+<td>See the shared sessions and their transcripts. The machine refuses every request from them</td>
+<td><code>pointe people invite dana --watch</code>, <strong>Can only watch</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>The owner changes it at any time: <code>pointe people grant dana watch</code> or <code>pointe people grant dana send</code>; on the page, one
+click on the person's <strong>Can talk</strong> or <strong>Watch only</strong> button; in the apps, the menu on the person's row. It applies from
+that moment, and the person's screens show "watch only" on the machine.</p>
+<p>The machine enforces the grant, not the person's voice. A request from a person who may only watch is answered "Not
+sent. avi lets you watch avi-box, not talk to its sessions."</p>
+<h3 id="private-sessions">Private sessions</h3>
+<p>Every session on the shared machine is shared with every person invited to it, unless its owner makes it private.</p>
+<ul>
+<li>
+<p><code>pointe share shop --private</code> keeps <code>shop</code> to the owner. <code>pointe share shop --shared</code> shares it again. With no flag,
+  <code>pointe share shop</code> makes it private.</p>
+</li>
+<li>
+<p>On the page: the lock mark on the session's row, or <strong>Private</strong> in its ⋯ sheet. In the apps: long-press the session
+  (right-click on the Mac) and choose <strong>Private</strong>; <strong>Shared with people</strong> shares it again.</p>
+</li>
+<li>
+<p>The choice is offered on a session the owner owns, on the machine itself, once the machine has people.</p>
+</li>
+</ul>
+<p>A private session leaves every person's voice at once: its name, its transcript and its file names stop crossing, and
+lines already read for a person are not sent. Shared again, it continues where it stopped. A private session stays
+private across a restart. There is no voice command for Private yet.</p>
+<p>Sessions on the owner's other machines (the ones paired with <code>pointe hub invite</code>) are never passed on to people. Only
+the shared machine's own sessions are.</p>
+<h3 id="who-hears-which-report">Who hears which report</h3>
+<ul>
+<li>
+<p><strong>You hear the report of a turn you started.</strong> Dana asks <code>shop</code> to run the tests; when the turn ends, her voice
+  reads the report, as for a session of her own.</p>
+</li>
+<li>
+<p><strong>A report of a turn somebody else started on somebody else's machine is held.</strong> It is not spoken. While a call is
+  up it counts on the screen, and "anything from the others?" reads it. With no call up it is not held: it goes to
+  the session's notes only.</p>
+</li>
+<li>
+<p><strong>The owner's voice is not changed.</strong> On the owner's own machine, reports are spoken as before, whoever started the
+  turn.</p>
+</li>
+<li>
+<p><strong>A request another person sent is noted, never taken for yours.</strong> When Omer sends <code>shop</code> a request, Dana's voice
+  adds "omer asked shop: …" to the session's notes, and the voice never reports it as her own. The owner's voice shows
+  it in Recent requests as "sent by omer".</p>
+</li>
+</ul>
+<h3 id="a-session-that-is-busy">A session that is busy</h3>
+<p>A session takes one request at a time from people. If Dana sends to <code>shop</code> while it works on somebody else's request,
+the machine refuses it and her voice says, word for word:</p>
+<blockquote>
+<p>Not sent. shop is working on omer's request from 14:02. Say send it anyway, and it goes.</p>
+</blockquote>
+<ul>
+<li>
+<p>A session that works on a turn no invited person asked for (the owner typed it in the terminal, or asked from
+  their own call) is busy with the owner's name.</p>
+</li>
+<li>
+<p>"<strong>Send it anyway</strong>" delivers the same request once, if she says it within 120 seconds of the refusal. Her voice
+  then says "Sent to shop." It must be her own whole utterance; the model cannot say it for her.</p>
+</li>
+<li>
+<p>"Send it anyway" does not pass the other refusals:</p>
+</li>
+</ul>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>The machine refuses when</th>
+<th>Her voice says</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>She may only watch</td>
+<td>"Not sent. avi lets you watch avi-box, not talk to its sessions."</td>
+</tr>
+<tr>
+<td>The session waits on a permission prompt</td>
+<td>"Not sent. shop waits on a permission prompt, and only avi can answer it, on avi-box."</td>
+</tr>
+<tr>
+<td>The request says somebody approved something ("Avi said yes")</td>
+<td>"Not sent. avi-box takes no message that says somebody approved something: an approval comes from the person who gives it."</td>
+</tr>
+<tr>
+<td>The session went private</td>
+<td>"Not sent. avi keeps shop private now."</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="what-the-owner-sees">What the owner sees</h3>
+<ul>
+<li>
+<p><strong>The People list</strong>: Settings → Machines on the page of the machine itself, <strong>People</strong> in the apps, or
+  <code>pointe people</code>. Each person has a name, a grant, whether their voice is linked now or when it was last here, and
+  the services their voice sends this machine's transcripts to ("Their voice uses: Deepgram, Gemini"). <code>pointe people</code>
+  also prints each person's key fingerprint.</p>
+</li>
+<li>
+<p><strong>The trust line</strong> above the list: "People you invite can make these agents run commands as avi. Keep a session to
+  yourself with Private."</p>
+</li>
+<li>
+<p><strong>On a session</strong>: "dana is using it" while it works on a person's request, and a lock on a private session.</p>
+</li>
+<li><strong>Recent requests</strong> on the page lists each person's request as "sent by dana".</li>
+<li>
+<p><strong>The journal</strong> (<code>~/.claude-voice/journal.jsonl</code>) has a line, with the person's name, for each pairing, link, link
+  that ended, request, refused request, change of grant, change of Private and removal.</p>
+</li>
+<li>
+<p>The owner's name, as people's voices and the agents read it, is <code>"owner"</code> in <code>~/.claude-voice/config.json</code>, else the
+  name of the OS account.</p>
+</li>
+</ul>
+<h3 id="remove-a-person-or-a-machine">Remove a person, or a machine</h3>
+<p><strong>The owner removes a person:</strong> <code>pointe people remove dana</code>; on the page, <strong>Remove</strong> and then <strong>Remove dana?</strong>; in the
+apps, <strong>Remove</strong> in the person's menu, a confirm, then Face ID (Touch ID or the password on the Mac). Only that
+person's key is deleted and their link closes at once. Nobody else is touched. To come back they need a new invite.</p>
+<p>On the person's side the machine stays listed, offline, with "avi-box removed you". Its sessions leave their voice, the
+voice deletes its key and stops connecting. <strong>Remove</strong> takes the line off.</p>
+<p><strong>A person removes the machine from their voice:</strong> <code>pointe machine remove avi-box</code>, or <strong>Remove</strong> next to the machine
+in Settings → Machines. Its sessions leave the voice and the voice deletes its key. On the machine the person stays in
+the People list, not linked, and their key stays valid there until the owner removes them. If the invited person will
+not come back, the owner should run <code>pointe people remove</code>.</p>
+<p><code>pointe pair rotate</code> and <code>pointe pair off</code> on the shared machine remove every person, and say who to invite again:
+see <a href="../security/#people-on-a-machine">SECURITY.md</a>.</p>
+<h3 id="what-crosses-to-whom">What crosses to whom</h3>
+<ul>
+<li>
+<p><strong>From the shared machine to each linked person's voice:</strong> for each shared session, its transcript with
+  credentials masked on the machine, its name, folder path, agent, title, owner, up to 40 file names, and whether it
+  works or waits. Requests other people sent to it, masked, with the sender's name. Not its process id, not its
+  permission requests, not a private session, not a session on another machine.</p>
+</li>
+<li>
+<p><strong>From a person's voice to the shared machine:</strong> the person's requests, the name of the machine their voice runs
+  on, its Pointe version, and the names of the services their voice uses.</p>
+</li>
+<li>
+<p><strong>From each person's voice to that person's vendors:</strong> the shared sessions' transcripts, as for their own sessions.
+  Each person's voice uses its own keys. A voice in fully local mode sends them to no outside service.</p>
+</li>
+<li>
+<p><strong>Never:</strong> anybody's vendor keys, voiceprint, journal, session notes or dictionary, and no person's key after
+  pairing (each link proves it with a fresh challenge).</p>
+</li>
+</ul>
 <h2 id="everyday-commands">Everyday commands</h2>
 <div class="dx-table"><table>
 <thead>
@@ -277,47 +619,81 @@ says which setting is on.</p>
 </thead>
 <tbody>
 <tr>
-<td>hub</td>
+<td>your voice</td>
+<td><code>pointe machines</code>, <code>pointe machine list</code></td>
+<td>every machine in your voice: name, OS, online or offline since, sessions, and whose it is</td>
+</tr>
+<tr>
+<td>your voice</td>
 <td><code>pointe hub nodes</code></td>
-<td>each node: name, OS, online or offline since, sessions, round trip, key fingerprint</td>
+<td>each machine of your own: name, OS, online or offline since, sessions, round trip, key fingerprint</td>
 </tr>
 <tr>
-<td>hub</td>
+<td>your voice</td>
 <td><code>pointe hub invite [--name devbox]</code></td>
-<td>a one-time code, as above</td>
+<td>a one-time code for a machine of your own</td>
 </tr>
 <tr>
-<td>hub</td>
+<td>your voice</td>
 <td><code>pointe hub revoke &lt;name&gt;</code></td>
-<td>unpairs it: its sessions leave the voice, and it needs a new code to come back. Also on the page (Settings → Machines, two clicks) and in the app (Face ID, then a confirm)</td>
+<td>unpairs it: its sessions leave your voice, and it needs a new code to come back. Also on the page (Settings → Machines, two clicks) and in the app (Face ID, then a confirm)</td>
 </tr>
 <tr>
-<td>hub</td>
+<td>your voice</td>
+<td><code>pointe machine add '&lt;line&gt;' [--name NAME]</code></td>
+<td>adds a machine somebody invited you to</td>
+</tr>
+<tr>
+<td>your voice</td>
+<td><code>pointe machine remove &lt;name&gt;</code></td>
+<td>takes a machine out of your voice</td>
+</tr>
+<tr>
+<td>your voice</td>
 <td><code>pointe pair rotate</code></td>
-<td>a new certificate, and every machine, phone and browser paired with this Mac signed out: each needs a new code. <code>pointe pair off</code> signs out the same and stops listening</td>
+<td>a new certificate, and every phone, browser and machine of your own paired with this one signed out: each needs a new code. <code>pointe pair off</code> signs out the same and stops listening</td>
 </tr>
 <tr>
-<td>node</td>
+<td>a machine of your own</td>
 <td><code>pointe node status</code></td>
-<td>the hub, the link, round trip, the hub's vendors, sessions here, key fingerprint</td>
+<td>the voice it is paired with, the link, round trip, that voice's vendors, sessions here, key fingerprint</td>
 </tr>
 <tr>
-<td>node</td>
+<td>a machine of your own</td>
 <td><code>pointe node leave</code></td>
 <td>unpairs this machine from its side</td>
 </tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people</code></td>
+<td>the people invited to this machine</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people invite &lt;name&gt; [--watch]</code></td>
+<td>a one-time line for that person's voice</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people grant &lt;name&gt; send\|watch</code></td>
+<td>changes what a person may do</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people remove &lt;name&gt;</code></td>
+<td>deletes the person's key and closes their link</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe share &lt;session&gt; [--private\|--shared]</code></td>
+<td>keeps a session to yourself, or shares it again</td>
+</tr>
 </tbody>
 </table></div>
-<p><strong>A machine somebody invited you to.</strong> Its owner gives you one line (<code>pointe://machine?...</code>), valid once, for ten
-minutes. <code>pointe machine add '&lt;line&gt;' [--name NAME]</code> adds it: your voice checks the machine's certificate against the
-line, trades the code for your own key there, and connects. Its sessions then show in your conversation, each with its
-owner's name. <code>pointe machine list</code> (or <code>pointe machines</code>) shows every machine in your voice and whose it is.
-<code>pointe machine remove &lt;name&gt;</code> takes one out. You hear the report of a request you sent there; reports of other
-people's requests are held, and "anything from the others?" reads them. The design:
-<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/people-and-machines.md">design/people-and-machines.md</a>.</p>
-<p><strong>Names.</strong> The hub's name is <code>"machine"</code> in its <code>~/.claude-voice/config.json</code> (else its short host name). Rename the hub
-there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
-(<code>pointe hub invite --name devbox</code>); to change it, pair again.</p>
+<p><strong>Names.</strong> Your voice's machine is named by <code>"machine"</code> in its <code>~/.claude-voice/config.json</code> (else its short host
+name). Rename it there and restart Pointe: each machine of your own takes the new name at its next link. A machine of
+your own gets its name when it pairs (<code>pointe hub invite --name devbox</code>); to change it, pair again. A machine somebody
+invited you to gets its own name, or the one you give with <code>--name</code>.</p>
 <h2 id="versions-an-old-pointe-next-to-a-new-one">Versions: an old Pointe next to a new one</h2>
 <p>Two machines, or a plugin and the Pointe it calls, are often on different versions. Each pair says what it speaks when
 it connects, and a pair with nothing in common fails in one sentence that names the side to update and the command.</p>
@@ -357,38 +733,77 @@ requests the scripts of 0.1.6, 0.8.0, 0.8.7 and 0.9.0 send are replayed against 
 is not tested.</p>
 <h2 id="limits">Limits</h2>
 <ul>
-<li><strong>One hub per node.</strong> To move a node to another hub, <code>pointe node leave</code>, then join the new one.</li>
-<li><strong>No call on a node.</strong> The call, its page and the app are on the hub. <code>/pointe:open</code> on a node says where the call is.</li>
 <li>
-<p><strong>No launch mode on a node.</strong> <code>pointe start</code> (a Claude Code channel) works only on the hub. On a node, use
-  <code>/pointe:voice</code> or <code>pointe join</code>.</p>
+<p><strong>No approval by an invited person yet.</strong> A permission prompt on a shared machine is offered only to the machine
+  owner's voice and its terminal. An invited person sees that the session waits, and cannot answer. Approval by a
+  linked person is planned.</p>
 </li>
 <li>
-<p><strong>Adding sessions on a node</strong> works by voice and on screen: "connect to the pentest session on devbox". A closed
-  Claude Code session there is not reopened from the hub (it needs a terminal on that machine); Codex and OpenCode ones
-  are. The read-back says when a node session's approvals stay in its terminal; after it joins, its approvals capability
-  shows as the node's adapter reports it.</p>
+<p><strong>No starting or adding a session on somebody else's machine yet.</strong> The owner starts and joins the sessions there.</p>
+</li>
+<li><strong>A request while a prompt waits is refused</strong>, and so is a request that says somebody approved something.</li>
+<li><strong>No voice command for Private, a grant, an invite or a removal.</strong> Use the screens or the commands.</li>
+<li>
+<p><strong>A machine that is only a node serves one voice.</strong> A machine paired with <code>pointe node join</code> has no voice of its
+  own and cannot invite people. To share a machine, run Pointe on it as its owner's voice.</p>
 </li>
 <li>
-<p><strong>No new session on a node from the hub.</strong> Pointe starts sessions only on the hub itself: in a terminal window on a
-  Mac, in tmux on Linux (<a href="../features/new-session/">features/new-session.md</a>). On a node, start the agent there and join
-  it.</p>
+<p><strong>One voice per machine, one call per voice.</strong> Each person's voice needs its own Mac or Linux machine, awake for
+  their call, with their own model keys. A phone or a browser paired with a voice acts as that voice's owner; a
+  second call to the same voice is refused while one is up.</p>
 </li>
 <li>
-<p><strong>One owner.</strong> A node's sessions are voiced, and its prompts approved, by the hub's owner. Pair machines you own, not
-  a colleague's: each person runs their own hub (<a href="../linux/#other-machines-and-other-people">Linux</a>).</p>
+<p><strong>One link per person.</strong> A person's key links one voice at a time to the machine.</p>
 </li>
 <li>
-<p><strong>"By the way" questions</strong> about a session on a node are answered from its transcript, not from a forked copy.</p>
+<p><strong>No fleet size is claimed.</strong> How many machines one voice holds well, and how many people one machine serves well,
+  is not measured yet.</p>
 </li>
 <li>
-<p><strong>Show while it says</strong> does not show files from a node yet, and <strong>Challenge me</strong> leaves a node's diffs out of its
-  evidence and says so.</p>
+<p><strong>Not isolation.</strong> People on a shared machine act as one OS account (<a href="../security/#people-on-a-machine">SECURITY.md</a>).</p>
 </li>
 <li>
-<p><strong>Wi-Fi only (<code>pointe pair wifi</code>):</strong> when the hub's address changes, pair again and make a new code, as for the phone.</p>
+<p><strong>Held reports need a call.</strong> A report of a turn somebody else started is held for "anything from the others?"
+  only while a call is up.</p>
 </li>
-<li><strong>Windows</strong> cannot be a node.</li>
+<li>
+<p><strong>One voice per machine of your own.</strong> To move a machine paired with <code>pointe node join</code> to another voice,
+  <code>pointe node leave</code>, then join the new one.</p>
+</li>
+<li>
+<p><strong>No call on a machine paired with <code>pointe node join</code>.</strong> The call, its page and the app are on the machine with
+  your voice. <code>/pointe:open</code> on the other machine says where the call is.</p>
+</li>
+<li>
+<p><strong>No launch mode there.</strong> <code>pointe start</code> (a Claude Code channel) works only on the machine with your voice. On
+  another machine, use <code>/pointe:voice</code> or <code>pointe join</code>.</p>
+</li>
+<li>
+<p><strong>Adding sessions on a machine of your own</strong> works by voice and on screen: "connect to the pentest session on
+  devbox". A closed Claude Code session there is not reopened from your voice (it needs a terminal on that machine);
+  Codex and OpenCode ones are. The read-back says when such a session's approvals stay in its terminal; after it
+  joins, its approvals capability shows as that machine's adapter reports it.</p>
+</li>
+<li>
+<p><strong>No new session on another machine.</strong> Pointe starts sessions only on the machine with your voice: in a terminal
+  window on a Mac, in tmux on Linux (<a href="../features/new-session/">features/new-session.md</a>). On another machine, start
+  the agent there and join it.</p>
+</li>
+<li>
+<p><strong>"By the way" questions</strong> about a session on another machine are answered from its transcript, not from a forked
+  copy.</p>
+</li>
+<li>
+<p><strong>Show while it says</strong> does not show files from another machine yet, and <strong>Challenge me</strong> leaves another machine's
+  diffs out of its evidence and says so.</p>
+</li>
+<li>
+<p><strong>Wi-Fi only (<code>pointe pair wifi</code>):</strong> when the address of the machine with your voice changes, pair again and make a
+  new code, as for the phone.</p>
+</li>
+<li>
+<p><strong>Windows</strong> cannot be a machine in a voice.</p>
+</li>
 </ul>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/multi-machine.md">docs/multi-machine.md</a> in the repository.</p>
@@ -397,11 +812,24 @@ is not tested.</p>
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
-<li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
-<li class="dx-l2"><a href="#use-it">Use it</a></li>
-<li class="dx-l2"><a href="#when-a-machine-goes-offline">When a machine goes offline</a></li>
-<li class="dx-l2"><a href="#approvals">Approvals</a></li>
-<li class="dx-l2"><a href="#what-goes-where">What goes where</a></li>
+<li class="dx-l2"><a href="#words">Words</a></li>
+<li class="dx-l2"><a href="#your-own-other-machines">Your own other machines</a></li>
+<li class="dx-l3"><a href="#set-it-up">Set it up</a></li>
+<li class="dx-l3"><a href="#use-it">Use it</a></li>
+<li class="dx-l3"><a href="#when-a-machine-goes-offline">When a machine goes offline</a></li>
+<li class="dx-l3"><a href="#approvals">Approvals</a></li>
+<li class="dx-l3"><a href="#what-goes-where">What goes where</a></li>
+<li class="dx-l2"><a href="#a-shared-machine">A shared machine</a></li>
+<li class="dx-l3"><a href="#the-owner-invites-a-person">The owner invites a person</a></li>
+<li class="dx-l3"><a href="#the-person-adds-the-machine">The person adds the machine</a></li>
+<li class="dx-l3"><a href="#what-the-person-sees-and-hears">What the person sees and hears</a></li>
+<li class="dx-l3"><a href="#send-or-watch">Send or watch</a></li>
+<li class="dx-l3"><a href="#private-sessions">Private sessions</a></li>
+<li class="dx-l3"><a href="#who-hears-which-report">Who hears which report</a></li>
+<li class="dx-l3"><a href="#a-session-that-is-busy">A session that is busy</a></li>
+<li class="dx-l3"><a href="#what-the-owner-sees">What the owner sees</a></li>
+<li class="dx-l3"><a href="#remove-a-person-or-a-machine">Remove a person, or a machine</a></li>
+<li class="dx-l3"><a href="#what-crosses-to-whom">What crosses to whom</a></li>
 <li class="dx-l2"><a href="#everyday-commands">Everyday commands</a></li>
 <li class="dx-l2"><a href="#versions-an-old-pointe-next-to-a-new-one">Versions: an old Pointe next to a new one</a></li>
 <li class="dx-l2"><a href="#limits">Limits</a></li>

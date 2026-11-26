@@ -19,7 +19,8 @@ On a small screen, open the diagram at full size: [architecture.svg](img/archite
 | **The page** | `pointe/ui.html`, one file with no build step, served by the daemon and opened in Chrome on the Mac. It holds the call (microphone, echo cancellation, speaker), the conversation, approvals and every setting. The same page works in a phone's browser over the phone listener. |
 | **Plugin and hooks** | The Claude Code plugin: the `/pointe:*` commands, and two hooks active in every session. `PermissionRequest` hands a joined session's permission prompts to the daemon while a call is up, and leaves them in the terminal otherwise. `SessionStart` suggests `/pointe:setup` until setup is done. |
 | **Harness adapters** | One adapter per kind of agent: Claude Code, OpenCode and Codex, and `remote` for a session on another machine. Each follows a session's record, sends to it, and holds its permission prompts, behind one contract ([Harnesses](harnesses.md)). |
-| **Nodes** | Another Mac or a Linux host that runs the same adapters for its own sessions and links to the Mac with the call (the **hub**). A node has no audio and no keys ([Machines](multi-machine.md)). |
+| **Other machines** | Another Mac or a Linux host of yours that runs the same adapters for its own sessions and links to the machine with your voice. The command line calls the first a node and the second the hub. Such a machine has no audio and no keys ([Machines and people](multi-machine.md)). |
+| **People** | Somebody a machine's owner invited to it. Each person's own daemon (their voice) dials that machine, proves the person's own key, and gets its shared sessions. The machine decides what each person sees and may send (`pointe/guests.py`; [A shared machine](multi-machine.md#a-shared-machine)). |
 | **iPhone app and Mac app** | Native clients of the same daemon. The iPhone app reaches it over the phone listener; the Mac app on loopback, and it can start the daemon. ([The iPhone app](iphone-app.md), [The Mac app](mac-app.md).) |
 | **PointeKit** | The Swift package both apps share: `PointeKit` (the wire format and the loopback client), `PointeUI` (the call, the rules, the words and every screen, drawn once for both), and `PointeMacKit` (what only a Mac does: find and start the daemon, the talk shortcut). Apple frameworks only, no other package. |
 | **Model vendors or local models** | Soniox, Anthropic, Gemini, OpenAI and ElevenLabs, each in the roles your setup gives it; or Whisper, Kokoro and a local text model on the Mac ([Models and setups](models.md)). |
@@ -69,7 +70,17 @@ The exact rules, and what never approves: [README, Safety model](../README.md#sa
 A node runs the adapters for its own sessions and dials the hub's phone listener over TLS, pinned to the hub's
 certificate, and proves its key with an HMAC. It ships each session's transcript with credentials masked, types your
 requests in, and checks each voice approval again against its own unmasked copy of the request. Its sessions' content
-reaches the hub's vendors, as the hub's own sessions' does ([Machines](multi-machine.md)).
+reaches the hub's vendors, as the hub's own sessions' does ([Machines and people](multi-machine.md)).
+
+### People on a machine
+
+The owner of a machine can invite other people to it. Each person's daemon dials the machine's phone listener over
+TLS, pinned to the machine's certificate from the invite, and proves the person's own key with an HMAC. On that link
+the machine is in the node's role: it ships each shared session's transcript with credentials masked, once per linked
+person, and delivers a person's requests with their name on them. The machine decides which sessions cross and who
+may send. It offers a permission prompt to its owner's voice and terminal only. Each person's daemon sends those
+transcripts to that person's own vendors ([A shared machine](multi-machine.md#a-shared-machine),
+[SECURITY.md](../SECURITY.md#people-on-a-machine)).
 
 ## Where state lives
 
@@ -82,8 +93,9 @@ reaches the hub's vendors, as the hub's own sessions' does ([Machines](multi-mac
 | The Mac app | `~/Applications/Pointe.app`, its settings in the `io.ballerine.pointe.mac` defaults |
 | The iPhone app's pairing | The iPhone's Keychain: the Mac's name, port, certificate fingerprint and the phone's own key |
 | A node | `~/.claude-voice` on that machine: its key for the hub, and its own sessions' state |
+| The people invited to a machine | `~/.claude-voice/people.json` on that machine (0600): each person's key and grant, and the sessions kept private |
 
-Ports: the daemon on `127.0.0.1:7860` (`CLAUDE_VOICE_DAEMON_PORT`), the phone and node listener on 7443
+Ports: the daemon on `127.0.0.1:7860` (`CLAUDE_VOICE_DAEMON_PORT`), the listener for phones, nodes and people's voices on 7443
 (`CLAUDE_VOICE_TLS_PORT`) only after you pair, and the local text-model server on `127.0.0.1:7869` in fully local mode.
 
 ## Trust boundaries
@@ -93,6 +105,7 @@ Ports: the daemon on `127.0.0.1:7860` (`CLAUDE_VOICE_DAEMON_PORT`), the phone an
 | A web page or program on the Mac, and the daemon | Loopback only; a secret on every route (a token for scripts, an `HttpOnly` cookie for the page); `Origin` must match `Host`. Code running as you is trusted: it can read the token. |
 | The phone, and the daemon | A separate TLS listener, off until you pair. The app pins the Mac's certificate; each phone has its own key; a phone browser needs the pairing cookie; the owner's routes refuse a phone's key. |
 | A node, and the hub | Pinned TLS, an HMAC over a fresh challenge, one connection per key; approvals checked again on the node. |
+| A person's voice, and a machine they were invited to | Pinned TLS, an HMAC over a fresh challenge with the person's own key, one connection per key. The machine checks every request: the grant, Private, a waiting prompt, a claimed approval, a busy session. It is attribution and a record, not isolation: an invited person acts as the machine's one OS account. |
 | The daemon, and the model vendors | Your keys, read only by the daemon, only for roles in use; what each role sends is listed in [SECURITY.md](../SECURITY.md#what-leaves-your-machine). |
 | A session's output, and what Pointe does | Session output is data, not instructions: the checker tests each send against your words, and approvals follow rules in code, never a prompt. This lowers the risk of prompt injection; it does not remove it. |
 | Your voice, and an approval | A spoken yes approves only a request the daemon read out itself, right after the read-out. Voice is not authentication: anyone your microphone hears can say no, and, with the voice lock off, yes. |

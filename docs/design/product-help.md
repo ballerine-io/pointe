@@ -14,11 +14,11 @@ parts:
   card and the pairing screen. The page (`ui.html`): each Settings section by its nav name with its fields, ticks,
   options and buttons; the dock, the mic and the switch above it; the Sessions panel; the top bar; a session row's
   actions; the brain dump's review; a request's card.
-- **`entries`: what a person asks.** 38 hand-written topics in the generator (`TOPICS`): the words people ask with in
+- **`entries`: what a person asks.** 52 hand-written topics in the generator (`TOPICS`): the words people ask with in
   English and Hebrew, one or two sentences of explanation, a path per surface, a note where a path is not enough, the
   phrases that do the same by voice today, and the brain's own tool that does it. A topic that names a feature page in
   `docs/features/` gets that page's one line from the features table as `about`. Then one generated entry for every iPhone
-  Settings item, page Settings section and dock button no topic covers, so a new item is findable the day it ships. 45 entries now.
+  Settings item, page Settings section and dock button no topic covers, so a new item is findable the day it ships. 59 entries now.
 
 A path is written as its place and the labels inside it, `("menu", "Microphone", "Always on|Push to talk")`, and
 rendered for speech: `Settings (••• at the top) → Microphone → Always on / Push to talk` (iPhone), `Settings → Microphone → Always on /

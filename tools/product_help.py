@@ -647,6 +647,49 @@ TOPICS = (
           "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run "
           "pointe node join with the code.",
           iphone=(("menu", "Machines"),), page=(("settings", "Machines", "Invite a machine"),)),
+    Topic("machine-add", "Add a machine somebody invited you to",
+          ("add a machine", "add the machine", "add someone's machine", "machine invite", "invited me to a machine",
+           "shared machine", "scan the machine code", "pointe machine add", "להוסיף מחשב", "להוסיף מכונה"),
+          "The machine's owner sends you one line or shows its code. Paste the line, or scan the code in the iPhone "
+          "app, or run pointe machine add with the line. That machine's sessions then show in your voice with the "
+          "owner's name, and Pointe says once which services your voice sends their transcripts to.",
+          iphone=(("menu", "Machines"),), page=(("settings", "Machines"),),
+          iphone_note="Then Add a machine: scan the code, or use Paste instead.",
+          mac_note="Then Add a machine: paste the line or drop it on the field.",
+          page_note="Paste the line into the field under the machines list, then Add. On the Mac's own page only."),
+    Topic("people-invite", "Invite a person to this machine",
+          ("invite someone", "invite a person", "invite somebody", "invite a colleague", "invite my colleague",
+           "share this machine", "share my machine", "pointe people invite", "להזמין מישהו", "להזמין אדם"),
+          "Invite a person, type their name, and choose whether they can talk to the sessions or only watch. Send them "
+          "the line it shows: it works once, for ten minutes. Or run pointe people invite with the name. A person you "
+          "invite can make this machine's agents run commands as its account.",
+          iphone=(("menu", "Machines"),), page=(("settings", "Machines"),),
+          iphone_note="Then People, then Invite a person.", mac_note="Then People, then Invite a person.",
+          page_note="Invite a person is under the machines list, on the Mac's own page only."),
+    Topic("people-list", "Who can talk to your sessions: the people on this machine",
+          ("who can talk to my sessions", "who can talk to the sessions", "who has access", "who is invited",
+           "people on this machine", "remove a person", "remove someone", "watch only", "can only watch",
+           "מי יכול לדבר", "למי יש גישה"),
+          "The People list names everyone invited to this machine, whether each can talk to the sessions or only "
+          "watch, and who is linked now. Change that or remove a person there, or run pointe people. Nobody else "
+          "reaches your sessions, except through a phone or a browser you paired yourself.",
+          iphone=(("menu", "Machines"),), page=(("settings", "Machines"),),
+          iphone_note="Then People.", mac_note="Then People.", page_note="The list is under the machines, on the Mac's own page only."),
+    Topic("private-session", "Private: keep a session to yourself",
+          ("what does private do", "private session", "make it private", "make a session private",
+           "keep a session to myself", "hide a session", "shared with people", "pointe share", "סשן פרטי"),
+          "Private keeps one of this machine's sessions to you: the people invited to the machine stop seeing it and "
+          "its transcript at once. Shared with people shares it again. It is offered on your own sessions once the "
+          "machine has people. Or run pointe share with the session's name.",
+          iphone=(("session",),), page=(("row",),),
+          iphone_note="Then Private.", mac_note="Then Private.",
+          page_note="Click the lock on the session's row, or Private in its ⋯ sheet."),
+    Topic("busy-session", "Not sent: the session is busy with another person's request",
+          ("session is busy", "says the session is busy", "why was it not sent", "working on someone else's request",
+           "working on another person's request", "send it anyway", "הסשן עסוק"),
+          "On a machine somebody invited you to, a session takes one request at a time. While it works on another "
+          "person's request, the machine refuses yours and Pointe says whose it is and since when. Say \"send it "
+          "anyway\" within two minutes and it goes."),
     Topic("type", "Type instead of talking", ("type", "typing", "keyboard", "type instead", "write to it", "להקליד",
                                               "מקלדת", "לכתוב"),
           "Type sends written words to the voice, for a noisy room or a quiet one. Enter sends; Shift+Enter (or Option+"

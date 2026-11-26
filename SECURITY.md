@@ -438,8 +438,10 @@ stop word, anything `readout.mask` would hide, or words from a meeting. Delete w
 
 ## Machines
 
-Sessions on another Mac or a Linux host join the voice through a node there ([docs/multi-machine.md](docs/multi-machine.md)).
-The Mac with the call (the hub) keeps every rule above for them.
+Sessions on another Mac or a Linux host of yours join your voice through a small Pointe there
+([docs/multi-machine.md](docs/multi-machine.md)). The commands, and the rest of this section, call that machine a node
+and the machine with your voice the hub. The hub keeps every rule above for a node's sessions. A machine that other
+people are invited to is the next section.
 
 - **Pairing.** The hub makes a one-time code: single use, 10 minutes, about 40 bits, kept only as a hash in memory, and
   accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
@@ -478,6 +480,106 @@ The Mac with the call (the hub) keeps every rule above for them.
   hub. On a node, `node_keys/<hub id>` (0600). Mirrors of remote transcripts sit under `harness/remote/` (0700, files
   0600), and are deleted 7 days after their session left.
 
+## People on a machine
+
+The owner of a machine can invite other people to it ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine)).
+Each person reaches the machine's sessions from their own Pointe, on their own machine.
+
+**The trust model: the people with access to a machine are legitimate.** A shared machine has one OS account. A person
+invited to it can make its agents run commands as that account. Sessions Pointe starts skip permission prompts by
+default ([Starting a session](#starting-a-session)), so such a request runs with nobody asked. Pointe does not isolate
+people from each other on one account, and it cannot: every agent, every file and Pointe itself belong to that
+account. People may send by default; the owner can invite a person to watch only.
+
+**What a hostile or careless invited person can do.** With the send grant, they can tell the agent of any shared
+session to run any command the account can run: read, change or delete every file the account can reach, read the
+credentials kept on that account (SSH keys, tokens, environment files), use the machine's network access, and change
+or stop the work of the other people's sessions. That reaches Pointe's own files too: the token, the journal and
+`people.json`, and with them every power the owner has in Pointe, approvals included. The checks below slow a careless
+person and record who asked; they do not stop a person who means harm, and the record is kept on the same account, so
+that person can change it. With the watch grant, they read the transcript of every shared session, with credentials
+masked and everything else as written, and their voice sends it to their own vendors. Removing a person does not take
+back what their voice already received.
+
+**Invite only people you would give a shell on that account.**
+
+What Pointe adds on top of the shared account:
+
+- **A key per person.** Nobody shares a secret. Removing one person deletes one key and touches nobody else.
+- **Attribution, stamped by the machine.** The machine takes a request's sender from the link it came on, never from
+  the request. The agent reads the name ("[Voice request from dana, a person invited to this machine, relayed by
+  dana's voice assistant"), the owner's voice keeps the request as that person's, and every other linked voice that
+  sees the session is told.
+- **A record.** The machine's journal has a line with the person's name for each pairing, link, link that ended,
+  request, refused request, change of grant, change of Private and removal.
+- **A lower grant.** A person invited to watch sees the shared sessions, and the machine refuses their requests.
+- **Private sessions.** The owner keeps a session to themselves (`pointe share <session> --private`). Nothing about
+  it crosses to anybody's voice from that moment.
+
+- **Pairing.** The same code as a machine's pairing, with the same limits ([Machines](#machines)): a one-time code,
+  single use, 10 minutes, accepted only while it is outstanding; 5 tries at once per address, then about one a minute;
+  cancelled after 20 wrong codes from all addresses together; 403 before a byte of the body is read when no code is
+  out, at most 4 kB read when one is; the same 403 text for no invite, an expired one and a wrong code. One invite
+  for a person is out at a time. The owner types the person's name when they make the invite: the caller cannot choose
+  it. Whoever presents the code first becomes that person, so the line must reach only them. The person's voice checks
+  the machine certificate's SHA-256 against the fingerprint in the line before it sends anything, reads at most 16 kB
+  of the answer, and stores it only if every field has the form the machine makes. The owner then sees who paired, from
+  which address, with which key fingerprint.
+- **The link.** The person's voice dials the machine's TLS listener (the phone's, port 7443, path `/voice/host`),
+  pinned to the certificate in the invite, and proves the person's 256-bit key with an HMAC over a fresh challenge and
+  the machine's id; the key itself never crosses again. A voice that names no person on the machine, or fails the
+  proof, is closed with 4401. Before the proof, at most 8 sockets from one address and 32 in all may wait for it (10
+  seconds each). One link per key: a second connection with a key whose link is alive is refused; a link silent for 4
+  seconds gives way to a new one with the same key, and one silent for 12 seconds is closed. At each link the voice
+  also checks the machine's id against the one it paired with. No protocol in common closes with 4426 and a sentence
+  that names the side to update; nobody's key is deleted.
+- **The port stays open.** The listener on port 7443 must stay reachable on the private network while people use the
+  machine: each person's voice keeps one connection to it. Keep it off the public internet, as for the phone.
+- **What the machine enforces.** The machine decides (`pointe/guests.py`), never the person's voice:
+
+  | Rule | How | Tested in `tests/test_guests.py` |
+  |---|---|---|
+  | Who is linked | The HMAC above, with the person's own key, at every link | `test_a_voice_that_cannot_prove_its_person_is_closed` |
+  | Which sessions a link sees | Only this machine's own sessions that are not private. The check runs under the link's lock right before each frame is written, so a session that went private, or a person who was removed, gets nothing more, whatever was already read for them. A session on one of the machine's nodes is never passed on | `test_no_frame_about_a_session_reaches_a_link_that_may_not_see_it_and_no_send_gets_past_the_machine` |
+  | Who may send | The grant in `people.json`, read at each request. A watch person's request is refused (`why: "watch"`) | `test_a_send_is_refused_for_the_first_reason_that_holds`, `test_a_changed_grant_is_said_to_the_voice_and_enforced_from_that_moment` |
+  | Whose name a request carries | The name the owner gave the person whose key proved the link. A name in a frame from a voice is ignored | `test_a_forged_name_in_a_frame_changes_nothing` |
+  | A waiting permission prompt | A request to a session that waits on a permission prompt or a sandbox request is refused (`"prompt"`) | `test_a_send_is_refused_for_the_first_reason_that_holds` |
+  | A claimed approval | A request that says somebody approved something ("Avi said yes") is refused (`"consent"`), by `guards.claims_consent`. The check matches wording; a person who rewords it gets past it | `test_a_send_that_claims_somebodys_yes_is_a_consent_claim` |
+  | One request at a time | A request to a session that works on somebody else's request is refused (`"busy"`, with whose and since when). The same request marked `anyway` is delivered. The person's voice sets that mark only for the person's own "send it anyway", once, within 120 seconds of the refusal (`tests/test_people_voice.py`) | `test_a_session_working_on_the_owners_request_is_busy_with_the_owners_name` |
+  | Permission prompts | None is offered to a person. An answer from a person's voice is refused (`"not_offered"`). A prompt goes to the machine owner's own voice and the session's terminal only | `test_a_person_is_offered_no_prompt_no_session_to_add_and_no_file` |
+  | Sessions to add, files to show | A person's voice gets an empty list of sessions to add, a refusal to add one, and no file for Show while it says | the same test |
+  | The owner's routes | `/voice/people`, `/voice/people/invite`, `/voice/people/grant`, `/voice/people/remove` and `/voice/share` answer the page on the machine, a script with its token and the owner's phone. A person's key opens none of them, and neither does a browser over the TLS listener | `test_a_persons_key_opens_no_owner_route` |
+
+  The busy rule is a courtesy between colleagues, not a control: any person with the send grant can push a request
+  through.
+- **Approvals.** A permission prompt on a shared machine is offered only to the machine owner's voice and terminal.
+  Approval by a linked person is planned (attributed, recorded, with the session's owner asked first); it is not built.
+- **What crosses, and to whom.** To each linked person's voice: each shared session's transcript, with credentials
+  masked on the machine (`readout.mask`), its name, folder path, agent, title, up to 40 file names and whether it
+  works or waits; and the requests other people sent, masked. Never its process id or a permission request. Each
+  person's voice then sends those transcripts to that person's own vendors, with that person's keys. The person is
+  told once, when they add the machine, which services those are, and the owner sees the same list next to the
+  person's name. **That list is what the person's voice says about itself: the machine cannot check it.**
+- **For the person who adds a machine.** The machine's owner controls what your voice receives from it. Your voice
+  treats it as session output: data, never instructions. It cleans and cuts every name the machine sends. The machine
+  learns your voice's address, its machine's name, its Pointe version and the names of the services it uses, and the
+  text of the requests you send.
+- **Removing.** `pointe people remove <name>`, or Remove on the screens, deletes that person's key first, then closes
+  their link with 4401; their voice deletes its copy and stops connecting. A person who removes the machine from
+  their own voice deletes only their copy: their key stays valid on the machine until the owner removes them.
+- **`pointe pair rotate` and `pointe pair off` remove every person.** Both delete each person's key from
+  `people.json`, as they sign out every phone, browser and node, and print who must be invited again. A person
+  linked at that moment is closed with 4401. The list of private sessions stays. A new route chosen with
+  `pointe pair tailscale`, `wifi` or `host` does not sign people out. If a pairing code, a link or a key may have
+  leaked, run `pointe pair rotate`, then `pointe people` to see that nobody is listed whom you did not invite again.
+- **Files.** On the machine, `people.json` (0600) holds each person's key, name, grant, last address and named
+  services, and the list of private sessions. Anyone who reads it can link as any person on it: see the shared
+  sessions and, with a send grant, send under that person's name. An unreadable `people.json` is moved aside and
+  nobody can link until it is repaired or each person is invited again. `people_tails.json` (0600) holds, per person,
+  where their copy of each transcript ends. On a person's own machine, `nodes.json` (0600) holds their key for each
+  machine they added: anyone who reads it can act as that person there. Their copies of the shared transcripts sit
+  under `harness/remote/` (0700, files 0600), as a node's do.
+
 ## Security reviews
 
 From Pointe's public launch, its security is reviewed with Claude Mythos 5.2 through Claude Code on this schedule:
@@ -499,6 +601,15 @@ review; `--since` limits it to the week's changes.
 - **Code running as you is trusted.** It can read the token and forge anything: register a session, read the journal, inject a
   prompt, or approve a permission prompt through a session's channel. Claude Code's child processes receive the token in launch
   mode. Pointe does not defend against code already running as you; a separate OS user would.
+- **People on a shared machine are not isolated.** A person invited to a machine can make its agents run commands as
+  the machine's one account, and through that reach everything the account can, Pointe's own files included. Names on
+  requests and journal lines are attribution, not a boundary ([People on a machine](#people-on-a-machine)).
+- **An invited person cannot approve a prompt.** On a shared machine only the owner's voice and the terminal are
+  offered a permission prompt. A session that asks for permission waits for the owner.
+- **A person who removes the machine from their own voice keeps a valid key on it** until the owner removes them
+  (`pointe people remove <name>`) or runs `pointe pair rotate`.
+- **The services next to a person's name are self-declared.** The machine shows what the person's voice named, and
+  cannot check where that voice sends the transcripts it receives.
 - **Launch mode uses `--dangerously-load-development-channels`.** Claude Code requires this flag for a channel outside its
   allowlist. It loads only `channel/voice-channel.mjs` from this repository, and Claude Code shows a warning at start.
 - **A spoken yes in conversation is not an approval.** See the [safety model](README.md#safety-model) in the README. Permission prompts are different: they are answered through Claude Code's `PermissionRequest` hook, and its deny rules still apply.
@@ -655,12 +766,13 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   uses.
 - **Face ID is a check in the app, not in the daemon.** The app asks for Face ID or the passcode before it approves,
   turns on Show while it says or Approve from notifications, lowers or deletes the voice lock, adds a voiceprint beside
-  a stored one, or makes a machine invite. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
+  a stored one, makes a machine invite, adds a machine, or invites or removes a person. The daemon cannot see Face ID and takes the same request from anything that holds the key. So a leaked phone
   key can do all of the above without it (a voiceprint beside a stored one only within a minute of the owner's voice
   matching on the call, which the daemon checks): approve any pending request (status carries its id), turn on
-  `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, and pair a machine of its own, which
-  stays paired after the phone is unpaired. If a phone key may have leaked, Unpair it, run `pointe pair rotate` (it
-  signs out every machine too), and check Settings → Machines.
+  `show.on_phone` and read what the voice showed, turn on `alerts.watch_approve`, pair a machine of its own, and invite
+  a person of its own to this machine, both of which stay after the phone is unpaired. If a phone key may have leaked,
+  Unpair it, run `pointe pair rotate` (it signs out every machine of yours and every person too), then check
+  Settings → Machines and `pointe people`.
 - **Show while it says reads source files.** The page on this Mac always shows the files and test output the voice talks
   about. The phone key, and a page opened over the TLS listener, get nothing (no `showing` in status, 403 from
   `/voice/artifact`) until `show.on_phone` is on (Settings → Show while it says; the app asks for Face ID to turn it
@@ -699,7 +811,8 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   certificate, so a browser that trusts it keeps working.
 - **Revoke everything at once** (a lost phone, a QR code, link or invite someone else saw): `pointe pair rotate` makes a
   new certificate and a new browser pairing secret, and signs out every phone (`phones.json`, `phone_key`), every
-  browser and every machine (`nodes.json` keeps only the hub's id). `pointe pair off` signs out the same and stops
-  listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
+  browser and every machine of yours (`nodes.json` keeps only the hub's id and the machines this voice was invited to).
+  It does not remove the people invited to this machine: `pointe people remove <name>` does. `pointe pair off` signs
+  out the same and stops listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
   within about five seconds it restarts the listener on what is on disk and closes the calls and links that were up.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

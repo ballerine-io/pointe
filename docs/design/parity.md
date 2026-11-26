@@ -38,9 +38,9 @@ By the same scan, at a pre-release build (2026-11-21) (kept in `tools/parity_bas
 
 | Surface | yes before | no before | yes now | no now | n/a |
 |---|---|---|---|---|---|
-| Page | 73 | 1 | 81 | 0 | 20 |
-| iPhone | 79 | 1 | 91 | 0 | 10 |
-| Mac | 43 | 40 | 91 | 0 | 10 |
+| Page | 73 | 1 | 114 | 0 | 23 |
+| iPhone | 79 | 1 | 124 | 0 | 13 |
+| Mac | 43 | 40 | 128 | 0 | 9 |
 
 The 1.16.0 Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none
 of: meetings, briefings, challenge, whisper, the dictionary, the conflict alarm, show while it says, machines and

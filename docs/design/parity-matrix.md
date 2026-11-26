@@ -9,10 +9,10 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 106 | 0 | 0 | 23 |
-| iPhone | 116 | 0 | 0 | 13 |
-| Mac | 120 | 0 | 0 | 9 |
-| Linux hub | 106 | 0 | 0 | 23 |
+| Page | 114 | 0 | 0 | 23 |
+| iPhone | 124 | 0 | 0 | 13 |
+| Mac | 128 | 0 | 0 | 9 |
+| Linux hub | 114 | 0 | 0 | 23 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -82,6 +82,14 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | The risk line under a start, the first time a session skips permission prompts <br>`sessions.new.notice` | yes `ui.html:2308` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:110` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:110` | yes (the page) |
 | Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1368` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes (the page) |
 | Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1380` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes (the page) |
+| Add a machine somebody invited you to, from its owner's line: paste it (the iPhone also scans it) <br>`machines.add` | yes `ui.html:1386` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:132` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:132` | yes (the page) |
+| Once after a machine is added: which services your voice sends its transcripts to, until OK <br>`machines.disclosure` | yes `ui.html:1396` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes (the page) |
+| Whose a machine and a session is, shown only where it is not yours <br>`machines.owner` | yes `ui.html:2066` | yes `apps/PointeKit/Sources/PointeUI/People.swift:317` | yes `apps/PointeKit/Sources/PointeUI/People.swift:317` | yes (the page) |
+| Mine: show only your own sessions, while somebody else's are in your voice <br>`sessions.mine` | yes `ui.html:2028` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:709` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:709` | yes (the page) |
+| Invite a person to this machine: a name, talk or watch only, a one-time line and its code; cancel it <br>`people.invite` | yes `ui.html:1420` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:122` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:122` | yes (the page) |
+| Change what a person may do: talk to the sessions, or watch only <br>`people.grant` | yes `ui.html:4852` | yes `apps/PointeKit/Sources/PointeUI/People.swift:165` | yes `apps/PointeKit/Sources/PointeUI/People.swift:165` | yes (the page) |
+| Remove a person from this machine, after a confirm <br>`people.remove` | yes `ui.html:4861` | yes `apps/PointeKit/Sources/PointeUI/People.swift:167` | yes `apps/PointeKit/Sources/PointeUI/People.swift:167` | yes (the page) |
+| Private: keep a session of this machine to yourself, or share it with people again <br>`sessions.private` | yes `ui.html:1711` | yes `apps/PointeKit/Sources/PointeUI/People.swift:171` | yes `apps/PointeKit/Sources/PointeUI/People.swift:171` | yes (the page) |
 
 ## Approvals and alerts
 
@@ -180,7 +188,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1614` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes (the page) |
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1194` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` | yes (the page) |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1498` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:56` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:56` | yes (the page) |
-| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (44 topics)` | yes `product_help.json (44 topics)` | yes `product_help.json (43 topics)` | yes (the page) |
+| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (48 topics)` | yes `product_help.json (48 topics)` | yes `product_help.json (47 topics)` | yes (the page) |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | n/a |
 | Keyboard: a key for every main action <br>`keys` | yes `ui.html:3477` | n/a | yes `apps/macos/PointeMac/Panels.swift:175` | yes (the page) |
 

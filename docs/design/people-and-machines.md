@@ -1,7 +1,9 @@
 # People and machines: several voices on one machine, several machines in one voice
 
-Status: being built (phase 1 of the multi-machine plan). This file is the contract the daemon, the page, the iPhone
-app and the Mac app build to. [multi-machine.md](multi-machine.md) is the first design (one voice, its own machines),
+Status: phase 1 built (phase 1 of the multi-machine plan). This file is the contract the daemon, the page, the iPhone
+app and the Mac app were built to, corrected where the code came out different; each such place says "As built". The
+guide for people who use it: [../multi-machine.md](../multi-machine.md). The threat model:
+[SECURITY.md](../../SECURITY.md#people-on-a-machine). [multi-machine.md](multi-machine.md) is the first design (one voice, its own machines),
 and everything there still holds.
 
 ## Words
@@ -11,10 +13,14 @@ and everything there still holds.
 | **Your voice** | One person's Pointe: the call, the brain, the notes, the keys | The hub |
 | **Machine** | A computer whose sessions a voice can reach | A node, or the hub itself |
 | **Person** | Somebody whose voice the owner of a machine invited to it | Did not exist |
-| **Owner** | Of a machine: the account its Pointe runs as. Of a session: the person who joined or started it | Implied |
+| **Owner** | Of a machine: the account its Pointe runs as. Of a session: the person who joined or started it. As built, phase 1: every session on a machine is its machine owner's, because a person cannot join or start one there yet | Implied |
 
 The screens and the documents say "your voice", "machines" and "people". The command line keeps `pointe hub` and
-`pointe node` as they are, and adds `pointe machine` and `pointe people`.
+`pointe node` as they are, and adds `pointe machine add|list|remove`, `pointe machines`,
+`pointe people [invite|grant|remove]` and `pointe share`.
+
+**The owner's name** (as built) is `"owner"` in the machine's `config.json`, else the name of the OS account Pointe
+runs as (`guests.owner_name`). It is what people's voices show, what the agents read, and what "busy" names.
 
 ## The trust model, plainly
 
@@ -25,7 +31,10 @@ Pointe cannot. What Pointe does add:
 
 - **Identity.** Each person has their own key. Nobody shares a secret, and removing a person removes only their key.
 - **Attribution.** The machine stamps every request with the person who sent it. The agent sees the name, the owner's
-  voice notes it, and every other voice on that session is told. A voice cannot claim another person's name.
+  voice notes it, and every other voice on that session is told. A voice cannot claim another person's name. As built,
+  the tag the agent reads starts "[Voice request from Dana, a person invited to this machine, relayed by Dana's voice
+  assistant" (`sessions.person_prefix`); the owner's own requests keep "[Voice request from the user, relayed by their
+  voice assistant".
 - **A record.** Every link, request, share and removal is in the machine's journal with the person's name.
 - **A lower grant.** A person can be invited to watch only: they hear and see, and the machine refuses their requests.
 - **Private sessions.** The owner can keep a session to themselves. Nothing about it crosses to anyone's voice.
@@ -41,13 +50,15 @@ Pointe cannot. What Pointe does add:
 voice checks the certificate against `fp` before it sends anything, trades the code for her key, and links. She sees
 the machine with its sessions in her one conversation. Nothing else to do: no follow step, no account.
 
-The first time, her screen says once which services her voice sends that machine's transcripts to (the same sentence
-`pointe node join` prints), and Avi's People list shows them next to her name.
+The first time, her screen says once which services her voice sends that machine's transcripts to, and Avi's People
+list shows them next to her name. As built, each surface has its own sentence for it (the page's `PEOPLE_SAYS.disclosure`,
+the apps' `PeopleCopy.disclosure`, `machines.vendors_line` in the terminal), and the list is what her voice names: the
+machine cannot check it.
 
 ## What is shared
 
 - Every session on the machine is shared with every person invited to it, unless its owner marks it **private**
-  (`pointe share shop --private`, the session's row menu, or "keep shop private").
+  (`pointe share shop --private`, or the session's row menu). As built there is no voice phrase for it.
 - A person's grant is **send** (the default: they can talk to the sessions) or **watch** (they see and hear only).
 - Sessions on the machine's own other machines (its nodes) are not passed on. Only its own sessions are shared.
 
@@ -59,10 +70,10 @@ The machine (the host side, `pointe/guests.py`) decides, never the person's voic
 |---|---|
 | Who is linked | An HMAC over a fresh nonce with the person's key, as a node proves itself today |
 | Which sessions a link sees | Its snapshot, transcripts, files and prompts carry shared sessions only. A private session is in no frame to anyone |
-| Who may send | `send` grant, checked on the machine. A `watch` link's send is refused: `send.result {ok: false, why: "watch"}` |
+| Who may send | `send` grant, checked on the machine. A `watch` link's send is refused: `send.result {ok: false, why: "watch"}`. As built, the first reason that holds is the one given, in this order: `private`, `watch`, `prompt`, `consent`, `busy` (`HostSide.refusal`) |
 | Who sent | `by` is set from the link. A `by` in a frame from a voice is ignored |
-| One request at a time | A send to a session that is working on another person's request is refused with `why: "busy"` and `busy: {by, since}`. The voice says "shop is working on Dana's request from 14:02". The same send with `anyway: true` is delivered |
-| A claimed approval | A send that claims somebody's consent ("Avi said yes") is refused, with the daemon's own `guards` check, and so is a send while the session waits on a permission prompt |
+| One request at a time | A send to a session that is working on another person's request is refused with `why: "busy"` and `busy: {by, since}`. The voice says "Not sent. shop is working on Dana's request from 14:02. Say send it anyway, and it goes." The same send with `anyway: true` is delivered. As built: a session that works on a turn no person asked for is busy with the owner's name (the owner typed it, or asked from their own call); a person's request counts as the session's work until its turn ends, with 15 seconds for the turn to show; and the voice sends `anyway` only for the person's own whole "send it anyway", once, within 120 seconds of the busy refusal (`daemon.ANYWAY_SECS`) |
+| A claimed approval | A send that claims somebody's consent ("Avi said yes") is refused (`"consent"`), and so is a send while the session waits on a permission prompt or a sandbox request (`"prompt"`). As built the consent rule is `guards.claims_consent`, given the names of the owner and of the people on the machine |
 | Approvals (phase 1) | A prompt is offered to the machine owner's own voice and terminal only. Phase 3 offers it to people |
 
 ## The link
@@ -92,6 +103,15 @@ Protocol 2 adds, besides the three frames above:
 A machine that removes a person sends `unpaired` and closes with 4401. The voice deletes that key, keeps the machine
 listed as "avi-box removed you", and stops dialing.
 
+As built, the other direction: a voice that removes a machine sends `bye`, deletes its key and forgets the machine.
+The machine closes that link and keeps the person listed, not linked, with their key: taking a person off a machine is
+its owner's to do (`pointe people remove`).
+
+As built, a person's voice is offered no prompt, no session to add and no file: `permission.answer` is answered
+`permission.answered {ok: false, why: "not_offered"}`, `discover` with an empty list, `attach` with a refusal and
+`artifact.render` with an empty result. A session's entry carries `pending: null` and `capabilities.approvals: false`;
+one that waits on a prompt says so in its wait state.
+
 Version skew is the node link's ([../multi-machine.md](../multi-machine.md#versions-an-old-pointe-next-to-a-new-one)):
 no protocol in common closes with 4426 and says which side to update.
 
@@ -102,9 +122,9 @@ listener, and never a person's key.
 
 | Route | Body | Answer |
 |---|---|---|
-| `POST /voice/people/invite` | `{name, grant?: "send" \| "watch"}`, or `{cancel: true}` | `{code, link, expires_in, name, grant}`; 409 with a sentence when the name is taken or not sayable, or no address is paired |
-| `GET /voice/people/invite` | | `{code, expires_in, link, name, paired, ended}` as `/voice/hub/invite` |
-| `GET /voice/people` | | `{people: [{id, name, grant, online, since, address, key_fp, vendors, added}]}` |
+| `POST /voice/people/invite` | `{name, grant?: "send" \| "watch"}`, or `{cancel: true}` | `{code, link, svg, expires_in, name, grant}`; 409 with a sentence when the name is taken or not sayable, or no address is paired. As built, `svg` is the line as a QR code, drawn by the machine as the phone's is |
+| `GET /voice/people/invite` | | `{code, expires_in, link, svg, name, grant, paired, ended}` as `/voice/hub/invite` |
+| `GET /voice/people` | | `{people: [{id, name, grant, online, since, address, key_fp, vendors, added}]}`. As built, `since` is when the person's link dropped (or when this Pointe started), and `null` while they are linked |
 | `POST /voice/people/grant` | `{name, grant}` | `{ok: true}` |
 | `POST /voice/people/remove` | `{name}` | `{ok: true}`; 404 with a sentence |
 | `POST /voice/share` | `{session: <name or id>, private: bool}` | `{ok: true, private}` |
@@ -120,7 +140,7 @@ For a person's voice, on the TLS listener, with no key (each proves itself in it
 
 | Route | Body | Answer |
 |---|---|---|
-| `POST /voice/machines/add` | `{line, name?}` | `{name, owner, grant, vendors: [..]}` once paired and linking. Else one sentence: 409 only when the name is taken or cannot be said (the screens then ask for another name); 400 for a line that is not an invite, this voice's own machine, or one already added; 403 when the certificate differs or the machine refuses the code; 502 when the machine cannot be reached or its answer is not a pairing |
+| `POST /voice/machines/add` | `{line, name?}`, or `{seen: name}` | `{name, owner, grant, vendors: [..]}` once paired and linking. Else one sentence: 409 only when the name is taken or cannot be said (the screens then ask for another name); 400 for a line that is not an invite, this voice's own machine, or one already added; 403 when the certificate differs or the machine refuses the code; 502 when the machine cannot be reached or its answer is not a pairing |
 | `POST /voice/hub/revoke` | `{name}` | As today. For a machine this voice dialed: it says `bye`, deletes its key, forgets the machine |
 
 `name` is this voice's own name for the machine (default: the machine's). It follows the machine-name rules of
@@ -138,30 +158,42 @@ Added, all optional so an older app reads the rest:
 | `machines[].notice` | One line: "avi-box removed you", "avi-box runs an older Pointe (0.9.0). Update it there…" (exists) |
 | `sessions[].owner` | The owner's name when the session is not this person's |
 | `sessions[].private` | `true` on a session of this machine its owner keeps private |
-| `sessions[].by` | `{name, since}` while the session works on another person's request |
-| `people` | On a machine with people: `[{name, grant, online, since}]`. Absent with none |
+| `sessions[].by` | `{name, since}` while the session works on a person's request. As built, it is in the status of the machine itself (the owner's screens), not in a person's voice |
+| `people` | On a machine with people: `[{name, grant, online, since, vendors}]`. Absent with none. `since` as in `GET /voice/people` |
+| `account` | As built: on a machine with people, the OS account a person's requests run as, for the owner's trust line. Absent with none |
 | `people_invite` | As `invite`: the code that waits, for the owner's screens |
 | `disclosure` | `{machine, vendors: [..]}` once after a machine is added, until the person dismisses it (`POST /voice/machines/add {seen: name}`) |
 
 ## What each person hears
 
 - A person hears the report of a turn **they** started. A report of a turn somebody else started is held: it counts
-  on the screen and is read at "anything from the others?" (`scope.py`, as session mode holds news).
-- The owner of a session may choose to hear all its reports (Settings → People → "Read me everything on my sessions").
-- "Dana asked shop to run the tests" goes into the notes of every voice on that session, from the `sent` frame.
+  on the screen and is read at "anything from the others?" (`scope.py`, as session mode holds news). As built, this
+  applies to sessions on a machine somebody invited the voice to (`daemon._others_machine`); a report is held only
+  while a call is up, and with no call it goes to the session's notes alone.
+- As built, the owner's voice is not changed: on its own machines every report is spoken as before, whoever started
+  the turn. The setting "Read me everything on my sessions" was not needed and is not built.
+- "Dana asked shop: run the tests" goes into the notes of every other voice on that session, from the `sent` frame.
+  The owner's own voice gets it in its Recent requests ("sent by Dana") and, on a call, in the brain's context.
 - Names: a session I own keeps its plain name. One owned by somebody else never wins a tie against mine and never
-  renames mine; it gets the machine's name added ("shop on avi-box").
+  renames mine; it gets the machine's name added ("shop avi-box").
 
 ## Files
 
 | Where | File | Holds |
 |---|---|---|
-| Machine | `people.json` (0600) | `{people: {id: {id, name, key, grant, added, address, vendors}}}`, `private: [session ids]` |
-| Voice | `nodes.json` (0600), as today | A dialed machine is an entry with `dial: {host, port, fp}`, `owner`, `grant` |
+| Machine | `people.json` (0600) | `{people: {id: {id, name, key, grant, added, address, vendors}}}`, `private: [session ids]`. Unreadable, it is moved aside and nobody can link |
+| Machine | `people_tails.json` (0600), as built | Per person, each session's transcript path and generation, so a voice resumes its mirror after the machine restarts |
+| Voice | `nodes.json` (0600), as today | A dialed machine is an entry with `dial: {host, port, fp}`, `owner`, `grant`. As built it has this voice's own `id` for the machine, plus `host_id` (the machine's id, checked at each link), `person` (this person's id there), `person_name`, `disclose` (the disclosure is not dismissed yet) and `removed` (the machine removed this person: no key, not dialed) |
 | Voice | `harness/remote/<machine id>/` | The mirror of each session's transcript, as for a node |
+
+`pointe pair rotate` and `pointe pair off` (as built) sign out phones, browsers, nodes and every person: each
+person's key is deleted from `people.json`, a live link is closed with 4401, and the command says who to invite
+again. The private-sessions list stays. They keep the machines this voice dials
+([SECURITY.md](../../SECURITY.md#people-on-a-machine)).
 
 ## Not in phase 1
 
 A person approving a prompt or starting a session on the machine (phase 3). The context budget, tiers and quiet
 sessions for a big fleet (phase 2). A machine that is only a node (no voice of its own) serving several people: it
-still has one voice, its owner's.
+still has one voice, its owner's. A voice phrase for Private, a grant, an invite or a removal. Any measurement of how
+many machines or people work well together.

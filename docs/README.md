@@ -31,7 +31,8 @@ Claude Code, OpenCode and Codex, and runs on your Mac with your own model keys, 
 - [Architecture](architecture.md): the components, the data flows, where state lives, and the trust boundaries.
 - [How it works](how-it-works.md): the call pipeline and the rules enforced in code, in detail.
 - [Harnesses](harnesses.md): Claude Code, OpenCode and Codex, and how to add another.
-- [Machines](multi-machine.md): sessions on your other Macs and Linux machines in the same call.
+- [Machines and people](multi-machine.md): sessions on your other Macs and Linux machines in the same call, and a
+  machine several people share, each from their own voice.
 - [Cloud sessions](cloud-sessions.md): what Pointe can and cannot reach in vendor-hosted sessions.
 
 ## Features

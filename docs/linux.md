@@ -126,24 +126,69 @@ has one: a session in `~/alon-pointe` with no branch is `alon-pointe`. Rename it
 
 ## Other machines, and other people
 
-Pointe is made for **one person's voice**. These shapes are supported:
+Each Pointe is **one person's voice**. A Linux machine can also be the machine other people are invited to: each of
+them reaches its sessions from their own voice, on their own machine. These shapes are supported:
 
 | Shape | How | Limits |
 |---|---|---|
-| Your other machines' sessions in your call | Each runs as a node: `pointe hub invite` on the hub, `pointe node join '<line>'` on the machine | A node has one hub. The hub's owner approves the node's prompts |
+| Your other machines' sessions in your call | `pointe hub invite` on the machine with your voice, `pointe node join '<line>'` on the other machine | Such a machine serves one voice. Its prompts are approved from that voice |
+| Colleagues on one Linux machine | `pointe people invite <name>` on the machine, `pointe machine add '<line>'` on the colleague's own machine | Below. No approval by an invited person yet |
 | Several phones | Each pairs with its own key: Settings → Phone, again for each | One call at a time |
 | Several browsers | `pointe pair link`, opened once in each | They share one pairing secret; `pointe pair rotate` signs all out |
 | Taking turns | A second phone or browser that calls while a call is up is refused ("a call is already up") | Not at the same time |
 
-**Not supported: two people talking to the same hub at once.** Everyone paired with a hub acts as its owner: they hear
-every session's reports and can send to any session and approve its prompts. Pair only your own devices, and give each
-person their own hub. A colleague's machine can be a node of your hub only if you are the one who voices it.
+**A phone or a browser paired with a voice acts as its owner.** It hears every session's reports, can send to any
+session and can approve its prompts. Pair only your own devices that way. For another person, use an invite: they get
+their own key, their name on what they send, and no approvals.
 
-**What multi-person use would take.** The hub keeps one call: one conversation, one active session, one voice lock and
-one set of vendor keys. Several people at once would need a call per person, each with its own conversation and state;
-a person behind each phone, browser and node, with who may send to and approve which session; approvals recorded by
-person; a voice lock per person; and reports sent only to the person who owns the session. That is a redesign of the
-daemon's state, not a setting. One hub per person is the supported way.
+### The office case: one Linux machine, several people
+
+Avi runs his agents on a Linux machine, `avi-box`, under one account. It is his voice. Dana and Omer each have their
+own Pointe, on their own Mac or Linux machine, with their own model keys.
+
+**Before you invite anybody.** A person you invite can make the agents on `avi-box` run commands as the account Pointe
+runs as, and a session Pointe starts skips permission prompts by default. Pointe does not separate people on one
+account. Invite only people you would give a shell on that account
+([SECURITY.md](../SECURITY.md#people-on-a-machine)).
+
+1. **Avi installs Pointe on `avi-box` as a hub** ([Install](#install)), gives it his key and joins his sessions.
+2. **Avi makes `avi-box` reachable on the private network**, with one route from
+   [Reach it from other devices](#reach-it-from-other-devices): `pointe pair tailscale`, `pointe pair wifi` or
+   `pointe pair host <alias>`. A person's voice connects to the same listener a phone does.
+3. **What must be open:** TCP port 7443 on `avi-box`, reachable from each colleague's machine over the private
+   network (Tailscale, Twingate or the LAN). It stays open while people are linked: each person's voice keeps one
+   connection to it. Do not put it on the public internet.
+4. **Avi invites Dana:**
+
+   ```
+   pointe people invite dana
+   ```
+
+   It prints one line that starts with `pointe://machine?`, valid once, for ten minutes, and waits. `--watch` invites
+   her to watch only. Avi sends Dana the line. Whoever uses the line first becomes "dana" on this machine, so send it
+   only to her.
+5. **Dana adds the machine, on her own machine:**
+
+   ```
+   pointe machine add 'pointe://machine?v=1&host=…&port=7443&fp=…&code=K7PQ-2MXD&name=avi-box'
+   ```
+
+   Her voice checks the certificate of `avi-box` against the line, trades the code for her own key, and connects. The
+   command says whose machine it is, what she can do there, and which services her voice sends its transcripts to.
+   On `avi-box`, Avi's terminal prints who paired, from which address, with which key fingerprint.
+6. **Dana talks from her own call.** The sessions on `avi-box` are in her conversation with Avi's name on them. A
+   session there that works on somebody else's request refuses hers; "send it anyway" pushes it through.
+7. **Avi keeps control on `avi-box`:**
+
+   ```
+   pointe people                      # who is invited, what each may do, who is linked
+   pointe people grant dana watch     # or: send
+   pointe share billing --private     # keep a session to himself; --shared shares it again
+   pointe people remove dana          # delete her key and close her link
+   ```
+
+Permission prompts on `avi-box` are offered to Avi's voice and the session's terminal only. The whole guide, with the
+screens, what each person hears and the limits: [Machines and people](multi-machine.md#a-shared-machine).
 
 ## Limits on Linux
 

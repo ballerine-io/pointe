@@ -75,7 +75,7 @@
 <li><a href="./" aria-current="page">Architecture</a></li>
 <li><a href="../how-it-works/">How it works</a></li>
 <li><a href="../harnesses/">Harnesses: Claude Code, OpenCode, Codex, and how to add another</a></li>
-<li><a href="../multi-machine/">Machines: one voice over sessions on several machines</a></li>
+<li><a href="../multi-machine/">Machines and people</a></li>
 <li><a href="../cloud-sessions/">Cloud sessions: what Pointe can and cannot control</a></li>
 </ul>
 <p class="dx-nav-h">Features</p>
@@ -154,8 +154,12 @@ where state lives and where the trust boundaries are. How the call pipeline deci
 <td>One adapter per kind of agent: Claude Code, OpenCode and Codex, and <code>remote</code> for a session on another machine. Each follows a session's record, sends to it, and holds its permission prompts, behind one contract (<a href="../harnesses/">Harnesses</a>).</td>
 </tr>
 <tr>
-<td><strong>Nodes</strong></td>
-<td>Another Mac or a Linux host that runs the same adapters for its own sessions and links to the Mac with the call (the <strong>hub</strong>). A node has no audio and no keys (<a href="../multi-machine/">Machines</a>).</td>
+<td><strong>Other machines</strong></td>
+<td>Another Mac or a Linux host of yours that runs the same adapters for its own sessions and links to the machine with your voice. The command line calls the first a node and the second the hub. Such a machine has no audio and no keys (<a href="../multi-machine/">Machines and people</a>).</td>
+</tr>
+<tr>
+<td><strong>People</strong></td>
+<td>Somebody a machine's owner invited to it. Each person's own daemon (their voice) dials that machine, proves the person's own key, and gets its shared sessions. The machine decides what each person sees and may send (<code>pointe/guests.py</code>; <a href="../multi-machine/#a-shared-machine">A shared machine</a>).</td>
 </tr>
 <tr>
 <td><strong>iPhone app and Mac app</strong></td>
@@ -229,7 +233,15 @@ decision or next move. The brain speaks the report; a background session only sa
 <p>A node runs the adapters for its own sessions and dials the hub's phone listener over TLS, pinned to the hub's
 certificate, and proves its key with an HMAC. It ships each session's transcript with credentials masked, types your
 requests in, and checks each voice approval again against its own unmasked copy of the request. Its sessions' content
-reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-machine/">Machines</a>).</p>
+reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-machine/">Machines and people</a>).</p>
+<h3 id="people-on-a-machine">People on a machine</h3>
+<p>The owner of a machine can invite other people to it. Each person's daemon dials the machine's phone listener over
+TLS, pinned to the machine's certificate from the invite, and proves the person's own key with an HMAC. On that link
+the machine is in the node's role: it ships each shared session's transcript with credentials masked, once per linked
+person, and delivers a person's requests with their name on them. The machine decides which sessions cross and who
+may send. It offers a permission prompt to its owner's voice and terminal only. Each person's daemon sends those
+transcripts to that person's own vendors (<a href="../multi-machine/#a-shared-machine">A shared machine</a>,
+<a href="../security/#people-on-a-machine">SECURITY.md</a>).</p>
 <h2 id="where-state-lives">Where state lives</h2>
 <div class="dx-table"><table>
 <thead>
@@ -267,9 +279,13 @@ reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-ma
 <td>A node</td>
 <td><code>~/.claude-voice</code> on that machine: its key for the hub, and its own sessions' state</td>
 </tr>
+<tr>
+<td>The people invited to a machine</td>
+<td><code>~/.claude-voice/people.json</code> on that machine (0600): each person's key and grant, and the sessions kept private</td>
+</tr>
 </tbody>
 </table></div>
-<p>Ports: the daemon on <code>127.0.0.1:7860</code> (<code>CLAUDE_VOICE_DAEMON_PORT</code>), the phone and node listener on 7443
+<p>Ports: the daemon on <code>127.0.0.1:7860</code> (<code>CLAUDE_VOICE_DAEMON_PORT</code>), the listener for phones, nodes and people's voices on 7443
 (<code>CLAUDE_VOICE_TLS_PORT</code>) only after you pair, and the local text-model server on <code>127.0.0.1:7869</code> in fully local mode.</p>
 <h2 id="trust-boundaries">Trust boundaries</h2>
 <div class="dx-table"><table>
@@ -291,6 +307,10 @@ reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-ma
 <tr>
 <td>A node, and the hub</td>
 <td>Pinned TLS, an HMAC over a fresh challenge, one connection per key; approvals checked again on the node.</td>
+</tr>
+<tr>
+<td>A person's voice, and a machine they were invited to</td>
+<td>Pinned TLS, an HMAC over a fresh challenge with the person's own key, one connection per key. The machine checks every request: the grant, Private, a waiting prompt, a claimed approval, a busy session. It is attribution and a record, not isolation: an invited person acts as the machine's one OS account.</td>
 </tr>
 <tr>
 <td>The daemon, and the model vendors</td>
@@ -320,6 +340,7 @@ reaches the hub's vendors, as the hub's own sessions' does (<a href="../multi-ma
 <li class="dx-l3"><a href="#what-a-session-did">What a session did</a></li>
 <li class="dx-l3"><a href="#approvals">Approvals</a></li>
 <li class="dx-l3"><a href="#other-machines">Other machines</a></li>
+<li class="dx-l3"><a href="#people-on-a-machine">People on a machine</a></li>
 <li class="dx-l2"><a href="#where-state-lives">Where state lives</a></li>
 <li class="dx-l2"><a href="#trust-boundaries">Trust boundaries</a></li>
 </ul>

@@ -10,6 +10,19 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **Unreleased** (beta): Several people can use one machine, each from their own voice, and your voice can hold a machine somebody invited you to
+
+  The owner of a machine invites a person by name (`pointe people invite dana`, or Invite a person on the page, the
+  iPhone and the Mac). The person adds the machine to their own Pointe with the one-time line (`pointe machine add`, or
+  Add a machine: paste it, or scan it on the iPhone) and talks to its sessions from their own call, with their own
+  keys. Each session shows whose it is, the agent reads who sent each request, and the machine's journal records it. A
+  person can be invited to watch only, the owner keeps a session to themselves with Private, and removing one person
+  touches nobody else. A session that works on somebody else's request refuses yours until you say "send it anyway".
+  You hear the reports of the turns you started; the others wait for "anything from the others?". The screens and the
+  docs now say "your voice", "machines" and "people"; `pointe hub` and `pointe node` work as before. Limits: a person
+  invited to a machine can make its agents run commands as that machine's account, cannot approve its permission
+  prompts yet, and cannot start a session there ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine),
+  [SECURITY.md](SECURITY.md#people-on-a-machine)).
 - **Unreleased** (beta): An old part of Pointe next to a new one fails in one sentence with the command that fixes it
 
   The first step of Pointe over many machines and several people. A node and its hub each say the oldest and newest

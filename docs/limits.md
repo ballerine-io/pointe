@@ -11,8 +11,12 @@ What does not work yet, and what was not measured. Each feature page lists its o
 - **macOS, or Linux as a hub.** A Linux hub was tested in Ubuntu containers: the install, keys in the login keyring,
   the page, a session, a call's microphone audio reaching the hub, pairing and a node. A whole spoken call with a vendor,
   a real phone and Twingate were not tested on Linux: [Linux](linux.md). Windows is not supported.
-- **One person's voice.** Everyone paired with a hub (phones, browsers, nodes) acts as its owner, and one call runs at a
-  time: a second caller is refused while one talks. Give each person their own hub ([why](linux.md#other-machines-and-other-people)).
+- **One voice per person, and no isolation on a shared machine.** Each Pointe is one person's voice, with one call at a
+  time; a phone or a browser paired with it acts as its owner. Several people can use one machine: its owner invites
+  each, and each talks from their own voice on their own Mac or Linux machine. A person invited to a machine can make
+  its agents run commands as that machine's account, and Pointe does not separate people on one account. An invited
+  person cannot approve a permission prompt or start a session there yet, and how many machines or people work well
+  together is not measured ([Machines and people](multi-machine.md#limits)).
 - **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized, the image and the app in it
   ([how](mac-app.md#getting-it)). Its
   first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been
