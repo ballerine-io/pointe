@@ -77,8 +77,8 @@ def _span(spread: dict, key: str, unit: str = "", digits: int = 0) -> str:
 
 
 def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, dict], ledger: list[dict],
-           trees: dict[str, str] | None = None) -> str:
-    trees = trees or {}
+           trees: dict[str, str] | None = None, carried: list[dict] | None = None) -> str:
+    trees, carried = trees or {}, carried or []
     if not frozen or frozen.get("dataset_sha256") != dataset_sha:
         raise Refused("the dataset on disk is not the one in FROZEN.json: no report")
     used = [r for r in runs if counted(r)]
@@ -110,13 +110,17 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         r = {**r, "rows": [x for x in r["rows"] if not x.get("renamed_at_join")]}
         tag = build(r) if r["manifest"]["what"] in ("turns", "burst") else "any"
         by.setdefault((f"{r['manifest']['arm']}@{tag}", r["manifest"]["size"]), []).append(r)
+        for c in carried:  # an arm whose code path is the same in a later build: its runs stand for that build too
+            if tag == c["from"][:10] and r["manifest"]["arm"] == c["arm"] and c["to"][:10] in order:
+                by.setdefault((f"{c['arm']}@{c['to'][:10]}", r["manifest"]["size"]), []).append(r)
 
     def rows_of(arm: str, size: str, what: str) -> list[dict]:
         return [row for r in by.get((arm, size), []) if r["manifest"]["what"] == what for row in r["rows"]]
 
     def words(arm_at: str) -> str:
         arm, tag = arm_at.split("@")
-        return ARM_WORDS[arm] + (f", build `{tag}`" if tag != "any" else "")
+        came = next((c for c in carried if c["arm"] == arm and c["to"][:10] == tag), None)
+        return ARM_WORDS[arm] + (f", build `{tag}`" if tag != "any" else "") + (f" (rows of build `{came['from'][:10]}`, carried)" if came else "")
 
     arms_at = [f"{arm}@{tag}" for tag in order for arm in ARMS]
 
@@ -151,6 +155,8 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     out += ["## The arms, as the daemon states them", "",
             f"{len(checked) - len(off_arm)} of {len(checked)} rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's"
             + (f"; **{len(off_arm)} do not**" if off_arm else "") + ". The `pointe/` folder each arm ran (its git tree): " + ", ".join(f"{a} `{c}`" for a, c in builds) + ".", ""]
+    for c in carried:
+        out += [f"Carried: the {c['arm']} rows of build `{c['from'][:10]}` are shown again under build `{c['to'][:10]}`, not run again. {c['why']}", ""]
     out += ["## Every run", "",
             "| Arm | Size | Run | Clear: right | Clear: wrong session | Clear: asked instead | Clear: nothing | Ambiguous: asked | "
             "Ambiguous: sent | Ambiguous: neither | Driven / crashed / not run | Needs tokens, median / max | Brain input per turn, median | "
@@ -322,7 +328,9 @@ def write(results: Path, out: Path, frozen_path: Path, dataset_sha: str, fleets:
     ledger_path = results / "ledger.jsonl"
     ledger = [json.loads(line) for line in ledger_path.read_text().splitlines() if line.strip()] if ledger_path.exists() else []
     trees_path = results / "pointe-trees.json"
-    text = render(load(results), frozen, dataset_sha, fleets, ledger, json.loads(trees_path.read_text()) if trees_path.exists() else {})
+    carried_path = results / "carried.json"
+    text = render(load(results), frozen, dataset_sha, fleets, ledger, json.loads(trees_path.read_text()) if trees_path.exists() else {},
+                  json.loads(carried_path.read_text()) if carried_path.exists() else [])
     out.write_text(text)
     return text
 

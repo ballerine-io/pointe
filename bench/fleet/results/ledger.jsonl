@@ -31,3 +31,9 @@
 {"at": "2026-11-26T21:32:05+0200", "launch": "fleet-20261126-212506-turns-1x4-fleet-off-r1", "what": "turns", "usd": 0.390235, "calls": 101}
 {"at": "2026-11-26T21:39:03+0200", "launch": "fleet-20261126-213205-turns-1x4-fleet-off-r2", "what": "turns", "usd": 0.464078, "calls": 109}
 {"at": "2026-11-26T21:46:06+0200", "launch": "fleet-20261126-213903-turns-1x4-fleet-off-r3", "what": "turns", "usd": 0.467372, "calls": 123}
+{"at": "2026-11-26T21:53:48+0200", "launch": "fleet-20261126-214612-turns-1x4-fleet-on-r1", "what": "turns", "usd": 0.568699, "calls": 127}
+{"at": "2026-11-26T22:01:03+0200", "launch": "fleet-20261126-215348-turns-1x4-fleet-on-r2", "what": "turns", "usd": 0.479388, "calls": 111}
+{"at": "2026-11-26T22:08:32+0200", "launch": "fleet-20261126-220103-turns-1x4-fleet-on-r3", "what": "turns", "usd": 0.458272, "calls": 111}
+{"at": "2026-11-26T22:18:14+0200", "launch": "fleet-20261126-220833-turns-5x20-fleet-on-r1", "what": "turns", "usd": 0.82682, "calls": 142}
+{"at": "2026-11-26T22:27:40+0200", "launch": "fleet-20261126-221814-turns-5x20-fleet-on-r2", "what": "turns", "usd": 0.857059, "calls": 150}
+{"at": "2026-11-26T22:37:07+0200", "launch": "fleet-20261126-222740-turns-5x20-fleet-on-r3", "what": "turns", "usd": 0.845349, "calls": 142}

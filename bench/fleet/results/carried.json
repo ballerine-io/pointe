@@ -1,0 +1,8 @@
+[
+ {
+  "arm": "fleet-off",
+  "from": "05857b19f6",
+  "to": "0b98c14e3a",
+  "why": "Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`."
+ }
+]
