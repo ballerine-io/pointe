@@ -80,11 +80,13 @@ class App:
 SHEETS = {  # -sheet <name>: an identifier that is on that sheet
     "settings": "microphoneSetting", "voiceLock": "voiceLockHelp", "alerts": "alertsPhone", "dictionary": "dictionaryLearn",
     "machines": "inviteMachine", "conflictSettings": "conflictsOn", "showSettings": "showSetting", "about": "aboutBody",
+    "people": "invitePerson", "addMachine": "addMachineLine",  # docs/design/people-and-machines.md
 }
 SCREENS = {  # -demo <screen>: an identifier that screen shows
     "call": "conversation", "request": "requestCommand", "meeting": "notesFeed", "whisper": "whisperCard", "conflict": "conflictCard",
     "startPending": "startConfirm", "hold": "statusLine", "rtl": "conversation", "longRequest": "requestCommand", "many": "sessionsColumn",
     "machinesSessions": "sessionsColumn", "empty": "statusLine", "noSessions": "statusLine",
+    "people": "sessionsColumn", "peopleWatch": "sessionsColumn", "peopleRemoved": "sessionsColumn", "peopleAdded": "sessionsColumn",
 }
 
 
@@ -398,7 +400,8 @@ def main() -> int:
     # every sheet and every demo screen opens
     for sheet, ident in SHEETS.items():
         for look in (("dark", "light") if sheet in ("settings", "voiceLock", "dictionary") else ("dark",)):
-            app = start("-demo", {"machines": "machines", "voiceLock": "voiceLock"}.get(sheet, "call"), "-sheet", sheet, look=look)
+            app = start("-demo", {"machines": "machines", "voiceLock": "voiceLock", "people": "people", "addMachine": "machines"}.get(sheet, "call"),
+                        "-sheet", sheet, look=look)
             try:
                 ok = app.wait(ident)
                 if look == "dark":
@@ -410,7 +413,7 @@ def main() -> int:
         app = start("-demo", screen)
         try:
             check(f"the {screen} screen draws", app.wait(ident), ident)
-            if screen in ("meeting", "whisper", "conflict", "rtl", "many"):
+            if screen in ("meeting", "whisper", "conflict", "rtl", "many", "people", "peopleWatch", "peopleRemoved", "peopleAdded"):
                 app.shot(screen, "dark")
         finally:
             app.quit()

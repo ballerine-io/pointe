@@ -3,9 +3,10 @@ import SwiftUI
 import UIKit
 #endif
 
-/// Settings → Machines (docs/multi-machine.md): the machines on this voice with their state and round trip, a one-time
-/// code to pair another, and Revoke. Whoever holds a code can offer sessions to this voice, so the code shows only after
-/// Face ID; Revoke asks first, then Face ID.
+/// Settings → Machines (docs/multi-machine.md, docs/design/people-and-machines.md): the machines on this voice with
+/// their state, round trip and whose each is, Add a machine (somebody's invite), a one-time code to pair one of your own,
+/// People, and Revoke. Whoever holds a code can offer sessions to this voice, so the code shows only after Face ID;
+/// Revoke asks first, then Face ID.
 struct MachinesSheet: View {
     let status: API.Status?
     let pairing: Pairing?  // nil in the Mac app: the daemon sends the whole line to paste
@@ -13,6 +14,16 @@ struct MachinesSheet: View {
     let invite: () async -> Result<API.Invite, MachinesFailure>
     let cancelInvite: () async -> MachinesFailure?
     let revoke: (String) async -> MachinesFailure?
+    /// Add a machine from somebody's invite; nil hides the row.
+    var adder: AddMachineActions? = nil
+    /// The people invited to this machine; nil hides the row.
+    var people: PeopleActions? = nil
+    /// The one-time line after a machine was added, until its OK.
+    var disclosure: API.Disclosure? = nil
+    var added: (API.MachineAdded) -> Void = { _ in }
+    var disclosureOK: (API.Disclosure) -> Void = { _ in }
+    @State private var adding = false
+    @State private var showPeople = false
     @State private var shown: API.Invite?       // the code, once Face ID passed here
     @State private var until: Date?
     @State private var unlocked = false
@@ -27,6 +38,9 @@ struct MachinesSheet: View {
     var body: some View {
         NavigationStack {
             BrandForm {
+                if let disclosure {
+                    Section { DisclosureCard(disclosure: disclosure) { disclosureOK(disclosure) } }
+                }
                 Section {
                     ForEach(machines) { m in row(m) }
                     if let problem {
@@ -39,14 +53,48 @@ struct MachinesSheet: View {
                         Text(ended).foregroundStyle(Brand.accent).accessibilityIdentifier("inviteEnded")
                     }
                 } footer: { Group { Text(MachinesCopy.help) }.brandFootnote() }
-                Section { inviteSection }
+                Section {
+                    if adder != nil {
+                        Button { adding = true } label: { Label(PeopleCopy.addMachine, systemImage: "plus") }
+                            .accessibilityIdentifier("addMachine")
+                    }
+                    inviteSection
+                }
+                if people != nil {
+                    Section {
+                        Button { showPeople = true } label: {
+                            LabeledContent {
+                                Text(MachinesCopy.peopleCount(status?.people)).foregroundStyle(Brand.muted)
+                            } label: { Label(PeopleCopy.people, systemImage: "person.2") }
+                        }
+                        .accessibilityIdentifier("peopleItem")
+                    }
+                }
+            }
+            .sheet(isPresented: $adding) {
+                if let adder {
+                    AddMachineSheet(actions: adder) { machine in
+                        problem = nil
+                        done = PeopleCopy.added(machine.name, owner: machine.owner)
+                        added(machine)
+                    }
+                    .presentationDetents([.large])
+                    .sheetSurface()
+                }
+            }
+            .sheet(isPresented: $showPeople) {
+                if let people {
+                    PeopleSheet(status: status, actions: people)
+                        .presentationDetents([.large])  // the line, its code and the countdown must be on screen
+                        .sheetSurface()
+                }
             }
             .scrollContentBackground(.hidden)
             .sheetTitle(MachinesCopy.title)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
-            .confirmationDialog(revoking.map(MachinesCopy.revokeAsk) ?? "", isPresented: Binding(
+            .confirmationDialog(revoking.map(ask) ?? "", isPresented: Binding(
                 get: { revoking != nil }, set: { if !$0 { revoking = nil } }), titleVisibility: .visible, presenting: revoking) { name in
-                Button("Revoke \(name)", role: .destructive) { Task { await revokeNow(name) } }
+                Button("\(theirs(name) ? PeopleCopy.remove : "Revoke") \(name)", role: .destructive) { Task { await revokeNow(name) } }
                     .accessibilityIdentifier("confirmRevoke")
                 Button("Cancel", role: .cancel) {}
             }
@@ -60,10 +108,18 @@ struct MachinesSheet: View {
         }
     }
 
+    /// A machine this voice was invited to: it is removed from the voice, not revoked, and only its owner invites again.
+    private func theirs(_ name: String) -> Bool { MachineView(status).ownerTag(machine: name) != nil }
+
+    private func ask(_ name: String) -> String {
+        theirs(name) ? PeopleCopy.removeMachineAsk(name, owner: MachineView(status).info(name)?.owner) : MachinesCopy.revokeAsk(name)
+    }
+
     private func row(_ m: API.Machine) -> some View {
-        HStack(alignment: .center, spacing: 12) {
+        let owner = MachineView(status).ownerTag(machine: m.name)
+        return HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(m.isHere ? "\(m.name) (this Mac)" : m.name).font(.brand(.body, .semibold))
+                Text(m.isHere ? "\(m.name) (this Mac)" : owner.map { "\(m.name) · \($0)" } ?? m.name).font(.brand(.body, .semibold))
                 Text(facts(m)).font(.brand(.caption)).foregroundStyle(m.isOffline ? Brand.accent : Brand.muted)
                 if let notice = m.notice, !notice.isEmpty {
                     Text(notice).font(.brand(.caption)).foregroundStyle(Brand.accent)
@@ -72,10 +128,10 @@ struct MachinesSheet: View {
             }
             Spacer()
             if !m.isHere {
-                Button("Revoke", role: .destructive) { revoking = m.name }
+                Button(owner == nil ? "Revoke" : PeopleCopy.remove, role: .destructive) { revoking = m.name }
                     .buttonStyle(.brandQuiet).controlSize(.small)
                     .accessibilityIdentifier("revoke.\(m.name)")
-                    .accessibilityLabel("Revoke \(m.name)")
+                    .accessibilityLabel("\(owner == nil ? "Revoke" : PeopleCopy.remove) \(m.name)")
             }
         }
         .accessibilityElement(children: .contain)
@@ -85,7 +141,7 @@ struct MachinesSheet: View {
     private func facts(_ m: API.Machine) -> String {
         let n = m.sessions ?? 0
         let state = m.isOffline ? "offline since \(MachinesCopy.since(m.since))" : m.isHere ? "online" : "online · \(m.rtt_ms.map { "\($0) ms" } ?? "…")"
-        return [m.osName, state, "\(n) session\(n == 1 ? "" : "s")", m.key_fp.map { "key \($0)" } ?? ""]
+        return [m.osName, state, m.isWatchOnly ? PeopleCopy.watchOnly : "", "\(n) session\(n == 1 ? "" : "s")", m.key_fp.map { "key \($0)" } ?? ""]
             .filter { !$0.isEmpty }.joined(separator: " · ")
     }
 
@@ -154,8 +210,9 @@ struct MachinesSheet: View {
 
     private func revokeNow(_ name: String) async {
         problem = nil; done = nil
-        guard await ownerCheck("\(MachinesCopy.revokeReason): \(name)") else { return }
-        if let f = await revoke(name) { problem = f.text } else { done = "\(name) is revoked." }
+        guard await ownerCheck("\(theirs(name) ? "Remove a machine" : MachinesCopy.revokeReason): \(name)") else { return }
+        let theirs = theirs(name)
+        if let f = await revoke(name) { problem = f.text } else { done = theirs ? PeopleCopy.machineRemoved(name) : "\(name) is revoked." }
     }
 }
 

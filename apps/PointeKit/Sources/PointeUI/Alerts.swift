@@ -43,6 +43,15 @@ enum AlertCopy {
     static let alreadyAnswered = "Already answered"
     static let approveInApp = "Approve it in the app"
     static let unreachable = "Mac not reachable. It is still waiting on the Mac and in the app."
+
+    /// The Mac's title, naming the machine when the session runs on somebody else's and the title does not say so yet:
+    /// "shop needs approval" becomes "shop on avi-box needs approval".
+    static func title(_ title: String, for s: API.Session, machines: MachineView) -> String {
+        let machine = machines.of(s)
+        guard machine != machines.here, !machine.isEmpty, machines.ownerTag(machine: machine) != nil || !s.isMine,
+              !title.contains(machine) else { return title }
+        return title.hasPrefix(s.name) ? machines.label(s) + title.dropFirst(s.name.count) : "\(title), on \(machine)"
+    }
 }
 
 struct AlertNote: Equatable, Sendable {
@@ -70,9 +79,13 @@ enum AlertPlan {
     /// The Mac's own title and body, never the request's full text: an older Mac sends neither, and gets no notification.
     /// The Mac names the machine in the title (alerts.py). A session whose machine is offline gets no actions: an answer
     /// would be stale, its prompt went back to its terminal.
+    /// A session on somebody else's machine says which machine ("shop on avi-box needs approval"), and one this person
+    /// may only watch raises no approval: its prompt is its owner's to answer.
     static func note(_ a: API.Attention, watchApprove: Bool, machines: MachineView = MachineView(nil)) -> AlertNote? {
-        guard let title = a.title, !title.isEmpty, let body = a.body, !body.isEmpty else { return nil }
+        guard let said = a.title, !said.isEmpty, let body = a.body, !body.isEmpty else { return nil }
         let s = a.session.flatMap { name in machines.sessions.first { $0.name == name } }
+        if let s, machines.watchOnly(s), a.kind == "permission" { return nil }
+        let title = s.map { AlertCopy.title(said, for: $0, machines: machines) } ?? said
         if s?.isOffline == true {
             return AlertNote(id: a.id, title: title, body: body, category: openCategory, kind: a.kind ?? "", session: a.session, requestId: nil)
         }

@@ -60,6 +60,12 @@ struct CallView: View {
     @State private var machineFilter: String?   // a view only: sends nothing, changes no mode
     @State private var sessionsOn: MachineName? // "Sessions on devbox": the Sessions sheet, that machine first
     @State private var showMachines = false
+    @State private var disclosures = DisclosureGate()  // the one-time line after a machine is added, until its OK
+    /// A machine invite that opened the app (pointe://machine?…): Add a machine opens on it, and sends nothing by itself.
+    private var incoming: Binding<String?>
+    @State private var showPeople = false      // `-sheet people`: the People sheet by itself, for screenshots and UI tests
+    @State private var showAddMachine = false  // `-sheet addMachine`, likewise
+    @State private var machinesNext = false    // a machine was added from a link: the Machines list opens once that sheet has closed
     @State private var showAbout = false
     @State private var showNewSession = false
     @State private var showAddSessions = false
@@ -73,13 +79,15 @@ struct CallView: View {
     @State private var demoAnswered: Set<String> = []  // the demo's requests answered here: their card goes, as a Mac's would
     private let demo: Demo?
 
-    init(pairing: Pairing, unpair: @escaping () -> Void, pairAgain: (() -> Void)? = nil, demo: Demo? = nil) {
-        self.init(link: DaemonLink(pairing), unpair: unpair, pairAgain: pairAgain, demo: demo)
+    init(pairing: Pairing, unpair: @escaping () -> Void, pairAgain: (() -> Void)? = nil, demo: Demo? = nil,
+         incoming: Binding<String?> = .constant(nil)) {
+        self.init(link: DaemonLink(pairing), unpair: unpair, pairAgain: pairAgain, demo: demo, incoming: incoming)
     }
 
     /// `call`: one that already exists (the Mac app's, which outlives its window); otherwise this screen makes its own.
     init(link: DaemonLink, call: Call? = nil, shell: CallShell? = nil, unpair: @escaping () -> Void = {},
-         pairAgain: (() -> Void)? = nil, demo: Demo? = nil) {
+         pairAgain: (() -> Void)? = nil, demo: Demo? = nil, incoming: Binding<String?> = .constant(nil)) {
+        self.incoming = incoming
         self.link = link
         self.shell = shell
         self.unpair = unpair
@@ -103,6 +111,8 @@ struct CallView: View {
         case "alerts": _showAlerts = State(initialValue: true)
         case "dictionary": _showDictionary = State(initialValue: true)
         case "machines": _showMachines = State(initialValue: true)
+        case "people": _showPeople = State(initialValue: true)
+        case "addMachine": _showAddMachine = State(initialValue: true)
         case "conflictSettings": _showConflictSettings = State(initialValue: true)
         case "showSettings": _showSettings = State(initialValue: true)
         case "show": _showSheet = State(initialValue: true)
@@ -204,7 +214,8 @@ struct CallView: View {
         HStack(spacing: 0) {
             if wide {
                 SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter, adder: adder,
-                              docked: SessionsSheet.Docked(settings: { showCallSettings = true }, rename: rename))
+                              docked: SessionsSheet.Docked(settings: { showCallSettings = true }, rename: rename),
+                              share: share, removeMachine: removeTheirMachine)
                     .frame(width: 288)
                     .transition(.move(edge: .leading).combined(with: .opacity))
                 Rectangle().fill(Brand.line).frame(width: 1).ignoresSafeArea()
@@ -259,7 +270,7 @@ struct CallView: View {
         .brandStage()
         .sheet(isPresented: $showDumpReview) {
             if let dump {
-                BrainDumpReview(dump: dump, sessions: (status?.sessions ?? []).filter { $0.online != false }.map(\.name), active: status?.active,
+                BrainDumpReview(dump: dump, sessions: (status?.sessions ?? []).filter { $0.online != false && !machines.watchOnly($0) }.map(\.name), active: status?.active,
                                 problem: problem,
                                 edit: { text in await dumpAction("edit", text: text) },
                                 send: { to in
@@ -278,21 +289,25 @@ struct CallView: View {
             }
         }
         .sheet(isPresented: $showSessions) {
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter, adder: adder)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, filter: $machineFilter, starter: starter, adder: adder,
+                          share: share, removeMachine: removeTheirMachine)
                 .presentationDetents([.medium, .large])
                 .sheetSurface()
         }
         .sheet(item: $sessionsOn) { on in
-            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter, adder: adder)
+            SessionsSheet(status: status, switchTo: focus, disconnect: disconnect, setMode: setMode, section: on.id, filter: $machineFilter, starter: starter, adder: adder,
+                          share: share, removeMachine: removeTheirMachine)
                 .presentationDetents([.large])
                 .sheetSurface()
         }
         .sheet(isPresented: $showMachines) {
             MachinesSheet(status: status, pairing: link.pairing, ownerCheck: ownerCheck, invite: makeInvite,
-                          cancelInvite: cancelInvite, revoke: revokeMachine)
+                          cancelInvite: cancelInvite, revoke: revokeMachine, adder: machineAdder, people: peopleActions,
+                          disclosure: disclosures.pending(status), added: machineAdded, disclosureOK: disclosureOK)
                 .presentationDetents([.large])  // the code and its countdown must be on screen, on an SE too
                 .sheetSurface()
         }
+        .background(machineSheets)
         .sheet(item: $editing) { turn in
             EditTurnSheet(turn: turn) { text in await correct(turn, text) }
                 .presentationDetents([.medium])
@@ -533,7 +548,7 @@ struct CallView: View {
                          active: status?.active, mode: status?.mode,
                          focus: focus, orchestrate: { setMode("orchestrator") }, disconnect: disconnect,
                          showAll: { showSessions = true }, rename: rename, machines: machines, filter: $machineFilter,
-                         showMachine: { sessionsOn = MachineName(id: $0) })
+                         showMachine: { sessionsOn = MachineName(id: $0) }, people: status?.people, share: share)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             }
             if let showing {
@@ -801,7 +816,8 @@ struct CallView: View {
 
     /// An answerable request first: one whose machine is offline is back in its terminal.
     private var waiting: [API.Session] {
-        (status?.sessions.filter { $0.waiting && $0.canApprove && !demoAnswered.contains($0.request_id ?? "") } ?? []).enumerated()
+        // never one this person may only watch: its prompt is its owner's to answer
+        (status?.sessions.filter { $0.waiting && $0.canApprove && !machines.watchOnly($0) && !demoAnswered.contains($0.request_id ?? "") } ?? []).enumerated()
             .sorted { ($0.element.isOffline ? 1 : 0, $0.offset) < ($1.element.isOffline ? 1 : 0, $1.offset) }.map(\.element)
     }
 
@@ -863,7 +879,7 @@ struct CallView: View {
         let shown = machines.shown(machineFilter)  // the machine filter narrows this line too
         let needs = machines.needingYou(machineFilter)
         let count = shown.count
-        let on = machines.valid(machineFilter).map { " on \($0)" } ?? ""
+        let on = machines.machine(machineFilter).map { " on \($0)" } ?? (machines.valid(machineFilter) == nil ? "" : " of yours")
         return "Orchestrating \(count) session\(count == 1 ? "" : "s")\(on)" + (needs > 0 ? " · \(needs) need\(needs == 1 ? "s" : "") you" : "") + health
     }
 
@@ -1543,6 +1559,91 @@ struct CallView: View {
             await refreshStatus()
             return nil
         } catch { return .from(error) }
+    }
+
+    // MARK: people and machines (People.swift, AddMachine.swift)
+
+    /// The sheets of people and machines, on a view of their own: the screen's chain of sheets is as long as the
+    /// compiler takes.
+    private var machineSheets: some View {
+        Color.clear
+        .sheet(isPresented: Binding(get: { incoming.wrappedValue != nil || showAddMachine },
+                                    set: { if !$0 { incoming.wrappedValue = nil; showAddMachine = false } }),
+               onDismiss: { if machinesNext { machinesNext = false; showMachines = true } }) {  // one sheet at a time
+            // A machine invite that opened the app: the same sheet as Settings → Machines → Add a machine, with the line
+            // in it. Added, the Machines list opens with the machine and what your voice sends where.
+            AddMachineSheet(actions: machineAdder, line: incoming.wrappedValue ?? Self.launchLine, fromOutside: incoming.wrappedValue != nil) { machine in
+                machineAdded(machine)
+                machinesNext = true
+            }
+            .presentationDetents([.large])
+            .sheetSurface()
+        }
+        .sheet(isPresented: $showPeople) {
+            PeopleSheet(status: status, actions: peopleActions).presentationDetents([.large]).sheetSurface()
+        }
+        // Added from the page or a terminal: the same one line, here, when the Machines sheet is not the one showing it.
+        .alert(disclosures.pending(status).map { PeopleCopy.added($0.machine, owner: MachineView(status).info($0.machine)?.owner) } ?? "",
+               isPresented: Binding(get: { disclosures.pending(status) != nil && !showMachines && !machinesNext && incoming.wrappedValue == nil && !showAddMachine },
+                                    set: { _ in }),
+               presenting: disclosures.pending(status)) { d in
+            Button(PeopleCopy.ok) { disclosureOK(d) }.accessibilityIdentifier("disclosureOK")
+        } message: { d in Text(PeopleCopy.disclosure(d)) }
+    }
+
+
+    #if DEBUG
+    /// `-demo people -sheet addMachine -machineLine <line>`: the line as if scanned, for UI tests (no camera there).
+    private static var launchLine: String { UserDefaults.standard.string(forKey: "machineLine") ?? "" }
+    #else
+    private static let launchLine = ""
+    #endif
+
+    private var machineAdder: AddMachineActions {
+        AddMachineActions(ownerCheck: ownerCheck, add: { line, name in
+            if demo != nil {
+                let (added, fresh) = try Demo.addMachine(line, name: name, status: status)
+                status = fresh
+                return added
+            }
+            let added = try await call.api.addMachine(line: line, name: name)
+            await refreshStatus()
+            return added
+        })
+    }
+
+    private func machineAdded(_ machine: API.MachineAdded) { disclosures.machineAdded(machine) }
+
+    private func disclosureOK(_ d: API.Disclosure) {
+        let machine = disclosures.dismiss(d)
+        if demo != nil { status?.disclosure = nil; return }
+        Task { try? await call.api.disclosureSeen(machine); await refreshStatus() }
+    }
+
+    private var peopleActions: PeopleActions {
+        if demo != nil { return Demo.peopleActions(ownerCheck: ownerCheck, status: $status) }
+        let api = call.api
+        return PeopleActions(ownerCheck: ownerCheck, load: { try await api.people() },
+                             invite: { try await api.invitePerson(name: $0, grant: $1) },
+                             state: { try await api.personInviteState() }, cancel: { try await api.cancelPersonInvite() },
+                             grant: { try await api.setGrant($0, $1) }, remove: { try await api.removePerson($0) })
+    }
+
+    /// A session's Private, or Shared with people. The lock shows at the tap; the Mac's next status confirms it.
+    private func share(_ name: String, _ makePrivate: Bool) {
+        if let i = status?.sessions.firstIndex(where: { $0.name == name }) { status?.sessions[i].private = makePrivate }
+        guard demo == nil else { return }
+        Task {
+            do { try await call.api.share(name, private: makePrivate); problem = nil } catch { problem = PeopleCopy.refusal(error) }
+            await refreshStatus()
+        }
+    }
+
+    /// Remove under "avi-box removed you" in the Sessions list, after its confirm: Face ID, then the machine leaves
+    /// this voice. Nil when it went.
+    private func removeTheirMachine(_ name: String) async -> String? {
+        guard await ownerCheck("Remove a machine: \(name)") else { return nil }
+        return await revokeMachine(name)?.text
     }
 
     private func rename(_ name: String, _ newName: String) {

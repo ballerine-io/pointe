@@ -853,7 +853,11 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   opens the app from outside (the Camera, another app, a web page) pairs nothing, whatever it holds: any app or page can
   open one, and another app can register the same scheme. It only opens a sheet that says to scan the code inside
   Pointe. The app still registers the scheme for that sheet; without it, an app that claims <code>pointe://</code> would be the
-  only one iOS could hand a Camera-scanned code to. The UI tests' launch settings that pair or forget a pairing
+  only one iOS could hand a Camera-scanned code to. One link is read: a machine invite (<code>pointe://machine?…</code>,
+  <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/people-and-machines.md">docs/design/people-and-machines.md</a>) on a paired phone opens Settings → Machines →
+  Add a machine with the line in it. It changes no pairing and sends nothing: the sheet names the machine's address and
+  says the invite came from outside the app, and the Mac is asked to add it only after the owner chooses Add and passes
+  Face ID or the passcode (<code>AddMachineModel</code>). The UI tests' launch settings that pair or forget a pairing
   (<code>POINTE_PAIR</code>, <code>POINTE_FORGET</code>) are compiled into Debug builds only.</p>
 </li>
 <li>

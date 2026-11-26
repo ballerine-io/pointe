@@ -9,6 +9,7 @@ struct Demo {
                        voiceLock, voiceLockEnrolling, voiceLockEnrolled, briefing, briefingPaused,
                        showing, showingOff, challenge, challengeEnded, conflict, conflictMeeting, dictionary, dictionaryLearned, drive,
                        whisper, whisperOff, rtl, machines, machinesOne, machinesOffline, machinesDrive, machinesSessions,
+                       people, peopleWatch, peopleRemoved, peopleAdded,
                        empty, noSessions, many, longNames, longRequest, hold, speaking, muted,
                        newSession, startPending, longTalk,
                        nightShiftStart, nightShift, nightShiftLedger, nightShiftPending, writing, held, thinking, working, addressed }
@@ -94,6 +95,7 @@ struct Demo {
         case .rtl: rtlJSON
         case .empty, .noSessions, .many, .longNames, .longRequest, .hold: stressJSON(screen)
         case .machines, .machinesOne, .machinesOffline, .machinesDrive, .machinesSessions: machinesJSON(screen)  // Settings.swift
+        case .people, .peopleWatch, .peopleRemoved, .peopleAdded: peopleJSON(screen)  // PeopleDemo.swift
         case .newSession, .startPending: newSessionJSON(pending: screen == .startPending)  // NewSession.swift
         case .nightShiftStart, .nightShift, .nightShiftLedger, .nightShiftPending: nightShiftJSON(screen)  // NightShift.swift
         default: callJSON

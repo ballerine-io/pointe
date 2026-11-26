@@ -320,6 +320,43 @@
   #mach-link { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; user-select: all; }
   #mach-link:empty { display: none; }
   #mach-copy { align-self: flex-start; margin-top: 6px; }
+  /* people and machines (docs/design/people-and-machines.md): with one machine and no people none of this shows */
+  .own { color: var(--muted); font: 500 11.5px/1 var(--font); letter-spacing: .01em; text-transform: none; white-space: nowrap; flex: none; }
+  .s .marks { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .s .lock { display: inline-grid; color: var(--muted); flex: none; } .s .lock svg, .s .lockedit svg { width: 12px; height: 12px; display: block; }
+  .s .by { grid-column: 2 / -1; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .s.watch { cursor: default; } .s.watch:hover { background: transparent; }
+  .s.away .own { color: var(--dim); }
+  .mnote { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 0 4px 6px 18px; color: var(--accent); font: 500 12px/1.4 var(--font); }
+  .mnote button { border: 0; border-radius: 10px; min-height: 28px; padding: 0 10px; background: transparent; color: var(--text);
+                  box-shadow: inset 0 0 0 1px var(--line-strong); font: 600 12px var(--font); cursor: pointer; }
+  .mnote button.sure { background: var(--danger); color: #fff; box-shadow: none; }
+  #disclosure { padding: 0 var(--gutter); } #disclosure:empty { display: none; }
+  .ask .answer.one button { flex: 0 0 auto; min-width: 96px; }
+  #mach-add { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+  #mach-add label { font-size: 13px; color: var(--muted); }
+  #mach-add .addline { display: flex; gap: 8px; }
+  #mach-add input, #people-form input { flex: 1; min-width: 0; background: var(--raised); border: 1px solid var(--line); color: var(--text);
+                                        border-radius: 12px; padding: 8px 12px; font: 14px var(--font); min-height: 40px; }
+  #mach-add #mach-line { font: 12.5px var(--mono); }
+  #mach-add button, #people-form .row button.go { border: 0; border-radius: 12px; padding: 0 16px; min-height: 40px; background: var(--primary); color: var(--on-primary);
+                     font: 600 13.5px var(--font); cursor: pointer; }
+  #mach-add button:disabled { opacity: .4; cursor: default; }
+  #mach-name-f { display: flex; align-items: center; gap: 10px; }
+  #mach-adding, #mach-adderr { font-size: 13px; } #mach-adding { color: var(--muted); } #mach-adderr { color: var(--accent); }
+  #mach-adding:empty, #mach-adderr:empty { display: none; }
+  .settings #mach-disclosure { padding: 12px 14px; } .settings #mach-disclosure:empty { display: none; }
+  #people-form { display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; }
+  #people-form label { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .settings #people-form .row { padding: 0; justify-content: flex-start; }
+  .settings #people-invite { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 12px 14px; }
+  .settings #people-invite .note { padding: 0; }
+  #people-link { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; user-select: all; }
+  #people-link:empty, #people-qr:empty { display: none; }
+  .settings #people-copy { min-height: 36px; padding: 0 16px; }
+  .mlist .pacts { grid-row: 1 / 4; grid-column: 2; display: flex; gap: 8px; align-items: center; }
+  .mlist .pv { font-size: 12px; }
+  @media (max-width: 560px) { .mlist li.person { grid-template-columns: 1fr; } .mlist li.person .pacts { grid-row: auto; grid-column: 1; margin-top: 6px; } }
   /* Settings → Phone (phone_pairing.py) */
   .proutes { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
   .proutes label { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; align-items: start; background: var(--raised);
@@ -1346,7 +1383,47 @@
             <div class="note" id="mach-elsewhere" hidden>Invite or revoke a machine on the Mac's own page or in the app.</div>
             <div class="err" id="mach-ended" role="status" hidden></div>
             <div class="err" id="mach-err" role="alert"></div>
+            <form id="mach-add" onsubmit="addMachine(event)" hidden>
+              <label for="mach-line" id="mach-line-l"></label>
+              <div class="addline">
+                <input id="mach-line" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false">
+                <button id="mach-addbtn"></button>
+              </div>
+              <label id="mach-name-f" hidden><span id="mach-name-l"></span><input id="mach-name" dir="auto" autocomplete="off" maxlength="40"></label>
+              <div id="mach-adding" role="status"></div>
+              <div id="mach-adderr" role="alert"></div>
+            </form>
+            <div id="mach-disclosure"></div>
           </div>
+          <h3 id="people-h" hidden></h3>
+          <div class="card" id="people" hidden>
+            <ul class="mlist" id="people-list" aria-labelledby="people-h"></ul>
+            <form id="people-form" onsubmit="invitePerson(event)" hidden>
+              <label><span id="people-name-l"></span><input id="people-name" dir="auto" autocomplete="off" maxlength="40"></label>
+              <div class="seg" role="radiogroup" id="people-grant">
+                <button type="button" role="radio" data-grant="send" onclick="pickGrant('send')"></button>
+                <button type="button" role="radio" data-grant="watch" onclick="pickGrant('watch')"></button>
+              </div>
+              <div class="row">
+                <button class="go" id="people-make"></button>
+                <button type="button" id="people-formcancel" onclick="personForm(false)"></button>
+              </div>
+            </form>
+            <div id="people-invite" hidden>
+              <div class="note" id="people-help"></div>
+              <div class="qrtile" id="people-qrtile" hidden><div id="people-qr" role="img"></div></div>
+              <div id="people-link" dir="ltr"></div>
+              <button type="button" class="pill" id="people-copy" onclick="copyPersonLine()"></button>
+              <div class="note" id="people-left" role="timer"></div>
+            </div>
+            <div class="row" id="people-row" style="justify-content:flex-start">
+              <button type="button" id="people-invitebtn" onclick="personForm(true)"></button>
+              <button type="button" id="people-cancel" onclick="cancelPerson()" hidden></button>
+            </div>
+            <div class="err" id="people-ended" role="status" hidden></div>
+            <div class="err" id="people-err" role="alert"></div>
+          </div>
+          <div class="note foot" id="people-trust" hidden></div>
           <div class="note foot">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
             transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
         </section>
@@ -1631,7 +1708,7 @@
   <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="row-h">
     <h2 id="row-h"><span id="row-name" dir="auto"></span><button class="x" onclick="closeSheet('rowsheet')" aria-label="Close">×</button></h2>
     <div class="lede" id="row-lede"></div>
-    <div id="row-acts"><button id="row-rename" onclick="rowRename()">Rename</button><button id="row-cut" onclick="rowDisconnect()"></button></div>
+    <div id="row-acts"><button id="row-rename" onclick="rowRename()">Rename</button><button id="row-private" onclick="rowPrivate()" hidden></button><button id="row-cut" onclick="rowDisconnect()"></button></div>
   </div>
 </div>
 <div class="sheetbg" id="moresheet" onclick="if (event.target === this) closeSheet('moresheet')">
@@ -1744,6 +1821,8 @@
   <div id="nightstrip"></div>
   <div id="briefalert"></div>
   <div id="whispercard"></div>
+  <div id="disclosure" role="region" aria-label="A machine was added" aria-live="polite"></div>
+  <template id="lock-t"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg></template>
   <div id="caption" hidden aria-live="polite"><span class="wave"><i></i><i></i><i></i><i></i><i></i></span><span class="cap-body"><span id="caption-draft" hidden></span><span id="caption-text" dir="auto"></span></span></div>
   <form id="compose" onsubmit="sendTyped(event)"><textarea id="typed" rows="1" dir="auto" placeholder="Type to the voice…" aria-label="Type to the voice" autocomplete="off" title="Enter sends · Shift+Enter or Option+Enter starts a new line" disabled></textarea>
     <button id="typed-send" disabled>Send</button></form>
@@ -1927,7 +2006,7 @@
     // which coding agent runs each session: shown only when there is more than one kind, so the common case stays clean
     agentBadges = s.sessions.some(x => (x.harness || 'claude-code') !== 'claude-code');
     agentOf = x => (HARNESSES[x.harness || 'claude-code'] || {name: x.harness}).name;
-    const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false).sort((a, b) => (a.online === false) - (b.online === false) || (b.name === s.active) - (a.name === s.active));
+    const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false && grantOf(s, x) !== 'watch').sort((a, b) => (a.online === false) - (b.online === false) || (b.name === s.active) - (a.name === s.active));
     const first = waiting[0];
     const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on)
                         + (first.online === false) + machineView(s).mixed : '';
@@ -1942,22 +2021,25 @@
     const focused = s.mode === 'session';
     const mv = machineView(s);
     const byUrgency = list => list.slice().sort((a, b) => urgency(a) - urgency(b) || a.name.localeCompare(b.name));
-    const chipsKey = JSON.stringify(mv.multi ? [mv.names, machineFilter, mv.names.map(n => mv.info(n).online === false)] : null);
+    const chipsKey = JSON.stringify(mv.multi ? [mv.names, machineFilter, mv.names.map(n => mv.info(n).online === false), mv.others] : null);
     if (chipsKey !== chipsShown) {
       chipsShown = chipsKey;
-      $('mchips').replaceChildren(...(mv.multi ? ['', ...mv.names].map(n => {
-        const m = mv.info(n), chip = el('button', (machineFilter === n ? 'on' : '') + (n && m.online === false ? ' away' : ''), n || 'All');
+      $('mchips').replaceChildren(...(mv.multi ? ['', ...(mv.others ? [MINE] : []), ...mv.names].map(n => {  // Mine: only while somebody else's session is here
+        const m = mv.info(n), chip = el('button', (machineFilter === n ? 'on' : '') + (n && m.online === false ? ' away' : ''), n === MINE ? PEOPLE_COPY.mine : n || 'All');
         chip.setAttribute('aria-pressed', machineFilter === n);
-        chip.title = !n ? 'Sessions on every machine' : m.online === false ? `${n}: offline since ${sinceText(m.since)}` : `Only the sessions on ${n}`;
+        chip.title = !n ? 'Sessions on every machine' : n === MINE ? PEOPLE_COPY.mineTitle : m.online === false ? `${n}: offline since ${sinceText(m.since)}` : `Only the sessions on ${n}`;
         chip.onclick = () => { machineFilter = n; render(); };  // a view only: nothing to ask the Mac
         return chip;
       }) : []));
     }
     const asking = confirming && Date.now() < confirming.until ? confirming.name : '';
+    // A session I own on this machine, while the machine has people (or the session is already private): Private applies.
+    const canShare = x => !x.owner && mv.of(x) === mv.here && (Array.isArray(s.people) || !!x.private);
     const row = x => {
       const pinned = focused && x.name === s.active, away = x.online === false;
-      const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : ''));
-      const hot = needsYou(x) && !away;
+      const watch = grantOf(s, x) === 'watch';  // a machine I may only watch: nothing on its rows sends
+      const b = el('div', 's' + (pinned ? ' on' : '') + (focused && !pinned ? ' dim' : '') + (away ? ' away' : '') + (watch ? ' watch' : ''));
+      const hot = needsYou(x) && !away && !watch;
       const tools = el('span', 'tools');
       tools.append(el('span', 'tag' + (hot ? ' hot' : ''), away ? 'offline' : x.waiting ? 'approve' : x.needs ? 'needs you' : x.working ? 'working' : 'idle'));
       const pen = el('span', 'edit', '✎'); pen.title = 'Rename (F2)'; pen.setAttribute('aria-hidden', 'true');  // a pointer's shortcut: ⋯ has both
@@ -1970,24 +2052,43 @@
       more.setAttribute('aria-label', `Rename or disconnect ${x.name}`); more.setAttribute('aria-haspopup', 'dialog');
       more.onclick = ev => { ev.stopPropagation(); openRowSheet(x.name); };
       more.onkeydown = ev => ev.stopPropagation();  // Enter on ⋯ opens the sheet, not the row's switch
-      tools.append(pen, cut, more);
+      const share = canShare(x);
+      if (share) {  // under the pointer as Rename is; ⋯ has it on touch, and P on the name
+        const key = el('span', 'edit lockedit', ''); key.append($('lock-t').content.cloneNode(true)); key.title = shareTitle(x) + ' (P)'; key.setAttribute('aria-hidden', 'true');
+        key.onclick = ev => { ev.stopPropagation(); setPrivate(x.name, !x.private); };
+        tools.append(key);
+      }
+      if (!watch) tools.append(pen, cut, more);
       // The name is the row's button for a keyboard and a screen reader, named in words; the row takes the pointer's click.
       const state = away ? 'offline' : x.waiting ? 'needs approval' : x.needs ? 'needs you' : x.working ? 'working' : 'idle';
       const reason = hot ? (x.waiting ? (x.request || '').split('\n')[0] : x.needs) : '';
       const nm = el('span', 'nm', short(x.name));
+      const facts = [x.owner ? PEOPLE_COPY.whose(x.owner) : '', x.private ? PEOPLE_COPY.privateMark : '', watch ? PEOPLE_COPY.watchOnly : '',
+                     x.by && x.by.name ? PEOPLE_COPY.using(x.by.name) : ''].filter(Boolean).map(f => ', ' + f).join('');
+      if (watch) {  // read, not pressed: the machine refuses a send from this voice
+        b.append(el('span', 'st' + (x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
+        ownerMarks(b, x);
+        nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${facts}`);
+        if (x.by && x.by.name) b.append(byLine(x));
+        b.title = `${x.name}: ${PEOPLE_COPY.watchTitle}`;
+        return b;
+      }
       nm.tabIndex = 0; nm.setAttribute('role', 'button');
-      nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${reason ? ': ' + reason : ''}`);
+      nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${facts}${reason ? ': ' + reason : ''}`);
       if (pinned) nm.setAttribute('aria-current', 'true');
       // A button: Space too. Its Rename and Disconnect are marks under the pointer, not stops in the tab order: the
       // keyboard has F2 and Delete, Delete twice as a second click is.
-      nm.setAttribute('aria-keyshortcuts', 'F2 Delete');
+      nm.setAttribute('aria-keyshortcuts', share ? 'F2 Delete P' : 'F2 Delete');
       nm.onkeydown = e => {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); switchTo(x.name); }
+        else if (share && (e.key === 'p' || e.key === 'P') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); setPrivate(x.name, !x.private); }
         else if (e.key === 'F2') { e.preventDefault(); startRename(b, x.name); }
         else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); disconnect(x.name); }
       };
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
+      ownerMarks(b, x);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n').slice(0, 2).join(' ') : x.needs));
+      if (x.by && x.by.name) b.append(byLine(x));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
                           : focused ? (pinned ? ' (focused)' : ' — click to focus on it') : ' — click to talk to it next');
       b.onclick = () => switchTo(x.name);  // offline too: the voice can still say what its notes hold
@@ -1998,7 +2099,10 @@
       const h = el('button', 'mh' + (away ? ' away' : '') + (folded ? ' folded' : ''));
       h.setAttribute('aria-expanded', !folded);
       const live = el('span', 'ml' + (away ? '' : ' on')); live.setAttribute('role', 'img'); live.setAttribute('aria-label', away ? 'offline' : 'online');
-      h.append(live, el('span', 'mn', m.name), el('span', '', m.here ? 'this Mac' : OS[m.os] || m.os || ''));
+      h.append(live, el('span', 'mn', m.name));
+      if (m.owner) h.append(el('span', 'own', PEOPLE_COPY.whose(m.owner)));
+      h.append(el('span', '', m.here ? 'this Mac' : OS[m.os] || m.os || ''));
+      if (m.grant === 'watch') h.append(el('span', '', PEOPLE_COPY.watchOnly));
       if (away) h.append(el('span', '', `offline since ${sinceText(m.since)}`));
       else if (!m.here && m.rtt_ms != null) h.append(el('span', '', `${m.rtt_ms} ms`));
       const need = g.sessions.filter(x => needsYou(x) && x.online !== false).length;
@@ -2009,7 +2113,19 @@
     // Rows keyed by session and headers by machine, each redrawn only when what it shows changed (its signature): the
     // pointer, the hover and the keyboard focus stay on the same element across polls.
     const foldedNames = machinesFolded(), seen = new Set();
-    const rowSig = x => JSON.stringify([x, focused && x.name === s.active, focused,
+    // What a machine says about itself, under its header: "avi-box removed you", with Remove next to it.
+    const leaving = revoking && Date.now() < revoking.until ? revoking.name : '';
+    const gone = m => !m.here && canInvite && !remotePage && / removed you\b/.test(m.notice || '');
+    const notice = m => {
+      const n = el('div', 'mnote'); n.setAttribute('role', 'status'); n.append(el('span', '', m.notice));
+      if (gone(m)) {
+        const sure = leaving === m.name, b = el('button', sure ? 'sure' : '', sure ? PEOPLE_COPY.removeAsk(m.name) : PEOPLE_COPY.remove);
+        b.type = 'button'; b.title = PEOPLE_COPY.removeMachineTitle; b.onclick = () => revokeMachine(m.name);
+        n.append(b);
+      }
+      return n;
+    };
+    const rowSig = x => JSON.stringify([x, focused && x.name === s.active, focused, grantOf(s, x), canShare(x),
                                         asking === x.name, x.online === false ? mv.info(mv.of(x)).since : 0]);
     const headerSig = g => JSON.stringify([g.m, foldedNames.includes(g.m.name), g.sessions.filter(x => needsYou(x) && x.online !== false).length]);
     const keyed = x => { let key = x.name; while (seen.has(key)) key += ' '; seen.add(key); return [key, rowSig(x), () => row(x)]; };
@@ -2019,6 +2135,7 @@
       ? (starts.length ? [] : [['', '', () => el('div', 'empty', 'No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder. Or start one here: New session.')]])
       : !mv.multi ? byUrgency(s.sessions).map(keyed)
       : mv.groups.flatMap(g => [['@' + g.m.name, headerSig(g), () => header(g)],
+                                ...(g.m.notice ? [['!' + g.m.name, JSON.stringify([g.m.notice, gone(g.m), leaving === g.m.name]), () => notice(g.m)]] : []),
                                 ...(foldedNames.includes(g.m.name) ? [] : byUrgency(g.sessions).map(keyed))])).concat(starts);
     reconcile($('list'), listShown, wanted);
     listEdges();
@@ -2026,6 +2143,8 @@
     showAttachAsk(s);
     showNightShift(s);
     showMachines(s, mv);
+    showPeople(s);
+    showDisclosure(s);
     showPhones(s);
     syncSettingsNav();
     document.body.classList.toggle('nosessions', false);
@@ -2116,19 +2235,24 @@
   // Machines (docs/multi-machine.md). A session's `machine` names the machine it runs on ("" or none: this Mac). The
   // filter is a view only: it sends nothing and changes no mode.
   let machineFilter = '';
+  const MINE = '\u0001mine';  // the filter's other value: my own sessions on every machine. No machine can have this name.
   const OS = {macos: 'macOS', linux: 'Linux'};
+  // The grant this voice has on the machine a session runs on: "watch", "send", or none on a machine of my own.
+  const grantOf = (s, x) => (((s && s.machines) || []).find(m => !m.here && m.name === x.machine) || {}).grant;
   function machineView(s) {
     const list = (s && s.machines) || [], sessions = (s && s.sessions) || [];
     const here = (list.find(m => m.here) || {}).name || '';
     const of = x => x.machine || here;
     const info = n => list.find(m => m.name === n) || {name: n, here: n === here};
     const names = [...new Set([here, ...list.filter(m => !m.here).map(m => m.name), ...sessions.map(of)])].filter(Boolean);
-    const multi = names.length > 1;
-    if (!multi || !names.includes(machineFilter)) machineFilter = '';
-    const on = n => !machineFilter || n === machineFilter;
-    return {multi, here, of, info, names, mixed: new Set(sessions.map(of)).size > 1,
-            groups: names.filter(on).map(n => ({m: info(n), sessions: sessions.filter(x => of(x) === n)})),
-            shown: sessions.filter(x => on(of(x)))};
+    const multi = names.length > 1, others = sessions.some(x => x.owner);
+    if (machineFilter === MINE ? !(multi && others) : !multi || !names.includes(machineFilter)) machineFilter = '';
+    const mine = machineFilter === MINE;
+    const on = n => mine || !machineFilter || n === machineFilter, keep = x => !mine || !x.owner;
+    return {multi, here, of, info, names, others, mixed: new Set(sessions.map(of)).size > 1,
+            groups: names.filter(on).map(n => ({m: info(n), sessions: sessions.filter(x => of(x) === n && keep(x))}))
+                         .filter(g => !mine || g.m.here || g.sessions.length),
+            shown: sessions.filter(x => on(of(x)) && keep(x))};
   }
   // "shop · devbox": a name suffixed with its machine ("shop devbox", the second shop to join) loses the suffix here.
   function whoLabel(x, mv) {
@@ -2989,7 +3113,7 @@
     const s = status, mv = machineView(s), sessions = mv.shown, need = sessions.filter(x => needsYou(x) && x.online !== false).length;
     // The line under the state, as parts: a string is text, {b} is bold. Built as nodes, never parsed as HTML: it carries
     // session and machine names.
-    const on = machineFilter ? ` on ${machineFilter}` : '';  // the machine filter narrows this line too
+    const on = machineFilter === MINE ? ' of yours' : machineFilter ? ` on ${machineFilter}` : '';  // the machine filter narrows this line too
     // a Mac not answering: the last count it sent is stale, so none is shown
     const where = !s || fails >= 3 ? [] : !(s.sessions || []).length ? ['No sessions yet: /pointe:voice in Claude Code, or pointe join opencode']
       : s.mode === 'session' ? ['Focused on ', {b: short(s.active || '')}]
@@ -3431,6 +3555,15 @@
     const sure = !!confirming && confirming.name === rowSheetName && Date.now() < confirming.until;
     text('row-cut', sure ? ROW_COPY.sure : ROW_COPY.cut);
     $('row-cut').classList.toggle('sure', sure);
+    const s = status, x = s && s.sessions.find(y => y.name === rowSheetName), mv = machineView(s);
+    const share = !!x && !x.owner && mv.of(x) === mv.here && (Array.isArray(s.people) || !!x.private);
+    $('row-private').hidden = !share;
+    if (share) { text('row-private', x.private ? PEOPLE_COPY.makeShared : PEOPLE_COPY.makePrivate); $('row-private').title = shareTitle(x); }
+  }
+  function rowPrivate() {
+    const x = status && status.sessions.find(y => y.name === rowSheetName);
+    if (x) setPrivate(x.name, !x.private);
+    closeSheet('rowsheet');
   }
   function openRowSheet(name) {
     rowSheetName = name; text('row-name', short(name)); text('row-lede', ROW_COPY.lede); drawRowSheet();
@@ -4377,14 +4510,15 @@
       machinesShown = sig;
       $('mach-list').replaceChildren(...[...s.machines].sort((a, b) => b.here - a.here).map(m => {
         const li = el('li'), away = m.online === false;
-        li.append(el('span', 'mn', m.here ? `${m.name} (this Mac)` : m.name));
-        const facts = [OS[m.os] || m.os, stale ? 'not known: the Mac is not answering' : away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
+        li.append(el('span', 'mn', m.here ? `${m.name} (this Mac)` : m.owner ? `${m.name} · ${PEOPLE_COPY.whose(m.owner)}` : m.name));
+        const facts = [OS[m.os] || m.os, m.grant === 'watch' ? PEOPLE_COPY.watchOnly : '', stale ? 'not known: the Mac is not answering' : away ? `offline since ${sinceText(m.since)}` : m.here ? 'online' : `online · ${m.rtt_ms ?? '?'} ms`,
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
         if (!m.here && canInvite && !remotePage) {  // the same owner check as an invite; over the phone's listener the Mac refuses a revoke (hub_nodes.owner)
-          const sure = asking === m.name, b = el('button', sure ? 'sure' : '', sure ? `Revoke ${m.name}?` : 'Revoke');
-          b.title = 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
+          // A machine I invited is revoked; one I was invited to is removed from my voice (the same route, the daemon knows which).
+          const sure = asking === m.name, b = el('button', sure ? 'sure' : '', m.owner ? (sure ? PEOPLE_COPY.removeAsk(m.name) : PEOPLE_COPY.remove) : sure ? `Revoke ${m.name}?` : 'Revoke');
+          b.title = m.owner ? PEOPLE_COPY.removeMachineTitle : 'Unpair it: its sessions leave the voice, and it needs a new code to come back';
           b.onclick = () => revokeMachine(m.name);
           li.append(b);
         }
@@ -4392,6 +4526,7 @@
       }));
     }
     showInvite();
+    showAdd();
   }
   function showInvite() {
     const left = invite ? Math.max(0, Math.round((invite.until - Date.now()) / 1000)) : 0;
@@ -4409,19 +4544,19 @@
     $('mach-left').textContent = `Expires in ${clock(left)}`;
   }
   setInterval(() => { if (invite) showInvite(); }, 1000);
-  async function hubPost(path, body) {
-    $('mach-err').textContent = '';
+  async function hubPost(path, body, err = 'mach-err') {  // err: where a refusal is said (People has its own line)
+    $(err).textContent = '';
     const r = await fetch(path, {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
     if (!r.ok) {  // the hub's routes answer a refusal as plain text ("no machine called x is paired")
       const text = (await r.text().catch(() => '')).trim();
       let said = text; try { said = JSON.parse(text).detail || text; } catch (e) {}
       if (r.headers.get('x-pointe-fix') === 'phone') {  // no address yet: the words name CLI commands; the page has its own way
         const go = el('button', 'pill', 'Set it up under Phone'); go.type = 'button';
-        go.onclick = () => { $('mach-err').textContent = ''; settingsJump('phone'); phoneConnect(); };
-        $('mach-err').replaceChildren(el('div', '', 'Another machine needs an address to reach this Mac. Set one up under Phone (one address serves both), then invite again.'), go);
+        go.onclick = () => { $(err).textContent = ''; settingsJump('phone'); phoneConnect(); };
+        $(err).replaceChildren(el('div', '', 'Another machine needs an address to reach this Mac. Set one up under Phone (one address serves both), then invite again.'), go);
         return null;
       }
-      $('mach-err').textContent = r.status === 403 ? "Only the Mac's own page or the app can do this." : said || 'The Mac did not do it.';
+      $(err).textContent = r.status === 403 ? "Only the Mac's own page or the app can do this." : said || 'The Mac did not do it.';
       return null;
     }
     return await r.json().catch(() => ({}));
@@ -4447,6 +4582,289 @@
     }
     revoking = null;
     await hubPost('/voice/hub/revoke', {name});
+    refresh();
+  }
+  // People and machines (docs/design/people-and-machines.md): a machine somebody invited this voice to, and the people
+  // invited to this machine. The words the page and the apps share (PeopleCopy in the apps; tests/test_people_page.py).
+  const PEOPLE_COPY = {
+    addLabel: 'Paste the line the machine\'s owner sent you', add: 'Add', adding: 'Adding the machine…', callIt: 'Call it',
+    notAdded: 'The machine was not added.', noAnswer: 'The Mac is not answering.', ok: 'OK',
+    people: 'People', invite: 'Invite a person', name: 'Name', can: 'What they can do', send: 'Can talk to the sessions', watch: 'Can only watch',
+    make: 'Show the invite', cancel: 'Cancel', cancelInvite: 'Cancel the invite', copy: 'Copy the line', copied: 'Copied',
+    selectIt: 'Select and copy it', grantSend: 'Can talk', grantWatch: 'Watch only', online: 'online', notYet: 'not here yet',
+    remove: 'Remove', watchOnly: 'watch only', mine: 'Mine', mineTitle: 'Only your own sessions',
+    makePrivate: 'Private', makeShared: 'Shared with people', privateMark: 'private',
+    privateTitle: 'Keep it private: the people on this machine do not see it',
+    sharedTitle: 'Share it with the people on this machine',
+    watchTitle: 'watch only. You see and hear it. Its machine refuses a request from you.',
+    removeMachineTitle: 'Take it off your voice: its sessions leave, and you need a new invite to come back',
+    removePersonTitle: 'Remove their key: their voice loses this machine, and they need a new invite to come back',
+    notShared: 'The Mac did not change it.',
+  };
+  const PEOPLE_SAYS = {
+    whose: name => `${name}'s`,
+    using: name => `${name} is using it`,
+    removeAsk: name => `Remove ${name}?`,
+    lastHere: when => `last here ${when}`,
+    uses: vendors => `Their voice uses: ${vendors.join(', ')}`,
+    inviteHelp: name => `Send this line to ${name}. It works once.`,
+    added: (machine, owner) => owner ? `${machine} · ${owner}'s` : machine,
+    // what the voice does with that machine's transcripts, said once: the sentence a machine of one's own prints when it joins
+    disclosure: (machine, vendors, owner) => (vendors.length
+      ? `Your voice sends the transcripts of the sessions on ${machine}, with credentials masked, to: ${vendors.join(', ')}.`
+      : `Your voice sends the transcripts of the sessions on ${machine} to no outside service.`)
+      + ` ${owner || 'Its owner'} sees this list next to your name.`,
+    trust: account => `People you invite can make these agents run commands as ${account || 'your account on this machine'}. Keep a session to yourself with Private.`,
+    grantTitle: (name, grant) => grant === 'watch' ? `${name} can only watch. Click to let them talk to the sessions.`
+      : `${name} can talk to the sessions. Click to make it watch only.`,
+  };
+  Object.assign(PEOPLE_COPY, PEOPLE_SAYS);
+  const vendorNames = v => (Array.isArray(v) ? v : []).map(x => typeof x === 'string' ? x : (x && (x.name || x.id)) || '').filter(Boolean);
+  async function refusal(r) {  // the daemon's one sentence: plain text, or {detail}
+    const said = (await r.text().catch(() => '')).trim();
+    try { return String(JSON.parse(said).detail || said); } catch (e) { return said; }
+  }
+
+  // A session's marks after its name: the agent, then whose it is and a lock, each only when it applies.
+  function lockMark() {
+    const lock = el('span', 'lock'); lock.append($('lock-t').content.cloneNode(true));
+    lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', PEOPLE_COPY.privateMark); lock.title = PEOPLE_COPY.privateMark;
+    return lock;
+  }
+  function ownerMarks(row, x) {
+    if (!x.owner && !x.private) return;  // the row stays as it always was
+    const agent = row.querySelector('.hmark'), marks = el('span', 'marks');
+    agent.replaceWith(marks); marks.append(agent);
+    if (x.owner) marks.append(el('span', 'own', PEOPLE_COPY.whose(x.owner)));
+    if (x.private) marks.append(lockMark());
+  }
+  function byLine(x) {
+    const by = el('span', 'by', PEOPLE_COPY.using(x.by.name));
+    if (x.by.since) by.title = `since ${sinceText(x.by.since)}`;
+    return by;
+  }
+  const shareTitle = x => x.private ? PEOPLE_COPY.sharedTitle : PEOPLE_COPY.privateTitle;
+  function setPrivate(name, on) {
+    $('renameproblem').textContent = '';
+    want('private ' + name, s => { const x = s.sessions.find(y => y.name === name); if (x) { if (on) x.private = true; else delete x.private; } },
+      postSafe('/voice/share', {session: name, private: on}).then(r => {
+        if (!r.ok) $('renameproblem').textContent = r.detail || PEOPLE_COPY.notShared;
+        refresh(); return r.ok;
+      }));
+  }
+
+  // Settings → Machines → Add a machine: paste the line, and it is added. A name is asked only when the machine's own is taken.
+  let adding = false, addNeedsName = false;
+  const inviteLine = typed => (typed.match(/pointe:\/\/machine\?[^\s'"]+/) || [typed.trim()])[0];  // the line alone, out of a pasted command
+  for (const [id, words] of [['mach-line-l', PEOPLE_COPY.addLabel], ['mach-addbtn', PEOPLE_COPY.add], ['mach-name-l', PEOPLE_COPY.callIt],
+                             ['people-h', PEOPLE_COPY.people], ['people-name-l', PEOPLE_COPY.name], ['people-make', PEOPLE_COPY.make],
+                             ['people-formcancel', PEOPLE_COPY.cancel], ['people-invitebtn', PEOPLE_COPY.invite], ['people-cancel', PEOPLE_COPY.cancelInvite]])
+    $(id).textContent = words;
+  for (const b of $('people-grant').querySelectorAll('button')) b.textContent = PEOPLE_COPY[b.dataset.grant];
+  $('people-grant').setAttribute('aria-label', PEOPLE_COPY.can);
+  function showAdd() {
+    $('mach-add').hidden = !canInvite || remotePage;
+    $('mach-name-f').hidden = !addNeedsName;
+    text('mach-adding', adding ? PEOPLE_COPY.adding : '');
+    $('mach-addbtn').disabled = adding;
+  }
+  async function addMachine(ev) {
+    if (ev) ev.preventDefault();
+    const line = inviteLine($('mach-line').value), name = $('mach-name').value.trim();
+    if (!line || adding) return;
+    adding = true; $('mach-adderr').textContent = ''; showAdd();
+    let r = null, said = '';
+    try {
+      r = await fetch('/voice/machines/add', {method: 'POST', headers: {'content-type': 'application/json'},
+                                              body: JSON.stringify(addNeedsName && name ? {line, name} : {line})});
+      if (!r.ok) said = r.status === 403 ? "Only the Mac's own page or the app can do this." : await refusal(r);
+    } catch (e) { said = PEOPLE_COPY.noAnswer; }
+    adding = false;
+    if (!r || !r.ok) {  // the field keeps the line; a name that is taken asks for another
+      const taken = !!r && r.status === 409;
+      if (taken) addNeedsName = true;
+      $('mach-adderr').textContent = said || PEOPLE_COPY.notAdded;
+      showAdd();
+      if (taken) $('mach-name').focus();
+      return;
+    }
+    const made = await r.json().catch(() => ({}));
+    $('mach-line').value = ''; $('mach-name').value = ''; addNeedsName = false; showAdd();
+    disclosureRead.delete(made.name);
+    // In the list at once, with what its services are: the status says both a moment later.
+    if (made.name) want('machine ' + made.name, s => {
+      if (Array.isArray(s.machines) && !s.machines.some(m => m.name === made.name))
+        s.machines.push({id: made.name, name: made.name, here: false, online: true, sessions: 0, owner: made.owner, grant: made.grant});
+      if (!s.disclosure && !disclosureRead.has(made.name)) s.disclosure = {machine: made.name, vendors: made.vendors || []};
+    }, new Promise(() => {}));
+    refresh();
+  }
+  $('mach-line').addEventListener('paste', () => setTimeout(() => {  // a pasted line needs no second step
+    if (/pointe:\/\/machine\?/.test($('mach-line').value)) addMachine();
+  }, 0));
+
+  // Once after a machine is added: the services this voice sends that machine's transcripts to. In the conversation and
+  // in Settings → Machines, wherever the person is; OK in either tells the Mac it was read.
+  const disclosureSeen = new Set(), disclosureRead = new Set();  // Seen: until the status drops it. Read: for the card an add drew before the status had it.
+  let disclosureShown = '';
+  function showDisclosure(s) {
+    if (!s.disclosure) disclosureSeen.clear();
+    const d = s.disclosure && s.disclosure.machine && !disclosureSeen.has(s.disclosure.machine) ? s.disclosure : null;
+    const owner = d ? ((s.machines || []).find(m => m.name === d.machine) || {}).owner : '';
+    const key = JSON.stringify([d, owner]);
+    if (key === disclosureShown) return;
+    disclosureShown = key;
+    for (const id of ['disclosure', 'mach-disclosure']) {
+      if (!d) { $(id).replaceChildren(); continue; }
+      const card = el('div', 'ask'), what = el('div', 'what', PEOPLE_COPY.added(d.machine, owner));
+      what.id = id + '-what'; card.setAttribute('role', 'group'); card.setAttribute('aria-labelledby', what.id);
+      const answer = el('div', 'answer one'), ok = el('button', 'allow', PEOPLE_COPY.ok); ok.type = 'button';
+      ok.onclick = () => {
+        disclosureSeen.add(d.machine); disclosureRead.add(d.machine); showDisclosure(status);
+        postSafe('/voice/machines/add', {seen: d.machine}).then(refresh);
+      };
+      answer.append(ok);
+      card.append(what, el('div', 'need', PEOPLE_COPY.disclosure(d.machine, vendorNames(d.vendors), owner)), answer);
+      $(id).replaceChildren(card);
+    }
+  }
+
+  // Settings → Machines → People: who the owner invited to this machine, what each may do, and an invite for one more.
+  // Only where an invite can be made (the machine's own page). The status lists the people; /voice/people adds the
+  // services each one's voice uses.
+  let peopleShown = '', removing = null, personInvite = null, inviteGrant = 'send', personFormOpen = false;
+  let peopleMore = {}, peopleAsked = '', personCancelled = '', personTicking = false;
+  function showPeople(s) {
+    const people = Array.isArray(s.people) ? s.people : [];
+    const here = canInvite && !remotePage && Array.isArray(s.machines);
+    $('people').hidden = !here;
+    if (!here) { $('people-h').hidden = $('people-trust').hidden = true; return; }
+    const pi = s.people_invite;  // a code made elsewhere (the app, the command line) shows here too
+    if (pi && pi.code && pi.code !== personCancelled && !(personInvite && personInvite.code === pi.code))
+      personInvite = {code: pi.code, link: pi.link || '', name: pi.name || '', svg: '', until: Date.now() + (pi.expires_in || 0) * 1000};
+    const asking = removing && Date.now() < removing.until ? removing.name : '';
+    const namesKey = JSON.stringify(people.map(p => [p.name, p.online]));
+    if (namesKey !== peopleAsked && people.length && $('settingssheet').classList.contains('open')) { peopleAsked = namesKey; loadPeople(); }
+    const sig = JSON.stringify([people, asking, peopleMore, fails > 0]);
+    if (sig !== peopleShown) {
+      peopleShown = sig;
+      $('people-list').replaceChildren(...people.map(p => {
+        const li = el('li', 'person'), more = peopleMore[p.name] || {};
+        li.append(el('span', 'mn', p.name));
+        li.append(el('span', 'mmeta', p.online ? PEOPLE_COPY.online : p.since ? PEOPLE_COPY.lastHere(sinceText(p.since)) : PEOPLE_COPY.notYet));
+        const vendors = vendorNames(p.vendors || more.vendors);
+        if (vendors.length) li.append(el('span', 'mmeta pv', PEOPLE_COPY.uses(vendors)));
+        const acts = el('div', 'pacts'), watch = p.grant === 'watch';
+        const grant = el('button', '', watch ? PEOPLE_COPY.grantWatch : PEOPLE_COPY.grantSend); grant.type = 'button';
+        grant.title = PEOPLE_COPY.grantTitle(p.name, p.grant); grant.setAttribute('aria-label', grant.title);
+        grant.onclick = () => setGrant(p.name, watch ? 'send' : 'watch');
+        const sure = asking === p.name, cut = el('button', sure ? 'sure' : '', sure ? PEOPLE_COPY.removeAsk(p.name) : PEOPLE_COPY.remove);
+        cut.type = 'button'; cut.title = PEOPLE_COPY.removePersonTitle;
+        if (!sure) cut.setAttribute('aria-label', `${PEOPLE_COPY.remove} ${p.name}`);
+        cut.onclick = () => removePerson(p.name);
+        acts.append(grant, cut); li.append(acts);
+        return li;
+      }));
+    }
+    const some = people.length > 0 || personFormOpen || !!personInvite;  // with nobody, the one button is all there is
+    $('people-list').hidden = !people.length;
+    $('people-h').hidden = $('people-trust').hidden = !some;
+    text('people-trust', PEOPLE_COPY.trust(s.account || ''));
+    showPersonInvite();
+  }
+  async function loadPeople() {
+    const got = await fetch('/voice/people').then(r => r.ok ? r.json() : null).catch(() => null);
+    if (!got || !Array.isArray(got.people)) return;
+    peopleMore = Object.fromEntries(got.people.map(p => [p.name, {vendors: vendorNames(p.vendors)}]));
+    if (status) showPeople(status);
+  }
+  function showPersonInvite() {
+    const left = personInvite ? Math.max(0, Math.round((personInvite.until - Date.now()) / 1000)) : 0;
+    const live = !!(personInvite && left > 0);
+    $('people-invite').hidden = !live;
+    $('people-cancel').hidden = !live;
+    $('people-form').hidden = live || !personFormOpen;
+    $('people-invitebtn').hidden = live || personFormOpen;
+    $('people-row').hidden = $('people-invitebtn').hidden && $('people-cancel').hidden;
+    for (const b of $('people-grant').querySelectorAll('button')) {
+      const on = b.dataset.grant === inviteGrant;
+      b.className = on ? 'on' : ''; b.setAttribute('aria-checked', on);
+    }
+    if (!live) return;
+    text('people-help', PEOPLE_COPY.inviteHelp(personInvite.name || 'them'));
+    if ($('people-link').textContent !== personInvite.link) { $('people-link').textContent = personInvite.link; $('people-copy').textContent = PEOPLE_COPY.copy; }
+    $('people-copy').hidden = !personInvite.link;
+    if ($('people-qr').dataset.code !== personInvite.code + !!personInvite.svg) {  // drawn by the Mac, as the phone's code is
+      $('people-qr').dataset.code = personInvite.code + !!personInvite.svg;
+      $('people-qr').replaceChildren(...(personInvite.svg ? qrNodes(personInvite.svg) : []));
+      $('people-qr').setAttribute('aria-label', PEOPLE_COPY.inviteHelp(personInvite.name || 'them'));
+    }
+    $('people-qrtile').hidden = !$('people-qr').firstChild;
+    $('people-left').textContent = `Expires in ${clock(left)}`;
+  }
+  function personForm(open) {
+    personFormOpen = open; $('people-err').textContent = ''; $('people-ended').hidden = true;
+    if (status) showPeople(status);
+    if (open) $('people-name').focus(); else $('people-invitebtn').focus();
+  }
+  function pickGrant(grant) { inviteGrant = grant; showPersonInvite(); }
+  async function invitePerson(ev) {
+    ev.preventDefault();
+    const name = $('people-name').value.trim();
+    if (!name) { $('people-name').focus(); return; }
+    const made = await hubPost('/voice/people/invite', {name, grant: inviteGrant}, 'people-err');
+    if (!made || !made.code) return;  // the Mac's sentence is under the form, which keeps the name
+    personInvite = {code: made.code, link: made.link || '', name: made.name || name, svg: made.svg || '', until: Date.now() + (made.expires_in || 600) * 1000};
+    personFormOpen = false; personCancelled = ''; $('people-name').value = ''; inviteGrant = 'send';
+    if (status) showPeople(status);
+    $('people-copy').focus();
+  }
+  async function copyPersonLine() {
+    try { await navigator.clipboard.writeText($('people-link').textContent); $('people-copy').textContent = PEOPLE_COPY.copied; }
+    catch (e) { getSelection().selectAllChildren($('people-link')); $('people-copy').textContent = PEOPLE_COPY.selectIt; }
+  }
+  function personDone(ended) {
+    personInvite = null;
+    $('people-ended').hidden = !ended; $('people-ended').textContent = ended || '';
+    if (status) showPeople(status);
+    refresh();
+  }
+  async function cancelPerson() {
+    const code = personInvite && personInvite.code;
+    if (await hubPost('/voice/people/invite', {cancel: true}, 'people-err')) { personCancelled = code || ''; personDone(''); }
+  }
+  // Once a second while an invite shows: the countdown, and whether the person paired (the invite closes; the list has them).
+  setInterval(async () => {
+    if (!personInvite) return;
+    showPersonInvite();
+    if (personTicking) return;
+    personTicking = true;
+    const code = personInvite.code;
+    const st = await fetch('/voice/people/invite').then(r => r.ok ? r.json() : null).catch(() => null);
+    personTicking = false;
+    if (!personInvite || personInvite.code !== code) return;
+    if (st && st.paired) return personDone('');
+    if (st && st.ended) return personDone(`${String(st.ended)[0].toUpperCase()}${String(st.ended).slice(1)}${/[.!?]$/.test(st.ended) ? '' : '.'}`);
+    if (Date.now() >= personInvite.until || (st && !st.code)) return personDone('');
+    if (st && st.code === code) {  // a page opened while the code waits has no line yet
+      if (st.link && !personInvite.link) personInvite.link = st.link;
+      if (st.name && !personInvite.name) personInvite.name = st.name;
+      if (st.svg && !personInvite.svg) personInvite.svg = st.svg;
+      showPersonInvite();
+    }
+  }, 1000);
+  function setGrant(name, grant) {
+    want('grant ' + name, s => { const p = (s.people || []).find(q => q.name === name); if (p) p.grant = grant; },
+      hubPost('/voice/people/grant', {name, grant}, 'people-err').then(r => { refresh(); return !!r; }));
+  }
+  async function removePerson(name) {  // two clicks, no dialog, as Revoke
+    if (!(removing && removing.name === name && Date.now() < removing.until)) {
+      removing = {name, until: Date.now() + 3000};
+      render(); setTimeout(render, 3100);
+      return;
+    }
+    removing = null;
+    await hubPost('/voice/people/remove', {name}, 'people-err');
     refresh();
   }
   // Settings → Phone (phone_pairing.py): the paired phones, the routes to this Mac, a one-time QR, Unpair in two clicks.

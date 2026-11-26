@@ -138,12 +138,16 @@ class StubMac:
         app.router.add_get("/voice/night-shift", self._night_shift)
         app.router.add_get("/voice/add-sessions", self._add_sessions)
         app.router.add_get("/voice/approvals", self._approvals)
+        self.routes(app)
         app.router.add_route("POST", "/{tail:.*}", self._post)
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
         await self._runner.setup()
         await web.TCPSite(self._runner, "127.0.0.1", self.port).start()
         return self
+
+    def routes(self, app) -> None:
+        """A stub with routes of its own (a GET the page polls) adds them here, before the catch-all POST."""
 
     async def stop(self) -> None:
         if self._runner:

@@ -81,6 +81,9 @@ struct API {
         var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac
         var start_pending: NewSession.Pending?  // a read-back that waits for a yes or a tap; nil when none
         var attach_pending: AddSessions.Pending?  // sessions read back to add, waiting for a yes, a pick or a tap; nil when none
+        @Tolerant var people: [Person]?       // the people invited to this machine (People.swift); nil with none, or from an older Mac
+        @Tolerant var people_invite: PeopleInvite?  // the invite for a person that waits, for the owner's screens
+        @Tolerant var disclosure: Disclosure? // once after a machine is added: where your voice sends its transcripts, until dismissed
         var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
         var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
         #if os(macOS)
@@ -102,8 +105,14 @@ struct API {
         let rtt_ms: Int?
         let key_fp: String?         // the first hex of the node key's SHA-256, as `pointe node status` prints it
         let notice: String?         // one line about its link, e.g. a takeover from another address
+        /// Whose machine it is, on one this person was invited to (docs/design/people-and-machines.md); nil on their own.
+        @Tolerant var owner: String? = nil
+        /// "send" or "watch", on a machine they were invited to.
+        @Tolerant var grant: String? = nil
 
         var isHere: Bool { here == true }
+        /// Invited to watch only: the machine refuses this voice's requests, so nothing here offers to send one.
+        var isWatchOnly: Bool { grant == "watch" }
         var isOffline: Bool { online == false }
         var osName: String {
             switch os ?? "" {
@@ -482,12 +491,43 @@ struct API {
         var machine: String? = nil
         /// False while its machine is offline: sends are refused and its prompt is back in its terminal.
         var online: Bool? = nil
+        /// Whose session it is, when it is not this person's (docs/design/people-and-machines.md).
+        @Tolerant var owner: String? = nil
+        /// A session of this machine that its owner keeps to themselves: no person invited to the machine sees it.
+        @Tolerant var `private`: Bool? = nil
+        /// Set while the session works on another person's request.
+        @Tolerant var by: By? = nil
         var id: String { name }
+        var isMine: Bool { (owner ?? "").isEmpty }
+        var isPrivate: Bool { `private` == true }
         var isOffline: Bool { online == false }
 
         var agent: String { Harness.name(harness) }
         /// An agent without approvals (Pi, for one) never gets Approve or Deny.
         var canApprove: Bool { capabilities?.approvals != false }
+    }
+
+    /// Who a session is working for, and since when. `since` is read as epoch seconds or as a clock time already
+    /// written ("14:02"): a form this app does not know leaves the name and drops the time.
+    struct By: Decodable, Equatable {
+        let name: String
+        var since: Double? = nil
+        var sinceText: String? = nil
+
+        init(name: String, since: Double? = nil, sinceText: String? = nil) {
+            self.name = name
+            self.since = since
+            self.sinceText = sinceText
+        }
+
+        private enum Keys: String, CodingKey { case name, since }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: Keys.self)
+            name = try c.decode(String.self, forKey: .name)
+            since = try? c.decode(Double.self, forKey: .since)
+            sinceText = since == nil ? try? c.decode(String.self, forKey: .since) : nil
+        }
     }
 
     struct Capabilities: Decodable, Equatable {

@@ -50,7 +50,7 @@ public enum MacCopy {
     public static let daemonDown = "Pointe on this Mac is not running. Start it here, or run pointe open in a terminal."
     public static let keyRefused = "Pointe on this Mac refused this app. Restart Pointe: Settings → Pointe on this Mac → Restart."
     public static let squatter = "Another program is answering on Pointe's port, so this app sent it nothing."
-    public static let node = "This Mac is a node: the call is on its hub. Open Pointe there, or use the phone app."
+    public static let node = "This Mac is a machine on another Mac's voice: the call is there. Open Pointe on that Mac, or use the phone app."
     public static let noPlugin = "Pointe is not installed on this Mac yet."
     /// The daemon is coming up. It downloads nothing: the installer put the packages there first (Installer.swift).
     public static let starting = "Starting Pointe…"

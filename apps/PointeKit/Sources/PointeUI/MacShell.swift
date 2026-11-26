@@ -90,13 +90,13 @@ public final class MacSession: CallShell {
 
     /// Sessions that wait on the person: a request to approve, or a question.
     public var needCount: Int {
-        (status?.sessions ?? []).filter { !$0.isOffline && ($0.waiting || $0.needs != nil) }.count
+        MachineView(status).needingYou()
     }
 
     public var waiting: [Waiting] {
         let machines = MachineView(status)
         return (status?.sessions ?? []).compactMap { s in
-            guard s.waiting, s.canApprove, let id = s.request_id else { return nil }
+            guard s.waiting, s.canApprove, !machines.watchOnly(s), let id = s.request_id else { return nil }
             return Waiting(id: id, label: machines.label(s))
         }
     }

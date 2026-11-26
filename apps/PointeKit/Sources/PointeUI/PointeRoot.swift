@@ -43,6 +43,7 @@ public struct PointeRoot: View {
     @State private var flow: PairingFlow
     @State private var tried: Demo?  // "Try a demo" on the pairing screen; nothing is paired or saved
     @State private var helping: ConnectionProblem?  // "How to fix" open on a pairing problem
+    @State private var machineLine: String?  // a machine invite that opened the app: Add a machine opens on it
     @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // Settings' Appearance: System, Light or Dark
 
     public init() {
@@ -53,13 +54,13 @@ public struct PointeRoot: View {
     public var body: some View {
         Group {
             if let demo = Demo.fromLaunch() {
-                CallView(pairing: Demo.pairing, unpair: {}, demo: demo)
+                CallView(pairing: Demo.pairing, unpair: {}, demo: demo, incoming: $machineLine)
             } else if let tried {
                 CallView(pairing: Demo.pairing, unpair: { self.tried = nil }, demo: tried)
             } else if let pairing = flow.pairing {
                 // The call is PhoneTalk's, so a press from the Lock Screen can dial it with no screen up.
                 CallView(link: DaemonLink(pairing), call: PhoneTalk.shared.call(for: pairing), shell: PhoneTalk.shared,
-                         unpair: { Task { await flow.unpair() } }, pairAgain: { flow.pairAgain() })
+                         unpair: { Task { await flow.unpair() } }, pairAgain: { flow.pairAgain() }, incoming: $machineLine)
                     .id(pairing)  // a new pairing is a new call: the old one pins the old certificate
             } else {
                 PairView(flow: flow, tryDemo: { tried = Demo.tryIt }, help: { helping = $0 })
@@ -87,8 +88,13 @@ public struct PointeRoot: View {
         .font(.brand(.body))
         .foregroundStyle(Brand.text)
         // A pointe:// link from another app, a web page or the Camera pairs nothing: any of them can open one
-        // (SECURITY.md, "The iPhone app"). It only says to scan the code inside Pointe.
-        .onOpenURL { url in flow.opened(url) }
+        // (SECURITY.md, "The iPhone app"). It only says to scan the code inside Pointe. A machine invite
+        // (pointe://machine?…) changes no pairing: on a paired phone it opens Add a machine with the line in it, and
+        // nothing is sent until the owner chooses Add and passes Face ID (AddMachineModel).
+        .onOpenURL { url in
+            if let invite = Self.machineInvite(url, paired: flow.pairing != nil || Demo.fromLaunch() != nil) { machineLine = invite }
+            else { flow.opened(url) }
+        }
         .sheet(isPresented: Binding(get: { flow.fromOutside || flow.scanning },
                                     set: { if !$0 { flow.fromOutside = false; flow.scanning = false } })) {
             if flow.fromOutside {
@@ -107,6 +113,12 @@ public struct PointeRoot: View {
             }
             #endif
         }
+    }
+
+    /// The line of a machine invite that opened the app, on a phone that has a Mac to add it to; nil for any other link.
+    static func machineInvite(_ url: URL, paired: Bool) -> String? {
+        guard paired, let invite = MachineLine(url.absoluteString) else { return nil }
+        return invite.line
     }
 
     private func act(_ action: ConnectionProblem.Action, _ problem: ConnectionProblem) {
