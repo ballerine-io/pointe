@@ -1663,7 +1663,18 @@ def _possessive_ask(said: str) -> dict | None:
     return {"q": f"{m['pre']}the {m['rest']}".strip(), "who": m["who"]}
 
 
-_LEAD_IN = re.compile(r"^\W*(?:meanwhile|in the meantime|also|so|okay|ok|now|separately)\b[,\s]+", re.I)
+_LEAD_IN = re.compile(r"^\W*(?:meanwhile|in the meantime|also|and|so|okay|ok|now|separately)\b[,\s]+", re.I)
+_OTHER_ONE = re.compile(r"\bthe other (?:one|session)\b", re.I)
+
+
+def _the_other_one(said: str) -> str:
+    """"How many tests are failing in the other one?" with two sessions, the last request sent to one: the other one's
+    name in its place (t3-02 in tester round 6, 3 of 4: "Which session do you mean?"). Left as said otherwise."""
+    live = [s for s in REGISTRY.sessions.values() if online(s)]
+    if not _OTHER_ONE.search(said) or len(live) != 2 or not state.thread:
+        return said
+    other = [s for s in live if s.id != state.thread[0]]
+    return _OTHER_ONE.sub(other[0].name.split("/")[0], said) if len(other) == 1 else said
 _ENDS_ON_NAME = re.compile(r"^\W*(?P<q>(?:how|what|what's|which|when|where|who|who's|why)\b.+?\s"
                            r"(?:up|down|with|about|of|into|to|behind)\s+(?P<who>[\w-]+))\s*[?？]\s*$", re.I)
 
@@ -1683,7 +1694,7 @@ def _fast_ask(said: str) -> tuple[Session, str] | None:
     session's name), with no model step. Not a status question ("what's going on in billing?", which the model answers
     from what it knows of every session), an opinion, or a question that points back ("how is it going"). A lead-in
     ("Meanwhile, ...") is not part of the question."""
-    said = _LEAD_IN.sub("", said.strip())
+    said = _the_other_one(_LEAD_IN.sub("", said.strip()))
     m = _FAST_ASK.match(said) or _FAST_ASK_HE.match(said) or _possessive_ask(said) or _ends_on_name(said)
     if not m or status_intent(said) or _OPINION.search(said) or re.search(r"(?<![֐-׿])מה קורה|מה המצב", said):
         return None
