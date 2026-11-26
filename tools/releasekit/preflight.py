@@ -21,9 +21,12 @@ WIP_MARK = "DO-NOT-" + "RELEASE"  # written split so this file does not hold the
 
 
 def ci_main() -> str:
-    """main green on test, apps and ui. A red main stops the line: the fix goes in before any release (CLAUDE.md)."""
+    """main green on test and apps; a red main stops the line: the fix goes in before any release (CLAUDE.md). `ui` on main
+    is reported, not gated: newer pushes cancel it, so it rarely finishes there, and the tag's own ui run gates the
+    promotion (docs/releasing.md, step 2)."""
     got = github.main_state()
     head = got.pop("head")[0]
+    ui_state, ui_run = got.pop("ui")
     red = {w: r for w, (s, r) in got.items() if s == "failure"}
     if red:
         raise Fail(f"main is red at {head[:10]}: " + ", ".join(f"{w} failed ({r['headSha'][:8]}, {r['url']})" for w, r in red.items())
@@ -32,7 +35,9 @@ def ci_main() -> str:
     if pending:
         raise Stop(f"main at {head[:10]}: " + ", ".join(f"{w} {s}" for w, s in pending.items()),
                    "Wait for CI on main, then tools/release resume", waiting=True)
-    return f"main {head[:10]}: " + ", ".join(f"{w} green ({r['headSha'][:8]})" for w, (_, r) in got.items())
+    ui = f"ui's newest finished main run: {ui_state}" + (f" at {ui_run['headSha'][:8]} ({ui_run['url']})" if ui_run else "")
+    return (f"main {head[:10]}: " + ", ".join(f"{w} green ({r['headSha'][:8]})" for w, (_, r) in got.items())
+            + f"; {ui} (the tag's ui run gates the promotion)")
 
 
 def wip(tree: Path, base: str) -> str:

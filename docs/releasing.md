@@ -30,8 +30,8 @@ tools/release status                            each step and its state
 `cut` runs these steps in order; each is checked before the next one that needs it, and the sections below say what
 each does by hand:
 
-1. **Preflight.** A release worktree at the newest `main`. `main` green on `test`, `apps` and `ui` (a red `main` stops
-   the line). Nothing half-done: no `WIP`/`fixup!` commit since the last tag, no `DO-NOT-RELEASE` marker in a tracked
+1. **Preflight.** A release worktree at the newest `main`. `main` green on `test` and `apps` (a red `main` stops the line;
+   `ui` on `main` is reported, and the tag's own `ui` run gates the promotion). Nothing half-done: no `WIP`/`fixup!` commit since the last tag, no `DO-NOT-RELEASE` marker in a tracked
    file. Everything generated is current: the parity matrix with no unexplained gap on the page, the iPhone, the Mac or
    the Linux hub; the product help; the site's docs pages, version and app cards. The versions agree (step 1's tests),
    and the skew matrix has the cut version's entry. The integration join (`tests/test_integration_join.py`). The full

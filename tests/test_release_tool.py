@@ -79,6 +79,8 @@ def test_a_ui_run_cancelled_by_a_newer_push_says_nothing_and_a_dispatch_does_not
     assert github.verdict(found, "ui", skip_cancelled=True)[0] == "success"
     assert github.verdict(found, "ui")[0] == "failure"  # on a tag nothing may be cancelled: a cancelled run is not green
     assert github.verdict([run("test", status="in_progress", conclusion="")], "test")[0] == "pending"
+    still = [run("ui", status="in_progress", conclusion="", at="2026-11-26T13:00:00Z")] + found
+    assert github.verdict(still, "ui", skip_cancelled=True, finished=True)[0] == "success"  # main's ui: the newest finished run
     assert github.verdict([run("test", sha="b" * 40)], "test", sha="a" * 40)[0] == "missing"
     assert github.verdict([run("ui", ref="v1.0.0"), run("ui", ref="main", conclusion="failure")], "ui", ref="v1.0.0")[0] == "success"
 
@@ -88,6 +90,9 @@ def test_a_red_main_stops_the_line(monkeypatch):
                                                        "apps": ("success", run("apps")), "ui": ("success", run("ui"))})
     with pytest.raises(Fail, match="main is red"):
         preflight.ci_main()
+    monkeypatch.setattr(github, "main_state", lambda: {"head": ("c" * 40, None), "test": ("success", run("test")),
+                                                       "apps": ("success", run("apps")), "ui": ("failure", run("ui", conclusion="failure"))})
+    assert "the tag's ui run gates" in preflight.ci_main()  # ui on main is reported: the tag's run is the gate
 
 
 def test_half_done_work_is_refused(tmp_path):

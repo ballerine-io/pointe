@@ -154,8 +154,8 @@ tools/release status                            each step and its state</code></
 each does by hand:</p>
 <ol>
 <li>
-<p><strong>Preflight.</strong> A release worktree at the newest <code>main</code>. <code>main</code> green on <code>test</code>, <code>apps</code> and <code>ui</code> (a red <code>main</code> stops
-   the line). Nothing half-done: no <code>WIP</code>/<code>fixup!</code> commit since the last tag, no <code>DO-NOT-RELEASE</code> marker in a tracked
+<p><strong>Preflight.</strong> A release worktree at the newest <code>main</code>. <code>main</code> green on <code>test</code> and <code>apps</code> (a red <code>main</code> stops the line;
+   <code>ui</code> on <code>main</code> is reported, and the tag's own <code>ui</code> run gates the promotion). Nothing half-done: no <code>WIP</code>/<code>fixup!</code> commit since the last tag, no <code>DO-NOT-RELEASE</code> marker in a tracked
    file. Everything generated is current: the parity matrix with no unexplained gap on the page, the iPhone, the Mac or
    the Linux hub; the product help; the site's docs pages, version and app cards. The versions agree (step 1's tests),
    and the skew matrix has the cut version's entry. The integration join (<code>tests/test_integration_join.py</code>). The full

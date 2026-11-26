@@ -39,7 +39,7 @@ def runs(*, commit: str | None = None, branch: str | None = None, limit: int = 6
 
 
 def verdict(found: list[dict], workflow: str, *, sha: str | None = None, ref: str | None = None,
-            skip_cancelled: bool = False) -> tuple[str, dict | None]:
+            skip_cancelled: bool = False, finished: bool = False) -> tuple[str, dict | None]:
     """The state of one workflow: success, failure, pending or missing. Newest run first; on main a `ui` run cancelled by a
     newer push says nothing about the code, so `skip_cancelled` looks past it (docs/releasing.md, step 2). Only push runs
     count: a dispatch may run a subset."""
@@ -48,6 +48,8 @@ def verdict(found: list[dict], workflow: str, *, sha: str | None = None, ref: st
     mine.sort(key=lambda r: r["createdAt"], reverse=True)
     for r in mine:
         if r["status"] != "completed":
+            if finished:  # main's apps and ui: the newest finished run speaks, a newer one still running does not yet
+                continue
             return "pending", r
         if r["conclusion"] in ("cancelled", "skipped") and skip_cancelled:
             continue
@@ -61,7 +63,7 @@ def main_state() -> dict[str, tuple[str, dict | None]]:
     head = sh(["git", "ls-remote", f"{SITE}.git", "refs/heads/main"]).stdout.split()[0]
     found = runs(branch="main", limit=100)
     return {"head": (head, None), "test": verdict(found, "test", sha=head),
-            "apps": verdict(found, "apps", skip_cancelled=True), "ui": verdict(found, "ui", skip_cancelled=True)}
+            "apps": verdict(found, "apps", skip_cancelled=True, finished=True), "ui": verdict(found, "ui", skip_cancelled=True, finished=True)}
 
 
 def commit_state(sha: str, workflows: tuple[str, ...], ref: str | None = None) -> dict[str, tuple[str, dict | None]]:
