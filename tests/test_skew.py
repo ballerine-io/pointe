@@ -79,6 +79,9 @@ def served(monkeypatch):
 
     token = next(m.kwargs["token"] for m in daemon.app.user_middleware if m.cls is guards.LocalAuth)
     monkeypatch.setattr(daemon, "TOKEN", token)
+    # A setup that needs no key lookup: a CI runner has none, and the status would answer 500 for that alone.
+    monkeypatch.setattr(daemon, "_setup", daemon.vendors.Setup(brain="gemini:b", reader="gemini:r", checker="gemini:c",
+                                                               ears="soniox", mouth="elevenlabs:m"))
     return daemon, TestClient(daemon.app, base_url="http://127.0.0.1:7860")
 
 
