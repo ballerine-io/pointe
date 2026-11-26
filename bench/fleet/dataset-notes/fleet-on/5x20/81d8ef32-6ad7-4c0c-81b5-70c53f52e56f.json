@@ -1,0 +1,20 @@
+{
+ "goal": "Move the inventory cache off the deprecated client library.",
+ "state": "Just started: Claude has read the inventory cache module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the inventory cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library the cache should use is not stated in the record.",
+  "Whether the cache tests pass after the change is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the inventory cache to the new client and runs its tests.",
+ "people_and_names": [
+  "galaxy",
+  "inventory cache"
+ ]
+}

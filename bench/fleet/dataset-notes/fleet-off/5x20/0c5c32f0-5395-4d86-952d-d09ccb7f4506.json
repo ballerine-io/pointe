@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the invoice digest drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the invoice digest code and all 14 tests pass. The root cause and whether it was tested under real load were not stated.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The root cause of the dropped records was not described in the record.",
+  "Not confirmed whether the fix was tested under actual load or only by the 14 unit tests."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load.",
+ "people_and_names": [
+  "invoice digest",
+  "14 tests"
+ ]
+}

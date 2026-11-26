@@ -1,0 +1,18 @@
+{
+ "goal": "Make the tenant webhook idempotent so running it twice with the same input is safe.",
+ "state": "Claude Code has read the tenant webhook file and not yet made changes. It is blocked on a choice about the old column.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now",
+  "How idempotency will be enforced in the webhook (not yet decided)"
+ ],
+ "waiting_on_user": "Decide whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner picks keep-for-one-release or drop-now, then Claude Code starts making the webhook idempotent.",
+ "people_and_names": [
+  "tenant webhook",
+  "tenant_webhook.py"
+ ]
+}

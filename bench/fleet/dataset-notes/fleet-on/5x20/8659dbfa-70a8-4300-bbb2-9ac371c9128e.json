@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the payroll digest and remove the print calls, starting with the main digest module.",
+ "state": "Claude has read the digest module but has not yet made changes. Two tests were already failing before any change.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Should the two pre-existing failing tests be fixed in this work or left alone?",
+  "Logging changes and print removal have not started."
+ ],
+ "waiting_on_user": "Decide whether Claude should fix the two tests that were already failing, or leave them.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Answer whether to fix or leave the two pre-existing failing tests, then Claude begins adding structured logging and removing prints.",
+ "people_and_names": [
+  "payroll digest",
+  "payroll_digest.py"
+ ]
+}

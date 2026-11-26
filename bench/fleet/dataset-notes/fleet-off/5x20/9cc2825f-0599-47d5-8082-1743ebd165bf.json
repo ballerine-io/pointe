@@ -1,0 +1,16 @@
+{
+ "goal": "Move the quota parser off the deprecated client library.",
+ "state": "Done: the change to the quota parser is made and all 14 tests pass, per Claude Code's report. Nothing was reported as deployed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "spindle",
+  "quota parser",
+  "14 tests"
+ ]
+}

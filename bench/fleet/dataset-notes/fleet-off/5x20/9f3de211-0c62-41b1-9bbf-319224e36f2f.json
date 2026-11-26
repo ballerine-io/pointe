@@ -1,0 +1,17 @@
+{
+ "goal": "Make the tenant webhook idempotent so running it twice with the same input is safe.",
+ "state": "Claude has read the tenant webhook file and not made changes yet. It is blocked on the owner's choice about the old column.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now?"
+ ],
+ "waiting_on_user": "Decide whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's answer on the old column, then start making the webhook idempotent.",
+ "people_and_names": [
+  "tenant webhook",
+  "thyme"
+ ]
+}

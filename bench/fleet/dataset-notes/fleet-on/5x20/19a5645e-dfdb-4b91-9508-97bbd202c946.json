@@ -1,0 +1,20 @@
+{
+ "goal": "Split the shipment batcher into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude has read the shipment batcher module and is about to make the change and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to split the shipment batcher into a reader and a writer with a clear interface, starting with the shipment batcher module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass before and after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the reader/writer split in the shipment batcher and runs its tests.",
+ "people_and_names": [
+  "shipment batcher",
+  "ermine"
+ ]
+}

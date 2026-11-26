@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the audit archive's cold start time by half.",
+ "state": "Claude Code reports the change in the audit archive is done and all 14 tests pass. The record doesn't show a measured cold start time, so the halving isn't confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Cold start improvement not measured in the record; unverified that it was cut by half"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after to confirm the halving target was met.",
+ "people_and_names": [
+  "audit archive",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Move the consent sampler off the deprecated client library.",
+ "state": "Just started: Claude has read the consent sampler file and is about to change it and run its tests. No changes or test results recorded yet.",
+ "decisions": [
+  "Owner asked to start the migration with the consent sampler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement library or client to migrate to is not stated in the record.",
+  "Whether the consent sampler's tests pass after the change is unknown.",
+  "Whether other files besides the consent sampler also use the deprecated library is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the consent sampler to use the replacement library, then run its tests.",
+ "people_and_names": [
+  "consent sampler"
+ ]
+}

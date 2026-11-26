@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the shipment queue drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the shipment queue module but has not yet found the cause, changed anything, or run tests.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Fix not yet made",
+  "Tests for the shipment queue not yet run"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code identifies the cause of the dropped records, makes the change to the shipment queue, and runs its tests.",
+ "people_and_names": [
+  "acorn",
+  "shipment queue"
+ ]
+}

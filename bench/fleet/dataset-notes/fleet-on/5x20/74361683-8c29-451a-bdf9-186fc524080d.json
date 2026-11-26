@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the currency archive's cold start time by half.",
+ "state": "Claude reports the change in the currency archive module is done and all 14 tests pass. The record shows no measurement of the actual cold start time, so the halving is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Cold start time was not reported as measured, so it is unconfirmed that it was cut by half."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after the change to confirm the halving.",
+ "people_and_names": [
+  "currency archive",
+  "14 tests"
+ ]
+}

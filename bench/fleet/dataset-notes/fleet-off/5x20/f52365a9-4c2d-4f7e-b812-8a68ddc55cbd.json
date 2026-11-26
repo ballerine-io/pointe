@@ -1,0 +1,18 @@
+{
+ "goal": "Make the coupon indexer safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the coupon indexer is done and all 14 tests pass. Not independently verified; no test of an actual double run is mentioned.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests cover running the indexer twice on the same input is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test runs the indexer twice with identical input and checks for no duplicates, then review the change.",
+ "people_and_names": [
+  "coupon indexer",
+  "coupon_indexer.py",
+  "14 tests"
+ ]
+}

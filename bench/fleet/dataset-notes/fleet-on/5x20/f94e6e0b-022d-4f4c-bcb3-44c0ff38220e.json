@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the roster queue drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the roster queue module and all 14 tests pass. No load test or deployment is mentioned in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The root cause of the dropped records is not described in the record.",
+  "Whether the fix was verified under actual load is not stated; only the 14 tests are reported."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was checked under load.",
+ "people_and_names": [
+  "roster queue",
+  "14 tests"
+ ]
+}

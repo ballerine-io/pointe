@@ -1,0 +1,15 @@
+{
+ "goal": "Make the quota export safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the quota export is done and all 14 tests pass. Nothing was reported as untested or undeployed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "quota_export",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Split the consent importer into a reader and a writer with a clear interface, starting with the consent importer module.",
+ "state": "Claude Code reports the split is done in the consent importer module and all 14 tests pass. This is Claude Code's own report; nothing in the record shows the owner has reviewed it.",
+ "decisions": [
+  "Owner asked to split the consent importer into a reader and a writer with a clear interface, starting with the consent importer module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner can review the change and decide whether anything beyond the consent importer module needs the same split.",
+ "people_and_names": [
+  "consent importer",
+  "14 tests"
+ ]
+}

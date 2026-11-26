@@ -1,0 +1,15 @@
+{
+ "goal": "Make the payroll parser safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the payroll parser is done and all 14 tests pass. Not independently verified beyond that report; no mention of testing a double run specifically.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that a test covers running the parser twice on the same input, then review the change.",
+ "people_and_names": [
+  "payroll parser",
+  "14 tests"
+ ]
+}

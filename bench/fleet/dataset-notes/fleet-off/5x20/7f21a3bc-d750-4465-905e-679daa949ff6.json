@@ -1,0 +1,19 @@
+{
+ "goal": "Cut the refund scheduler's cold start time by half.",
+ "state": "Claude Code reports the change to the refund scheduler is done and all 14 tests pass. The record does not show a measured cold start time, so the halving is not confirmed.",
+ "decisions": [
+  "Owner directed starting with the refund scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually cut by half: no before/after measurement is recorded."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after the change to confirm it was cut by half.",
+ "people_and_names": [
+  "refund scheduler",
+  "rye"
+ ]
+}

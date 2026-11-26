@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the audit importer's cold start time by half.",
+ "state": "Just started: Claude has read the audit importer file and is about to make changes and run its tests. No changes or measurements recorded yet.",
+ "decisions": [
+  "Owner directed starting with the audit importer file (audit_importer.py)."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What is the current cold start baseline time?",
+  "What is the target time (half of baseline)?",
+  "Which parts of the importer cause the slow start?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make changes to the importer and run its tests.",
+ "people_and_names": [
+  "audit importer",
+  "audit_importer.py"
+ ]
+}

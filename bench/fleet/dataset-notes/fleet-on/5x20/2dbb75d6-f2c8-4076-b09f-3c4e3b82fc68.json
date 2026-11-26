@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the quota batcher drops records under load and fix it.",
+ "state": "Claude Code reports the fix is made in the quota batcher and all 14 tests pass. The root cause and whether it was tested under real load are not stated in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Not stated whether the fix was verified under actual load, beyond the 14 passing tests"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "quota batcher",
+  "yarrow"
+ ]
+}

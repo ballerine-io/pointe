@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the refund throttle's cold start time by half.",
+ "state": "Just started. Claude Code has read the refund throttle module and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is, as a baseline for the halving target",
+  "Where the cold start time is being spent in the refund throttle"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time, then change the refund throttle and run its tests.",
+ "people_and_names": [
+  "ibis",
+  "refund throttle"
+ ]
+}

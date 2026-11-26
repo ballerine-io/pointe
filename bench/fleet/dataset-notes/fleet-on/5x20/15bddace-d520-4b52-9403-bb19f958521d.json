@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the survey dashboard to the new schema without downtime.",
+ "state": "Just started: Claude has read the survey dashboard file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner: migrate with no downtime, starting with the survey dashboard file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the migration will avoid downtime is not yet described.",
+  "Results of the dashboard tests are not yet known.",
+  "Which other parts need migrating after the dashboard is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the survey dashboard for the new schema and runs its tests.",
+ "people_and_names": [
+  "survey dashboard",
+  "abacus"
+ ]
+}

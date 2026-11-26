@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the delivery scheduler to the new schema without downtime.",
+ "state": "Just started: Claude has read the delivery scheduler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the delivery scheduler file, and it must be done without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the migration will avoid downtime is not yet defined.",
+  "Whether the scheduler's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the delivery scheduler for the new schema and run its tests.",
+ "people_and_names": [
+  "delivery scheduler",
+  "canyon"
+ ]
+}

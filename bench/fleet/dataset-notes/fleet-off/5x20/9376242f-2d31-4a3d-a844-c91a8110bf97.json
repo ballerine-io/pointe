@@ -1,0 +1,16 @@
+{
+ "goal": "Add retries with backoff to the voucher migration and cover them with tests.",
+ "state": "Claude Code reports the retry-with-backoff change is done and all 14 tests pass. This is Claude's report only; nothing in the record shows the owner has reviewed it or that it was deployed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change, then decides whether to merge or deploy it.",
+ "people_and_names": [
+  "okra",
+  "voucher migration",
+  "14 tests"
+ ]
+}

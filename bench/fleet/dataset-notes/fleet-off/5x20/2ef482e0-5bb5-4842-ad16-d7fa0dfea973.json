@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the shipment queue drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the shipment queue code and is about to change it and run its tests. No root cause found or fix made yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Whether the existing tests cover the load scenario is unknown"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Identify the cause of the dropped records, make the change, and run the queue's tests.",
+ "people_and_names": [
+  "shipment queue"
+ ]
+}

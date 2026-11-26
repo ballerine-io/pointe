@@ -1,0 +1,20 @@
+{
+ "goal": "Find why the profile export drops records under load and fix it.",
+ "state": "Just started. Claude Code has read the profile export module and is about to change it and run its tests. No root cause identified yet and no fix made.",
+ "decisions": [
+  "Owner directed starting the investigation with the profile export module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is unknown.",
+  "Whether the export's tests reproduce the dropped records under load is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Find the cause of the dropped records in the profile export, then make the change and run its tests.",
+ "people_and_names": [
+  "omer-lab",
+  "profile export"
+ ]
+}

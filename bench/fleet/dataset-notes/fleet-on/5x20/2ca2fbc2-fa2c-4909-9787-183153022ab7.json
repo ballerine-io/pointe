@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the shipment validator and cover them with tests.",
+ "state": "Done: retries with backoff were added to the shipment validator and all 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "gizmo",
+  "shipment validator"
+ ]
+}

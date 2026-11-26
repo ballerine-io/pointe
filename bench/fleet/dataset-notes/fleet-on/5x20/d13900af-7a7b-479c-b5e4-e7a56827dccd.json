@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the survey digest drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the survey digest script and all 14 tests pass. The root cause and any load testing were not described in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The record does not say what the root cause was.",
+  "It is not stated whether the fix was tested under real load, only that 14 tests pass."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was checked under load.",
+ "people_and_names": [
+  "survey digest",
+  "14 tests"
+ ]
+}

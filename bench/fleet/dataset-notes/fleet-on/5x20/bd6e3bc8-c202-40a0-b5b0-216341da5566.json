@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the shipment ledger drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the shipment ledger module and is about to change it and run its tests. No root cause identified yet and no changes or test results reported.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records dropping under load is not yet identified",
+  "Fix not yet written or tested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make its change to the shipment ledger and run the tests, then check whether the fix holds under load.",
+ "people_and_names": [
+  "shipment ledger"
+ ]
+}

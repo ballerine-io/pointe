@@ -1,0 +1,17 @@
+{
+ "goal": "Make the refund importer safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the refund importer is done and all 14 tests pass. This is Claude's report only; nothing in the record shows the owner verifying it or a double-run being tested explicitly.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Not stated whether a run-twice scenario was specifically tested, beyond the 14 passing tests."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and confirm with a duplicate-input run that a second import creates no duplicate refunds.",
+ "people_and_names": [
+  "refund importer",
+  "14 tests"
+ ]
+}

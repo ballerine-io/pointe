@@ -1,0 +1,17 @@
+{
+ "goal": "Make the catalog webhook idempotent so running it twice with the same input is safe.",
+ "state": "Just started. Claude Code has read the webhook file and is about to change it and run its tests. No changes or test results recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How duplicates will be detected (not yet chosen)",
+  "Whether the existing tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the idempotency change to the catalog webhook and run its tests.",
+ "people_and_names": [
+  "catalog webhook"
+ ]
+}

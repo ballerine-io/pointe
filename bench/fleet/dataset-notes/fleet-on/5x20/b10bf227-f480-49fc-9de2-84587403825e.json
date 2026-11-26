@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the payroll indexer and cover them with tests.",
+ "state": "Claude Code reports the retry-with-backoff change is done in the payroll indexer and all 14 tests pass. This is Claude's own report; nothing independent is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and tests, then merge or deploy as the owner sees fit.",
+ "people_and_names": [
+  "payroll indexer",
+  "14 tests"
+ ]
+}

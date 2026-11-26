@@ -1,0 +1,17 @@
+{
+ "goal": "Move the warranty export off the deprecated client library.",
+ "state": "Done per Claude Code: the change to the warranty export is made and all 14 tests pass. Not independently verified beyond Claude Code's report.",
+ "decisions": [
+  "Owner asked to start the migration with the warranty export module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "warranty export",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Make the roster notifier safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the roster notifier file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the notifier should detect that an input was already processed is not yet decided.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the roster notifier so a repeat run with the same input sends no duplicate notifications, then run its tests.",
+ "people_and_names": [
+  "roster notifier"
+ ]
+}

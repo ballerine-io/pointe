@@ -1,0 +1,19 @@
+{
+ "goal": "Make the currency indexer safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the currency indexer and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the currency indexer module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the indexer currently behaves when run twice with the same input is not yet established.",
+  "Whether the indexer's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the currency indexer to be idempotent and run its tests.",
+ "people_and_names": [
+  "currency_indexer"
+ ]
+}

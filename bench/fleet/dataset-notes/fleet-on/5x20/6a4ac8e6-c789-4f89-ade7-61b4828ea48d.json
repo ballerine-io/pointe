@@ -1,0 +1,19 @@
+{
+ "goal": "Cut the payroll webhook's cold start time by half.",
+ "state": "Just started. Claude has read the payroll webhook file and is about to change it and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner chose to start with the payroll webhook file for the cold start reduction."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What currently dominates the cold start time is not yet identified.",
+  "No baseline cold start measurement recorded, so the halving target cannot yet be verified."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to set a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "payroll webhook"
+ ]
+}

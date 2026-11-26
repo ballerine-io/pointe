@@ -1,0 +1,18 @@
+{
+ "goal": "Split the banner resolver into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the banner resolver and all 14 tests pass. This is Claude Code's own report; no independent check is recorded.",
+ "decisions": [
+  "Owner asked to split the banner resolver into a reader and a writer with a clear interface, starting with the banner resolver module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner can review the change, or move on to the next piece of work.",
+ "people_and_names": [
+  "willow",
+  "banner resolver",
+  "14 tests"
+ ]
+}

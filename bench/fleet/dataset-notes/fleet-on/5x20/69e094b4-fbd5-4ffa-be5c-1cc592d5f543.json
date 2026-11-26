@@ -1,0 +1,18 @@
+{
+ "goal": "Make the receipt throttle safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the receipt throttle module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the throttle should detect a repeated input is not yet decided.",
+  "Whether the existing tests cover running twice with the same input."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the receipt throttle to be idempotent, then run its tests and add a case that runs it twice with the same input.",
+ "people_and_names": [
+  "receipt throttle",
+  "dana-rig"
+ ]
+}

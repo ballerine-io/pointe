@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the audit cache to the new schema without downtime.",
+ "state": "Just started: Claude has read the audit cache module and found the fix needs either a lock or a retry. No change made yet; waiting on the owner's choice.",
+ "decisions": [
+  "Owner's bar: the migration must happen without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry for the fix: the lock is simpler, the retry is faster.",
+  "Migration to the new schema not yet started beyond reading the module."
+ ],
+ "waiting_on_user": "Choose between a lock (simpler) or a retry (faster) for the audit cache fix.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's choice of lock or retry, then implement it in the audit cache module.",
+ "people_and_names": [
+  "audit cache",
+  "audit_cache.py"
+ ]
+}

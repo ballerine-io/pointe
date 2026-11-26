@@ -1,0 +1,19 @@
+{
+ "goal": "Split the receipt watchdog into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude has read the receipt watchdog module and is about to make the split and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to split the receipt watchdog into a reader and a writer with a clear interface, starting with the receipt watchdog module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass before and after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the reader/writer split in the receipt watchdog module and run its tests.",
+ "people_and_names": [
+  "receipt watchdog"
+ ]
+}

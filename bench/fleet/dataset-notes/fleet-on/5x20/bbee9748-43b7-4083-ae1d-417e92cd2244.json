@@ -1,0 +1,19 @@
+{
+ "goal": "Add retries with backoff to the ticket cache and cover them with tests.",
+ "state": "Just started. Claude read the ticket cache module and is asking whether to use a lock or a retry; no code changes or tests yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry for the ticket cache fix: Claude says a lock is simpler and a retry is faster, and the owner has not answered.",
+  "Backoff parameters (attempts, delays) not yet specified.",
+  "Tests for the retry behavior not yet written."
+ ],
+ "waiting_on_user": "Choose between a lock (simpler) and a retry (faster) for the ticket cache fix. Their original request mentioned retries with backoff, which points toward retry.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm the retry-with-backoff approach with the owner, then implement it in the ticket cache module and add tests.",
+ "people_and_names": [
+  "bramble",
+  "ticket cache"
+ ]
+}

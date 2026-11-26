@@ -1,0 +1,16 @@
+{
+ "goal": "Add retries with backoff to the banner ledger, covered by tests.",
+ "state": "Done: the retry-with-backoff change is in banner_ledger.py and all 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "banner ledger",
+  "banner_ledger.py",
+  "14 tests"
+ ]
+}

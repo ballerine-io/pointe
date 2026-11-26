@@ -1,0 +1,19 @@
+{
+ "goal": "Move the payroll throttle off the deprecated client library.",
+ "state": "Just started: Claude has read the payroll throttle module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the payroll throttle module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library the throttle should use is not stated in the record.",
+  "Whether other modules also depend on the deprecated library is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the payroll throttle to the new client library and run its tests.",
+ "people_and_names": [
+  "payroll throttle"
+ ]
+}

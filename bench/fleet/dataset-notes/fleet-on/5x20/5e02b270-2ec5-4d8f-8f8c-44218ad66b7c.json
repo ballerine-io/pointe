@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the currency sampler and remove its print calls.",
+ "state": "Done: the change is in currency_sampler.py and all 14 tests pass, according to Claude Code.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "currency sampler",
+  "currency_sampler.py"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the warranty sampler to the new schema without downtime.",
+ "state": "Claude reports the change to the warranty sampler is done and all 14 tests pass. Nothing was reported about deployment or a zero-downtime check.",
+ "decisions": [
+  "Owner asked to start the migration with the warranty sampler script; the requirement is no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration actually ran without downtime is not recorded; only the code change and tests are reported.",
+  "Whether anything beyond the warranty sampler script needs migrating is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the schema change will be deployed without downtime, and whether other parts need migrating.",
+ "people_and_names": [
+  "warranty sampler",
+  "new schema"
+ ]
+}

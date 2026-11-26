@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the loyalty export to the new schema without downtime.",
+ "state": "Just starting. Claude has read the loyalty export script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner requires the migration to happen without downtime (stated constraint, stays until lifted).",
+  "Owner chose to start with the loyalty export script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the export differs from it is not yet recorded.",
+  "How the migration will avoid downtime is not yet defined.",
+  "Test results for the loyalty export are pending."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the loyalty export to the new schema and runs its tests.",
+ "people_and_names": [
+  "avi-box (shop)",
+  "loyalty export"
+ ]
+}

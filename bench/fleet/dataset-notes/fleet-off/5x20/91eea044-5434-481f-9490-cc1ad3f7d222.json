@@ -1,0 +1,17 @@
+{
+ "goal": "Add retries with backoff to the quota validator and cover them with tests.",
+ "state": "Just started: Claude Code has read the quota validator and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, which errors to retry) have not been specified or chosen yet",
+  "Tests for the retry behavior are not yet written"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retry with backoff in the quota validator, then add and run tests covering the retries.",
+ "people_and_names": [
+  "quota validator"
+ ]
+}

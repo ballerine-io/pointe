@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the ticket watchdog drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the watchdog source and says it will change it and run its tests. No root cause found, no change made, no tests run yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Whether the fix holds under load is untested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Identify the cause of dropped records under load in the watchdog, make the fix, then run its tests.",
+ "people_and_names": [
+  "ticket watchdog"
+ ]
+}

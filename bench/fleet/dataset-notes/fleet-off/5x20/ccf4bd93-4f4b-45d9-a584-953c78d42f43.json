@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the refund importer to the new schema without downtime.",
+ "state": "Claude Code reports the refund importer change is done and all 14 tests pass. Nothing in the record shows it deployed or tested for the no-downtime requirement.",
+ "decisions": [
+  "Owner asked to start the migration with the refund importer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the no-downtime requirement was verified; the record only mentions the 14 passing tests.",
+  "Whether the change has been deployed; the record does not say."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check how the change will be rolled out without downtime, then deploy it.",
+ "people_and_names": [
+  "refund importer",
+  "14 tests"
+ ]
+}

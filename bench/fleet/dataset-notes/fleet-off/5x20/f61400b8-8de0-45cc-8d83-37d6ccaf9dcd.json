@@ -1,0 +1,19 @@
+{
+ "goal": "Split the coupon cache into a separate reader and writer with a clear interface.",
+ "state": "Just started: Claude Code has read the coupon cache module and is about to make the change and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner decided to split the coupon cache into a reader and a writer with a clear interface, starting with the coupon cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader and writer interface should look like",
+  "Whether the existing coupon cache tests pass after the split"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the split in the coupon cache module and runs its tests.",
+ "people_and_names": [
+  "coupon cache"
+ ]
+}

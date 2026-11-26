@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the inventory validator to the new schema without downtime.",
+ "state": "Claude Code reports the inventory validator change is done and all 14 tests pass. Whether it was deployed, or whether the no-downtime requirement was verified, is not recorded.",
+ "decisions": [
+  "Owner directed starting the migration with the inventory validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "No record that the no-downtime requirement was tested or that the change was deployed.",
+  "Unclear whether other parts of the migration beyond the validator remain."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm with the owner whether to deploy, and check how zero-downtime rollout was handled.",
+ "people_and_names": [
+  "oboe",
+  "inventory validator",
+  "14 tests"
+ ]
+}

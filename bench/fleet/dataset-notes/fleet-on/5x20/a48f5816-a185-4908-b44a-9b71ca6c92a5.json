@@ -1,0 +1,20 @@
+{
+ "goal": "Move the warranty cache off the deprecated client library.",
+ "state": "Done for the first file: the change to the warranty cache module is made and all 14 tests pass, per Claude Code's report. No other files are mentioned in the record.",
+ "decisions": [
+  "Owner directed starting with the warranty cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other files still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check for any remaining uses of the deprecated client library beyond the warranty cache module.",
+ "people_and_names": [
+  "warranty cache",
+  "shuttle",
+  "14 tests"
+ ]
+}

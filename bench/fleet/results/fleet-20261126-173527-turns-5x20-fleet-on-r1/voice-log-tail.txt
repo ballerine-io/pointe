@@ -1,0 +1,123 @@
+id: 'Sent to peony.'
+2026-11-26 17:44:40.605 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell shop to say how long the test suite takes.'
+2026-11-26 17:44:40.613 | INFO     | brain:_trim:623 - brain history trimmed: ~25009 -> ~15735 tokens, 253 -> 250 messages
+2026-11-26 17:44:43.799 | INFO     | vendors:_anthropic_stream:647 - reply not read as it is written: text came first
+2026-11-26 17:44:43.803 | INFO     | daemon:usage:1636 - brain step: 3189 ms, 26899 tokens in, 8473 of them cached
+2026-11-26 17:44:43.808 | INFO     | daemon:_speak_first:2070 - speak first: 'Shop runs on four machines: studio, dana-rig, avi-box and omer-lab.'
+2026-11-26 17:44:43.808 | INFO     | brain:_run:841 - speech refused: "Shop runs on four machines: studio, dana-rig, avi-box and omer-lab. Nothing's sent yet. Which one?": That lists more than 3 things. Name the 3 that matter most, say how many more there are, and stop: they will ask for the rest.
+2026-11-26 17:44:43.809 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (67 chars)
+2026-11-26 17:44:46.305 | INFO     | daemon:usage:1636 - brain step: 2496 ms, 29111 tokens in, 26895 of them cached
+2026-11-26 17:44:46.310 | INFO     | brain:_run:869 - length cut: 25 -> 15 words
+2026-11-26 17:44:46.310 | INFO     | daemon:_speak_rest:2075 - speak: 'Shop runs on four machines: studio, dana-rig, avi-box and omer-lab. Which one should I ask?'
+2026-11-26 17:44:46.310 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (23 chars)
+2026-11-26 17:44:50.885 | INFO     | calllink:_end:187 - call link ends: the page closed the link (1000)
+2026-11-26 17:44:50.886 | DEBUG    | pipecat.workers.runner:cancel:356 - WorkerRunner 'runner-a0ec0234': cancelling (reason=None)
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.pipeline.worker:_handle_worker_cancel:1522 - Worker 'voice': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.pipeline.worker:_cancel:1188 - Cancelling pipeline worker voice
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:d13900af-7a7b-479c-b5e4-e7a56827dccd': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:3d8ece8b-56b2-4210-a92a-e2afab7c633d': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f94e6e0b-022d-4f4c-bcb3-44c0ff38220e': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:98474771-6c87-4fe0-a583-b4cef974f881': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:6fd5cf6e-aa24-4afb-a78c-0059551927a1': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:309ed4e0-15a5-4bd9-bbff-7bffd4f834f4': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:ccf4bd93-4f4b-45d9-a584-953c78d42f43': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:226f3b3e-3ddf-4c9d-993c-ebf27c02bf41': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:e89b58f8-63f7-4a36-bd17-e1c09e1bfb5c': received cancel
+2026-11-26 17:44:50.889 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:a703aa9c-6677-494b-a765-a1fbc1663252': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:032531c6-30b2-4fbd-ada3-5fc53b6e9806': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:080c4a32-b36a-42d3-b0a3-88be22da2264': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9376242f-2d31-4a3d-a844-c91a8110bf97': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:1f61aac7-2c32-45cc-8b41-29bde0375300': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:19a5645e-dfdb-4b91-9508-97bbd202c946': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:58ab3bd4-72cb-423a-a0ca-112531e3701b': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:bc84888d-d256-4883-9987-b4a62c56be39': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:06ad6ef9-6bbe-45e1-b6a1-3f54981f2e21': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:81d8ef32-6ad7-4c0c-81b5-70c53f52e56f': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:0c5c32f0-5395-4d86-952d-d09ccb7f4506': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-ff1b53ac-b3d3-46f2-8649-fd5d91469854': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-6e87b2d9-a8db-44dd-a208-65a8edb6a9a1': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-13f0af07-50a1-4819-9121-ba844c5041fa': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-4123d02c-8556-45d5-91cc-9fcf27cd7cb2': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-2214d1a4-b66b-49f2-ab13-8d8e7cf08a9f': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-e93fcffe-341e-4e70-9ab8-9eae503dddbe': received cancel
+2026-11-26 17:44:50.890 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-b395daa7-c178-4eed-a398-b23e1da98cc4': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-e4436f99-da12-4e0e-b82b-34557bc75fe2': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-f928123e-b5d4-4cfb-bd25-c36da21f850a': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-0209f14d-4adb-41d5-b7f4-37a27ce2b35c': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-735543b5-df4c-4fac-ae74-f0222c29e201': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-7f21a3bc-d750-4465-905e-679daa949ff6': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-5366fc71-4c70-4d4c-9540-b7ed9da704d0': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-a440c39c-e953-464d-aa6d-03c98e9bfb0b': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-2ef482e0-5bb5-4842-ad16-d7fa0dfea973': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-13a15f74-1e85-436d-81df-d70c60069f30': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-e18cbc36-8c6a-44f8-b05e-8f605a38718f': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-0a7e99d4-68b3-46cb-acc9-44234058bfe2': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-81feab58-cfea-451f-87a8-3945eaab5eb2': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:f24db1-b9854102-4f79-4655-b490-b99e9e557af3': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-7d70614d-5b50-4f4a-b42f-a6015e5ebacd': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-69e094b4-fbd5-4ffa-be5c-1cc592d5f543': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-807487db-eb56-43a1-90ab-988ac9d20558': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-9f3de211-0c62-41b1-9bbf-319224e36f2f': received cancel
+2026-11-26 17:44:50.891 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-5446fa37-e567-41e9-a0af-adbede44aa67': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-bbee9748-43b7-4083-ae1d-417e92cd2244': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-938cebf2-c8a3-4211-b05f-a89c776e6c16': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-0556c727-a5d7-4b0a-853c-41ac22059ee4': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-91eea044-5434-481f-9490-cc1ad3f7d222': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-c4982878-c3dd-413f-a497-2853339630dd': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-9cc2825f-0599-47d5-8082-1743ebd165bf': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-70c94cde-057e-46c2-afb1-671416c26582': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-1da0cefb-e6d6-4eca-884c-0c2053fb093d': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-15bddace-d520-4b52-9403-bb19f958521d': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-bd6e3bc8-c202-40a0-b5b0-216341da5566': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-8523bcce-1fca-4105-bc04-9aeecfe3584d': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-55beb5db-8643-4625-87fe-20a6d81bb5a7': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-8d5bdf0f-caa8-49e8-a081-3ba489595af2': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-f61400b8-8de0-45cc-8d83-37d6ccaf9dcd': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:30c56c-d1c41c2e-09c9-4a83-a51f-92d97f5fa918': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-eba6c837-c769-4f08-a503-e050db0eec12': received cancel
+2026-11-26 17:44:50.892 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-a557c436-fee3-44dd-a492-4a93e53cfa9b': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-c2f7f68b-3e78-4067-93ca-fedad2c367a2': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-971e0919-9cc4-400a-ac2c-1beaa1d41c4d': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-c1841a6d-ea06-400a-bc10-962918427250': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-82bb8e66-43ea-45c1-aae5-7da320617121': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-5e02b270-2ec5-4d8f-8f8c-44218ad66b7c': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-d5cc09f4-cc00-49f6-b18b-fb5e2655d865': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-7354a5b6-edf0-4ebd-973a-64cce8f8110f': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-1efa9e8f-8ecd-41a4-90a2-ef5bb5c057c9': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-a48f5816-a185-4908-b44a-9b71ca6c92a5': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-d3fcd75a-1260-4b45-826e-a7d9de9b1b66': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-79908325-c519-4072-8695-a546147122f9': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-ddce2862-9c15-459d-8c19-cf2e0907f97c': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-df9fd3fa-f33d-4c08-8a06-0f6db12c2cd1': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-cbf1b481-10d5-4533-aa6c-f9ca1eeeeb01': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-6a4ac8e6-c789-4f89-ade7-61b4828ea48d': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-2edaab7f-4024-499c-8861-c054617354d8': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-11dcaa56-d1e5-4adb-8c6c-a1e9b545ae28': received cancel
+2026-11-26 17:44:50.893 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:9c52d4-55c0d011-1fc7-47b9-8bcd-5c588d11ee47': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-288c9cba-16d0-4f6e-befc-c16fab231c78': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-74361683-8c29-451a-bdf9-186fc524080d': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-2dbb75d6-f2c8-4076-b09f-3c4e3b82fc68': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-8659dbfa-70a8-4300-bbb2-9ac371c9128e': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-b10bf227-f480-49fc-9de2-84587403825e': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-9e21631d-2c26-4b63-b12d-c131266de091': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-425a3de1-17c6-407a-8f1f-a8e48e732ea6': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-0ce6c856-4b5e-4cef-ad77-be734a06342c': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-811f535d-c609-4e9c-addc-37fd7c9cb836': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-acd0c00d-2f9d-48bc-a5d7-1b37da224936': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-f52365a9-4c2d-4f7e-b812-8a68ddc55cbd': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-b819a0f9-88b4-4ca8-9000-d1a7de5d66f6': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-1c0da3b7-152b-454a-9adb-77eea3e29c24': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-50798461-ff30-4b70-b660-e3ffe43897fc': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-6e367d75-ea11-4890-90cf-b93dd1ad8bc8': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-2ca2fbc2-fa2c-4909-9787-183153022ab7': received cancel
+2026-11-26 17:44:50.894 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-0838dc29-fa76-4cd6-987c-3febc31e25d9': received cancel
+2026-11-26 17:44:50.895 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-a434b047-edb5-483a-bee6-4ddbd8e880a4': received cancel
+2026-11-26 17:44:50.895 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-a993b56d-52de-406c-8c7f-692f62b14e7c': received cancel
+2026-11-26 17:44:50.895 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:46ae3d-066ae346-42c4-4a80-994a-5c0f0994984a': received cancel
+2026-11-26 17:44:50.895 | DEBUG    | pipecat.pipeline.worker:_wait_for_pipeline_end:1364 - voice: Closing. Waiting for CancelFrame#0(reason: runner exiting) to reach the end of the pipeline...
+2026-11-26 17:44:50.897 | INFO     | daemon:process_frame:5304 - ptt: 0 bytes of microphone audio passed, 0 held back
+2026-11-26 17:44:50.899 | DEBUG    | pipecat.pipeline.worker:wait_for_cancel:1355 - voice: CancelFrame#0(reason: runner exiting) reached the end of the pipeline.
+2026-11-26 17:44:50.899 | DEBUG    | pipecat.utils.base_object:cleanup:179 - voice: waiting on event handlers to finish ['on_pipeline_finished']...
+2026-11-26 17:44:50.899 | DEBUG    | pipecat.pipeline.worker:run:927 - Pipeline worker voice is finishing...
+2026-11-26 17:44:50.899 | DEBUG    | pipecat.pipeline.worker:run:932 - Pipeline worker voice has finished
+2026-11-26 17:44:50.906 | DEBUG    | pipecat.workers.runner:run:316 - WorkerRunner 'runner-a0ec0234': finished running

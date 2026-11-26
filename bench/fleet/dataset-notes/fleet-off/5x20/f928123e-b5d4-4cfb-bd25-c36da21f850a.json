@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the roster batcher drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the roster batcher source and is about to change it and run its tests. No root cause identified or fix made yet.",
+ "decisions": [
+  "Owner directed starting the investigation with the roster batcher source."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Whether the fix holds under load is untested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code identifies the cause of the dropped records in the roster batcher, applies the fix, and runs its tests.",
+ "people_and_names": [
+  "roster batcher"
+ ]
+}

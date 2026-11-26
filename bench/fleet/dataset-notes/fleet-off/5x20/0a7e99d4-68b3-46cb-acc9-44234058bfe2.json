@@ -1,0 +1,21 @@
+{
+ "goal": "Move the roster indexer off the deprecated client library.",
+ "state": "Just started: Claude has read the roster indexer file and is about to change it and run its tests. No changes or test results recorded yet.",
+ "decisions": [
+  "Owner chose to start the migration with the roster indexer."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement library or client to use is not stated in the record.",
+  "Whether the roster indexer's tests pass after the change.",
+  "Other files that use the deprecated client library, beyond the roster indexer."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the roster indexer to the new client and runs its tests.",
+ "people_and_names": [
+  "roster indexer",
+  "nebula"
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the loyalty validator to the new schema without downtime.",
+ "state": "Just started: Claude has read the loyalty validator file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner: the migration must happen without downtime (stated constraint, stays until lifted).",
+  "Owner: start with the loyalty validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Does the validator change pass its tests?",
+  "How the zero-downtime requirement will be met is not yet described."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the loyalty validator for the new schema and run its tests.",
+ "people_and_names": [
+  "bellows",
+  "loyalty validator"
+ ]
+}

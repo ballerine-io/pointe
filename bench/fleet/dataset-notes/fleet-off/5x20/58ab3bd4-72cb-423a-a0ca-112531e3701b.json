@@ -1,0 +1,17 @@
+{
+ "goal": "Split the banner resolver into a separate reader and writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the banner resolver, with all 14 tests passing. The owner has not yet confirmed or reviewed it.",
+ "decisions": [
+  "Owner asked to split the banner resolver into a reader and a writer with a clear interface, starting with the banner resolver module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and confirm the reader/writer interface is what was wanted.",
+ "people_and_names": [
+  "banner resolver",
+  "14 tests"
+ ]
+}

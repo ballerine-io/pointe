@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the warranty ledger's cold start time by half.",
+ "state": "Just started. Claude Code has read the warranty ledger module and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "Which parts of startup are the slowest",
+  "Whether the existing tests pass after the changes"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to set a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "warranty ledger"
+ ]
+}

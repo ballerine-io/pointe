@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the catalog dashboard drops records under load and fix it.",
+ "state": "Just started. Claude Code has read the dashboard's main file and says it will change it and run its tests next. No root cause found, no change made, no test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records under load is not yet identified",
+  "Fix not yet written or tested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code identifies the cause of the dropped records, applies the fix, and runs the dashboard tests.",
+ "people_and_names": [
+  "catalog dashboard"
+ ]
+}

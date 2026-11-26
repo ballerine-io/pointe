@@ -1,0 +1,17 @@
+{
+ "goal": "Split the coupon watchdog into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the coupon watchdog module and all 14 tests pass. This is Claude Code's own report; the owner has not confirmed it.",
+ "decisions": [
+  "Owner asked to split the coupon watchdog into a reader and a writer with a clear interface, starting with the coupon watchdog module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change and decides whether anything else is needed.",
+ "people_and_names": [
+  "coupon watchdog",
+  "jasper"
+ ]
+}

@@ -8,3 +8,11 @@
 {"at": "2026-11-26T15:48:57+0200", "launch": "fleet-20261126-153937-turns-1x4-fleet-off-r3", "what": "turns", "usd": 1.206754, "calls": 100}
 {"at": "2026-11-26T17:20:58+0200", "launch": "fleet-20261126-153433-turns-1x4-fleet-off-r2", "what": "correction: 54 calls that failed to connect reached no vendor and are priced at zero, not estimated", "usd": -1.106688, "calls": 0}
 {"at": "2026-11-26T17:20:58+0200", "launch": "fleet-20261126-153937-turns-1x4-fleet-off-r3", "what": "correction: 28 calls that failed to connect reached no vendor and are priced at zero, not estimated", "usd": -0.315314, "calls": 0}
+{"at": "2026-11-26T17:28:12+0200", "launch": "fleet-20261126-172105-turns-1x4-fleet-off-r2", "what": "turns", "usd": 0.480734, "calls": 107}
+{"at": "2026-11-26T17:35:27+0200", "launch": "fleet-20261126-172812-turns-1x4-fleet-off-r3", "what": "turns", "usd": 0.436579, "calls": 109}
+{"at": "2026-11-26T17:45:17+0200", "launch": "fleet-20261126-173527-turns-5x20-fleet-on-r1", "what": "turns", "usd": 2.00796, "calls": 258}
+{"at": "2026-11-26T17:54:12+0200", "launch": "fleet-20261126-174517-turns-5x20-fleet-on-r2", "what": "turns", "usd": 1.558169, "calls": 157}
+{"at": "2026-11-26T18:03:17+0200", "launch": "fleet-20261126-175413-turns-5x20-fleet-on-r3", "what": "turns", "usd": 1.425003, "calls": 168}
+{"at": "2026-11-26T18:10:27+0200", "launch": "fleet-20261126-180318-turns-5x20-fleet-off-r1", "what": "turns", "usd": 2.083207, "calls": 211}
+{"at": "2026-11-26T18:17:20+0200", "launch": "fleet-20261126-181027-turns-5x20-fleet-off-r2", "what": "turns", "usd": 2.017313, "calls": 116}
+{"at": "2026-11-26T18:25:25+0200", "launch": "fleet-20261126-181721-turns-5x20-fleet-off-r3", "what": "turns", "usd": 2.054318, "calls": 120}

@@ -1,0 +1,15 @@
+{
+ "goal": "Make the currency migration safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the currency migration is done and all 14 tests pass. No independent verification of a double run is recorded beyond that report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that the tests include a case running the migration twice with the same input, then review the change.",
+ "people_and_names": [
+  "currency_migration.py",
+  "14 tests"
+ ]
+}

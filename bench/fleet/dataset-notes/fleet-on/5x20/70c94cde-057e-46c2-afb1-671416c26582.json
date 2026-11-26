@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the payroll parser drops records under load and fix it.",
+ "state": "Just started: Claude read the payroll parser and is about to change it and run its tests. No cause found yet and no fix made.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Whether the parser's tests cover the load scenario is unknown"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude identifies the cause of the dropped records, makes the change, and runs the parser's tests.",
+ "people_and_names": [
+  "savanna",
+  "payroll parser"
+ ]
+}

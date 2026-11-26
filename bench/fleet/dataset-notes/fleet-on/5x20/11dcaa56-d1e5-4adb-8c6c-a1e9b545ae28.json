@@ -1,0 +1,17 @@
+{
+ "goal": "Add retries with backoff to the warranty webhook and cover them with tests.",
+ "state": "Just started: Claude Code has read the webhook module and is about to make the change and run its tests. No code changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, which errors to retry) have not been specified or chosen.",
+  "Whether the new retry tests pass is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the warranty webhook, add tests for them, and run the test suite.",
+ "people_and_names": [
+  "warranty webhook"
+ ]
+}

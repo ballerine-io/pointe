@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the booking ledger and remove the print calls, starting with booking_ledger.py.",
+ "state": "Done: the change is in booking_ledger.py and all 14 tests pass, per Claude Code's report. Nothing is pending.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "booking ledger",
+  "booking_ledger.py"
+ ]
+}

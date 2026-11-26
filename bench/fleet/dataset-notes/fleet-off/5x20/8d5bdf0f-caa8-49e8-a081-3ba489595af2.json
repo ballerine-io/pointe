@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the dispatch webhook and cover them with tests.",
+ "state": "Just started: Claude Code has read the dispatch webhook module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry parameters not specified (max attempts, backoff schedule, which failures to retry)",
+  "Tests for the retry behavior not yet written"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retry with backoff in the dispatch webhook, then write and run tests covering it.",
+ "people_and_names": [
+  "wasabi",
+  "dispatch webhook"
+ ]
+}

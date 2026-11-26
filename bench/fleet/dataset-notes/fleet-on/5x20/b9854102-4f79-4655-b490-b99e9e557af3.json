@@ -1,0 +1,21 @@
+{
+ "goal": "Move the tariff digest off the deprecated client library.",
+ "state": "Just started. Claude Code has read the tariff digest script and is about to change it and run its tests; no changes or test results recorded yet.",
+ "decisions": [
+  "Owner decided to migrate the tariff digest off the deprecated client library, starting with the tariff digest script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement library or client to use is not stated in the record.",
+  "Whether the tariff digest tests pass after the change is not yet known.",
+  "Other files that use the deprecated library are not yet identified."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the tariff digest script to the replacement client and runs its tests.",
+ "people_and_names": [
+  "tariff digest",
+  "peony"
+ ]
+}

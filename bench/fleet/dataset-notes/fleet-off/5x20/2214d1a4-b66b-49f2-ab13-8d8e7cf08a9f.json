@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the billing ledger and remove the print calls.",
+ "state": "Done: Claude Code reports the change to the billing ledger is complete and all 14 tests pass. Not independently verified beyond Claude's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "billing ledger",
+  "14 tests"
+ ]
+}

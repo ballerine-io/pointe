@@ -1,0 +1,17 @@
+{
+ "goal": "Make the refund dashboard safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the refund dashboard is done and all 14 tests pass. This is Claude's report only; no independent check is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests cover running twice with the same input is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that a test runs the dashboard twice with identical input and gets the same result.",
+ "people_and_names": [
+  "refund dashboard",
+  "14 tests"
+ ]
+}

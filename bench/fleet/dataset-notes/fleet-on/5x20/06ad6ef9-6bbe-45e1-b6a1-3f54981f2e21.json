@@ -1,0 +1,19 @@
+{
+ "goal": "Cut the invoice queue's cold start time by half.",
+ "state": "Claude Code reports the change to the invoice queue is done and all 14 tests pass. No measurement of the actual cold start time is recorded, so the halving is not confirmed.",
+ "decisions": [
+  "Owner directed starting with the invoice queue module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually measured and cut by half is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after to confirm it dropped by half.",
+ "people_and_names": [
+  "invoice queue",
+  "14 tests"
+ ]
+}

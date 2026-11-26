@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the invoice queue's cold start time by half.",
+ "state": "Claude reports the change in the invoice queue module is done and all 14 tests pass. The record does not show a measured cold start improvement.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually measured and cut by half is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after to confirm the halving target was met.",
+ "people_and_names": [
+  "invoice queue",
+  "14 tests"
+ ]
+}

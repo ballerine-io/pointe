@@ -1,0 +1,15 @@
+{
+ "goal": "Move the profile archive off the deprecated client library.",
+ "state": "Done: the change to the profile archive module is made and all 14 tests pass, per Claude Code. Only that file was reported changed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "profile archive",
+  "profile_archive.py"
+ ]
+}

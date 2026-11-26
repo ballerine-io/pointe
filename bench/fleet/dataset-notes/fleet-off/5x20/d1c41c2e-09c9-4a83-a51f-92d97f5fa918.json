@@ -1,0 +1,21 @@
+{
+ "goal": "Add structured logging to the invoice dashboard and remove the print calls.",
+ "state": "Just started. Claude has read the main invoice dashboard file and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner decided to start with the invoice dashboard file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging approach or library to use is not stated.",
+  "Whether print calls exist outside the first file is unknown.",
+  "Tests have not been run yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the invoice dashboard file with structured logging, then run its tests.",
+ "people_and_names": [
+  "nectar",
+  "invoice dashboard"
+ ]
+}

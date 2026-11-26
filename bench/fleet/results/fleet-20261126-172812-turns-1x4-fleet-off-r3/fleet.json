@@ -1,0 +1,86 @@
+{
+ "size": "1x4",
+ "seed": 20261126,
+ "hosts": 1,
+ "per_host": 4,
+ "voice_machine": "studio",
+ "machines": [
+  "studio"
+ ],
+ "shared_names": {},
+ "sessions": [
+  {
+   "id": "4b726291-e39e-4dbe-960f-fadf19f2229c",
+   "machine": "studio",
+   "name": "beacon",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "tenant digest",
+   "twin": null,
+   "goal": "Make the tenant digest safe to run twice with the same input.",
+   "files": [
+    "tenant_digest.py",
+    "test_tenant_digest.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "finish_at": null,
+   "question": "I can keep the old column for one release or drop it now. Which do you want?"
+  },
+  {
+   "id": "96e1a48c-42c4-49fd-a68f-8bcf52d447c6",
+   "machine": "studio",
+   "name": "meteor",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "inventory sampler",
+   "twin": null,
+   "goal": "Add retries with backoff to the inventory sampler and cover them with tests.",
+   "files": [
+    "inventory_sampler.py",
+    "test_inventory_sampler.py",
+    "README.md"
+   ],
+   "state": "permission",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "956e7361-d357-4203-8bbd-5949866a57c1",
+   "machine": "studio",
+   "name": "harbor",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "loyalty watchdog",
+   "twin": "d447c8ee-e734-458d-bd40-bdd6d4ebe07f",
+   "goal": "Add retries with backoff to the loyalty watchdog and cover them with tests.",
+   "files": [
+    "loyalty_watchdog.py",
+    "test_loyalty_watchdog.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "d447c8ee-e734-458d-bd40-bdd6d4ebe07f",
+   "machine": "studio",
+   "name": "finch",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "loyalty watchdog",
+   "twin": "956e7361-d357-4203-8bbd-5949866a57c1",
+   "goal": "Add structured logging to the loyalty watchdog and remove the print calls.",
+   "files": [
+    "loyalty_watchdog.py",
+    "test_loyalty_watchdog.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 56.5,
+   "question": ""
+  }
+ ],
+ "sha256": "f9280647a063e18d1344d6885ad90a39e04f996652b81c09517eb1b35c48cedf"
+}

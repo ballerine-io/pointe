@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the payroll watchdog, covered by tests.",
+ "state": "Done per Claude Code: retries with backoff are added to the payroll watchdog and all 14 tests pass. Not independently verified beyond Claude Code's report; deployment is not mentioned.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "payroll watchdog",
+  "14 tests"
+ ]
+}

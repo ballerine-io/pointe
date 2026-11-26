@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the refund digest to the new schema without downtime.",
+ "state": "Just started. Claude Code has read the refund digest script and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner chose to start the migration with the refund digest script.",
+  "Owner's constraint: the migration must happen without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the zero-downtime requirement will be met is not yet described.",
+  "Test results for the refund digest are not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Have Claude Code change the refund digest for the new schema and run its tests.",
+ "people_and_names": [
+  "refund digest",
+  "shrike"
+ ]
+}

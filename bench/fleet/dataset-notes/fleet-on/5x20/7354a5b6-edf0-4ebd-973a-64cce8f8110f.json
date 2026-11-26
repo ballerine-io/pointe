@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the signup indexer drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the signup indexer and all 14 tests pass. The record does not show the root cause or any load testing.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records is not stated in the record.",
+  "Not shown whether the fix was tested under real load; only the 14 tests are reported as passing."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "signup indexer",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Make the invoice notifier safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude Code has read the invoice notifier file and says it will change it and run its tests next. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the notifier should detect that an invoice was already notified is not yet decided.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the change to the invoice notifier and run its tests, then check that a second run with the same input sends no duplicate notifications.",
+ "people_and_names": [
+  "invoice notifier",
+  "jupiter"
+ ]
+}

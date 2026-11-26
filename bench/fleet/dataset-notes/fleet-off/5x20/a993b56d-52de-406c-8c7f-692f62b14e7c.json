@@ -1,0 +1,20 @@
+{
+ "goal": "Make the tenant digest safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the tenant digest script and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the tenant digest script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What currently makes a second run with the same input unsafe is not yet identified.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the tenant digest to be idempotent and run its tests.",
+ "people_and_names": [
+  "tenant digest",
+  "woad"
+ ]
+}

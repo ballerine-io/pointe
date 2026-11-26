@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the currency batcher to the new schema without downtime.",
+ "state": "Claude Code reports the change to the currency batcher is done and all 14 tests pass. Nothing is reported as pending.",
+ "decisions": [
+  "Owner asked to start the migration with the currency batcher file; the no-downtime requirement stands."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration has been deployed or verified as zero-downtime is not stated; only the 14 tests are reported passing."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime requirement was verified and whether the change is deployed, or move on to the rest of the migration.",
+ "people_and_names": [
+  "currency batcher",
+  "tangram"
+ ]
+}

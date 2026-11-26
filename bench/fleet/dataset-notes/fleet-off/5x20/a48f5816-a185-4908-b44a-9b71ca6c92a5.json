@@ -1,0 +1,18 @@
+{
+ "goal": "Move the warranty cache off the deprecated client library.",
+ "state": "Done: the warranty cache change is made and all 14 tests pass, per Claude Code's report. Nothing was reported as untested or undeployed.",
+ "decisions": [
+  "Owner directed starting the migration with the warranty cache module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether any other modules still use the deprecated client library.",
+ "people_and_names": [
+  "warranty cache",
+  "deprecated client library",
+  "14 tests"
+ ]
+}

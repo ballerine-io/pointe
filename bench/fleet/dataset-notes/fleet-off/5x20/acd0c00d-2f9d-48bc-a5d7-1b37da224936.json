@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the coupon dashboard to the new schema without downtime.",
+ "state": "Just started. Claude has read the coupon dashboard file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to start the migration with the coupon dashboard file.",
+  "Owner requires the migration to cause no downtime; this holds until they lift it."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the dashboard must change to match it is not yet recorded.",
+  "How the no-downtime requirement will be met is not yet recorded.",
+  "Whether the dashboard tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the coupon dashboard to the new schema and run its tests.",
+ "people_and_names": [
+  "coupon dashboard"
+ ]
+}

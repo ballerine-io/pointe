@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the roster queue drops records under load and fix it.",
+ "state": "Claude Code reports the roster queue change is done in roster_queue.py and all 14 tests pass. The root cause and whether it was tested under real load are not stated in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The root cause of the dropped records was not described in the record",
+  "No evidence yet that the fix was verified under actual load, only that 14 tests pass"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load, not just by the 14 tests.",
+ "people_and_names": [
+  "roster_queue.py",
+  "14 tests"
+ ]
+}

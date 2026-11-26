@@ -1,0 +1,17 @@
+{
+ "goal": "Make the returns batcher safe to run twice with the same input (idempotent).",
+ "state": "Just starting. Claude has read the returns batcher file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the batcher should detect input it has already processed is not yet determined.",
+  "Whether the existing tests pass, and whether new tests are needed for running twice."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the returns batcher so a repeat run with the same input has no extra effect, then run its tests.",
+ "people_and_names": [
+  "returns batcher"
+ ]
+}

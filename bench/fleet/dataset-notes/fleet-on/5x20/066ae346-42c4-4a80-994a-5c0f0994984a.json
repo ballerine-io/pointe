@@ -1,0 +1,19 @@
+{
+ "goal": "Move the delivery cache off the deprecated client library.",
+ "state": "Just started. Claude has read the delivery cache module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the delivery cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library to use is not stated in the record.",
+  "Whether other modules also use the deprecated library is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the delivery cache to the replacement library and run its tests.",
+ "people_and_names": [
+  "delivery cache"
+ ]
+}

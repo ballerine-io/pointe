@@ -1,0 +1,15 @@
+{
+ "goal": "Make the inventory export safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the inventory export is done and all 14 tests pass. No independent verification of idempotency beyond the reported test results is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that the tests cover running the export twice with the same input, then wrap up.",
+ "people_and_names": [
+  "inventory export",
+  "14 tests"
+ ]
+}

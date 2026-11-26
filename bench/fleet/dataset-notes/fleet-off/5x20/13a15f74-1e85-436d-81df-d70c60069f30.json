@@ -1,0 +1,20 @@
+{
+ "goal": "Split the warranty webhook into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude has read the warranty webhook module and is about to make the change and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner decided to split the warranty webhook into a reader and a writer with a clear interface, starting with the warranty webhook module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing warranty webhook tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the reader/writer split in the warranty webhook module and runs its tests.",
+ "people_and_names": [
+  "magpie",
+  "warranty webhook"
+ ]
+}

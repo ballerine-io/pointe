@@ -1,0 +1,17 @@
+{
+ "goal": "Make the quota export safe to run twice with the same input (idempotent).",
+ "state": "Done: the change to the quota export script is made and all 14 tests pass, per Claude Code's report. Nothing is waiting on the owner.",
+ "decisions": [
+  "Owner asked to start with quota_export.py for the idempotency change."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm by running the export twice on the same input and comparing outputs, since the record only shows the 14 tests passing.",
+ "people_and_names": [
+  "quota_export.py",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Make the roster resolver safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the roster resolver and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What currently makes a second run with the same input unsafe",
+  "Whether the existing tests cover running twice on the same input"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the roster resolver so a repeat run with identical input has no extra effect, then runs its tests.",
+ "people_and_names": [
+  "roster resolver"
+ ]
+}

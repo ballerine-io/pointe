@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the quota batcher drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the quota batcher and all 14 tests pass. The root cause was not stated in the record, and nothing indicates load testing was done.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not described in the record",
+  "Unclear whether the fix was verified under real load, as opposed to the 14 unit tests"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was tested under load.",
+ "people_and_names": [
+  "quota batcher",
+  "quota_batcher.py",
+  "14 tests"
+ ]
+}

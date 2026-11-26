@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the payroll sampler drops records under load and fix it.",
+ "state": "Claude Code reports the fix is made in the payroll sampler and all 14 tests pass. Not independently verified; load behavior was not reported as tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Whether the fix was tested under real load is not reported"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was exercised under load, not just by the 14 unit tests.",
+ "people_and_names": [
+  "nozzle",
+  "payroll sampler"
+ ]
+}
