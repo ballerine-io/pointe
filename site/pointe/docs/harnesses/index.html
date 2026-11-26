@@ -390,6 +390,11 @@ command above; <code>pointe setup codex</code> starts the app-server and offers 
 <p>The daemon updates itself and restarts when idle: the link reconnects and resumes every joined thread, and turns that
 finished meanwhile are read from <code>thread/turns/list</code>. Resuming a thread from Pointe marks it as touched by another
 client in Codex's own records (its <code>source</code> and <code>originator</code>). Each Codex turn costs Codex about 95k input tokens.</p>
+<h2 id="agents-built-on-agent-frameworks">Agents built on agent frameworks</h2>
+<p>OpenClaw, Hermes Agent and any A2A or OpenAI-compatible agent join as sessions of four more harnesses (<code>openclaw</code>,
+<code>hermes</code>, <code>a2a</code>, <code>openai</code>, in <code>pointe/harnesses/</code>, sharing <code>agent.py</code>), behind <code>POINTE_AGENTS=on</code>. They are configured
+with <code>pointe agent add</code>, not joined from a folder; their record is a mirror Pointe writes as turns finish in the
+background. How-to: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">agents.md</a>. Design: <a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/agents.md">design/agents.md</a>.</p>
 <h2 id="adding-a-harness">Adding a harness</h2>
 <ol>
 <li>Subclass <code>Harness</code> in <code>pointe/harnesses/&lt;name&gt;.py</code>; set <code>name</code>, <code>label</code>, <code>agent</code> and the capability flags truthfully.</li>
@@ -456,6 +461,7 @@ every tool call through the voice.</p>
 <li class="dx-l2"><a href="#claude-code-pointeharnessesclaude_codepy">Claude Code (pointe/harnesses/claude_code.py)</a></li>
 <li class="dx-l2"><a href="#opencode-v2-pointeharnessesopencodepy">OpenCode v2 (pointe/harnesses/opencode.py)</a></li>
 <li class="dx-l2"><a href="#codex-cli-pointeharnessescodexpy">Codex CLI (pointe/harnesses/codex.py)</a></li>
+<li class="dx-l2"><a href="#agents-built-on-agent-frameworks">Agents built on agent frameworks</a></li>
 <li class="dx-l2"><a href="#adding-a-harness">Adding a harness</a></li>
 <li class="dx-l2"><a href="#next-pi">Next: Pi</a></li>
 <li class="dx-l2"><a href="#cloud-sessions-hosted-by-the-vendors">Cloud sessions hosted by the vendors</a></li>

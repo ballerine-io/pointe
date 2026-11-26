@@ -143,3 +143,13 @@ how to turn approvals on.
 - No agent-to-agent conversation without the user: every hop is a spoken yes.
 - No new permission model; colleagues get agents through the existing grants later.
 - No streaming of partial replies to the voice; the finished reply is read.
+
+## Proof
+
+`bench/agents/live.py` runs a real voice daemon (`bench/agents/voice.py`: the real brain, reader and checker, no
+microphone; words come in as the ears' final transcript would give them, so a yes counts as spoken) against a real
+OpenClaw and a real Hermes Agent, and writes the conversation down: an orchestrated request, a reply that arrives while
+no call is up and is heard at the next call, "what did hermes say?", "talk to hermes" and back, a relay on a spoken
+yes, a relay refused, and an OpenClaw exec approval denied by voice. `bench/agents/judge.py` has two model judges from
+two vendors read the transcript against a fixed rubric. The agents run outside it, from their official images, on
+loopback; their credentials are read from the Keychain by the voice process alone.

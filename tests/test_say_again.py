@@ -28,6 +28,17 @@ def test_these_do_not(said):
     assert not repeat_intent(said)
 
 
+@pytest.mark.parametrize("said,asks", [("What did hermes say?", True), ("what did the shop session answer", True),
+                                       ("What did openclaw find?", True), ("מה הרמס אמר?", True),
+                                       ("What did you say?", False), ("Tell billing what to say.", False)])
+def test_what_a_session_said_is_asked_for_again_without_the_repeat_cut(said, asks):
+    """On a live run with real agents, "What did hermes say?" got its answer cut as a repeat of the report a moment
+    before, and the voice said nothing until a retry."""
+    from guards import said_question
+
+    assert said_question(said) is asks
+
+
 def test_the_brain_lets_the_repeated_sentence_through(monkeypatch):
     import asyncio
     from types import SimpleNamespace

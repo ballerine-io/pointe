@@ -410,7 +410,7 @@ def test_the_feature_is_off_unless_the_flag_says_on(monkeypatch):
 @pytest.mark.parametrize("said,asks", [
     ("give hermes's answer to openclaw", True), ("send that to the shop session", True),
     ("pass what hermes said on to openclaw", True), ("tell openclaw what hermes said", True),
-    ("forward the reply to quarry", True), ("תעביר את התשובה של הרמס לאופנקלו", True),
+    ("forward the reply to granite", True), ("תעביר את התשובה של הרמס לאופנקלו", True),
     ("ask openclaw to book a table", False), ("what did hermes say?", False), ("talk to hermes", False)])
 def test_relay_words(said, asks):
     assert agent_relay.asks_relay(said) is asks

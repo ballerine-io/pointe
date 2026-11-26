@@ -785,6 +785,16 @@ def repeat_intent(text: str) -> bool:
     return bool(_REPEAT.search((text or "").strip()))
 
 
+_SAID_Q = re.compile(r"\bwhat (?:did|does|has) (?!you\b)[\w' -]{1,40}? (?:say|said|answer|reply|replied|write|wrote|find|found|tell (?:me|us))\b|"
+                     r"^\W*(?:מה|מה בדיוק) \S+(?: \S+)? (?:אמר|אמרה|ענה|ענתה|כתב|כתבה|מצא|מצאה)\b", re.I)
+
+
+def said_question(text: str) -> bool:
+    """"What did hermes say?": the user asks for what a session or agent said, which the voice may have said a moment
+    ago. Not a repeat of the voice's last answer (repeat_intent), but its answer is not cut as a repeat either."""
+    return bool(_SAID_Q.search((text or "").strip()))
+
+
 _LONE_YES = re.compile(r"^\W*(?:yes|yeah|yep|yup|כן|נכון|אוקיי|אוקי)\W*$", re.I)
 
 

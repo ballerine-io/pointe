@@ -1658,7 +1658,7 @@ def make_brain(speak, filler=None) -> Brain:
     brain.stage = _stage
     brain.work_words = _work_words
     brain.quick_ack = _quick_ack
-    brain.repeat_asked = repeat_intent
+    brain.repeat_asked = lambda asked: repeat_intent(asked) or said_question(asked)  # "what did hermes say?" too
     brain.session_words = lambda: {w for s in REGISTRY.sessions.values() for w in re.findall(r"[^\W_]+", s.name.lower())}
     return brain
 
@@ -12717,6 +12717,17 @@ harnesses.HOST.remote_sent = remote_sent
 harnesses.HOST.call_state = _call_state
 harnesses.HOST.vendors = _vendor_names
 harnesses.HOST.save_sessions = REGISTRY.save
+
+
+def _refresh_soon(session: Session) -> None:
+    """An agent's reply came with no call up: its notes are read now (a test's plain call has no loop: at its next turn)."""
+    try:
+        asyncio.get_running_loop().create_task(_refresh_brief(session))
+    except RuntimeError:
+        pass
+
+
+harnesses.HOST.refresh_notes = _refresh_soon
 
 
 def main() -> None:

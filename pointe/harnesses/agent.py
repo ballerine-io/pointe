@@ -270,6 +270,9 @@ class AgentHarness(Harness):
                               **({"pointeError": True} if error else {}), **({} if handle else {"pointeUnasked": True})})
         if not session.followed:
             session.needs = {"need": UNHEARD, "unblock": f"what did {session.name} say"}
+            notes = getattr(HOST, "refresh_notes", None)
+            if notes:  # read now, so the next call's greeting knows the reply instead of the notes from before it
+                notes(session)
 
     def _write(self, session: Session, entry: dict) -> None:
         path = self.mirror_path(session.id)
