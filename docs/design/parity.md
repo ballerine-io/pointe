@@ -32,7 +32,7 @@ architecture that makes "the same" cheap. The matrix itself is generated: [parit
 To add a feature: add its row, build it on every surface, run the script. To drop one from a surface: give the reason
 in the row; the reviewer sees it in the diff.
 
-## Where it stood (1.16.0), and where it is
+## Where it stood (a pre-release build), and where it is
 
 By the same scan, at a pre-release build (2026-11-21) (kept in `tools/parity_baseline.json`), and now:
 
@@ -41,8 +41,9 @@ By the same scan, at a pre-release build (2026-11-21) (kept in `tools/parity_bas
 | Page | 73 | 1 | 114 | 0 | 23 |
 | iPhone | 79 | 1 | 124 | 0 | 13 |
 | Mac | 43 | 40 | 128 | 0 | 9 |
+| Linux hub | (not a surface then) | | 114 | 0 | 23 |
 
-The 1.16.0 Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none
+The pre-release Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none
 of: meetings, briefings, challenge, whisper, the dictionary, the conflict alarm, show while it says, machines and
 invites, voice-lock enrolment, rename, Orchestrator/Session mode, Clean up my words, recent requests and context, About,
 the demo, pairing a phone, or a place in the product help. Each of those sent the person to the page. All of them are in

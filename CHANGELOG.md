@@ -8,7 +8,7 @@ the previous version, hold the detail. Versions are tagged (`git log v0.8.0..v0.
 Pointe is in beta while its major version is 0: it works, it is used every day, and it is still changing. Report what
 breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
-## 0.8 (beta)
+## 0.10 (beta)
 
 - **0.10.0** (2026-11-26, beta): Machines running different Pointe versions say which one to update and how, a correction takes a request back from the wrong session, mute holds through quick taps, and Linux hubs, the iPhone and the Mac get their fixes
 
@@ -35,7 +35,11 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
     one sentence for any refusal, and a refused permission hook leaves the prompt in the terminal
     ([docs/multi-machine.md](docs/multi-machine.md#versions-an-old-pointe-next-to-a-new-one)).
 
+## 0.9 (beta)
+
 - **0.9.0** (2026-11-26, beta): Pointe runs as a hub on Linux (keys in the login keyring, sessions in tmux, pairing by QR in the terminal); new Claude Code sessions Pointe starts skip permission prompts by default, with a setting to ask first; a request aimed at a session by what it works on goes there, "Pointe." answers "which session?", and "Approved." over Pointe's own question answers it
+## 0.8 (beta)
+
 - **0.8.7** (2026-11-25, beta): The iPhone app is ready for App Store review (a privacy policy link, privacy manifests, no "beta" on the iPhone, the Sessions title whole), AirPods turn the mic off and on during a call on the Mac, an overview reaches a session signed in by a key, and a request's reminder and read-out are said as a person says them
 - **0.8.6** (2026-11-25, beta): "Only when I say Pointe" acts only on words that name Pointe or a session, an optional short tone before a background session's report, "What's going on everywhere?" is answered by the sessions themselves, and replies sound spoken: no greeting that ends in a question, a session by its plain name, a caveat in a few words
 - **0.8.5** (2026-11-25, beta): The wait says "Thinking…", Pointe waits 1.3 s before it answers, a command that is long to hear goes back for plain ones and a request is read once, "stop" and "never mind" keep a request from being sent, a question is not an answer to a request, and "yes" while Pointe talks does not cut it off

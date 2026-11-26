@@ -259,3 +259,11 @@ def test_a_red_ci_run_gets_one_rerun_of_its_failed_jobs_then_counts(tmp_path, mo
     with pytest.raises(Fail, match="failed again after one re-run"):  # the same run red again: no second re-run
         github.wait_green(ctx, "a" * 40, ("test",), "main", "CI", 1)
     assert len(reruns) == 1
+
+
+def test_a_new_minor_version_opens_its_own_changelog_section_and_a_patch_joins_it():
+    text = "# Changelog\n\n## 0.10 (beta)\n\n- **0.10.0** (2026-11-26, beta): Many machines\n\n## 0.9 (beta)\n\n- **0.9.0** (x, beta): Linux\n"
+    patch = bump.fold_changelog(text, "- **0.10.1** (2026-11-27, beta): The iPhone app", [])
+    assert patch.count("## 0.10 (beta)") == 1 and patch.index("## 0.10 (beta)") < patch.index("- **0.10.1**") < patch.index("- **0.10.0**")
+    minor = bump.fold_changelog(text, "- **0.11.0** (2026-12-01, beta): Next", [])
+    assert minor.index("## 0.11 (beta)") < minor.index("- **0.11.0**") < minor.index("## 0.10 (beta)")

@@ -135,3 +135,15 @@ def test_removing_a_control_from_one_surface_fails_the_scan(tmp_path):
         shared.write_text("#if os(iOS)\n" + shared.read_text() + "\n#endif\n")
         after = parity.scan(tmp_path)["dictionary.sheet"]
         assert after["ios"].state == "yes" and after["mac"].state != "yes"
+
+
+def test_the_design_doc_states_the_counts_the_scan_finds():
+    """docs/design/parity.md's "Where it stood" table repeats the counts; it drifted once (a stale version, no Linux row)."""
+    doc = (ROOT / "docs" / "design" / "parity.md").read_text()
+    now = parity.counts(MATRIX)
+    for surface in parity.SURFACES:
+        c = now[surface]
+        row = next((line for line in doc.splitlines() if line.startswith(f"| {parity.NAMES[surface]} |")), None)
+        assert row, f"docs/design/parity.md has no row for {parity.NAMES[surface]}"
+        cells = [x.strip() for x in row.strip("|").split("|")]
+        assert cells[-3:] == [str(c["yes"]), str(c["no"]), str(c["n/a"])], f"{row}: the scan says {c}"

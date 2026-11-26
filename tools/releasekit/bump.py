@@ -103,6 +103,13 @@ def fold_changelog(text: str, line: str, shipped_first_lines: list[str]) -> str:
     if at < 0:
         raise Fail("CHANGELOG.md has no entry line to put the new one above")
     entry = line + ("\n\n  What is in it:\n" + "\n".join(items) + "\n" if items else "")
+    version = re.match(r"- \*\*(\d+)\.(\d+)\.", line)
+    heading = f"## {version.group(1)}.{version.group(2)}" if version else ""
+    first = re.search(r"^## .*$", text, re.M)
+    if heading and first and not first.group(0).startswith(heading + " ") and first.group(0) != heading:
+        # a new minor version opens its own section above the newest one ("## 0.10 (beta)" over "## 0.9 (beta)")
+        beta = " (beta)" if version.group(1) == "0" else ""
+        return text[:first.start()] + f"{heading}{beta}\n\n{entry}\n" + text[first.start():]
     return text[:at + 1] + entry + "\n" + text[at + 1:]
 
 
