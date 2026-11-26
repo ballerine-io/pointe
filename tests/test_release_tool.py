@@ -244,3 +244,18 @@ def test_a_network_drop_is_a_wait_not_a_defect():
         core.sh(["sh", "-c", "echo \"fatal: unable to access: Failed to connect to github.com port 443\" >&2; exit 128"])
     with pytest.raises(Fail):
         core.sh(["sh", "-c", "exit 3"])
+
+
+def test_a_red_ci_run_gets_one_rerun_of_its_failed_jobs_then_counts(tmp_path, monkeypatch):
+    ctx = ctx_for(tmp_path, no_wait=False)
+    red = ("failure", {**run("test", conclusion="failure"), "databaseId": 7})
+    answers = iter([{"test": red}, {"test": ("success", run("test"))}, {"test": red}, {"test": red}])
+    reruns = []
+    monkeypatch.setattr(github, "commit_state", lambda *a, **k: next(answers))
+    monkeypatch.setattr(github, "sh", lambda cmd, **k: reruns.append(cmd))
+    monkeypatch.setattr(github.time, "sleep", lambda s: None)
+    assert "test green" in github.wait_green(ctx, "a" * 40, ("test",), "main", "CI", 1)
+    assert reruns == [["gh", "run", "rerun", "7", "-R", core.REPO, "--failed"]]
+    with pytest.raises(Fail, match="failed again after one re-run"):  # the same run red again: no second re-run
+        github.wait_green(ctx, "a" * 40, ("test",), "main", "CI", 1)
+    assert len(reruns) == 1

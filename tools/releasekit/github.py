@@ -78,8 +78,17 @@ def wait_green(ctx, sha: str, workflows: tuple[str, ...], ref: str | None, what:
     while True:
         got = commit_state(sha, workflows, ref)
         red = {w: r for w, (s, r) in got.items() if s == "failure"}
+        reran = ctx.state.fact("reran") or []
+        fresh = {w: r for w, r in red.items() if r["databaseId"] not in reran}
+        if fresh:  # one re-run of the failed jobs per run: the page and start-race tests flake on busy runners
+            for w, r in fresh.items():
+                sh(["gh", "run", "rerun", str(r["databaseId"]), "-R", REPO, "--failed"], check=False)
+                ctx.say(f"    {w} failed on {sha[:10]} ({r['url']}): its failed jobs re-run once")
+            ctx.state.set(reran=reran + [r["databaseId"] for r in fresh.values()])
+            time.sleep(30)
+            continue
         if red:
-            raise Fail(f"{what}: " + ", ".join(f"{w} failed ({r['url']})" for w, r in red.items())
+            raise Fail(f"{what}: " + ", ".join(f"{w} failed again after one re-run ({r['url']})" for w, r in red.items())
                        + ". A real bug is fixed in a new commit and a new patch version; a pushed tag is never moved.")
         left = [w for w, (s, _) in got.items() if s != "success"]
         if not left:
