@@ -191,8 +191,20 @@ def dry_push_version(ctx: Ctx) -> str:
     return "dry run: the push to main would be accepted (fast-forward, signed in); nothing pushed"
 
 
+DOCS_ONLY = ("docs/", "site/", "tests/", "tools/", "bench/", "README.md", "CHANGELOG.md")
+
+
 def version_ci(ctx: Ctx) -> str:
-    return github.wait_green(ctx, ctx.state.fact("version_commit"), ("test", "apps"), "main", "CI on the version commit", 45)
+    """test on the commit the tag will name; apps there too, unless that commit is the version commit plus changes apps
+    does not build (docs, site, tests, tools: its path filter skips them), when the version commit's apps run counts."""
+    target, bump = ctx.state.fact("version_commit"), ctx.state.fact("version_commit_bump")
+    out = github.wait_green(ctx, target, ("test",), "main", "CI on the version commit", 45)
+    apps_on = target
+    if bump and bump != target:
+        later = [f for f in sh(["git", "diff", "--name-only", bump, target], cwd=ctx.tree).stdout.split() if f]
+        if all(f.startswith(DOCS_ONLY) for f in later):
+            apps_on = sh(["git", "rev-parse", bump], cwd=ctx.tree).stdout.strip()
+    return out + "; " + github.wait_green(ctx, apps_on, ("apps",), "main", f"apps on {apps_on[:10]}", 45)
 
 
 def tag(ctx: Ctx) -> str:
