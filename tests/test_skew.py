@@ -337,7 +337,7 @@ def test_a_host_from_before_ranges_links_and_gets_no_features(world):
 
     async def go():
         fake = FakeNode(hub, entry)
-        welcome = await fake.connect()
+        welcome = await fake.connect(protocol=1)
         assert welcome["protocol"] == 1 and welcome["features"] == []
         await fake.drop()
 

@@ -16,14 +16,20 @@ from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
 
-PROTOCOL = 1  # the newest this copy speaks
+PROTOCOL = 2  # the newest this copy speaks. 2: a machine serves several people's voices (docs/design/people-and-machines.md)
 INVITE_VERSION = 1  # the `pointe://hub?v=` line's format
 MIN_PROTOCOL = 1  # the oldest this copy speaks. Each side says its range; no common version closes with CLOSE_TOO_OLD
 # What this copy can do beyond the frames every protocol 1 side has. Each side lists its own; the link uses those both
 # list, and one that is absent is unsupported (an older side lists none).
-FEATURES = ("attach", "held")
+FEATURES = ("attach", "held", "people")
 PATH = "/voice/node"
 PAIR_PATH = "/voice/node/pair"
+# A person's voice dials a machine it was invited to (docs/design/people-and-machines.md): the machine is in the
+# node's role, so it sends NODE_FRAMES and the voice HUB_FRAMES, after a handshake of its own (host.challenge,
+# voice.hello, host.welcome).
+HOST_PATH = "/voice/host"
+HOST_PAIR_PATH = "/voice/host/pair"
+GRANTS = ("send", "watch")  # what a person may do on a machine: talk to its sessions, or only see and hear them
 
 CLOSE_BAD_HELLO = 4400  # no hello in time, or not a hello: the node keeps its key and reconnects
 CLOSE_UNAUTHORIZED = 4401  # wrong HMAC, or a revoked key: the node deletes its key, and only for this code
@@ -114,13 +120,26 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
     "permission.resolved": {"id": _str, "request_id": _str, "how": _one_of("terminal", "timeout", "left")},
     "permission.answered": {"request_id": _str, "ok": _bool, "why?": _str},
     # `held`: Claude Code kept the message from Claude, held for approval in the terminal or refused (from pre-release 1.12.0).
-    "send.result": {"req": _str, "ok": _bool, "held?": _one_of("held", "refused")},
+    # `why`, from a machine with people: the send was refused there ("watch", "busy", "private", "consent", "prompt").
+    # `busy`: {by, since}, whose request the session is working on.
+    "send.result": {"req": _str, "ok": _bool, "held?": _one_of("held", "refused"), "why?": _short, "busy?": _dict},
     "artifact.result": {"req": _str, "view?": _dict},
     # Adding sessions (docs/design/attach-by-voice.md, from pre-release 1.21.0): what the node lists, and whether one joined there.
     "discovered": {"req": _str, "found": _list_of(_dict, 400)},
     "attach.result": {"req": _str, "ok": _bool, "why?": _str},
     "pong": {"id": _int},
     "bye": {},
+    # A machine to a person's voice that dialed it. The challenge comes before any proof, as a hub's does.
+    "host.challenge": {"nonce": _str, "now": _num, "protocol": _int, "protocol_min": _int,
+                       "features?": _list_of(_short, MAX_FILES),
+                       "host": _has(id=_token, name=_short, os=_short, arch=_short, version=_short,
+                                    harnesses=_list_of(_short, MAX_FILES))},
+    "host.welcome": {"protocol": _int, "features?": _list_of(_short, MAX_FILES), "owner": _short,
+                     "you": _has(id=_token, name=_short, grant=_one_of(*GRANTS))},
+    "you": {"grant": _one_of(*GRANTS)},  # the machine's owner changed what this person may do
+    # Another person sent this to a session this voice sees. `by` is set by the machine from the link, never taken
+    # from a frame. A voice never gets its own sends back.
+    "sent": {"id": _str, "by": _short, "text": _str, "at": _num},
 }
 
 HUB_FRAMES: dict[str, dict[str, Check]] = {
@@ -132,7 +151,12 @@ HUB_FRAMES: dict[str, dict[str, Check]] = {
                 "approvals_terminal": _bool, "vendors": _list_of(_str), "resume": _resume},
     "resume": {"resume": _resume},
     "call": {"up": _bool, "approvals_terminal": _bool},
-    "send": {"req": _str, "id": _str, "text": _str},
+    # `anyway`: deliver although the session is working on another person's request.
+    "send": {"req": _str, "id": _str, "text": _str, "anyway?": _bool},
+    # A person's voice answers a machine's host.challenge: HMAC(person's key, nonce || host id), as a node's hello.
+    "voice.hello": {"auth": _token, "person": _token, "protocol": _int, "protocol_min": _int,
+                    "features?": _list_of(_short, MAX_FILES), "voice": _has(name=_short, version=_short),
+                    "vendors": _list_of(_short, MAX_FILES)},
     "permission.holding": {"request_id": _str},
     "permission.answer": {"id": _str, "request_id": _str, "verdict": _one_of("allow", "deny"),
                           "how": _one_of("voice", "tap", "notification"), "spoken?": _str},
@@ -307,6 +331,33 @@ def skew_sentence(reason, hub: str, version: str = "") -> str:
         runs = f" ({version})" if version else ""
         return f"{hub} runs an older Pointe{runs} than this machine: update it there with {how}, then this machine reconnects"
     return f"{hub} needs a newer Pointe on this machine: update it with {how}, then it reconnects"
+
+
+def machine_invite(host: str, port: int, fp: str, code: str, name: str) -> str:
+    """The line a machine's owner gives a person, and `pointe machine add` takes."""
+    from urllib.parse import urlencode
+
+    return "pointe://machine?" + urlencode({"v": INVITE_VERSION, "host": host, "port": port, "fp": fp, "code": code,
+                                            "name": name})
+
+
+def parse_machine_invite(line: str) -> dict:
+    """What adding a machine needs from its owner's invite line: {host, port, fp, code, name}. ValueError, with a
+    sentence for the person, for anything else."""
+    url = urlparse(line.strip())
+    query = {k: v[0] for k, v in parse_qs(url.query).items()}
+    if url.scheme == "pointe" and url.netloc == "hub":
+        raise ValueError("this line pairs a machine of your own with your voice: run it on that machine, with "
+                         "pointe node join")
+    if url.scheme != "pointe" or url.netloc != "machine" or query.get("v") != str(INVITE_VERSION):
+        raise ValueError("not an invite to a machine (pointe://machine?v=1&...): ask its owner for the line "
+                         "Invite a person shows")
+    fp, port = query.get("fp", "").lower(), query.get("port", "")
+    if not (query.get("host") and query.get("code") and port.isdigit() and 0 < int(port) < 65536
+            and len(fp) == 64 and all(c in "0123456789abcdef" for c in fp)):
+        raise ValueError("the invite is incomplete: copy the whole line")
+    return {"host": query["host"], "port": int(port), "fp": fp, "code": query["code"],
+            "name": " ".join(query.get("name", "").split())[:HELLO_CHARS]}
 
 
 def new_nonce() -> str:

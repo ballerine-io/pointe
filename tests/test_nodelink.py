@@ -241,3 +241,44 @@ def test_hub_session_ids_are_prefixed_by_node():
 def test_a_frame_with_no_fields_encodes():
     assert decode(encode("bye"), NODE_FRAMES) == {"t": "bye"}
     assert decode(encode("unpaired"), HUB_FRAMES) == {"t": "unpaired"}
+
+
+# ---------- protocol 2: a machine and the voices of the people invited to it ----------
+
+def test_the_dialed_handshake_frames_round_trip_in_their_own_directions():
+    host = {"id": "0123456789abcdef", "name": "avi-box", "os": "linux", "arch": "x86_64", "version": "0.10.0",
+            "harnesses": ["claude-code"]}
+    challenge = encode("host.challenge", nonce="ab" * 32, now=1.5, protocol=2, protocol_min=1, host=host)
+    assert decode(challenge, NODE_FRAMES)["host"]["name"] == "avi-box" and decode(challenge, HUB_FRAMES) is None
+    hello = encode("voice.hello", auth="00" * 32, person="p1", protocol=2, protocol_min=1,
+                   voice={"name": "dana-mac", "version": "0.10.0"}, vendors=["Anthropic"])
+    assert decode(hello, HUB_FRAMES)["person"] == "p1" and decode(hello, NODE_FRAMES) is None
+    welcome = encode("host.welcome", protocol=2, owner="avi", you={"id": "p1", "name": "dana", "grant": "send"})
+    assert decode(welcome, NODE_FRAMES)["you"]["grant"] == "send"
+    with pytest.raises(ValueError):
+        encode("host.welcome", protocol=2, owner="avi", you={"id": "p1", "name": "dana", "grant": "admin"})
+
+
+def test_a_refused_send_says_why_and_who_holds_the_session():
+    frame = decode(encode("send.result", req="r1", ok=False, why="busy", busy={"by": "dana", "since": 1731590520.0}), NODE_FRAMES)
+    assert frame["why"] == "busy" and frame["busy"]["by"] == "dana"
+    assert decode(encode("send", req="r1", id="s1", text="go", anyway=True), HUB_FRAMES)["anyway"] is True
+    assert decode(encode("sent", id="s1", by="dana", text="run the tests", at=1.0), NODE_FRAMES)["by"] == "dana"
+
+
+def test_a_machine_invite_round_trips_and_a_hub_invite_is_told_apart():
+    line = nodelink.machine_invite("avi-box.example", 7443, "ab" * 32, "K7PQ-2MXD", "avi box")
+    assert nodelink.parse_machine_invite(line) == {"host": "avi-box.example", "port": 7443, "fp": "ab" * 32,
+                                                   "code": "K7PQ-2MXD", "name": "avi box"}
+    hub_line = "pointe://hub?v=1&host=h&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD"
+    with pytest.raises(ValueError, match="pointe node join"):
+        nodelink.parse_machine_invite(hub_line)
+    with pytest.raises(ValueError, match="not an invite to a machine"):
+        nodelink.parse_machine_invite("https://example.com")
+    with pytest.raises(ValueError, match="incomplete"):
+        nodelink.parse_machine_invite("pointe://machine?v=1&host=h&port=7443&fp=zz&code=x")
+
+
+def test_a_node_of_this_version_still_links_with_a_hub_that_speaks_only_protocol_1():
+    assert nodelink.common(1, None) == 1  # the hub's side: a 0.9.0 node offers 1
+    assert nodelink.MIN_PROTOCOL == 1 <= nodelink.PROTOCOL  # the node's side: a 0.9.0 hub welcomes with 1
