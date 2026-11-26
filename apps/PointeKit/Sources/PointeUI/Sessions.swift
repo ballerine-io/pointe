@@ -1,8 +1,12 @@
 import SwiftUI
 
-private func dot(_ s: API.Session) -> Color { s.isOffline ? Brand.raised2 : s.waiting || s.needs != nil ? Brand.orange : s.working ? Brand.success : Brand.raised2 }
-private func state(_ s: API.Session) -> String {
-    s.isOffline ? "offline" : s.waiting ? "approve" : s.needs != nil ? "needs you" : s.working ? "working" : "idle"
+/// `watching`: a session this person may only watch never waits for them, so it is never orange and never "approve".
+private func dot(_ s: API.Session, watching: Bool = false) -> Color {
+    s.isOffline ? Brand.raised2 : !watching && (s.waiting || s.needs != nil) ? Brand.orange : s.working || (watching && s.waiting) ? Brand.success : Brand.raised2
+}
+private func state(_ s: API.Session, watching: Bool = false) -> String {
+    if watching, !s.isOffline { return s.working || s.waiting ? "working" : "idle" }
+    return s.isOffline ? "offline" : s.waiting ? "approve" : s.needs != nil ? "needs you" : s.working ? "working" : "idle"
 }
 
 /// Waiting for you first (an approval, then a question), then working, then idle: what to look at, in order.
@@ -112,8 +116,8 @@ struct SessionChips: View {
                     let watching = machines.watchOnly(s)  // nothing may be sent there: it is not a session to focus on
                     Button { if !on && !watching { focus(s.name) } } label: {
                         HStack(spacing: 7) {
-                            Circle().fill(dot(s)).frame(width: 7, height: 7)
-                            Text(s.name).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)  // a branch-long name keeps both ends, and the next chip stays in reach
+                            Circle().fill(dot(s, watching: watching)).frame(width: 7, height: 7)
+                            Text(machines.short(s)).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)  // a branch-long name keeps both ends, and the next chip stays in reach
                             HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
                             if s.isPrivate { Image(systemName: "lock.fill").font(.brand(.caption2)).foregroundStyle(Brand.muted).accessibilityHidden(true) }
                             if let owner = machines.ownerTag(s) { Text(owner).font(.brand(.caption2)).foregroundStyle(Brand.muted) }
@@ -150,7 +154,7 @@ struct SessionChips: View {
                         }
                         Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                     }
-                    .accessibilityLabel("\(s.name)\(machines.mixed ? ", on \(machine)" : "")\(machines.spoken(s)), \(state(s))\(on ? ", focused" : "")")
+                    .accessibilityLabel("\(s.name)\(machines.mixed ? ", on \(machine)" : "")\(machines.spoken(s)), \(state(s, watching: watching))\(on ? ", focused" : "")")
                     .accessibilityHint(on || watching ? "" : "Focus on this session")
                   }
                 }
@@ -419,8 +423,8 @@ struct SessionsSheet: View {
 
     private func name(_ s: API.Session) -> some View {
         HStack {
-            Circle().fill(dot(s)).frame(width: 9, height: 9)
-            Text(s.name).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
+            Circle().fill(dot(s, watching: machines.watchOnly(s))).frame(width: 9, height: 9)
+            Text(machines.short(s)).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
             HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
             if s.isPrivate {
                 Image(systemName: "lock.fill").font(.brand(.caption)).foregroundStyle(Brand.muted)
@@ -473,7 +477,7 @@ struct SessionsSheet: View {
         } else if let by = machines.usedBy(s) {
             Text(by).font(.brand(.caption)).foregroundStyle(Brand.muted).accessibilityIdentifier("sessionBy.\(s.name)")
         } else if machines.watchOnly(s) {
-            Text(s.working ? "working · \(PeopleCopy.watchOnly)" : PeopleCopy.watchOnly).font(.brand(.caption)).foregroundStyle(Brand.muted)
+            Text(s.working || s.waiting ? "working · \(PeopleCopy.watchOnly)" : PeopleCopy.watchOnly).font(.brand(.caption)).foregroundStyle(Brand.muted)
         } else {
             Text(state(s)).font(.brand(.caption)).foregroundStyle(Brand.muted)
         }

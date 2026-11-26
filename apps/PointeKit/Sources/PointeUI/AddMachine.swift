@@ -76,7 +76,9 @@ final class AddMachineModel {
             let called = name.trimmingCharacters(in: .whitespaces)
             added = try await actions.add(invite.line, needsName && !called.isEmpty ? called : nil)
         } catch {
-            if case API.Failure.status(409, let detail) = error, !detail.hasPrefix("HTTP ") {
+            // 409 is also "already in your voice" and "this is your own machine": a name is asked for only when the
+            // sentence is about the name.
+            if case API.Failure.status(409, let detail) = error, detail.localizedCaseInsensitiveContains("name") {
                 needsName = true
                 if name.isEmpty { name = invite.name ?? "" }
             }
@@ -111,11 +113,12 @@ struct DisclosureGate: Equatable {
 /// The disclosure, as a card with its one OK.
 struct DisclosureCard: View {
     let disclosure: API.Disclosure
+    var owner: String? = nil
     let ok: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(PeopleCopy.disclosure(disclosure)).font(.brand(.subheadline))
+            Text(PeopleCopy.disclosure(disclosure, owner: owner)).font(.brand(.subheadline))
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("disclosureText")
             Button(PeopleCopy.ok, action: ok).buttonStyle(.brandPrimary).controlSize(.small)

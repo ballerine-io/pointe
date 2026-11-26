@@ -49,6 +49,8 @@ final class PeopleModel {
             people[i].grant = now.grant ?? people[i].grant
             people[i].online = now.online
             people[i].since = now.since ?? people[i].since
+            people[i].vendors = now.vendors ?? people[i].vendors
+            people[i].notice = now.notice
         }
     }
 
@@ -71,7 +73,7 @@ final class PeopleModel {
     func poll() async -> Bool {
         guard let shown = invite, let state = try? await actions.state() else { return false }
         if state.paired {
-            done = PeopleCopy.joined(state.name ?? shown.name ?? name)
+            done = PeopleCopy.joined(state.pairedName ?? state.name ?? shown.name ?? name)
             close()
             await load()
             return true
@@ -146,7 +148,7 @@ struct PeopleSheet: View {
                         Text(done).foregroundStyle(Brand.muted).accessibilityIdentifier("peopleDone")
                     }
                 } footer: {
-                    Group { Text(PeopleCopy.trust).accessibilityIdentifier("peopleTrust") }.brandFootnote()
+                    Group { Text(PeopleCopy.trust(account: status?.account)).accessibilityIdentifier("peopleTrust") }.brandFootnote()
                 }
                 Section { inviteSection }
             }
@@ -179,6 +181,11 @@ struct PeopleSheet: View {
                     Text(services).font(.brand(.caption)).foregroundStyle(Brand.muted)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("personServices.\(p.name)")
+                }
+                if let notice = p.notice, !notice.isEmpty {
+                    Text(notice).font(.brand(.caption)).foregroundStyle(Brand.accent)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("personNotice.\(p.name)")
                 }
             }
             Spacer(minLength: 8)

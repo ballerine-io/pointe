@@ -20,7 +20,7 @@ extension Demo {
           "owner": "avi", "capabilities": \(caps)}
         """
         let aviBox = removed
-            ? #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": false, "since": \#(now - 900), "sessions": 0, "need": 0, "owner": "avi", "grant": "send", "notice": "avi-box removed you"}"#
+            ? #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": false, "since": \#(now - 900), "sessions": 0, "need": 0, "owner": "avi", "grant": "send", "notice": "avi-box removed you", "removed": true}"#
             : #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": true, "sessions": 2, "need": 0, "rtt_ms": 31, "key_fp": "7c1e22b04d9a6f13", "owner": "avi", "grant": "\#(watch ? "watch" : "send")"}"#
         let disclosure = screen == .peopleAdded ? #""disclosure": {"machine": "avi-box", "vendors": ["Deepgram", "Gemini"]},"# : ""
         return """
@@ -30,8 +30,9 @@ extension Demo {
          {"name": "billing", "working": false, "waiting": false, "needs": null, "machine": "studio", "online": true, "private": true}\(theirs)],
          "machines": [{"id": "hub", "name": "studio", "here": true, "os": "macos", "online": true, "sessions": 2, "need": 0},
                       \(aviBox)],
-         "people": [{"name": "dana", "grant": "send", "online": true, "since": \(now - 1500)},
-                    {"name": "omer", "grant": "watch", "online": false, "since": \(now - 3600)}],
+         "people": [{"name": "dana", "grant": "send", "online": true, "since": null, "vendors": ["Deepgram", "Gemini"]},
+                    {"name": "omer", "grant": "watch", "online": false, "since": \(now - 3600), "vendors": ["Soniox", "Gemini"]}],
+         "account": "sam", "can_invite": true,
          \(disclosure)
          "invite": null,
          "talk": [{"id": 1, "who": "user", "text": "what's going on everywhere", "typed": false, "corrected": false},
@@ -44,7 +45,7 @@ extension Demo {
         let vendors = ["dana": ["Deepgram", "Gemini"], "omer": ["Soniox", "Gemini"]]
         return (status?.people ?? []).map { p in
             var p = p
-            p.vendors = vendors[p.name] ?? ["Deepgram", "Gemini"]
+            p.vendors = p.vendors ?? vendors[p.name] ?? ["Deepgram", "Gemini"]
             return p
         }
     }
@@ -59,7 +60,7 @@ extension Demo {
         guard let invite = MachineLine(line) else { throw API.Failure.status(400, "that is not a machine invite") }
         let called = name ?? invite.name ?? "avi-box"
         if (status?.machines ?? []).contains(where: { $0.name == called }) {
-            throw API.Failure.status(409, "a machine called \(called) is already on your voice: give this one another name")
+            throw API.Failure.status(409, "A machine called \(called) is already paired. Give the machine another name and add it again.")
         }
         var status = status
         let machine = #"{"id": "m-demo", "name": "\#(called)", "here": false, "os": "linux", "online": true, "sessions": 1, "need": 0, "rtt_ms": 31, "owner": "avi", "grant": "send"}"#

@@ -83,6 +83,10 @@ struct API {
         var attach_pending: AddSessions.Pending?  // sessions read back to add, waiting for a yes, a pick or a tap; nil when none
         @Tolerant var people: [Person]?       // the people invited to this machine (People.swift); nil with none, or from an older Mac
         @Tolerant var people_invite: PeopleInvite?  // the invite for a person that waits, for the owner's screens
+        /// This client may make an invite, for a machine or a person: the Mac shows a code to it. Nil from an older Mac.
+        @Tolerant var can_invite: Bool?
+        /// The OS account the requests of invited people run as, on a machine with people.
+        @Tolerant var account: String?
         @Tolerant var disclosure: Disclosure? // once after a machine is added: where your voice sends its transcripts, until dismissed
         var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
         var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
@@ -109,6 +113,8 @@ struct API {
         @Tolerant var owner: String? = nil
         /// "send" or "watch", on a machine they were invited to.
         @Tolerant var grant: String? = nil
+        /// The machine removed this voice: it stays listed, offline, until the person removes it here.
+        @Tolerant var removed: Bool? = nil
 
         var isHere: Bool { here == true }
         /// Invited to watch only: the machine refuses this voice's requests, so nothing here offers to send one.

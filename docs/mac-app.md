@@ -98,6 +98,12 @@ For work on the app itself, `apps/macos/build.sh --open` makes a Debug build in 
   `pointe key check` tries the key with one tiny live call; the app never sees a key.
 - **Phone** (Settings, or Call → Pair a Phone…): the paired phones, and Connect your phone, which shows the code the
   iPhone scans, as the page's Settings → Phone does.
+- **Machines and people** (Settings → Machines, or Call → Machines): the same sheet as the iPhone app's
+  ([iphone-app.md](iphone-app.md#machines-and-people)). Add a machine has one field: paste the line somebody sent you,
+  or drop it there, then Add, with Touch ID or your password. People lists who you invited to this Mac, with Invite a
+  person, each grant, and Remove. A session or a machine of somebody else carries the owner's name in the sessions
+  column, a right-click on a session of your own offers Private once this Mac has people, and Mine shows only your
+  sessions. The Mac app registers no `pointe://` link: paste the line.
 - **The Call menu** has a key for each: Mute (⇧⌘A, in Always on), Approve Request (⌘Y, with Touch ID or the password, as
   the card's button) and Deny Request (⌘D) for the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting
   (⇧⌘M), Briefing (⇧⌘B), Open the page (⇧⌘P). While a sheet is open the commands for the window wait for it to close.

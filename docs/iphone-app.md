@@ -92,6 +92,30 @@ The app does what the page does, with one deliberate exception: the voice model'
 Mac. The page's "What the voice holds" lists the messages of the call's context; the app shows only the token count
 (Sessions sheet), and the phone's key is refused `/voice/context`.
 
+## Machines and people
+
+Settings → Machines lists the machines on your voice. More than one person can use a machine, and one voice can reach
+several machines ([design/people-and-machines.md](design/people-and-machines.md)).
+
+- **Add a machine**: somebody invited you to their machine and sent you a line or showed you a code. The sheet opens on
+  the camera; Paste takes the line from the clipboard. Face ID or the passcode first, then your Mac checks the machine's
+  certificate and links. A refusal shows as one sentence and the line stays, to try again. The app asks for a name
+  ("Call it") only when your voice already has a machine of that name. Then the list shows the machine with whose it
+  is, and one line says, once, which services your voice sends its transcripts to.
+- **People**: who you invited to this machine, what each can do (a menu changes it), whether they are online, and the
+  services their voice uses. Invite a person takes a name and "Can talk to the sessions" or "Can only watch", asks for
+  Face ID, and shows the line with its code to scan, Copy and Share. It works once, for ten minutes, and the sheet
+  closes when they pair. Remove asks first, then Face ID. People shows only where your Mac would show an invite.
+- **Whose it is**: a session or a machine of somebody else carries the owner's name ("Avi's"). On a machine you can
+  only watch, the app offers no focus and no Approve. "Dana is using it" shows while a session works on her request.
+  The Sessions sheet has a Mine chip once some session is not yours.
+- **Private**: hold a session of your own on a machine that has people, then Private. The people invited to that
+  machine no longer see it. Shared with people puts it back.
+- A machine that removed you stays in the list as "avi-box removed you", with Remove.
+
+A `pointe://machine` link that opens the app from outside opens Add a machine with the line in it. Nothing is sent
+until you choose Add and pass Face ID ([SECURITY.md](../SECURITY.md)).
+
 ## Alerts and the Apple Watch
 
 Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS

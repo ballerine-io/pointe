@@ -141,6 +141,9 @@ final class PeopleTests: XCTestCase {
         XCTAssertEqual(v.label(s.sessions[2]), "tide on avi-box")
         XCTAssertEqual(v.label(s.sessions[3]), "shop on avi-box", "the machine is not said twice")
         XCTAssertEqual(v.label(s.sessions[0]), "shop · studio", "my own, while machines mix, as before")
+        XCTAssertEqual(v.short(s.sessions[3]), "shop", "under avi-box's own heading the machine is not said again")
+        XCTAssertEqual(v.short(s.sessions[2]), "tide")
+        XCTAssertEqual(v.short(s.sessions[0]), "shop")
     }
 
     func testWatchOnlyIsSaidAndNothingWaitsForMe() {
@@ -307,13 +310,13 @@ final class PeopleTests: XCTestCase {
     func testANameIsAskedOnlyWhenTheMacSaysItIsTaken() async {
         let calls = Calls()
         let model = adder(calls) { name in
-            guard let name else { throw API.Failure.status(409, "a machine called avi-box is already on your voice") }
+            guard let name else { throw API.Failure.status(409, "A machine called avi-box is already paired. Give the machine another name and add it again.") }
             return API.MachineAdded(name: name, owner: "avi", grant: "send", vendors: [])
         }
         XCTAssertFalse(model.needsName)
         await model.scanned(line)
         XCTAssertTrue(model.needsName)
-        XCTAssertEqual(model.problem, "A machine called avi-box is already on your voice.")
+        XCTAssertEqual(model.problem, "A machine called avi-box is already paired. Give the machine another name and add it again.")
         XCTAssertEqual(model.name, "avi-box", "the machine's own name, to change")
         model.name = "  "
         XCTAssertFalse(model.canAdd, "Call it needs a name")
@@ -364,6 +367,99 @@ final class PeopleTests: XCTestCase {
     }
     #endif
 
+    // MARK: what the daemon builds (pointe/guests.py and pointe/machines.py on main)
+
+    /// guests.py `status` and `session_status`, daemon.py's machines and `can_invite`, machines.py `disclosure`.
+    func testTheStatusAsTheDaemonBuildsItDecodes() {
+        let s = status("""
+        {"connected": true, "can_invite": true, "account": "sam",
+         "sessions": [{"name": "shop", "working": true, "waiting": false, "private": true,
+                       "by": {"name": "dana", "since": 1794399880.5}}],
+         "machines": [{"id": "hub", "name": "studio", "here": true, "online": true},
+                      {"id": "m7c1e22", "name": "avi-box", "here": false, "online": false, "owner": "avi", "grant": "watch",
+                       "notice": "avi-box removed you", "removed": true}],
+         "people": [{"name": "dana", "grant": "send", "online": true, "since": null, "vendors": ["Soniox", "ElevenLabs"]},
+                    {"name": "omer", "grant": "watch", "online": false, "since": 1794396400, "vendors": [],
+                     "notice": "omer's voice runs an older Pointe (0.9.0)."}],
+         "people_invite": {"code": "K7PQ-2MXD", "expires_in": 540, "wrong_codes": 0, "link": "pointe://machine?code=K7PQ-2MXD",
+                           "svg": "<svg/>", "name": "noa", "grant": "watch"},
+         "disclosure": {"machine": "avi-box", "vendors": ["Soniox", "ElevenLabs"]}}
+        """)
+        XCTAssertEqual(s.can_invite, true)
+        XCTAssertEqual(s.account, "sam")
+        XCTAssertEqual(s.sessions[0].by, API.By(name: "dana", since: 1794399880.5))
+        XCTAssertEqual(s.machines?[1].removed, true)
+        XCTAssertNil(s.people?[0].since, "linked: no last seen")
+        XCTAssertEqual(s.people?[0].vendors, ["Soniox", "ElevenLabs"])
+        XCTAssertEqual(s.people?[1].notice, "omer's voice runs an older Pointe (0.9.0).")
+        XCTAssertEqual(s.people_invite?.link, "pointe://machine?code=K7PQ-2MXD")
+        XCTAssertEqual(PeopleCopy.trust(account: s.account), "People you invite can make these agents run commands as sam. Keep a session to yourself with Private.")
+        XCTAssertEqual(PeopleCopy.trust(account: nil), PeopleCopy.trust, "a Mac that does not say the account")
+        XCTAssertEqual(PeopleCopy.disclosure(s.disclosure!, owner: MachineView(s).info("avi-box")?.owner),
+                       "Your voice sends the transcripts of the sessions on avi-box, with credentials masked, to: Soniox, ElevenLabs. Avi sees this list next to your name.")
+        let old = status(#"{"connected": true, "sessions": [], "machines": []}"#)
+        XCTAssertNil(old.can_invite, "an older Mac: People stays hidden")
+        XCTAssertNil(old.account)
+    }
+
+    func testPeopleShowsOnlyWhereTheMacWouldShowAnInvite() throws {
+        XCTAssertTrue(try Repo.source("Settings.swift").contains("if people != nil, status?.can_invite == true {"))
+    }
+
+    func testRemovedIsReadFromTheFlagAndFromTheNoticeOnlyWithoutIt() {
+        func view(_ more: String) -> MachineView {
+            MachineView(status("""
+            {"connected": true, "sessions": [], "machines": [{"id": "hub", "name": "studio", "here": true, "online": true},
+              {"id": "m7c1e22", "name": "avi-box", "here": false, "owner": "avi"\(more)}]}
+            """))
+        }
+        XCTAssertEqual(view(#", "online": false, "removed": true, "notice": "avi-box removed you""#).removable("avi-box"), "avi-box removed you")
+        XCTAssertEqual(view(#", "online": false, "removed": true"#).removable("avi-box"), "avi-box removed you", "the flag alone is enough")
+        XCTAssertNil(view(#", "online": false, "removed": false, "notice": "avi-box runs an older Pointe (0.9.0).""#).removable("avi-box"),
+                     "the flag says no: an offline machine with something to say keeps its line and offers no Remove")
+        XCTAssertEqual(view(#", "online": false, "notice": "avi-box removed you""#).removable("avi-box"), "avi-box removed you",
+                       "a Mac before the flag: offline, somebody else's, with a notice")
+    }
+
+    /// guests.py: POST answers {code, link, svg, expires_in, name, grant}; GET adds `paired` (null, or who paired) and
+    /// `ended`, and has a null code once nothing is out.
+    func testTheInviteAnswersAsTheMachineBuildsThemDecode() throws {
+        func invite(_ json: String) throws -> API.PeopleInvite { try JSONDecoder().decode(API.PeopleInvite.self, from: Data(json.utf8)) }
+        let made = try invite(#"{"code": "K7PQ-2MXD", "link": "pointe://machine?code=K7PQ-2MXD", "svg": "<svg/>", "expires_in": 600, "name": "dana", "grant": "send"}"#)
+        XCTAssertEqual(made.link, "pointe://machine?code=K7PQ-2MXD")
+        XCTAssertEqual(made.expires_in, 600)
+        let waiting = try invite(#"{"code": "K7PQ-2MXD", "expires_in": 512, "wrong_codes": 0, "link": "pointe://machine?code=K7PQ-2MXD", "svg": "<svg/>", "name": "dana", "grant": "send", "paired": null, "ended": null}"#)
+        XCTAssertFalse(waiting.paired)
+        XCTAssertNil(waiting.ended)
+        let done = try invite(#"{"code": null, "expires_in": 0, "name": null, "paired": {"name": "dana", "address": "100.64.0.7", "network": "Tailscale", "grant": "send", "key_fp": "9a41", "vendors": ["Soniox"]}, "ended": null}"#)
+        XCTAssertTrue(done.paired)
+        XCTAssertEqual(done.pairedName, "dana")
+        XCTAssertEqual(done.code, "")
+    }
+
+    func testANameIsNotAskedForTheOther409s() async {
+        for said in ["This is your own machine: its sessions are already in your voice.",
+                     "avi-box is already in your voice. To add it again, remove it first: pointe machine remove avi-box"] {
+            let calls = Calls()
+            let model = adder(calls) { _ in throw API.Failure.status(409, said) }
+            await model.pasted(line)
+            XCTAssertFalse(model.needsName, said)
+            XCTAssertEqual(model.problem?.lowercased().hasPrefix(said.prefix(20).lowercased()), true, "the Mac's sentence, kept")
+        }
+    }
+
+    func testAPersonsNoticeFollowsTheStatus() async {
+        let desk = Desk(), model = people(desk)
+        await model.load()
+        var omer = API.Person(name: "omer", grant: "watch", online: false, vendors: ["Soniox"])
+        omer.notice = "omer's voice runs an older Pointe (0.9.0)."
+        await model.follow([API.Person(name: "dana"), omer])
+        XCTAssertEqual(model.people[1].notice, "omer's voice runs an older Pointe (0.9.0).")
+        XCTAssertEqual(model.people[1].vendors, ["Soniox"])
+        await model.follow([API.Person(name: "dana"), API.Person(name: "omer")])
+        XCTAssertNil(model.people[1].notice, "gone once their voice is updated")
+    }
+
     // MARK: the disclosure
 
     func testTheDisclosureShowsOnceFromTheAnswerThenTheStatusUntilOK() {
@@ -372,13 +468,14 @@ final class PeopleTests: XCTestCase {
         gate.machineAdded(avis)
         let first = gate.pending(alone)
         XCTAssertEqual(first, API.Disclosure(machine: "avi-box", vendors: ["Deepgram", "Gemini"]), "at once, before the next status")
-        XCTAssertEqual(PeopleCopy.disclosure(first!),
-                       "Your voice sends avi-box's transcripts, with credentials masked, to Deepgram and Gemini. These are the services your own sessions use.")
+        XCTAssertEqual(PeopleCopy.disclosure(first!, owner: "avi"),
+                       "Your voice sends the transcripts of the sessions on avi-box, with credentials masked, to: Deepgram, Gemini. Avi sees this list next to your name.")
         XCTAssertEqual(gate.pending(shared())?.machine, "avi-box", "the status says the same")
         XCTAssertEqual(gate.dismiss(first!), "avi-box", "OK tells the Mac which machine")
         XCTAssertNil(gate.pending(shared()), "gone at the tap, before the Mac's next status drops it")
         XCTAssertNil(gate.pending(alone))
-        XCTAssertEqual(PeopleCopy.disclosure(API.Disclosure(machine: "avi-box", vendors: [])), "Your voice keeps avi-box's transcripts on your Mac.")
+        XCTAssertEqual(PeopleCopy.disclosure(API.Disclosure(machine: "avi-box", vendors: [])),
+                       "Your voice sends the transcripts of the sessions on avi-box to no outside service. Its owner sees this list next to your name.")
         XCTAssertEqual(PeopleCopy.list(["Deepgram", "Gemini", "ElevenLabs"]), "Deepgram, Gemini and ElevenLabs")
     }
 
@@ -547,7 +644,7 @@ final class PeopleTests: XCTestCase {
         XCTAssertEqual(PeopleCopy.facts(dana, now: today), "can talk · online")
         XCTAssertEqual(PeopleCopy.facts(omer, now: today), "watch only · last seen \(MachinesCopy.since(now - 3600, now: today))")
         XCTAssertEqual(PeopleCopy.facts(API.Person(name: "noa")), "can talk · not linked yet")
-        XCTAssertEqual(PeopleCopy.services(dana), "Their voice uses Deepgram and Gemini")
+        XCTAssertEqual(PeopleCopy.services(dana), "Their voice uses: Deepgram, Gemini")
         XCTAssertNil(PeopleCopy.services(omer))
         XCTAssertEqual(MachinesCopy.peopleCount(shared().people), "2")
         XCTAssertEqual(MachinesCopy.peopleCount(nil), "")
@@ -613,8 +710,8 @@ final class PeopleTests: XCTestCase {
     }
 
     func testARefusalIsTheMachinesOneSentenceAsJSONOrAsText() async {
-        do { _ = try await api(409, #"{"detail": "a machine called avi-box is already on your voice"}"#).addMachine(line: line); XCTFail() } catch {
-            XCTAssertEqual(PeopleCopy.refusal(error), "A machine called avi-box is already on your voice.")
+        do { _ = try await api(409, "A machine called avi-box is already paired. Give the machine another name and add it again.").addMachine(line: line); XCTFail() } catch {
+            XCTAssertEqual(PeopleCopy.refusal(error), "A machine called avi-box is already paired. Give the machine another name and add it again.", "plain text, as machines.py answers")
         }
         do { try await api(404, "nobody called dana is invited").removePerson("dana"); XCTFail() } catch {
             XCTAssertEqual(PeopleCopy.refusal(error), "Nobody called dana is invited.")

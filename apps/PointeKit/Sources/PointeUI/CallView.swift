@@ -1588,7 +1588,7 @@ struct CallView: View {
                                     set: { _ in }),
                presenting: disclosures.pending(status)) { d in
             Button(PeopleCopy.ok) { disclosureOK(d) }.accessibilityIdentifier("disclosureOK")
-        } message: { d in Text(PeopleCopy.disclosure(d)) }
+        } message: { d in Text(PeopleCopy.disclosure(d, owner: MachineView(status).info(d.machine)?.owner)) }
     }
 
 

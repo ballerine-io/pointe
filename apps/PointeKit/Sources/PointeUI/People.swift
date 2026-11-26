@@ -39,11 +39,12 @@ extension API {
         var key_fp: String? = nil
         var vendors: [String]? = nil
         var added: Double? = nil
+        var notice: String? = nil   // one line about their link: their voice runs an older Pointe
 
         var id: String { name }
         var watchOnly: Bool { grant == "watch" }
 
-        private enum Keys: String, CodingKey { case name, grant, online, since, address, key_fp, vendors, added }
+        private enum Keys: String, CodingKey { case name, grant, online, since, address, key_fp, vendors, added, notice }
 
         init(name: String, grant: String? = nil, online: Bool? = nil, since: Double? = nil, vendors: [String]? = nil) {
             self.name = name
@@ -64,6 +65,7 @@ extension API {
             key_fp = try? c.decode(String.self, forKey: .key_fp)
             vendors = try? c.decode([String].self, forKey: .vendors)
             added = try? c.decode(Double.self, forKey: .added)
+            notice = try? c.decode(String.self, forKey: .notice)
         }
     }
 
@@ -78,7 +80,11 @@ extension API {
         var name: String? = nil
         var grant: String? = nil
         var paired = false
+        /// Who paired, as the machine names them ({name, grant, address, network, key_fp, vendors}).
+        var pairedName: String? = nil
         var ended: String? = nil
+
+        private struct Who: Decodable { let name: String? }
 
         private enum Keys: String, CodingKey { case code, link, expires_in, name, grant, paired, ended }
 
@@ -103,6 +109,7 @@ extension API {
             // true, or who paired ({"name": ...}), as the phone's invite says it
             if let yes = try? c.decode(Bool.self, forKey: .paired) { paired = yes }
             else { paired = c.contains(.paired) && (try? c.decodeNil(forKey: .paired)) == false }
+            if let who = try? c.decode(Who.self, forKey: .paired) { pairedName = who.name }
             ended = try? c.decode(String.self, forKey: .ended)
         }
     }
@@ -252,16 +259,24 @@ enum PeopleCopy {
     }
 
     /// The one-time line after a machine is added: where this voice sends that machine's transcripts.
-    static func disclosure(_ d: API.Disclosure) -> String {
+    /// The page's sentence (ui.html PEOPLE_SAYS.disclosure).
+    static func disclosure(_ d: API.Disclosure, owner: String? = nil) -> String {
         let vendors = (d.vendors ?? []).filter { !$0.isEmpty }
-        guard !vendors.isEmpty else { return "Your voice keeps \(d.machine)'s transcripts on your Mac." }
-        return "Your voice sends \(d.machine)'s transcripts, with credentials masked, to \(list(vendors)). These are the services your own sessions use."
+        let sent = vendors.isEmpty ? "Your voice sends the transcripts of the sessions on \(d.machine) to no outside service."
+            : "Your voice sends the transcripts of the sessions on \(d.machine), with credentials masked, to: \(vendors.joined(separator: ", "))."
+        return "\(sent) \(owner.flatMap { $0.isEmpty ? nil : shown($0) } ?? "Its owner") sees this list next to your name."
+    }
+
+    /// The trust model in one line, naming the account when the Mac says it (ui.html PEOPLE_SAYS.trust).
+    static func trust(account: String?) -> String {
+        guard let account, !account.isEmpty else { return trust }
+        return "People you invite can make these agents run commands as \(account). Keep a session to yourself with Private."
     }
 
     /// Under a person's name: the services their voice sends this machine's transcripts to.
     static func services(_ p: API.Person) -> String? {
         let vendors = (p.vendors ?? []).filter { !$0.isEmpty }
-        return vendors.isEmpty ? nil : "Their voice uses \(list(vendors))"
+        return vendors.isEmpty ? nil : "Their voice uses: \(vendors.joined(separator: ", "))"  // ui.html PEOPLE_SAYS.uses
     }
 
     /// "can talk · online", "watch only · last seen 14:02"
@@ -327,6 +342,12 @@ extension MachineView {
     func watchOnly(_ s: API.Session) -> Bool { info(of(s))?.isWatchOnly == true }
     func watchOnly(machine name: String) -> Bool { info(name)?.isWatchOnly == true }
 
+    /// Under its machine's name a session of somebody else's machine drops " on avi-box": the heading says it.
+    func short(_ s: API.Session) -> String {
+        let m = of(s), suffix = " on " + m
+        return multi && m != here && s.name.hasSuffix(suffix) && s.name.count > suffix.count ? String(s.name.dropLast(suffix.count)) : s.name
+    }
+
     /// "Dana is using it", while the session works on another person's request.
     func usedBy(_ s: API.Session) -> String? {
         s.by.flatMap { $0.name.isEmpty ? nil : PeopleCopy.using($0.name) }
@@ -342,8 +363,11 @@ extension MachineView {
     /// A machine this voice was invited to that has something to say and is gone: "avi-box removed you". Its section
     /// offers Remove.
     func removable(_ name: String) -> String? {
-        guard let m = info(name), !m.isHere, m.isOffline, (m.owner ?? "").isEmpty == false,
-              let notice = m.notice, !notice.isEmpty else { return nil }
+        guard let m = info(name), !m.isHere else { return nil }
+        if let removed = m.removed {  // the Mac says so itself; an older one does not, and the notice is read instead
+            return removed ? ((m.notice ?? "").isEmpty ? "\(name) removed you" : m.notice) : nil
+        }
+        guard m.isOffline, (m.owner ?? "").isEmpty == false, let notice = m.notice, !notice.isEmpty else { return nil }
         return notice
     }
 

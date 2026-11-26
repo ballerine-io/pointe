@@ -39,7 +39,7 @@ struct MachinesSheet: View {
         NavigationStack {
             BrandForm {
                 if let disclosure {
-                    Section { DisclosureCard(disclosure: disclosure) { disclosureOK(disclosure) } }
+                    Section { DisclosureCard(disclosure: disclosure, owner: MachineView(status).info(disclosure.machine)?.owner) { disclosureOK(disclosure) } }
                 }
                 Section {
                     ForEach(machines) { m in row(m) }
@@ -60,7 +60,7 @@ struct MachinesSheet: View {
                     }
                     inviteSection
                 }
-                if people != nil {
+                if people != nil, status?.can_invite == true {  // only where the Mac would show an invite
                     Section {
                         Button { showPeople = true } label: {
                             LabeledContent {
