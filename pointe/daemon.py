@@ -7023,7 +7023,8 @@ async def _send_now(message: str) -> dict:
     other_session = (state.last_sent[0] == state.last_user_speech_at and state.brain_target
                      and state.brain_target not in (state.last_sent[1], state.last_aimed)
                      and not broadcast_intent(state.last_utterance)
-                     and _asked_of_several(state.last_utterance))
+                     and (_asked_of_several(state.last_utterance)
+                          or _second_part_asks(state.last_utterance, state.brain_target)))
     if not other_session and not await _await_fresh_speech(state.last_delegation_at):  # "both": one breath, two sessions
         logger.warning(f"send_to_claude_code refused, user has not spoken: {message!r}")
         _record(message, [], "blocked: user had not asked for anything new")
@@ -7114,6 +7115,8 @@ async def _send_now(message: str) -> dict:
         _record(message, [], "blocked: that part was already sent")
         return {"error": "Not sent: that part of what the user said was already sent."}
     said = parts[clause] if clause is not None else state.last_utterance
+    if clause is None and state.brain_target and _second_part_asks(said, state.brain_target):
+        said = _SECOND_PART.split(said, maxsplit=1)[1]  # "..., and also how many failed in billing?": billing's words
     refusal = _pinned_refusal(said) if _routing_mode() == "session" else None
     if refusal:
         _record(message, [], "blocked: session mode, another session named")
@@ -7279,6 +7282,23 @@ def _mostly_same(message: str, earlier: str) -> bool:
     """Most of its words were already there: a repeat cannot carry a new instruction in with it."""
     words = content_words(message)
     return bool(words) and len(words & content_words(earlier)) * 2 >= len(words)
+
+
+_SECOND_PART = re.compile(r",?\s+and(?:\s+also)?,?\s+(?=(?:how|what|what's|which|when|where|who|why|did|does|is|are|has|"
+                          r"have|can)\b)", re.I)
+
+
+def _second_part_asks(said: str, target: str) -> bool:
+    """"Tell harbor to add alt text, and also how many tests failed in billing?": a question after the request that
+    names `target` alone, a session the first part does not name, is a second request (adv-03 in tester round 6, 4 of
+    4: refused as a second send). The words of the first request hide it from name_groups, which reads it as the task."""
+    parts = _SECOND_PART.split(said, maxsplit=1)
+    if len(parts) != 2:
+        return False
+    sessions = list(REGISTRY.sessions.values())
+    first, second = name_groups(parts[0], sessions), name_groups(parts[1], sessions)
+    return (len(second) == 1 and len(second[0]) == 1 and second[0][0].name.lower() == target.strip().lower()
+            and all(second[0][0] not in g for g in first))
 
 
 def _asked_of_several(said: str) -> bool:
