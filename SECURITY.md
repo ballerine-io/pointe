@@ -120,6 +120,91 @@ one is read word for word.
 Text-to-speech is not a proof. It can mispronounce a command, and you may not catch a dangerous flag by ear, so the page shows
 the exact request. If you want no voice approvals, set `approvals: terminal`.
 
+### Approvals by people
+
+Decided by the owner of Pointe on 2026-11-26, under the rule above: the people with access to a machine are
+legitimate, so the best experience wins, and every answer carries a name.
+
+**Any linked person with the send grant may answer a session's permission prompt.** The session's owner is asked
+first: the person who started it from their voice, else the machine's owner. Everybody else who may answer sees the
+request at the same moment, with who is asked. After 20 seconds (`owner_first_secs`, the machine owner's setting), or
+at once when the owner cannot hear it, the others' voices read it out and their screens offer Approve and Deny. The
+first valid answer wins. The terminal can always answer.
+
+**The risk, plainly.** A person you invited can approve a command that another person's request, or their own, made
+an agent ask for. Nobody else has to agree. On a session that asks before actions, the prompt is no longer a check
+by the machine's owner: it is a check by any one person with the send grant. The record says who answered; it does
+not undo what ran.
+
+What holds, in code with tests (`tests/test_people_approve.py`, `tests/test_people_approve_daemon.py`):
+
+- **The machine re-checks every verdict**, with the same table a node holds its hub to (`node.recheck`, one
+  function): a spoken yes counts only if the person's voice read out exactly the text the machine computed from the
+  unmasked request; a notification's Approve only for a request with a short readable form; a tap is trusted, unless
+  `remote_taps` is `readable_only` in the machine's `config.json` and the request has no short form; nothing is
+  approved while the machine's own `approvals` is `terminal`. The person's voice is never trusted for any of it
+  (`test_recheck_*`, row by row).
+- **Who answers is the link's person**, never a name in a frame. A watch person, a person who does not see the
+  session, a request id of another session, an answer before the owner-first time is over, an answer after the
+  request was resolved, and a second answer are each refused with a reason
+  (`test_a_watch_person_is_sent_no_request_and_can_answer_none`,
+  `test_a_person_cannot_answer_for_a_session_they_do_not_see_or_with_another_sessions_request`,
+  `test_a_verdict_is_taken_once_and_a_second_one_hears_who_answered`,
+  `test_a_name_forged_in_a_verdict_changes_nothing_the_record_names_the_links_person`).
+- **One verdict is taken, from somebody who may give it at that moment**: 1,000 random runs with links that drop and
+  return, grants that change, the owner on and off a call, and forged answers
+  (`test_a_thousand_random_runs_one_verdict_at_most_from_someone_eligible_then_and_recorded_by_name`).
+- **Every answer is attributed and recorded.** The approvals record and the journal have the person's name, how they
+  answered (voice, tap, notification), the address their link came from and the exact request. The machine owner's
+  voice says it ("Dana approved shop's request to run: npm test."), it is in their notes, and every other voice that
+  was offered the request is told who answered. The record is kept on the shared account: a person who means harm
+  can change it, as said above.
+- **With nobody left to answer, the prompt is the terminal's.** A person whose link drops, or whose call ends, loses
+  the offer. When no person who may answer is linked and the machine's owner has no call, the prompt goes to its
+  terminal within 20 seconds, and a late answer is refused
+  (`test_when_every_voice_that_may_answer_is_gone_the_prompt_is_at_its_terminal_within_the_grace_time`).
+- **A prompt is now held with no call of the owner's**, while a person who may answer is linked with a call up. Before
+  this, a prompt with no call went straight to the terminal. The terminal does not show a prompt while it is held, so
+  this hold is bounded: with no call of the machine owner's and no answer, the prompt goes to its terminal after 45
+  seconds (`pointe people hold <seconds>`, 10 to 280), and a later answer is refused
+  (`test_held_for_people_only_it_is_at_the_terminal_at_the_bound_and_every_voice_is_told`,
+  `test_held_for_people_only_an_answer_before_the_bound_wins_and_one_after_it_is_stale`).
+- **The owner can turn it off**: `pointe people approvals off` (`approve: "off"`). Then a prompt is offered to the
+  machine owner's own voice and terminal only, as before.
+
+Not checked: the voice lock. It binds a spoken yes to the owner's voice on the owner's own Pointe. A person's spoken
+yes is checked by their own Pointe, with their own lock setting; the machine sees only that their voice read out the
+exact request.
+
+### Sessions people start
+
+**A person with the send grant can start a session on the machine from their own voice**, in a folder from the
+machine owner's own list (the folders their New session sheet shows), with an agent the machine can start.
+
+**The risk, plainly.** Such a session follows the machine owner's default for new sessions, and that default is to
+skip permission prompts ([Starting a session](#starting-a-session)). So a person you invited can start an agent that
+edits files and runs commands **as the machine's account, with nobody asked**, in any folder on that list, and give
+it its first prompt. That is the same power a request to a running session has, without needing a session to exist.
+
+What holds, in code with tests:
+
+- **The machine decides**: the grant, the owner's `start` setting, at most 3 starts in flight, then the owner's own
+  start path: the same check of the folder against the same list, the same check of the agent and the name, the same
+  launcher. A path that is not on the list is refused, whatever the voice sends
+  (`test_a_start_the_machine_does_not_do_says_why`, `test_a_persons_start_runs_the_owners_start_path_with_the_owners_default`).
+- **How it starts is the owner's setting, never the request's.** A person cannot ask for a session that skips
+  prompts on a machine whose owner chose Ask before actions. `pointe people sessions ask` makes every session people
+  start ask first, whatever the owner's own default is. The consent Claude Code needs once before it skips prompts
+  is the owner's to give: until they gave it, a session a person starts asks first.
+- **The person is told.** Their voice names the machine and its owner in the read-back, and says once for each
+  machine how it starts sessions and as which account.
+- **It is theirs, and it is recorded.** The session's owner is that person: the journal says who started it, where
+  and with which agent, the machine owner's voice announces it with their name, and the machine's owner sees every
+  session on the machine, always. Its first prompt is delivered as that person's request, under every rule of a send.
+- **Private.** A person may keep a session they started private: then they and the machine's owner see it. They
+  cannot change who sees anybody else's session (`test_a_person_keeps_their_own_session_private_and_never_somebody_elses`).
+- **The owner can turn it off**: `pointe people starts off`.
+
 ### Starting a session
 
 Pointe can start a new coding-agent session (`docs/features/new-session.md`). It is the one thing a spoken word can do
@@ -489,10 +574,13 @@ Each person reaches the machine's sessions from their own Pointe, on their own m
 invited to it can make its agents run commands as that account. Sessions Pointe starts skip permission prompts by
 default ([Starting a session](#starting-a-session)), so such a request runs with nobody asked. Pointe does not isolate
 people from each other on one account, and it cannot: every agent, every file and Pointe itself belong to that
-account. People may send by default; the owner can invite a person to watch only.
+account. People may send by default; the owner can invite a person to watch only. A person who may send can also
+answer a session's permission prompt and start a session on the machine, unless the owner turns either off
+([Approvals by people](#approvals-by-people), [Sessions people start](#sessions-people-start)).
 
 **What a hostile or careless invited person can do.** With the send grant, they can tell the agent of any shared
-session to run any command the account can run: read, change or delete every file the account can reach, read the
+session to run any command the account can run, approve a command a session asks permission for, and start a new
+session in any folder the owner works in, which by default runs without asking anybody: read, change or delete every file the account can reach, read the
 credentials kept on that account (SSH keys, tokens, environment files), use the machine's network access, and change
 or stop the work of the other people's sessions. That reaches Pointe's own files too: the token, the journal and
 `people.json`, and with them every power the owner has in Pointe, approvals included. The checks below slow a careless
@@ -546,17 +634,19 @@ What Pointe adds on top of the shared account:
   | A waiting permission prompt | A request to a session that waits on a permission prompt or a sandbox request is refused (`"prompt"`) | `test_a_send_is_refused_for_the_first_reason_that_holds` |
   | A claimed approval | A request that says somebody approved something ("Avi said yes") is refused (`"consent"`), by `guards.claims_consent`. The check matches wording; a person who rewords it gets past it | `test_a_send_that_claims_somebodys_yes_is_a_consent_claim` |
   | One request at a time | A request to a session that works on somebody else's request is refused (`"busy"`, with whose and since when). The same request marked `anyway` is delivered. The person's voice sets that mark only for the person's own "send it anyway", once, within 120 seconds of the refusal (`tests/test_people_voice.py`) | `test_a_session_working_on_the_owners_request_is_busy_with_the_owners_name` |
-  | Permission prompts | None is offered to a person. An answer from a person's voice is refused (`"not_offered"`). A prompt goes to the machine owner's own voice and the session's terminal only | `test_a_person_is_offered_no_prompt_no_session_to_add_and_no_file` |
-  | Sessions to add, files to show | A person's voice gets an empty list of sessions to add, a refusal to add one, and no file for Show while it says | the same test |
-  | The owner's routes | `/voice/people`, `/voice/people/invite`, `/voice/people/grant`, `/voice/people/remove` and `/voice/share` answer the page on the machine, a script with its token and the owner's phone. A person's key opens none of them, and neither does a browser over the TLS listener | `test_a_persons_key_opens_no_owner_route` |
+  | Permission prompts | Offered to people with the send grant, and every verdict is re-checked here: see [Approvals by people](#approvals-by-people). A watch person is sent none and can answer none | `tests/test_people_approve.py` |
+  | Sessions to add, files to show | A person's voice gets an empty list of sessions to add, a refusal to add one, and no file for Show while it says | `test_a_person_is_offered_no_session_to_add_no_file_and_no_prompt_the_machine_did_not_put_to_people` |
+  | The owner's routes | `/voice/people`, `/voice/people/invite`, `/voice/people/grant`, `/voice/people/remove`, `/voice/people/settings` and `/voice/share` answer the page on the machine, a script with its token and the owner's phone. A person's key opens none of them, and neither does a browser over the TLS listener | `test_a_persons_key_opens_no_owner_route`, `test_the_settings_route_is_the_owners_and_says_what_a_setting_takes` |
 
   The busy rule is a courtesy between colleagues, not a control: any person with the send grant can push a request
   through.
-- **Approvals.** A permission prompt on a shared machine is offered only to the machine owner's voice and terminal.
-  Approval by a linked person is planned (attributed, recorded, with the session's owner asked first); it is not built.
 - **What crosses, and to whom.** To each linked person's voice: each shared session's transcript, with credentials
   masked on the machine (`readout.mask`), its name, folder path, agent, title, up to 40 file names and whether it
-  works or waits; and the requests other people sent, masked. Never its process id or a permission request. Each
+  works or waits; and the requests other people sent, masked. To a person who may approve, also each permission
+  request of a session they see: the tool, the agent's note and the input with credentials masked, and the line a
+  voice reads out. To a person who may start a session, on their asking: the list of folders the owner's own New
+  session sheet shows (names and paths), the agents the machine can start, whether new sessions skip permission
+  prompts, and the name of the account. Never a session's process id. Each
   person's voice then sends those transcripts to that person's own vendors, with that person's keys. The person is
   told once, when they add the machine, which services those are, and the owner sees the same list next to the
   person's name. **That list is what the person's voice says about itself: the machine cannot check it.**
@@ -573,7 +663,8 @@ What Pointe adds on top of the shared account:
   `pointe pair tailscale`, `wifi` or `host` does not sign people out. If a pairing code, a link or a key may have
   leaked, run `pointe pair rotate`, then `pointe people` to see that nobody is listed whom you did not invite again.
 - **Files.** On the machine, `people.json` (0600) holds each person's key, name, grant, last address and named
-  services, and the list of private sessions. Anyone who reads it can link as any person on it: see the shared
+  services, the list of private sessions, and the owner's settings for people when they differ from the
+  defaults. Anyone who reads it can link as any person on it: see the shared
   sessions and, with a send grant, send under that person's name. An unreadable `people.json` is moved aside and
   nobody can link until it is repaired or each person is invited again. `people_tails.json` (0600) holds, per person,
   where their copy of each transcript ends. On a person's own machine, `nodes.json` (0600) holds their key for each

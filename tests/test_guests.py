@@ -577,8 +577,9 @@ def test_the_snapshot_holds_this_machines_shared_sessions_only_each_with_its_own
         assert ids(snapshot) == ["s1", "s2"]
         shop = snapshot["sessions"][0]
         assert shop["name"] == "shop" and shop["harness"] == "fake" and shop["owner"] == "Avi" and shop["cwd"]
-        assert shop["capabilities"]["approvals"] is False and shop["pending"] is None  # phase 1 offers no prompt
-        assert shop["blocked_on"] == "permission prompt"  # it waits on its owner: said, never offered
+        # Dana may answer this machine's prompts (phase 3). This one was not put to people: it waits on its owner.
+        assert shop["capabilities"]["approvals"] is True and shop["pending"] is None
+        assert shop["blocked_on"] == "permission prompt"
         assert "pid" not in shop and "home" not in shop
         await voice.drop()
 
@@ -1042,9 +1043,9 @@ def test_a_persons_send_seen_in_the_transcript_is_not_taken_for_the_owner_typing
     assert len(fed) == 1 and "typed this straight" in fed[0] and "use the main branch" in fed[0]
 
 
-# ---------- what phase 1 does not offer ----------
+# ---------- what a person is not offered ----------
 
-def test_a_person_is_offered_no_prompt_no_session_to_add_and_no_file(world):
+def test_a_person_is_offered_no_session_to_add_no_file_and_no_prompt_the_machine_did_not_put_to_people(world):
     shop = add(world, "s1", "shop", permission_id="p1", permission_text="Bash: rm -rf build")
 
     async def go():
@@ -1052,7 +1053,7 @@ def test_a_person_is_offered_no_prompt_no_session_to_add_and_no_file(world):
         await dana.recv("sessions")
         await dana.send("permission.answer", id="s1", request_id="p1", verdict="allow", how="tap")
         assert await dana.recv("permission.answered") == {"t": "permission.answered", "request_id": "p1", "ok": False,
-                                                          "why": "not_offered"}
+                                                          "why": "stale"}  # tests/test_people_approve.py has the rest
         assert shop.permission_id == "p1"  # still its owner's to answer
         await dana.send("discover", req="d1", since=0.0, cap=40)
         assert await dana.recv("discovered") == {"t": "discovered", "req": "d1", "found": []}

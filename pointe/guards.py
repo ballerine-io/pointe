@@ -526,7 +526,7 @@ def start_request(text: str, places: list[tuple[str, str]], machines: list[str] 
         lowered = lowered[:said.start()] + " ; " + (raw[cut.start():] if cut else "") + lowered[said.end():]
     machine = "" if _HERE_MACHINE.search(lowered) else None
     for m in _ON_MACHINE.finditer(lowered):
-        heard = m.group("name").split()
+        heard = m.group("name").replace("-", " ").split()  # "avi-box" is heard, and written, as one word or two
         for candidate in [here, *machines]:
             words = _name_words(candidate)
             if words and len(heard) >= len(words) and all(_hears(w, h) for w, h in zip(words, heard)):

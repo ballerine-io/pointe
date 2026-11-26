@@ -1007,22 +1007,7 @@ class Node:
 
     def recheck(self, held: Held, frame: dict) -> str | None:
         """Why a verdict may not release the hook, or None if it may (the design's re-check table)."""
-        if frame["verdict"] == "deny":
-            return None  # a no from anywhere denies, even once approvals turned terminal mid-hold
-        if _config(self.state).get("approvals") == "terminal":
-            return "terminal"
-        how = frame["how"]
-        if how == "voice":
-            if not held.spoken:
-                return "unreadable"
-            return None if frame.get("spoken") == held.spoken else "mismatch"
-        if how == "notification":
-            return None if held.readable else "unreadable"
-        if how == "tap":
-            if _config(self.state).get("remote_taps") == "readable_only" and not held.readable:
-                return "unreadable"
-            return None
-        return "unknown"
+        return recheck(_config(self.state), held, frame)
 
     async def _on_answer(self, frame: dict) -> None:
         local = self._local(frame["id"])
@@ -1037,6 +1022,28 @@ class Node:
         else:
             logger.warning(f"refused a {frame['how']} {frame['verdict']} for {frame['request_id']}: {why}")
             await self._send("permission.answered", request_id=frame["request_id"], ok=False, why=why)
+
+
+def recheck(config: dict, held, frame: dict) -> str | None:
+    """The re-check table: why a verdict from another machine may not release a prompt held here, or None if it may.
+    One table for a node that re-checks its hub and for a machine that re-checks a person's voice (guests.py).
+    `held.spoken` is the read-out this machine computed from the unmasked request, `held.readable` its short form."""
+    if frame["verdict"] == "deny":
+        return None  # a no from anywhere denies, even once approvals turned terminal mid-hold
+    if config.get("approvals") == "terminal":
+        return "terminal"
+    how = frame["how"]
+    if how == "voice":
+        if not held.spoken:
+            return "unreadable"
+        return None if frame.get("spoken") == held.spoken else "mismatch"
+    if how == "notification":
+        return None if held.readable else "unreadable"
+    if how == "tap":
+        if config.get("remote_taps") == "readable_only" and not held.readable:
+            return "unreadable"
+        return None
+    return "unknown"
 
 
 def _netloc(host: str, port: int) -> str:

@@ -54,6 +54,7 @@ MAX_WAITING = 32
 REFUSED_LOG_SECS = 60.0  # a refused link is logged once per address in this: refusing takes no secret, so no bound
 STALE_PROBE_SECS = 3.0  # a new connection with a key already linked: the old link must answer a ping within this
 MAX_MIRROR_BYTES_PER_NODE = 4 << 30  # every mirror of one node together; past it, entries are counted, not written
+START_TIMEOUT_SECS = 160.0  # a machine answers a start once the session joined there or failed (guests.START_WAIT_SECS)
 DISCOVER_TIMEOUT_SECS = 25.0  # a node lists its sessions (each account's `claude agents --json`) or joins one in this
 HISTORY_QUIET_SECS = 1.5  # a newly joined session's backlog: no frame for this long and it is all here
 _ID = re.compile(r"[\w-]{1,128}")  # a node's session id: it names a mirror file, so nothing that walks a path
@@ -84,6 +85,23 @@ def _bounded(fields: dict) -> dict:
         out["pending"] = _bounded(out["pending"])
     if isinstance(out.get("readable"), str) and len(out["readable"]) > MAX_READABLE_CHARS:
         out["readable"] = None
+    return out
+
+
+def _bounded_reply(frame: dict) -> dict:
+    """A machine's `start.result` or `folders.result`: every string cut, and only the fields this voice reads."""
+    out = {"ok": frame.get("ok") is True} if frame["t"] == "start.result" else {}
+    for key, most in (("id", 128), ("name", MAX_LABEL_CHARS), ("why", 40), ("detail", 300), ("account", MAX_LABEL_CHARS),
+                      ("permissions", 10)):
+        if isinstance(frame.get(key), str):
+            out[key] = _cut(frame[key], most)
+    if frame["t"] == "folders.result":
+        out["folders"] = [{"path": _cut(f["path"], MAX_PATH_CHARS), "name": _cut(f["name"], MAX_LABEL_CHARS)}
+                          for f in frame["folders"]]
+        out["harnesses"] = [{"name": _cut(h["name"], 40), "title": _cut(str(h.get("title") or h["name"]), 40),
+                             "available": h.get("available") is True,
+                             "why": _cut(h["why"], 300) if isinstance(h.get("why"), str) else None}
+                            for h in frame.get("harnesses") or [] if isinstance(h.get("name"), str)]
     return out
 
 
@@ -617,6 +635,7 @@ class Hub:
             self._track(paired)
         self._tasks: set[asyncio.Task] = set()
         self.on_forget: Callable[[str], None] | None = None  # machines.Dialer: a forgotten machine is no longer dialed
+        self.answered_by: dict[str, str] = {}  # request id: who answered it first, when a machine refused a verdict for that
 
     def _track(self, paired: dict) -> Node:
         """A node's live record, and its entry in sessions.MACHINES: offline since now until its link is up."""
@@ -759,6 +778,51 @@ class Hub:
         if reply is None:
             return False, "offline" if not node.online else "timeout"
         return reply
+
+    # ---------- a session on a machine somebody invited this voice to (docs/design/people-and-machines.md, phase 3) ----------
+
+    def machine(self, name: str) -> Node | None:
+        return next((n for n in self.live.values() if n.name.lower() == str(name).lower()), None)
+
+    def start_problem(self, node: Node | None) -> str | None:
+        """Why this voice cannot start a session on this machine now, in one sentence, or None when it can ask.
+        Decided again by the machine: this only saves a round trip, and words the reason for the person."""
+        if node is None:
+            return "No machine of that name is in your voice."
+        if not node.machine.dialed:
+            return f"Pointe starts sessions only on this machine and on machines you were invited to. On {node.name}, start it there and join it."
+        if node.machine.removed or not node.online:
+            return f"{node.name} is offline."
+        if node.machine.grant != "send":
+            return f"{node.machine.owner or 'Its owner'} lets you watch {node.name}, not start sessions there."
+        if "start" not in node.features:
+            return f"{node.name} runs an older Pointe. Its owner updates it there, and then you can start sessions on it."
+        return None
+
+    async def folders(self, node: Node) -> dict | None:
+        """What the machine's own New session sheet lists: {folders, harnesses, permissions, account, why}. None when
+        it did not answer."""
+        req = nodelink.new_id()
+        return await self._request(node, f"folders:{req}", encode("folders", req=req))
+
+    async def start(self, node: Node, harness: str, folder: str, name: str | None, prompt: str = "") -> dict:
+        """Ask the machine to start a session: {ok, id, name} or {ok: False, why, detail}. The machine checks the
+        grant, its owner's settings, the folder and the agent, and answers once the session joined there or failed."""
+        req = nodelink.new_id()
+        frame = encode("start", req=req, harness=harness, folder=folder, **({"name": name} if name else {}),
+                       **({"prompt": prompt} if prompt else {}))
+        reply = await self._request(node, f"start:{req}", frame, timeout=START_TIMEOUT_SECS)
+        return reply if isinstance(reply, dict) else {"ok": False, "why": "offline" if not node.online else "timeout"}
+
+    async def share(self, session: Session, private: bool) -> tuple[bool, str | None]:
+        """Keep a session this person started on a machine private there, or share it again: (ok, why)."""
+        node = self._node_of(session)
+        if node is None or not node.online:
+            return False, "offline"
+        req = nodelink.new_id()
+        reply = await self._request(node, f"share:{req}", encode("share", req=req, id=session.harness_data["remote_id"],
+                                                                 private=private))
+        return reply if isinstance(reply, tuple) else (False, "timeout")
 
     async def discover(self, since: float, cap: int) -> list:
         """What each online node lists (docs/design/attach-by-voice.md), as discovery.Found records named by machine.
@@ -1101,7 +1165,10 @@ class Hub:
             session = self._session(node, frame["id"])
             resolved = self._hook("remote_resolved")
             if session and resolved:
-                await _maybe(resolved(session, frame["request_id"], frame["how"]))
+                # From a machine with people: somebody answered it there, and the machine says who.
+                who = {"by": _cut(frame["by"], MAX_LABEL_CHARS), "verdict": frame["verdict"]} \
+                    if node.machine.dialed and frame.get("by") and frame.get("verdict") else {}
+                await _maybe(resolved(session, frame["request_id"], frame["how"], **who))
         elif t == "discovered":
             future = node.waiting.get(f"discover:{frame['req']}")
             if future is not None and not future.done():
@@ -1112,6 +1179,18 @@ class Hub:
                 future.set_result((frame["ok"], frame.get("why")))
         elif t == "permission.answered":
             future = node.waiting.get(f"answer:{frame['request_id']}")
+            if future is not None and not future.done():
+                if frame.get("by") and node.machine.dialed:  # somebody answered it first: the daemon says who
+                    self.answered_by[frame["request_id"]] = _cut(frame["by"], MAX_LABEL_CHARS)
+                    for old in list(self.answered_by)[:-32]:
+                        del self.answered_by[old]
+                future.set_result((frame["ok"], frame.get("why")))
+        elif t in ("start.result", "folders.result") and node.machine.dialed:
+            future = node.waiting.get(f"{t.split('.')[0]}:{frame['req']}")
+            if future is not None and not future.done():
+                future.set_result(_bounded_reply(frame))
+        elif t == "share.result" and node.machine.dialed:
+            future = node.waiting.get(f"share:{frame['req']}")
             if future is not None and not future.done():
                 future.set_result((frame["ok"], frame.get("why")))
         elif t == "send.result":
@@ -1164,8 +1243,11 @@ class Hub:
         if session is None or put is None:
             return
         frame = _bounded(frame)
+        # A machine with people asks a session's owner first: this voice shows the prompt, and may answer later.
+        first = {"first": _cut(frame["first"]["name"], MAX_LABEL_CHARS), "yours_in_ms": int(frame.get("yours_in_ms") or 0)} \
+            if node.machine.dialed and isinstance(frame.get("first"), dict) else {}
         held = await put(session, frame["request_id"], frame["tool"], frame["description"], frame["preview"],
-                         frame["readable"])
+                         frame["readable"], **first)
         if held:
             await self._send(node, encode("permission.holding", request_id=frame["request_id"]))
 

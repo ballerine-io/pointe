@@ -519,7 +519,7 @@ def test_a_send_the_machine_takes_is_delivered(world, tmp_path):
     ({"ok": False, "why": "busy", "busy": {"by": "Noa", "since": "14:02"}},
      "Not sent. shop is working on Noa's request from 14:02. Say send it anyway, and it goes."),
     ({"ok": False, "why": "private"}, "Not sent. Avi keeps shop private now."),
-    ({"ok": False, "why": "prompt"}, "Not sent. shop waits on a permission prompt, and only Avi can answer it, on avi-box."),
+    ({"ok": False, "why": "prompt"}, "Not sent. shop waits on a permission prompt on avi-box. It takes a request once that is answered."),
     ({"ok": False, "why": "consent"}, "Not sent. avi-box takes no message that says somebody approved something: an "
                                       "approval comes from the person who gives it."),
     ({"ok": False, "why": "something from a newer Pointe"}, "Not sent. avi-box refused it."),

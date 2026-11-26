@@ -8,6 +8,11 @@ here, never by their voice: which sessions cross, who may send, and whose name a
   pointe people invite <name> [--watch]      a one-time line for that person's voice (--watch: they see and hear only)
   pointe people grant <name> send|watch      change what a person may do
   pointe people remove <name>                take a person off: their key is deleted and their link is closed
+  pointe people approvals on|off             people who may send can answer a session's permission prompt, or not
+  pointe people starts on|off                people who may send can start a session here, or not
+  pointe people sessions default|ask         sessions people start follow your default, or always ask before actions
+  pointe people window <seconds>             how long a prompt waits for its session's owner before the others get it
+  pointe people hold <seconds>               with no call of yours, how long a prompt waits for people before your terminal gets it
   pointe share <session> [--private|--shared]   keep a session to yourself, or share it again
 """
 
@@ -34,9 +39,9 @@ import nodelink  # noqa: E402
 import sessions  # noqa: E402
 import shipping  # noqa: E402
 import skew  # noqa: E402
-from hub_nodes import (INVITE_SECS, NO_SUCH_INVITE, PAIR_WRONG_PER_INVITE, Invites, _close, _cut, _here, _peer,  # noqa: E402
-                       _write_private, network, pairing_body)
-from node import _os, frames_of, masked_lines, precise_mask  # noqa: E402
+from hub_nodes import (INVITE_SECS, NO_SUCH_INVITE, PAIR_WRONG_PER_INVITE, Invites, _close, _cut, _here, _maybe,  # noqa: E402
+                       _peer, _write_private, network, pairing_body)
+from node import _config, _os, frames_of, masked_lines, precise_mask, recheck  # noqa: E402
 from nodelink import GRANTS, HUB_FRAMES, decode, encode  # noqa: E402
 from sessions import Registry, Session, speakable, terminal_wait, wait_state  # noqa: E402
 from shipping import Tail, size as _size  # noqa: E402
@@ -51,6 +56,37 @@ MAX_SENT_CHARS = 4000  # of a send, as the other voices on the session get it
 # The prompts a session waits at for its owner's yes: no person's send goes in beside one.
 PROMPTS = ("permission prompt", "sandbox request")
 NOT_OFFERED = "Adding a session on this machine is its owner's to do."
+# Prompts and starts for people (phase 3). The machine's owner sets these, for everybody at once.
+OWNER_FIRST_SECS = 20.0  # a prompt waits this long for its session's owner before the other people may answer it
+OWNER_FIRST_MAX_SECS = 120.0
+# With no call of the machine owner's, a prompt held for other people goes to its terminal after this long with no
+# answer: the terminal does not show a prompt while it is held, and the owner may be sitting at it.
+PEOPLE_HOLD_SECS = 45.0
+PEOPLE_HOLD_RANGE = (10.0, 280.0)
+OFFER_POLL_SECS = 0.25
+GONE_SECS = 1.0  # a prompt no longer pending is "answered in the terminal" this long after, unless the owner's voice says it answered
+MAX_STARTS = 3  # starts people asked for that have not joined or failed yet
+START_WAIT_SECS = 150.0  # a start's adapter (45 s) and the wait for a session that registers itself (90 s)
+ANSWERED_KEPT = 64  # the last requests answered here, so a late verdict hears who answered
+RESOLVED_SHOWN_SECS = 30.0  # `resolved_by` stays in the status this long
+SETTINGS = {"approve": ("anyone", "off"), "start": ("on", "off"), "sessions_ask": ("default", "ask")}
+DEFAULTS = {"approve": "anyone", "start": "on", "sessions_ask": "default", "owner_first_secs": OWNER_FIRST_SECS,
+            "people_hold_secs": PEOPLE_HOLD_SECS}
+SECONDS = {"owner_first_secs": (0.0, OWNER_FIRST_MAX_SECS), "people_hold_secs": PEOPLE_HOLD_RANGE}
+SETTING_PROBLEM = ("People's approvals are anyone or off, starts are on or off, their sessions follow default or ask, "
+                   f"the owner-first time is 0 to {OWNER_FIRST_MAX_SECS:.0f} seconds, and a prompt is held for people "
+                   f"{PEOPLE_HOLD_RANGE[0]:.0f} to {PEOPLE_HOLD_RANGE[1]:.0f} seconds.")
+
+
+def settings_of(raw) -> dict:
+    """The machine's settings for people, from what people.json holds: anything it does not spell is the default."""
+    out = dict(DEFAULTS)
+    if isinstance(raw, dict):
+        out.update({k: raw[k] for k, values in SETTINGS.items() if raw.get(k) in values})
+        for key, (least, most) in SECONDS.items():
+            if nodelink._num(raw.get(key)) and least <= raw[key] <= most:
+                out[key] = float(raw[key])
+    return out
 
 
 def account() -> str:
@@ -142,6 +178,7 @@ class People:
         path = self.path
         self.people: dict[str, dict] = {}
         self.private: set[str] = set()
+        self.settings: dict = {}  # only what the owner changed (settings_of fills in the rest)
         if not path.exists():
             return
         try:
@@ -156,6 +193,8 @@ class People:
                 self.people[person["id"]] = person
         private = data.get("private")
         self.private = {s for s in private if isinstance(s, str)} if isinstance(private, list) else set()
+        changed = settings_of(data.get("settings"))
+        self.settings = {k: v for k, v in changed.items() if v != DEFAULTS[k]}
 
     @staticmethod
     def _usable(person) -> bool:
@@ -178,7 +217,8 @@ class People:
                      f"machine until it is repaired and Pointe restarted, or each person is invited again")
 
     def save(self) -> None:
-        _write_private(self.path, json.dumps({"people": self.people, "private": sorted(self.private)}) + "\n")
+        _write_private(self.path, json.dumps({"people": self.people, "private": sorted(self.private),
+                                              **({"settings": self.settings} if self.settings else {})}) + "\n")
         self._read = self._on_disk()
 
     def get(self, person_id) -> dict | None:
@@ -224,6 +264,29 @@ class Ask:
 
 
 @dataclass
+class Offer:
+    """A session's permission prompt, while people may answer it. `spoken` and `readable` are computed here, from the
+    unmasked request: what a person's voice must have read out for its yes to count (node.Held, for a node's hub)."""
+    session_id: str
+    request_id: str
+    frame: dict  # the `permission.request`, masked: what every person offered it is sent
+    readable: str | None
+    spoken: str | None
+    first: str  # the id of the person asked first: who started the session. "": the machine's owner
+    first_name: str
+    opens_at: float  # when the others may answer
+    deadline: float  # when the harness takes it back
+    summary: str  # for the journal: the tool and the start of its input, masked
+    opened: bool = False
+    sent: dict[str, dict] = field(default_factory=dict)  # link id: the frame that link was last sent
+    by: dict | None = None  # the person whose verdict was taken: {id, name, how, verdict}
+    gone_at: float | None = None  # monotonic: when it was first seen no longer pending
+    alone_since: float | None = None  # since when nobody could answer it but the terminal
+    away_since: float | None = None  # since when it is held with no call of the machine owner's: for people only
+    done: bool = False
+
+
+@dataclass
 class Link:
     """One person's live link."""
     id: str  # the person's
@@ -236,6 +299,8 @@ class Link:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)  # one frame at a time
     syncing: asyncio.Lock = field(default_factory=asyncio.Lock)  # one comparison of the session list at a time
     tails: dict[str, Tail] = field(default_factory=dict)  # the sessions this voice was told of, and where each is
+    call_up: bool = True  # this voice's call, as its welcome and its `call` frames say: with none, nobody hears a prompt
+    approvals_terminal: bool = False  # this person answers prompts in terminals
     told: list[dict] = field(default_factory=list)  # the last `sessions` snapshot
     resume: dict[str, dict] = field(default_factory=dict)  # where the voice's mirror of each session ends
     tasks: set[asyncio.Task] = field(default_factory=set)
@@ -258,15 +323,35 @@ def _read_lines(path: str, offset: int, size: int) -> tuple[list[tuple[int, str 
 class HostSide:
     """The machine's side of every person's link. The daemon lends what only it knows: `record(line)` writes one
     journal line, `on_sent(session, by, text, at)` tells the owner's own voice what a person sent, `working(session)`
-    says a session is in a turn, and `owner_ask(session)` since when it works on the owner's own request (or None)."""
+    says a session is in a turn, and `owner_ask(session)` since when it works on the owner's own request (or None).
+
+    For prompts and starts (phase 3): `answer(session, request_id, verdict, how, person, address)` delivers a
+    person's verdict to the session and records it (True when the session took it); `release(session, request_id)`
+    hands a prompt back to its terminal; `owner_hears(session)` says the owner's own voice can answer now;
+    `open_owner(session, request_id)` puts a prompt of a person's session to the owner's voice once its window ended;
+    `start(person, harness, folder, name, prompt, ask)` runs the owner's own start path and returns
+    (True, {id, name}) or (False, {why, detail}); `start_options()` is what the owner's New session sheet lists."""
 
     def __init__(self, state_dir: Path, registry: Registry, host_id: Callable[[], str],
                  record: Callable[[str], None] | None = None, on_sent: Callable | None = None,
                  working: Callable[[Session], bool] | None = None,
                  owner_ask: Callable[[Session], float | None] | None = None,
-                 clock: Callable[[], float] = time.time, monotonic: Callable[[], float] = time.monotonic):
+                 clock: Callable[[], float] = time.time, monotonic: Callable[[], float] = time.monotonic,
+                 answer: Callable | None = None, release: Callable | None = None,
+                 owner_hears: Callable[[Session], bool] | None = None, open_owner: Callable | None = None,
+                 start: Callable | None = None, start_options: Callable[[], dict] | None = None):
         self.state_dir, self.registry, self._host_id = state_dir, registry, host_id
         self._record, self._on_sent, self._owner_ask = record, on_sent, owner_ask
+        self._answer, self._release, self._open_owner = answer, release, open_owner
+        self._owner_hears = owner_hears or (lambda s: False)
+        self._start, self._start_options = start, start_options
+        self.offers: dict[str, Offer] = {}  # session id: its prompt, while people may answer it
+        self.answered: dict[str, str] = {}  # request id: who answered it, for a verdict that comes late
+        self.resolved: dict[str, dict] = {}  # session id: {name, verdict, at}, the last answer a person gave
+        self.grace = nodelink.HOLD_GRACE_SECS
+        self.offer_poll = OFFER_POLL_SECS
+        self._starts = 0
+        self._watching: asyncio.Task | None = None
         self._working = working or (lambda s: s.busy and not terminal_wait(s))
         self._clock, self._mono = clock, monotonic
         self.people = People(state_dir / "people.json")
@@ -284,6 +369,7 @@ class HostSide:
         self._files: dict[str, tuple[str, list[str]]] = {}  # session id: (its transcript's path, tracked file names)
         self._reads: dict[tuple[str, int], tuple[int, asyncio.Future]] = {}  # (path, offset): (size then, its lines)
         self._saved_tails = self._load_tails()
+        self._ticking = asyncio.Lock()  # one pass over the prompts at a time, and no frame about one out of order
 
     # ---------- small things ----------
 
@@ -335,22 +421,59 @@ class HostSide:
 
     # ---------- what is shared ----------
 
-    def _shared(self, session_id) -> Session | None:
-        """The session, when a person may see it: one of this machine's own, not kept private. A session on one of
-        this machine's nodes is never passed on."""
+    def _shared(self, session_id, person_id: str | None = None) -> Session | None:
+        """The session, when this person may see it: one of this machine's own, not kept private. A private session
+        is seen by the person who started it, and by nobody else. A session on one of this machine's nodes is never
+        passed on."""
         session = self.registry.sessions.get(session_id) if isinstance(session_id, str) else None
-        if session is None or session.machine or session.id in self.people.private:
+        if session is None or session.machine:
             return None
+        if session.id in self.people.private:
+            starter = self.starter(session)
+            if starter is None or starter["id"] != person_id:
+                return None
         return session
 
-    def _visible(self) -> dict[str, Session]:
-        return {s.id: s for s in list(self.registry.sessions.values()) if self._shared(s.id) is not None}
+    def _visible(self, link: Link | None = None) -> dict[str, Session]:
+        person = link.id if link is not None else None
+        return {s.id: s for s in list(self.registry.sessions.values()) if self._shared(s.id, person) is not None}
 
     def _sees(self, link: Link, session_id: str) -> bool:
         """This link may get a frame about this session now: it is live, its person is still on the machine, and the
-        session is shared."""
+        session is shared (or it is their own)."""
         return (link.ws is not None and self.live.get(link.id) is link and self.people.get(link.id) is not None
-                and self._shared(session_id) is not None)
+                and self._shared(session_id, link.id) is not None)
+
+    def starter(self, session: Session) -> dict | None:
+        """The person who started this session here (its owner), while they are still on this machine. None for a
+        session of the machine's owner, and for one whose person was removed: it is the machine owner's then."""
+        by = (session.harness_data or {}).get("started_by")
+        return self.people.get(by.get("id")) if isinstance(by, dict) else None
+
+    def started(self, session: Session, person: dict) -> None:
+        """A session this person started here joined: it is theirs. The owner's name on it is theirs, everywhere."""
+        session.harness_data["started_by"] = {"id": person["id"], "name": person["name"]}
+        session.owner = person["name"]
+        self.record(f"{person['name']} started {session.name} ({session.harness}) in {session.cwd}")
+
+    @property
+    def settings(self) -> dict:
+        """{approve, start, sessions_ask, owner_first_secs}: the owner's, one set for everybody on the machine."""
+        self.people.refresh()
+        return settings_of(self.people.settings)
+
+    def set_settings(self, changes: dict) -> dict | None:
+        """The owner changes some settings: the settings now, or None when a value is not one a setting takes."""
+        wanted = {k: v for k, v in changes.items() if k in DEFAULTS}
+        merged = {**self.people.settings, **wanted}
+        if not wanted or settings_of(merged) != {**DEFAULTS, **merged}:
+            return None
+        now = settings_of(merged)
+        if now != self.settings:
+            self.people.settings = {k: v for k, v in now.items() if v != DEFAULTS[k]}
+            self.people.save()
+            self.record("people's settings: " + ", ".join(f"{k} {now[k]}" for k in wanted))
+        return now
 
     def _local_id(self, session_id: str) -> str:
         """This machine's own id for a session id from a voice, which may be its `<machine short>-<id>` form."""
@@ -369,17 +492,24 @@ class HostSide:
             self._titles[session.id] = (self._mono(), title)
         return title
 
-    def _entry(self, session: Session) -> dict:
+    def _entry(self, session: Session, link: Link | None = None) -> dict:
         """A shared session in a `sessions` snapshot: what a node sends, less what stays on the machine (its pid, its
-        account's folder, a prompt: phase 1 offers no prompt to people), and whose it is."""
+        account's folder), whose it is, and its prompt when this link's person is offered it (`pending`)."""
         adapter = harnesses.of(session)
         wait = wait_state(session)
-        if session.permission_id:  # held by the owner's own voice: the person's voice shows that it waits
+        offer = self.offers.get(session.id)
+        pending = offer.sent.get(link.id) if offer is not None and link is not None else None
+        if session.permission_id and pending is None:  # not this person's to answer: their voice shows that it waits
             wait = {**wait, "blocked_on": "permission prompt", "blocked_since": session.permission_since}
+        by = (session.harness_data or {}).get("started_by")
+        starter = _cut(str(by.get("name") or ""), 40) if isinstance(by, dict) else ""
+        approves = link is not None and self.may_approve(self.people.get(link.id)) and "approve" in link.features
         return {"id": session.id, "name": session.name, "name_given": session.named_by == "user", "cwd": session.cwd,
-                "harness": session.harness, "title": self._title(session), "owner": self.owner,
-                "capabilities": {**adapter.capabilities(), "side_questions": False, "approvals": False},
-                "files": self._files.get(session.id, ("", []))[1], "pending": None, **wait}
+                "harness": session.harness, "title": self._title(session), "owner": starter or self.owner,
+                **({"started_by": starter} if starter else {}),
+                "capabilities": {**adapter.capabilities(), "side_questions": False, "approvals": approves},
+                "files": self._files.get(session.id, ("", []))[1],
+                "pending": {k: v for k, v in pending.items() if k != "t"} if pending else None, **wait}
 
     # ---------- frames out ----------
 
@@ -510,13 +640,15 @@ class HostSide:
         sessions_ = list(self.registry.sessions.values())
         return self.registry.sessions.get(wanted) or next((s for s in sessions_ if s.name.lower() == wanted.lower()), None)
 
-    async def share(self, session: Session, private: bool) -> None:
+    async def share(self, session: Session, private: bool, by: str = "") -> None:
         """Keep a session to the owner, or share it again. Private takes effect before this returns: the flag is set
-        first, and every link that saw the session is told it left."""
+        first, and every link that saw the session is told it left. `by`: the person who started the session, when
+        they change it for their own; it stays theirs to see."""
         was = session.id in self.people.private
         self.people.set_private(session.id, private, set(self.registry.sessions) | set(self.registry.departed))
         if was != private:
-            self.record(f"{session.name} is now {'private' if private else 'shared with the people on this machine'}")
+            self.record(f"{session.name} is now {'private' if private else 'shared with the people on this machine'}"
+                        + (f", by {by}" if by else ""))
         await self.sync()
 
     async def sync(self) -> None:
@@ -605,6 +737,7 @@ class HostSide:
                 return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "removed")
             self._note_voice(person, address, _vendors(welcome["vendors"]) or _vendors(hello["vendors"]))
             link.resume, link.heard = dict(welcome["resume"]), self._mono()
+            link.call_up, link.approvals_terminal = welcome["call_up"], welcome["approvals_terminal"]
             self.live[person["id"]] = link
             self.offline_since.pop(person["id"], None)
             self.notices.pop(person["id"], None)  # their voice was updated, or this machine was
@@ -623,6 +756,7 @@ class HostSide:
             if self.live.get(person["id"]) is link:
                 del self.live[person["id"]]
                 link.ws = None
+                self._lost_offers(person["id"])
                 if self.people.get(person["id"]) is not None:
                     self.offline_since[person["id"]] = self._clock()
                     self.record(f"{person['name']}'s voice is no longer linked")
@@ -646,6 +780,7 @@ class HostSide:
             task.cancel()
         self.links.release(person["id"], stale)
         self.live.pop(person["id"], None)
+        self._lost_offers(person["id"])
         self._spawn(_close(stale, nodelink.CLOSE_DEAD, "replaced by a new connection"))
         return self.links.claim(person["id"], ws)
 
@@ -685,10 +820,18 @@ class HostSide:
             self._spawn(self._deliver(link, frame))
         elif t == "resume":
             await self._apply_resume(link, frame["resume"])
-        # Phase 1 offers a person no prompt, no session to add and no file to show: each is answered, with nothing.
+        elif t == "call":  # with no call, or approvals in terminals there, this person hears no prompt
+            link.call_up, link.approvals_terminal = frame["up"], frame["approvals_terminal"]
+            await self.tick()
         elif t == "permission.answer":
-            await self._send(link, encode("permission.answered", request_id=frame["request_id"], ok=False,
-                                          why="not_offered"))
+            await self._on_answer(link, frame)
+        elif t == "start":
+            self._spawn(self._on_start(link, frame))
+        elif t == "folders":
+            await self._on_folders(link, frame)
+        elif t == "share":
+            await self._on_share(link, frame)
+        # A person is offered no session to add and no file to show: each is answered, with nothing.
         elif t == "discover":
             await self._send(link, encode("discovered", req=frame["req"], found=[]))
         elif t == "attach":
@@ -746,7 +889,7 @@ class HostSide:
 
     async def _deliver(self, link: Link, frame: dict) -> None:
         person = self.people.get(link.id)
-        session = self._shared(self._local_id(frame["id"]))
+        session = self._shared(self._local_id(frame["id"]), link.id)
         name = person["name"] if person else link.name
         refused = self.refusal(person, session, frame)
         if refused:
@@ -788,6 +931,329 @@ class HostSide:
             self.record(f"{name}'s request to {session.name} was not delivered")
         await self._send(link, encode("send.result", req=frame["req"], ok=ok, **held))
 
+    # ---------- a session's permission prompt, put to people (phase 3) ----------
+
+    def may_approve(self, person: dict | None) -> bool:
+        """This person may answer a prompt: the send grant, and the owner has not turned people's approvals off."""
+        return person is not None and person["grant"] == "send" and self.settings["approve"] != "off"
+
+    def _eligible(self, link: Link, session_id: str) -> bool:
+        """This link can be offered this session's prompt now: its person may approve, their voice speaks this part
+        of the link, a call is up there (somebody hears and sees it), and they see the session."""
+        return (self.may_approve(self.people.get(link.id)) and "approve" in link.features and link.call_up
+                and not link.approvals_terminal and self._sees(link, session_id))
+
+    def can_hold(self, session: Session) -> bool:
+        """Somebody's voice can answer a prompt of this session now. The daemon asks before it holds a prompt with
+        no call of the owner's own."""
+        return not session.machine and any(self._eligible(link, session.id) for link in list(self.live.values()))
+
+    def holds(self, session: Session) -> bool:
+        """A prompt of this session is with people who can still answer it: the owner's call ending leaves it held."""
+        offer = self.offers.get(session.id)
+        return offer is not None and not offer.done and self.can_hold(session)
+
+    def _lost_offers(self, person_id: str) -> None:
+        """A person's link dropped: they lost every offer. A new link of theirs is sent each one again."""
+        for offer in self.offers.values():
+            offer.sent.pop(person_id, None)
+
+    def _first_hears(self, offer: Offer, session: Session) -> bool:
+        if not offer.first:
+            return self._owner_hears(session)
+        link = self.live.get(offer.first)
+        return link is not None and self._eligible(link, session.id)
+
+    async def offer(self, session: Session, request_id: str, tool_name: str, tool_input, description: str = "",
+                    preview: str = "", run_in: str | None = None, deadline: float | None = None) -> bool:
+        """A session of this machine asks for permission, and the daemon holds the prompt. Its owner is asked first
+        (the person who started it, else the machine's owner); every other person who may approve and sees the
+        session is sent it at the same moment, marked `first`, and may answer once the owner-first time is over or
+        the owner cannot hear it. The read-out a spoken yes must match is computed here, from the unmasked request.
+        True when the machine owner's own voice must wait too: the session is a person's, and they are asked first."""
+        old = self.offers.get(session.id)
+        if old is not None:
+            await self._finish(old, "terminal")
+        if session.machine or not self.people.people or self.settings["approve"] == "off":
+            return False
+        readable = spoken = None
+        if isinstance(tool_input, dict):
+            readable = guards.readable_request(tool_name, tool_input, session.cwd, run_in)
+            spoken = readable or guards.verbatim_request(tool_name, tool_input)
+        now = self._clock()
+        shown = precise_mask(preview or json.dumps(tool_input if isinstance(tool_input, dict) else {}, ensure_ascii=False))
+        frame = {"t": "permission.request", "id": session.id, "request_id": request_id, "tool": tool_name,
+                 "description": precise_mask(str(description or "use this tool")), "preview": shown, "readable": spoken}
+        starter = self.starter(session)
+        link = self.live.get(starter["id"]) if starter else None
+        first = starter if link is not None and self._eligible(link, session.id) else None
+        secs = self.settings["owner_first_secs"]
+        waits = secs > 0 and (first is not None or self._owner_hears(session))
+        offer = Offer(session_id=session.id, request_id=request_id, frame=frame, readable=readable, spoken=spoken,
+                      first=first["id"] if first else "", first_name=first["name"] if first else self.owner,
+                      opens_at=now + (secs if waits else 0.0), opened=not waits,
+                      deadline=deadline if deadline is not None else now + harnesses.of(session).permission_deadline,
+                      summary=_cut(f"{tool_name}: {' '.join(shown.split())}", 300),
+                      away_since=None if self._owner_hears(session) else now)
+        self.offers[session.id] = offer
+        self._spawn(self.tick())  # the frames go out apart: a slow link never delays the owner's own read-out
+        self._watch()
+        return first is not None and not offer.opened
+
+    def _frame_for(self, offer: Offer, link: Link) -> dict:
+        now = self._clock()
+        frame = {**offer.frame, "deadline_ms": max(0, int((offer.deadline - now) * 1000))}
+        if not (offer.opened or offer.first == link.id):
+            frame["first"] = {"name": _cut(offer.first_name, nodelink.HELLO_CHARS)}
+            frame["yours_in_ms"] = max(0, int((offer.opens_at - now) * 1000))
+        return frame
+
+    async def _reconcile(self, offer: Offer) -> None:
+        """Each link is sent what holds for it now: the request when it became eligible (it linked, its call came
+        up, its grant rose), the request again without `first` when it opened, and `permission.resolved` with
+        `left` when it may no longer answer. A link that dropped has lost the offer."""
+        for link in list(self.live.values()):
+            if offer.done:
+                return
+            async with link.syncing:  # never between a snapshot's reading of `pending` and its sending
+                sent = offer.sent.get(link.id)
+                if self._eligible(link, offer.session_id):
+                    if sent is None or ("first" in sent and (offer.opened or offer.first == link.id)):
+                        frame = offer.sent[link.id] = self._frame_for(offer, link)
+                        await self._about(link, offer.session_id, encode(
+                            frame["t"], **{k: v for k, v in frame.items() if k != "t"}))
+                elif sent is not None:
+                    del offer.sent[link.id]
+                    await self._send(link, encode("permission.resolved", id=offer.session_id,
+                                                  request_id=offer.request_id, how="left"))
+        for gone in [k for k in offer.sent if k not in self.live]:
+            del offer.sent[gone]
+
+    def _watch(self) -> None:
+        if self.offer_poll and (self._watching is None or self._watching.done()):
+            self._watching = self._spawn(self._watch_offers())
+
+    async def _watch_offers(self) -> None:
+        while self.offers:
+            await asyncio.sleep(self.offer_poll)
+            try:
+                await self.tick()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("people: a pass over the prompts people may answer failed")
+
+    async def tick(self) -> None:
+        """One pass over the prompts people may answer: open the ones whose owner-first time is over, follow who can
+        be offered each, end the ones answered elsewhere, and hand back the ones nobody can answer."""
+        async with self._ticking:
+            for offer in list(self.offers.values()):
+                await self._tick_one(offer)
+
+    async def _tick_one(self, offer: Offer) -> None:
+        if offer.done or offer.by is not None:  # a person's verdict is on its way to the session: its handler ends this
+            return
+        now = self._clock()
+        session = self.registry.sessions.get(offer.session_id)
+        if session is None:
+            return await self._finish_locked(offer, "left")
+        if session.permission_id != offer.request_id:
+            # Answered by the machine's owner (owner_answered says so within a moment), in the terminal, or timed out.
+            if offer.gone_at is None:
+                offer.gone_at = self._mono()
+            if self._mono() - offer.gone_at >= GONE_SECS:
+                await self._finish_locked(offer, "timeout" if now >= offer.deadline else "terminal")
+            return
+        offer.gone_at = None
+        if not offer.opened and (now >= offer.opens_at or not self._first_hears(offer, session)):
+            offer.opened = True
+            if offer.first and self._open_owner is not None:  # a person's session: the machine owner's voice reads it now
+                self._spawn(_maybe(self._open_owner(session, offer.request_id)))
+        await self._reconcile(offer)
+        # Held for people only, with no call of the machine owner's: bounded, so an owner at the terminal sees it.
+        offer.away_since = None if self._owner_hears(session) else now if offer.away_since is None else offer.away_since
+        if self._held_too_long(offer):
+            self.record(f"{session.name}'s request went back to its terminal: no person answered it in "
+                        f"{self.settings['people_hold_secs']:g} seconds, and {self.owner} has no call")
+            return await self._hand_back(offer, session)
+        if self._owner_hears(session) or any(self._eligible(link, session.id) for link in list(self.live.values())):
+            offer.alone_since = None
+            return
+        if offer.alone_since is None:
+            offer.alone_since = now
+        if now - offer.alone_since >= self.grace:
+            self.record(f"{session.name}'s request went back to its terminal: nobody who may answer it is linked")
+            await self._hand_back(offer, session)
+
+    def _held_too_long(self, offer: Offer) -> bool:
+        return offer.away_since is not None and self._clock() - offer.away_since >= self.settings["people_hold_secs"]
+
+    async def _hand_back(self, offer: Offer, session: Session) -> None:
+        """The prompt goes to its terminal, and every voice that was offered it is told."""
+        if self._release is not None:
+            self._release(session, offer.request_id)
+        elif session.permission_answer is not None and not session.permission_answer.done():
+            session.permission_answer.set_result(None)
+        await self._finish_locked(offer, "terminal")
+
+    async def _finish(self, offer: Offer, how: str, by: str = "", verdict: str | None = None, skip: str = "") -> None:
+        async with self._ticking:
+            await self._finish_locked(offer, how, by, verdict, skip)
+
+    async def _finish_locked(self, offer: Offer, how: str, by: str = "", verdict: str | None = None,
+                             skip: str = "") -> None:
+        """The prompt is no longer anybody's to answer: every voice that was offered it is told, with who answered."""
+        if offer.done:
+            return
+        offer.done = True
+        if self.offers.get(offer.session_id) is offer:
+            del self.offers[offer.session_id]
+        if by:
+            self.answered[f"{offer.session_id}/{offer.request_id}"] = by
+            for old in list(self.answered)[:-ANSWERED_KEPT]:
+                del self.answered[old]
+        fields = {"by": _cut(by, nodelink.HELLO_CHARS), "verdict": verdict} if by and verdict else {}
+        told, offer.sent = [k for k in offer.sent if k != skip], {}
+        for link_id in told:
+            link = self.live.get(link_id)
+            if link is not None:
+                await self._send(link, encode("permission.resolved", id=offer.session_id,
+                                              request_id=offer.request_id, how=how, **fields))
+
+    def owner_answered(self, session: Session, request_id: str, verdict: str) -> None:
+        """The machine owner's own voice, tap or notification answered it: everybody it was offered to hears who.
+        Marked at once, so no person's verdict is taken after it; the frames go out apart."""
+        offer = self.offers.get(session.id)
+        if offer is not None and offer.request_id == request_id and offer.by is None:
+            offer.by = {"id": "", "name": self.owner, "how": "owner", "verdict": verdict}
+            self._spawn(self._finish(offer, "answered", by=self.owner, verdict=verdict))
+
+    async def _on_answer(self, link: Link, frame: dict) -> None:
+        """A person's verdict. This machine re-checks it as a node re-checks its hub's (node.recheck, one table),
+        after the checks only a machine with people has: who the link's person is, what they may do, whether they
+        see the session, and whether it is their turn. The first verdict that passes is the only one taken."""
+        request_id, how, verdict = frame["request_id"], frame["how"], frame["verdict"]
+        sid = self._local_id(frame["id"])
+
+        async def refuse(why: str, **more) -> None:
+            logger.warning(f"people: refused {link.name}'s {how} {verdict} for {request_id}: {why}")
+            self.record(f"{link.name}'s {'yes' if verdict == 'allow' else 'no'} by {how} was refused: {why}")
+            await self._send(link, encode("permission.answered", request_id=request_id, ok=False, why=why, **more))
+
+        person = self.people.get(link.id)
+        if person is None or self.settings["approve"] == "off":
+            return await refuse("not_offered")
+        if person["grant"] != "send":
+            return await refuse("watch")
+        session = self._shared(sid, link.id)
+        if session is None:
+            return await refuse("private")
+        offer = self.offers.get(sid)
+        if offer is None or offer.request_id != request_id:
+            by = self.answered.get(f"{sid}/{request_id}")
+            return await refuse("answered", by=by) if by else await refuse("stale")
+        if offer.by is not None:
+            return await refuse("answered", by=offer.by["name"])
+        if offer.done or session.permission_id != request_id or self._clock() >= offer.deadline \
+                or (not self._owner_hears(session) and self._held_too_long(offer)):
+            return await refuse("stale")
+        if not self._eligible(link, sid):
+            return await refuse("not_offered")
+        if not (offer.opened or offer.first == link.id):
+            return await refuse("not_yet")
+        why = recheck(_config(self.state_dir), offer, frame)
+        if why is not None:
+            return await refuse(why)
+        offer.by = {"id": person["id"], "name": person["name"], "how": how, "verdict": verdict}  # no second one is taken
+        try:
+            if self._answer is not None:
+                took = bool(await self._answer(session, request_id, verdict, how, person, link.address))
+            else:  # with no daemon behind it: the hook's own wait
+                took = session.permission_answer is not None and not session.permission_answer.done()
+                if took:
+                    session.permission_answer.set_result(verdict)
+                    session.permission_id = None
+        except Exception as e:
+            logger.warning(f"people: {link.name}'s verdict did not reach {session.name} ({type(e).__name__})")
+            took = False
+        if not took:
+            offer.by = None
+            return await refuse("stale")
+        self.record(f"{person['name']} {'approved' if verdict == 'allow' else 'denied'} {session.name}'s request by "
+                    f"{how}, from {link.address or 'an unknown address'}: {offer.summary}")
+        self.resolved[sid] = {"name": person["name"], "verdict": verdict, "at": self._clock()}
+        await self._send(link, encode("permission.answered", request_id=request_id, ok=True))
+        await self._finish(offer, "answered", by=person["name"], verdict=verdict, skip=link.id)
+
+    # ---------- a person starts a session here (phase 3) ----------
+
+    def _start_refusal(self, person: dict | None) -> str | None:
+        if person is None or person["grant"] != "send":
+            return "watch"
+        if self.settings["start"] == "off" or self._start is None:
+            return "off"
+        return None
+
+    async def _on_start(self, link: Link, frame: dict) -> None:
+        """`start`: the grant and the setting are checked here; the folder, the agent and how it starts are the
+        owner's own start path's to check (the daemon's), with nothing taken from the voice but its words."""
+        person = self.people.get(link.id)
+        name = person["name"] if person else link.name
+        why = self._start_refusal(person) or ("busy" if self._starts >= MAX_STARTS else None)
+        if why:
+            self.record(f"{name}'s start of a session refused: {why}")
+            await self._send(link, encode("start.result", req=frame["req"], ok=False, why=why))
+            return
+        self._starts += 1
+        try:
+            ok, got = await asyncio.wait_for(self._start(
+                person, frame["harness"], frame["folder"], frame.get("name") or None, frame.get("prompt") or "",
+                self.settings["sessions_ask"] == "ask"), START_WAIT_SECS)
+        except asyncio.TimeoutError:
+            ok, got = False, {"why": "failed", "detail": "The session did not join in time."}
+        except Exception as e:
+            logger.warning(f"people: {name}'s start failed ({type(e).__name__}: {e})")
+            ok, got = False, {"why": "failed", "detail": "The session did not start."}
+        finally:
+            self._starts -= 1
+        if ok:
+            await self._send(link, encode("start.result", req=frame["req"], ok=True, id=str(got["id"]),
+                                          name=_cut(str(got.get("name") or ""), nodelink.HELLO_CHARS)))
+            if (frame.get("prompt") or "").strip():
+                # The first prompt is this person's request: delivered under the rules of any send of theirs, with
+                # their name on it for the agent, the owner and the other voices.
+                await self._deliver(link, {"req": nodelink.new_id(), "id": str(got["id"]), "text": frame["prompt"]})
+            return
+        why = _cut(str(got.get("why") or "failed"), 40)
+        self.record(f"{name}'s start of a session was not done: {why}")
+        await self._send(link, encode("start.result", req=frame["req"], ok=False, why=why,
+                                      **({"detail": _cut(str(got["detail"]), 300)} if got.get("detail") else {})))
+
+    async def _on_folders(self, link: Link, frame: dict) -> None:
+        """`folders`: where a session may start here, exactly as the owner's own New session sheet lists it."""
+        why = self._start_refusal(self.people.get(link.id))
+        options = self._start_options() if why is None and self._start_options is not None else {}
+        folders = [{"path": str(f["path"]), "name": str(f["name"])} for f in options.get("folders") or []][:200]
+        more = {}
+        if why is None:
+            asks = self.settings["sessions_ask"] == "ask"
+            more = {"harnesses": list(options.get("harnesses") or [])[:nodelink.MAX_FILES],
+                    "permissions": "ask" if asks or options.get("permissions") != "skip" else "skip",
+                    "account": _cut(account(), nodelink.HELLO_CHARS)}
+        await self._send(link, encode("folders.result", req=frame["req"], folders=folders, **more,
+                                      **({"why": why} if why else {})))
+
+    async def _on_share(self, link: Link, frame: dict) -> None:
+        """`share`: a person keeps a session they started private, or shares it again. Never somebody else's."""
+        session = self._shared(self._local_id(frame["id"]), link.id)
+        starter = self.starter(session) if session is not None else None
+        why = "private" if session is None else "not_yours" if starter is None or starter["id"] != link.id else None
+        if why is None:
+            await self.share(session, frame["private"], by=link.name)
+        else:
+            self.record(f"{link.name}'s change of who sees a session refused: {why}")
+        await self._send(link, encode("share.result", req=frame["req"], ok=why is None, **({"why": why} if why else {})))
+
     # ---------- sessions and transcripts, once per link ----------
 
     @staticmethod
@@ -800,7 +1266,7 @@ class HostSide:
         async with link.syncing:
             if self.live.get(link.id) is not link:
                 return
-            visible = self._visible()
+            visible = self._visible(link)
             gone = [sid for sid in link.tails if sid not in visible]
             for sid in gone:
                 tail = link.tails.pop(sid)
@@ -821,7 +1287,7 @@ class HostSide:
                     await self._about(link, sid, encode("session.joined", id=sid))
             if gone or new:
                 self._save_tails(link)
-            entries = [self._entry(s) for s in visible.values()]
+            entries = [self._entry(s, link) for s in visible.values()]
             if first or gone or new or entries != link.told:
                 link.told = entries
                 await self._snapshot(link)
@@ -857,7 +1323,7 @@ class HostSide:
             try:
                 await self._sync(link)
                 for sid in list(link.tails):
-                    session = self._shared(sid)
+                    session = self._shared(sid, link.id)
                     if session is not None:
                         await self._ship(link, session)
             except asyncio.CancelledError:
@@ -962,6 +1428,7 @@ class HostSide:
             out["people"] = [{k: p[k] for k in ("name", "grant", "online", "since", "vendors", "notice") if k in p}
                              for p in self.listed()]
             out["account"] = account()  # the account a person's requests run as, for the owner's screens
+            out["people_settings"] = self.settings
         invite = self.invite_status() if show_invite else None
         if invite is not None:
             out["people_invite"] = invite
@@ -976,6 +1443,17 @@ class HostSide:
         by = self.by(session) if self.asks else None
         if by is not None:
             out["by"] = by
+        started = (session.harness_data or {}).get("started_by")
+        if isinstance(started, dict) and started.get("name"):
+            out["started_by"] = started["name"]
+        offer = self.offers.get(session.id)
+        if offer is not None and session.permission_id == offer.request_id:
+            if not offer.opened:  # who is asked first, and until when: the others see it, and wait
+                out["asked"] = {"name": offer.first_name, "until": offer.opens_at}
+            out["can_answer"] = True  # the machine's owner, at their own machine, always may
+        resolved = self.resolved.get(session.id)
+        if resolved is not None and self._clock() - resolved["at"] < RESOLVED_SHOWN_SECS:
+            out["resolved_by"] = resolved
         return out
 
 
@@ -987,7 +1465,7 @@ def invite_line(code: str, name: str) -> str:
     return nodelink.machine_invite(_config()["host"], TLS_PORT, fingerprint(), code, name)
 
 
-def install(app, host: HostSide, link: Callable[[str, str], str] | None = None) -> None:
+def install(app, host: HostSide, link: Callable[[str, str], str] | None = None, remote_share: Callable | None = None) -> None:
     """The routes of docs/design/people-and-machines.md, "HTTP, on the machine that invites". In daemon.py, next to
     hub_nodes.install. `link(code, machine name)` builds the invite line."""
     from fastapi import Request, WebSocket
@@ -1072,6 +1550,22 @@ def install(app, host: HostSide, link: Callable[[str, str], str] | None = None) 
             return PlainTextResponse("A person may send or watch: say which.", status_code=409)
         return {"ok": True} if await host.grant(name, body["grant"]) else no_person(name)
 
+    @app.get("/voice/people/settings")
+    async def people_settings(request: Request):
+        return host.settings if owner(request) else refused
+
+    @app.post("/voice/people/settings")
+    async def people_settings_set(request: Request):
+        """Any of {"approve": "anyone"|"off", "start": "on"|"off", "sessions_ask": "default"|"ask",
+        "owner_first_secs": 0..120, "people_hold_secs": 10..280}: the settings now."""
+        if not owner(request):
+            return refused
+        now = host.set_settings(await body_of(request))
+        if now is None:
+            return PlainTextResponse(SETTING_PROBLEM, status_code=409)
+        await host.tick()  # approvals turned off: a prompt people hold leaves their voices now
+        return now
+
     @app.post("/voice/people/remove")
     async def people_remove(request: Request):
         if not owner(request):
@@ -1088,11 +1582,21 @@ def install(app, host: HostSide, link: Callable[[str, str], str] | None = None) 
         session = host.find(wanted)
         if session is None:
             return PlainTextResponse(f"No session called {wanted or '(no name)'} is on the voice.", status_code=404)
+        if not isinstance(body.get("private"), bool):
+            return PlainTextResponse("Say whether the session is private: true or false.", status_code=409)
+        if session.machine and remote_share is not None and not session.owner \
+                and getattr(sessions.MACHINES.get(session.machine), "dialed", False):
+            # A session this person started on a machine they were invited to: that machine decides, and changes it.
+            ok, why = await remote_share(session, body["private"])
+            if ok:
+                return {"ok": True, "private": body["private"]}
+            return PlainTextResponse(
+                f"{session.name} is not a session you started on {session.machine}: only its owner changes who sees it."
+                if why == "not_yours" else f"{session.machine} did not change it: it is offline or did not answer.",
+                status_code=403 if why == "not_yours" else 502)
         if session.machine:
             return PlainTextResponse(f"{session.name} runs on {session.machine}: only this machine's own sessions "
                                      f"are shared with people.", status_code=404)
-        if not isinstance(body.get("private"), bool):
-            return PlainTextResponse("Say whether the session is private: true or false.", status_code=409)
         await host.share(session, body["private"])
         return {"ok": True, "private": body["private"]}
 
@@ -1144,8 +1648,35 @@ def _people(argv: list[str]) -> None:
         name = " ".join(argv[1:-1])
         _daemon("POST", "/voice/people/grant", {"name": name, "grant": argv[-1]})
         print(f"{name} may now send to this machine's sessions." if argv[-1] == "send" else f"{name} may now watch only.")
+    elif command in _SETTING_WORDS and len(argv) == 2 and argv[1] in _SETTING_WORDS[command][1]:
+        key, values, said = _SETTING_WORDS[command]
+        _daemon("POST", "/voice/people/settings", {key: values[argv[1]]})
+        print(said[argv[1]])
+    elif command == "window" and len(argv) == 2 and argv[1].replace(".", "", 1).isdigit():
+        now = _daemon("POST", "/voice/people/settings", {"owner_first_secs": float(argv[1])})
+        print(f"A prompt waits {now['owner_first_secs']:g} seconds for its session's owner. Then the other people who "
+              f"may send can answer it.")
+    elif command == "hold" and len(argv) == 2 and argv[1].replace(".", "", 1).isdigit():
+        now = _daemon("POST", "/voice/people/settings", {"people_hold_secs": float(argv[1])})
+        print(f"With no call of yours, a prompt waits {now['people_hold_secs']:g} seconds for the people who may answer "
+              f"it. Then it goes to its terminal.")
     else:
         print(__doc__.split("\n\n", 1)[1].rstrip())
+
+
+# pointe people <word> <value>: the setting, the value each word means, and what is printed.
+_SETTING_WORDS = {
+    "approvals": ("approve", {"on": "anyone", "off": "off"}, {
+        "on": "People who may send can answer a session's permission prompt. Its owner is asked first, and every "
+              "answer is recorded with the person's name.",
+        "off": "People no longer answer permission prompts on this machine. You answer them, by voice or in the terminal."}),
+    "starts": ("start", {"on": "on", "off": "off"}, {
+        "on": "People who may send can start a session on this machine, in the folders you work in.",
+        "off": "People no longer start sessions on this machine."}),
+    "sessions": ("sessions_ask", {"default": "default", "ask": "ask"}, {
+        "default": "Sessions people start follow your setting for new sessions.",
+        "ask": "Sessions people start always ask before actions."}),
+}
 
 
 def _share(argv: list[str]) -> None:

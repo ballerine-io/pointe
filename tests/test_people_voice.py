@@ -272,7 +272,7 @@ def test_a_busy_session_is_said_in_the_daemons_words_and_send_it_anyway_delivers
 @pytest.mark.parametrize("why, says", [
     ("watch", "Not sent. Avi lets you watch avi-box, not talk to its sessions."),
     ("private", "Not sent. Avi keeps shop private now."),
-    ("prompt", "Not sent. shop waits on a permission prompt, and only Avi can answer it, on avi-box."),
+    ("prompt", "Not sent. shop waits on a permission prompt on avi-box. It takes a request once that is answered."),
     ("consent", "Not sent. avi-box takes no message that says somebody approved something: an approval comes from "
                 "the person who gives it."),
 ])

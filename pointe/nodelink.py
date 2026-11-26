@@ -22,7 +22,8 @@ INVITE_VERSION = 1  # the `pointe://hub?v=` line's format
 MIN_PROTOCOL = 1  # the oldest this copy speaks. Each side says its range; no common version closes with CLOSE_TOO_OLD
 # What this copy can do beyond the frames every protocol 1 side has. Each side lists its own; the link uses those both
 # list, and one that is absent is unsupported (an older side lists none).
-FEATURES = ("attach", "held", "people")
+# "approve": a machine offers its prompts to the people invited to it. "start": a person starts a session there.
+FEATURES = ("attach", "held", "people", "approve", "start")
 PATH = "/voice/node"
 PAIR_PATH = "/voice/node/pair"
 # A person's voice dials a machine it was invited to (docs/design/people-and-machines.md): the machine is in the
@@ -119,9 +120,16 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
     "transcript.repointed": {"id": _str, "gen": _count, "history?": _bool},
     "files": {"id": _str, "names": _list_of(_str, MAX_FILES)},
     "permission.request": {"id": _str, "request_id": _str, "tool": _str, "description": _str, "preview": _str,
-                           "readable": _or_none(_str), "deadline_ms": _count},
-    "permission.resolved": {"id": _str, "request_id": _str, "how": _one_of("terminal", "timeout", "left")},
-    "permission.answered": {"request_id": _str, "ok": _bool, "why?": _str},
+                           "readable": _or_none(_str), "deadline_ms": _count,
+                           # From a machine with people: somebody else is asked first (`first.name`), and this voice
+                           # may answer in `yours_in_ms`. The machine sends the request again, without them, when it
+                           # opens. Absent: this voice may answer now.
+                           "first?": _has(name=_short), "yours_in_ms?": _count},
+    # `answered`, from a machine with people: somebody answered it there (`by`, `verdict`).
+    "permission.resolved": {"id": _str, "request_id": _str, "how": _one_of("terminal", "timeout", "left", "answered"),
+                            "by?": _short, "verdict?": _one_of("allow", "deny")},
+    # `by`: who answered first, with `why: "answered"`.
+    "permission.answered": {"request_id": _str, "ok": _bool, "why?": _str, "by?": _short},
     # `held`: Claude Code kept the message from Claude, held for approval in the terminal or refused (from pre-release 1.12.0).
     # `why`, from a machine with people: the send was refused there ("watch", "busy", "private", "consent", "prompt").
     # `busy`: {by, since}, whose request the session is working on.
@@ -130,6 +138,14 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
     # Adding sessions (docs/design/attach-by-voice.md, from pre-release 1.21.0): what the node lists, and whether one joined there.
     "discovered": {"req": _str, "found": _list_of(_dict, 400)},
     "attach.result": {"req": _str, "ok": _bool, "why?": _str},
+    # A person starts a session on a machine (feature "start"). `why`: "watch", "off", "folder", "harness", "busy",
+    # "failed"; `detail`: the machine's own sentence for "failed".
+    "start.result": {"req": _str, "ok": _bool, "id?": _str, "name?": _short, "why?": _short, "detail?": _str},
+    # The machine's own list of folders a session may start in, its agents, and how its new sessions start.
+    "folders.result": {"req": _str, "folders": _list_of(_has(path=_str, name=_str), 200),
+                       "harnesses?": _list_of(_dict, MAX_FILES), "permissions?": _one_of("skip", "ask"),
+                       "account?": _short, "why?": _short},
+    "share.result": {"req": _str, "ok": _bool, "why?": _short},
     "pong": {"id": _int},
     "bye": {},
     # A machine to a person's voice that dialed it. The challenge comes before any proof, as a hub's does.
@@ -167,6 +183,11 @@ HUB_FRAMES: dict[str, dict[str, Check]] = {
     "discover": {"req": _str, "since": _num, "cap": _count},
     "attach": {"req": _str, "harness": _str, "id": _str, "reopen?": _bool},
     "leave": {"id": _str},
+    # A person's voice to a machine (feature "start"): start a session there, list where one may start, and keep a
+    # session this person started private or share it again.
+    "start": {"req": _str, "harness": _short, "folder": _str, "name?": _or_none(_short), "prompt?": _str},
+    "folders": {"req": _str},
+    "share": {"req": _str, "id": _str, "private": _bool},
     "unpaired": {},
     "bye": {},  # a person's voice removes a machine it dialed: the machine forgets that person's link, not the person
     "ping": {"id": _int, "rtt_ms": _or_none(_count)},

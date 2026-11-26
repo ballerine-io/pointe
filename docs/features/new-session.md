@@ -99,8 +99,8 @@ The first time Claude Code runs in a folder it asks whether you trust it, in its
   corrected words, and (with the voice lock on) another voice do not count, and that yes never also approves a waiting
   request.
 - **Start in a meeting or in Challenge me.** Those modes cannot act.
-- **Start on another machine.** This version starts sessions on the Mac Pointe runs on. On a node, start it there and
-  join it.
+- **Start on a machine of your own that is a node.** Start it there and join it. On a machine somebody invited you
+  to, you can start one if you may send there: [a shared machine](../multi-machine.md#starting-a-session-on-a-shared-machine).
 
 The first prompt is sent only after the session is on the voice. By voice there is no first prompt: say the request
 next ("tell invoices to list the open ones"). Right after it joins, "rename it to shop-tests" renames the new session,

@@ -48,14 +48,19 @@ def by(how: str) -> str:
 
 
 def event(*, session: str, machine: str | None, request_id: str, decision: str, how: str, request: str, lock: str,
-          score: float | None) -> str:
+          score: float | None, person: str | None = None, link: str | None = None) -> str:
     """The journal line for one answer. `score`: the voice lock's score of the spoken answer; None for a tap, and for
-    a voice the lock did not score."""
+    a voice the lock did not score. `person` and `link`: a person invited to this machine answered it from their own
+    voice, and the address their link came from; absent when the owner answered."""
     shown = mask(request or "")
     record = {"session": session, "request_id": request_id, "decision": decision, "by": by(how),
               "request": shown[:MAX_REQUEST_CHARS], "lock": lock, "score": score if by(how) == "voice" else None}
     if machine:
         record["machine"] = machine
+    if person:
+        record["person"] = person
+        if link:
+            record["link"] = link
     if len(shown) > MAX_REQUEST_CHARS:
         record["cut"] = True
     return MARK + json.dumps(record, ensure_ascii=False, sort_keys=True)
@@ -73,7 +78,8 @@ def parse(line: dict) -> dict | None:
     if not isinstance(r, dict) or r.get("decision") not in _DECISIONS or not r.get("session") or not r.get("request_id"):
         return None
     score = r.get("score")
-    return {"at": str(line.get("at") or ""), "session": str(r["session"]), "machine": r.get("machine") or None,
+    who = {"person": str(r["person"]), **({"link": str(r["link"])} if r.get("link") else {})} if r.get("person") else {}
+    return {**who, "at": str(line.get("at") or ""), "session": str(r["session"]), "machine": r.get("machine") or None,
             "request_id": str(r["request_id"]), "decision": r["decision"], "by": str(r.get("by") or "other"),
             "request": str(r.get("request") or ""), "cut": bool(r.get("cut")), "lock": str(r.get("lock") or "off"),
             "score": float(score) if isinstance(score, (int, float)) and not isinstance(score, bool) else None}

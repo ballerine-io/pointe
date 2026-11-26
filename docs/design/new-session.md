@@ -66,10 +66,11 @@ says so.
 
 ## Machines
 
-Hub only in 1.16.0. A start always runs on the Mac the daemon runs on. The node link has no `start` message, and a
-node's own folder list would have to be the authority for that machine (a hub must not name paths on a node). Asking
-for another machine by voice is refused with one line; the sheet shows other machines as not available. Next step:
-`start` and `start.result` on the link, with the node building and checking its own list.
+A start runs on the Mac the daemon runs on, or on a machine somebody invited this voice to
+([people-and-machines.md](people-and-machines.md), "Phase 3"): there the link carries `folders`, `start` and
+`start.result`, and that machine's own folder list is the authority (a voice never names a path the machine did not
+list). `GET /voice/new-session?machine=<name>` is that machine's list. A machine of the user's own that is a node
+has no start yet: asking for it by voice is refused with one line, and the sheet shows it as not available.
 
 ## Names, collisions, failures
 

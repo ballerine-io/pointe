@@ -277,9 +277,44 @@ the machine refuses it and her voice says, word for word:
 | The machine refuses when | Her voice says |
 |---|---|
 | She may only watch | "Not sent. avi lets you watch avi-box, not talk to its sessions." |
-| The session waits on a permission prompt | "Not sent. shop waits on a permission prompt, and only avi can answer it, on avi-box." |
+| The session waits on a permission prompt | "Not sent. shop waits on a permission prompt on avi-box. It takes a request once that is answered." If you may send, you may answer it: see below |
 | The request says somebody approved something ("Avi said yes") | "Not sent. avi-box takes no message that says somebody approved something: an approval comes from the person who gives it." |
 | The session went private | "Not sent. avi keeps shop private now." |
+
+### Approving a prompt on a shared machine
+
+If you may send, you may also answer a session's permission prompt there.
+
+- The session's owner is asked first: the person who started it, else the machine's owner. You see the request at
+  once, with "avi is asked first", and your voice says nothing yet.
+- After 20 seconds, or at once when the owner is not on a call, your voice reads the request out and your screens
+  offer Approve and Deny. Say yes or no, or tap.
+- The first answer wins. If somebody answered before you, your voice says who.
+- The machine checks your answer itself. A spoken yes counts only if your voice read out exactly what the machine
+  will run.
+- Everybody is told who answered, and the machine keeps a record with your name.
+
+The machine's owner can turn this off: `pointe people approvals off`. They change the 20 seconds with
+`pointe people window <seconds>`.
+
+When the machine's owner is not on a call, a prompt waits 45 seconds for you. Then it goes to its terminal, and
+your answer no longer counts. The owner changes that with `pointe people hold <seconds>`.
+
+### Starting a session on a shared machine
+
+If you may send, you can start a session there: "start a session on avi-box in the shop folder", or the New session
+sheet with the machine picked.
+
+- The folders are the ones the machine's owner works in. Your voice asks the machine for the list.
+- Your voice reads it back with the machine and whose it is: "Start a Claude Code session on avi-box, avi's machine,
+  in shop?" The first time, it also says how that machine starts sessions: "avi-box starts sessions that skip
+  permission prompts: it can edit files and run commands as avi without asking."
+- How the session starts is the owner's choice, not yours.
+- The session is yours. You are asked first for its prompts. You can keep it private with
+  `pointe share <session> --private`: then you and the machine's owner see it.
+
+The machine's owner can turn this off with `pointe people starts off`, or make these sessions always ask before
+actions with `pointe people sessions ask`.
 
 ### What the owner sees
 
@@ -373,11 +408,12 @@ is not tested.
 
 ## Limits
 
-- **No approval by an invited person yet.** A permission prompt on a shared machine is offered only to the machine
-  owner's voice and its terminal. An invited person sees that the session waits, and cannot answer. Approval by a
-  linked person is planned.
-- **No starting or adding a session on somebody else's machine yet.** The owner starts and joins the sessions there.
+- **A watch-only person cannot answer a prompt or start a session.** They see that the session waits.
+- **No adding a session that already runs on somebody else's machine.** You start a new one there, or its owner
+  joins it.
+- **No starting a session on a machine of your own that is a node.** Start it there and join it.
 - **A request while a prompt waits is refused**, and so is a request that says somebody approved something.
+- **The settings for people are for everybody on the machine**, not one per person.
 - **No voice command for Private, a grant, an invite or a removal.** Use the screens or the commands.
 - **A machine that is only a node serves one voice.** A machine paired with `pointe node join` has no voice of its
   own and cannot invite people. To share a machine, run Pointe on it as its owner's voice.

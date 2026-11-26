@@ -1437,6 +1437,8 @@ def _status_machines() -> list[dict]:
                     "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp,
                     # a machine somebody invited this voice to: whose it is, and what this person may do there
                     **({"owner": m.owner} if m.owner else {}), **({"grant": m.grant} if m.grant else {}),
+                    # this person may start a session there now (its owner's setting is checked there, at the start)
+                    **({"can_start": HUB.start_problem(HUB.machine(m.name)) is None} if m.dialed else {}),
                     **({"removed": True} if m.removed else {}),  # its owner removed this person: `notice` says so
                     **({"notice": m.notice} if m.notice else {})})
     return out
@@ -2994,6 +2996,9 @@ class State:
     call_sent: dict | None = None  # the last `call` state the node link was given (_notify_call)
     machines_down: set[str] = field(default_factory=set)  # nodes already known offline (_watch_machines)
     remote_held: dict[str, tuple[str, int]] = field(default_factory=dict)  # session id -> (node prompt put to the user, on which link)
+    # A machine with people asks a session's owner first: session id -> (request id, who is asked, until when)
+    remote_first: dict[str, tuple[str, str, float]] = field(default_factory=dict)
+    resolved_by: dict[str, dict] = field(default_factory=dict)  # session id -> {name, verdict, at}: who answered its last request there
     sending: asyncio.Lock = field(default_factory=asyncio.Lock)  # concurrent tool calls see one utterance in turn
     clauses_at: float = 0.0  # the utterance (by speech time) whose clauses clauses_used counts
     clauses_used: set[int] = field(default_factory=set)
@@ -6386,11 +6391,22 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
     logger.info(f"permission {session.name}/{request_id} -> {verdict} ({how})")
     if not await (_deliver_remote(session, request_id, verdict, how) if session.machine
                   else _deliver_verdict(session, request_id, verdict)):
+        by = HUB.answered_by.pop(request_id, None) if session.machine else None
+        if by:  # a machine with people: somebody answered first, and the machine took that answer
+            session.permission_id, session.permission_since = None, None
+            state.remote_first.pop(session.id, None)
+            state.resolved_by.setdefault(session.id, {"name": _clean_name(by) or "Somebody", "at": time.time()})
+            await say(f"[permission answered by another person] {_clean_name(by) or 'Somebody'} already answered "
+                      f"{session.name}'s request on {session.machine}, so the user's answer was not needed. Tell the "
+                      f"user in one line.")
+            return False
         session.permission_id = request_id
         await say(f"[permission failed] The user's answer did not reach {session.name}. Tell the user in one "
                   f"line to answer it in that session's terminal.")
         return False
     session.permission_since = None
+    if not session.machine:
+        PEOPLE.owner_answered(session, request_id, verdict)  # every person it was offered to hears who answered
     if verdict == "allow" and approvals.by(how) == "voice":
         state.voice_allowed_at, state.voice_allowed_session = time.time(), session.id
     spoke = state.last_speaker if approvals.by(how) == "voice" else None
@@ -8256,8 +8272,110 @@ def _start_harnesses() -> list[dict]:
 
 
 def _start_machines() -> list[dict]:
-    return [{"name": _here(), "here": True, "available": True, "why": None}] + [
-        {"name": m.name, "here": False, "available": False, "why": HUB_ONLY} for m in paired_machines()]
+    """Where a session may start: this machine, and each machine somebody invited this voice to, when its owner lets
+    this person send and start (decided there). A machine of one's own that is a node has no start yet."""
+    out = [{"name": _here(), "here": True, "available": True, "why": None}]
+    for m in paired_machines():
+        why = HUB.start_problem(HUB.machine(m.name)) if m.dialed else HUB_ONLY
+        out.append({"name": m.name, "here": False, "available": why is None, "why": why,
+                    **({"owner": m.owner} if m.owner else {})})
+    return out
+
+
+async def _machine_start_options(name: str) -> tuple:
+    """(the machine, what its own New session sheet lists), or StartRefused with one sentence."""
+    node = HUB.machine(name)
+    problem = HUB.start_problem(node)
+    if problem:
+        raise StartRefused(f"Not started. {problem}", 409)
+    got = await HUB.folders(node)
+    if got is None:
+        raise StartRefused(f"Not started. {node.name} did not answer.", 502)
+    if got.get("why"):
+        raise StartRefused(machines.start_refusal(node.name, node.machine.owner, got), 403)
+    return node, got
+
+
+async def _begin_start_there(machine: str, harness: str, folder: str, name: str | None, prompt: str, how: str) -> newsession.Start:
+    """A session starts on a machine somebody invited this voice to. That machine checks everything again and
+    starts it as its owner's own start does; here it is listed as starting until the machine says it joined or why
+    not. The first time, the start carries one line that says how that machine starts sessions (`notice`)."""
+    node = HUB.machine(machine)
+    problem = HUB.start_problem(node)
+    if problem:
+        raise StartRefused(f"Not started. {problem}", 409)
+    if not isinstance(prompt, str) or len(prompt) > newsession.MAX_PROMPT:
+        raise StartRefused(f"The first prompt is too long: at most {newsession.MAX_PROMPT} characters.")
+    start = newsession.Start(id=secrets.token_hex(8), harness=str(harness), folder=str(folder),
+                             name=_clean_name(name or Path(str(folder)).name) or "session", prompt=prompt.strip(),
+                             how=how, machine=node.name)
+    if not (HUB.nodes.get(node.id) or {}).get("start_told"):
+        got = await HUB.folders(node)
+        if got and not got.get("why"):
+            start.notice = machines.start_default_line(node.name, got)
+            HUB.nodes.update(node.id, start_told=True)
+    STARTS[start.id] = start
+    logger.info(f"starting a {start.harness} session on {node.name} in {start.folder} ({how})")
+    asyncio.create_task(_run_start_there(start, node, _clean_name(name) if name else None))
+    return start
+
+
+async def _run_start_there(start: newsession.Start, node, name: str | None) -> None:
+    got = await HUB.start(node, start.harness, start.folder, name, start.prompt)
+    if got.get("ok") and got.get("id"):
+        # It arrives in the machine's next list of sessions, as this person's own, and is announced then.
+        start.state, start.session_id, start.ended = "joined", nodelink.hub_session_id(node.id, got["id"]), time.time()
+        logger.info(f"{got.get('name') or start.name} joined on {node.name}: started from this voice ({start.how})")
+        return
+    await _start_failed(start, machines.start_refusal(node.name, node.machine.owner, got))
+
+
+async def _read_back_start_there(params, asked: str, machine: str) -> None:
+    """"Start a session on avi-box in the shop folder": the folder is looked up in that machine's own list, and the
+    read-back names the machine and whose it is. The first time it also says how that machine starts sessions."""
+    try:
+        node, got = await _machine_start_options(machine)
+    except StartRefused as e:
+        await params.result_callback({"error": str(e)})
+        return
+    folders = got["folders"]
+    ask = start_request(asked, [(f["name"], f["path"]) for f in folders], [m.name for m in paired_machines()], _here())
+    available = [h for h in got["harnesses"] if h["available"]]
+    if ask is None:
+        await params.result_callback({"error": "Not started. The user did not ask to start a session."})
+        return
+    harness = ask.harness or next((h["name"] for h in available if h["name"] == "claude-code"), None) \
+        or (available[0]["name"] if len(available) == 1 else None)
+    picked = next((h for h in available if h["name"] == harness), None)
+    if ask.harnesses or picked is None:
+        await params.result_callback({"error": f"Not started. Ask which agent, one session at a time. {node.name} can start: "
+                                      + (", ".join(h["title"] for h in available) or "none") + "."})
+        return
+    if ask.ties or ask.folder is None:
+        names = ", ".join(newsession.said_folder(f, folders) for f in folders if not ask.ties or f["path"] in ask.ties)
+        await params.result_callback({"error": f"Not started. A session on {node.name} starts only in a folder "
+                                      f"{node.machine.owner or 'its owner'} works in there. "
+                                      + (f"Ask which: {names[:400]}." if names else "There is none yet.")})
+        return
+    entry = next(f for f in folders if f["path"] == ask.folder)
+    name = _clean_name(ask.name) if ask.name else ""
+    if ask.name and (not valid_name(name) or not speakable(name)):
+        await params.result_callback({"error": "Not started. That name cannot be used: ask for another."})
+        return
+    whose = f", {node.machine.owner}'s machine," if node.machine.owner else ""
+    line = (f"Start {'an' if picked['title'][:1] in 'AEIOU' else 'a'} {picked['title']} session on {_spoken_names(node.name)}"
+            f"{whose} in {_spoken_names(newsession.said_folder(entry, folders))}"
+            f"{', named ' + _spoken_names(name) if name else ''}?")
+    if not (HUB.nodes.get(node.id) or {}).get("start_told"):
+        line += " " + machines.start_default_line(node.name, got)
+        HUB.nodes.update(node.id, start_told=True)
+    state.pending_start = (time.time(), {"id": secrets.token_hex(8), "harness": harness, "folder": entry["path"],
+                                         "name": name or entry["name"], "name_given": bool(name), "line": line,
+                                         "said_folder": entry["name"], "mode": "ask", "machine": node.name})
+    logger.info(f"start read back: {line}")
+    state.readback = line
+    await params.result_callback({"confirm_first": line, "note": "Nothing is started yet. Say this line once, as it is, "
+                                  "and wait. When the user answers, call start_session again."})
 
 
 def _names_in_use() -> set[str]:
@@ -8324,12 +8442,14 @@ def _start_mode(harness: str, folder: str, ask_first: bool = False) -> str:
     return "skip" if check == "ok" else check
 
 
-def begin_start(what: dict, how: str, skip: bool = False, notice_said: bool = False) -> newsession.Start:
+def begin_start(what: dict, how: str, skip: bool = False, notice_said: bool = False,
+                person: dict | None = None) -> newsession.Start:
     """`skip`: it starts skipping its permission prompts. The first such start carries the risk line (SKIP_NOTICE) for
-    the screens, unless it was already said in the read-back (`notice_said`); after that, never again."""
+    the screens, unless it was already said in the read-back (`notice_said`); after that, never again. `person`: a
+    person invited to this machine asked for it (the session is theirs); the owner's one-time line stays unsaid."""
     start = newsession.Start(id=secrets.token_hex(8), harness=what["harness"], folder=what["folder"]["path"],
-                             name=what["name"], prompt=what.get("prompt") or "", how=how, skip=skip)
-    if skip and not PREFS.get("sessions.skip_told"):
+                             name=what["name"], prompt=what.get("prompt") or "", how=how, skip=skip, person=person)
+    if skip and person is None and not PREFS.get("sessions.skip_told"):
         start.notice = "" if notice_said else newsession.SKIP_NOTICE
         PREFS.update({"sessions.skip_told": True})
     STARTS[start.id] = start
@@ -8374,7 +8494,7 @@ async def _run_start(start: newsession.Start) -> None:
 async def _start_failed(start: newsession.Start, why: str) -> None:
     start.fail(why)
     logger.warning(f"start of {start.name} ({start.harness}) failed: {why}")
-    if state.conn is not None:
+    if state.conn is not None and start.person is None:  # a person's start: their own voice says why
         await say(f"[session not started] {start.name} did not start. Tell the user why in one line: {why}")
 
 
@@ -8389,7 +8509,11 @@ async def _started(session: Session, start_id) -> None:
         return
     late = start.state == "failed"  # it joined after the wait ran out: the user was told the prompt was not sent
     start.state, start.session_id, start.detail, start.ended = "joined", session.id, "", time.time()
-    state.started_joined = (session.id, time.time())  # "rename it" now means this one
+    if start.person is not None:  # a person invited to this machine started it: the session is theirs
+        PEOPLE.started(session, start.person)
+        REGISTRY.save()
+    else:
+        state.started_joined = (session.id, time.time())  # "rename it" now means this one
     logger.info(f"{session.name} joined: started by Pointe ({start.how})")
     if not late:
         await _night_joined(session, start.id)
@@ -8478,6 +8602,17 @@ async def start_session(params: FunctionCallParams):
                 await params.result_callback({"error": refusal})
                 return
             what = pending[1]
+            if what.get("machine"):  # on a machine somebody invited this voice to: that machine checks, and starts it
+                try:
+                    start = await _begin_start_there(what["machine"], what["harness"], what["folder"],
+                                                     what["name"] if what["name_given"] else None, "", "voice")
+                except StartRefused as e:
+                    await params.result_callback({"error": str(e)})
+                    return
+                await params.result_callback({"starting": start.name, "note": f"It starts on {start.machine}, joins the "
+                                              "voice by itself in a moment and is announced when it does. Say in one "
+                                              "line that it is starting."})
+                return
             try:  # checked again: a session may have joined, or a folder gone, since the read-back
                 checked = _check_start(what["harness"], what["folder"], what["name"] if what["name_given"] else None)
             except StartRefused as e:
@@ -8520,7 +8655,11 @@ async def start_session(params: FunctionCallParams):
         return
     state.last_start_at = time.time()
     if ask.machine:
-        await params.result_callback({"error": f"Not started. {HUB_ONLY}"})
+        there = next((m for m in paired_machines() if m.name == ask.machine), None)
+        if getattr(there, "dialed", False):  # a machine somebody invited this voice to: its own list, its own rules
+            await _read_back_start_there(params, asked, ask.machine)
+        else:
+            await params.result_callback({"error": f"Not started. {HUB_ONLY}"})
         return
     available = [h for h in _start_harnesses() if h["available"]]
     if ask.harnesses:
@@ -9376,10 +9515,111 @@ def _owner_ask(session: Session) -> float | None:
     return ask.since if ask is not None else None
 
 
+_PERSON_HOW = {"tap": "tapped", "notification": "from a notification", "voice": "user said: (a person's own voice)"}
+
+
+async def _person_answered(session: Session, request_id: str, verdict: str, how: str, person: dict, address: str) -> bool:
+    """A person's verdict that passed this machine's re-check (guests.HostSide._on_answer) reaches the session as the
+    owner's own does. The record and the journal name the person, how they answered and the link it came on; the
+    owner's voice says it, and it goes into the notes. The agent sees an approval, as ever. False: not delivered."""
+    if session.permission_id != request_id:
+        return False
+    full, spoken = session.permission_full, session.permission_spoken
+    session.permission_id = None
+    if not await _deliver_verdict(session, request_id, verdict):
+        session.permission_id = request_id
+        return False
+    session.permission_since = None
+    name = person["name"]
+    logger.info(f"permission {session.name}/{request_id} -> {verdict} ({how}, by {name}, a person on this machine)")
+    logger.info(approvals.event(session=session.name, machine=None, request_id=request_id, decision=verdict,
+                                how=_PERSON_HOW.get(how, how), request=full, lock="off", score=None, person=name,
+                                link=address or None))
+    REGISTRY.save()
+    _night_answered(session, request_id, verdict)
+    what = f" to {mask(_heard_request(spoken))}" if spoken and VERBATIM not in spoken[:40] else ""
+    line = f"{name} {'approved' if verdict == 'allow' else 'denied'} {session.name}'s request{what[:200]}."
+    NOTES.add("session_news", line, session=session.name, dedup=False)
+    if state.conn is not None and current_mode().reads_out:
+        asyncio.create_task(_say_fixed(line))  # the owner was asked too: they hear it is answered, and by whom
+    _read_next_waiting(session)
+    return True
+
+
+def _person_release(session: Session, request_id: str) -> None:
+    """Nobody who may answer this prompt is linked, and the owner has no call: it goes to the terminal."""
+    if session.permission_id == request_id and session.permission_answer is not None \
+            and not session.permission_answer.done():
+        session.permission_answer.set_result(None)
+
+
+async def _open_permission(session: Session, request_id: str) -> None:
+    """A prompt that waited for somebody asked first is this voice's to answer now: it is read out as any is."""
+    if session.permission_id == request_id and state.conn is not None:
+        await _announce_permission(session)
+
+
+def _asked_first(session: Session) -> dict | None:
+    """{name, until} while somebody else is asked first for this session's request, and this voice waits: the
+    session's owner on a machine this voice dialed, or the person who started a session on this machine."""
+    if session.machine:
+        first = state.remote_first.get(session.id)
+        return {"name": first[1], "until": first[2]} if first and first[0] == session.permission_id else None
+    offer = PEOPLE.offers.get(session.id)
+    if offer is None or not offer.first or offer.opened or offer.request_id != session.permission_id:
+        return None
+    return {"name": offer.first_name, "until": offer.opens_at}
+
+
+def _nobody_hears(session: Session) -> bool:
+    """No call here, no night shift that keeps the prompt, and no person on this machine who could answer it: the
+    prompt is its terminal's."""
+    if state.conn is not None or _night_parks(session):
+        return False
+    return vendors.config().get("approvals") == "terminal" or not PEOPLE.can_hold(session)
+
+
+def _start_options() -> dict:
+    """What a person's New session sheet lists for this machine: the owner's own folders, agents and default."""
+    return {"folders": _start_folders(), "harnesses": _start_harnesses(),
+            "permissions": "skip" if PREFS.get("sessions.permissions") == "skip" else "ask"}
+
+
+async def _person_start(person: dict, harness: str, folder: str, name: str | None, prompt: str, ask: bool) -> tuple[bool, dict]:
+    """A person starts a session on this machine (guests.HostSide._on_start checked their grant): the owner's own
+    start path, with the same checks of the folder, the agent and the name, and the owner's default for permission
+    prompts. A yes Claude Code still needs once is the owner's to give: until then such a session asks first. The
+    first prompt is not sent from here: the machine delivers it as that person's request."""
+    if harness not in harnesses.names() or not harnesses.get(harness).starts or harnesses.get(harness).can_start():
+        return False, {"why": "harness"}
+    if newsession.find(folder, _start_folders()) is None:
+        return False, {"why": "folder"}
+    try:
+        what = _check_start(harness, folder, name, prompt)
+    except StartRefused as e:
+        return False, {"why": "failed", "detail": str(e)}
+    mode = _start_mode(what["harness"], what["folder"]["path"], ask)
+    start = begin_start({**what, "prompt": ""}, f"{person['name']}'s voice", skip=mode == "skip", person=person)
+    while start.state in ("starting", "waiting"):
+        await asyncio.sleep(0.25)
+    if start.state != "joined":
+        return False, {"why": "failed", "detail": start.detail}
+    return True, {"id": start.session_id, "name": REGISTRY.sessions[start.session_id].name
+                  if start.session_id in REGISTRY.sessions else start.name}
+
+
+async def _remote_share(session: Session, private: bool) -> tuple[bool, str | None]:
+    """`pointe share` for a session this person started on a machine they were invited to."""
+    return await HUB.share(session, private)
+
+
 # The people invited to this machine: their keys, links and what each may see and do (guests.py).
 PEOPLE = guests.HostSide(STATE_DIR, REGISTRY, host_id=lambda: HUB.nodes.hub_id, record=_people_event,
-                         on_sent=_person_sent, working=lambda s: _working(s), owner_ask=_owner_ask)
-guests.install(app, PEOPLE)
+                         on_sent=_person_sent, working=lambda s: _working(s), owner_ask=_owner_ask,
+                         answer=_person_answered, release=_person_release,
+                         owner_hears=lambda s: state.conn is not None or _night_parks(s),
+                         open_owner=_open_permission, start=_person_start, start_options=_start_options)
+guests.install(app, PEOPLE, remote_share=_remote_share)
 
 
 async def _end_phone_call(ids: set[str] | None) -> None:
@@ -9447,7 +9687,10 @@ async def _join(body: dict) -> dict:
     # the "(pid N, how" order is read by tests and tools: the harness goes last
     logger.info(f"registered {session.name} (pid {session.pid}, {'channel' if session.channel_url else 'inbox'}, {harness})")
     await _add_worker(session)
-    if state.conn and started:
+    if state.conn and started and session.owner:
+        await say(f"[session joined] {session.name}, a session {session.owner} started on this machine through their "
+                  f"own voice, is on the voice now. It is {session.owner}'s. Say so in a few words.")
+    elif state.conn and started:
         await say(f"[session joined] {session.name}, the session the user asked to start, is on the voice now. Say so in a few words.")
     elif state.conn and len(REGISTRY.sessions) > 1 and not body.get("attached"):  # an added one: its tool or tap says so
         await say(_about(f"[session joined] {session.name} is now available. Mention it in a few words.", session.name,
@@ -9525,6 +9768,7 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
         apply_wait_state(session, entry, skew)  # a prompt in its terminal there, as for a session here
         session.cwd = str(entry.get("cwd") or session.cwd)
         session.owner = owner_of(machine, entry.get("owner"))
+        _note_starter(session, entry)
         if files is not None:
             session.harness_data["files"] = files
         if session.named_by != "user" and title and title != session.name and not REGISTRY.rename(session.id, title):
@@ -9538,6 +9782,7 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
                       home=str(entry.get("home") or ""), machine=machine, owner=owner_of(machine, entry.get("owner")),
                       harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
     apply_wait_state(session, entry, skew)
+    _note_starter(session, entry)
     if entry.get("name_given"):
         session.named_by = "user"
     elif title and not REGISTRY.rename_check(session.id, title, machine):
@@ -9559,6 +9804,15 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
     if entry.get("pending"):
         await _remote_pending(session, entry["pending"])
     return session
+
+
+def _note_starter(session: Session, entry: dict) -> None:
+    """`started_by` in a machine's entry: the person who started the session there, for the screens."""
+    who = _clean_name(entry["started_by"]) if isinstance(entry.get("started_by"), str) else ""
+    if who:
+        session.harness_data["started_by"] = who
+    else:
+        session.harness_data.pop("started_by", None)
 
 
 OTHERS_ASKED_KEPT = 5
@@ -9597,14 +9851,17 @@ async def _remote_pending(session: Session, pending) -> None:
 
 
 async def remote_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str,
-                            readable) -> bool:
+                            readable, first: str | None = None, yours_in_ms: int = 0) -> bool:
     """A node's `permission.request`, put to the user as a channel request is put. `readable` is the node's own read-out,
     from the unmasked input: used after the cheap checks (guards.remote_readable), never rebuilt from the masked
     preview. False when it is not held here (no call, or the user approves in terminals): the node then hands it back to
     its terminal. The same request again on one link (a snapshot and a frame) is put once, also while the user's answer
     to it is on its way (permission_id is cleared then, remote_held is not): a snapshot sent before the node released
     it must not bring the card back. Re-offered on a new link (the node held it through a drop or a hub restart) it is
-    asked again, so the owner hears it."""
+    asked again, so the owner hears it.
+
+    `first`, from a machine with people: the session's owner is asked first. The card shows who and until when, and
+    nothing is read out; the machine sends the request again, without `first`, when this voice may answer."""
     if session.id not in REGISTRY.sessions or state.conn is None:
         return False
     if not re.fullmatch(r"[\w-]{1,64}", request_id):  # an empty id can be put to the user but never answered
@@ -9615,18 +9872,38 @@ async def remote_permission(session: Session, request_id: str, tool_name: str, d
                          f"one line.", session.name, "terminal", "needs approval in its terminal"))
         return False
     held = (request_id, getattr(paired_machine(session.machine), "link", 0))
+    waiting = state.remote_first.get(session.id)
     if state.remote_held.get(session.id) == held:
+        if first is None and waiting and waiting[0] == request_id:  # it opened: this voice may answer now
+            del state.remote_first[session.id]
+            await _open_permission(session, request_id)
         return True
     state.remote_held[session.id] = held
-    await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable))
+    if first is not None:
+        state.remote_first[session.id] = (request_id, _clean_name(first) or "Its owner", time.time() + yours_in_ms / 1000)
+    else:
+        state.remote_first.pop(session.id, None)
+    await _put_permission(session, request_id, tool_name, description, preview, node_readable=remote_readable(readable),
+                          waits=first is not None)
     return True
 
 
-def remote_resolved(session: Session, request_id: str, how: str) -> None:
+def remote_resolved(session: Session, request_id: str, how: str, by: str | None = None, verdict: str | None = None) -> None:
     """The node's `permission.resolved`: the prompt is no longer the hub's to answer (answered in its terminal, timed out,
-    or the session left). Its card goes."""
+    or the session left). Its card goes. `by` and `verdict`, from a machine with people: somebody answered it there;
+    the screens show who (`resolved_by`), and it goes into the notes."""
     if session.permission_id != request_id:
         return
+    state.remote_first.pop(session.id, None)
+    if by and verdict in ("allow", "deny"):
+        who = _clean_name(by) or "Somebody"
+        state.resolved_by[session.id] = {"name": who, "verdict": verdict, "at": time.time()}
+        line = f"{who} {'approved' if verdict == 'allow' else 'denied'} {session.name}'s request."
+        NOTES.add("session_news", line, session=session.name, dedup=False)
+        if state.conn is not None:
+            asyncio.create_task(state.conn.injector.inject(
+                f"[{line} It was answered on {session.machine}, not by the user: it is no longer waiting. Keep this in "
+                f"mind, say nothing]", False))
     if how == "timeout" and current_mode().holds_news:  # as _hold_one says a local one's, at the hand-off
         what = mask(" ".join(x for x in ((session.permission_full or "").split("\n")[0], session.permission_note) if x))[:120]  # said aloud later: the one credential rule
         state.monologue_held.append((f"[{session.name}: its approval request waited during the user's brain dump, "
@@ -9666,6 +9943,8 @@ def _hand_prompts_back() -> None:
     for session in REGISTRY.sessions.values():
         if _night_parks(session):
             continue  # a night shift's request stays held for the user: it is on the ledger, and answered in the morning
+        if PEOPLE.holds(session):
+            continue  # a person on this machine can still answer it: it goes to the terminal when nobody can
         if session.permission_answer is not None and not session.permission_answer.done():
             session.permission_answer.set_result(None)
 
@@ -9677,7 +9956,7 @@ async def permission_hook(request: Request, authorization: str | None = Header(N
     _auth(authorization)
     p = await request.json()
     session = REGISTRY.sessions.get(p.get("session_id"))
-    if session is None or session.channel_url or (state.conn is None and not _night_parks(session)):
+    if session is None or session.channel_url or _nobody_hears(session):
         return {}
     # Claude Code's hook is its adapter's approval path: the same rules as any harness's (_harness_permission)
     run_in = p.get("cwd") if isinstance(p.get("cwd"), str) else None  # the shell's folder now: a cd earlier persists
@@ -9738,7 +10017,7 @@ def _rephrase_first(session: Session, tool_name: str, tool_input: dict, run_in: 
 async def _harness_permission(session: Session, tool_name: str, tool_input: dict, gone=None,
                               run_in: str | None = None) -> str | None:
     """A harness adapter's permission request (OpenCode's permission.asked): the same rules as Claude Code's hook."""
-    if session.id not in REGISTRY.sessions or (state.conn is None and not _night_parks(session)):
+    if session.id not in REGISTRY.sessions or _nobody_hears(session):
         return None
     if vendors.config().get("approvals") == "terminal":
         await say(_about(f"[{session.name} needs approval in its terminal] The user chose to approve there. Tell them in "
@@ -9814,8 +10093,10 @@ async def on_permission(request: Request, authorization: str | None = Header(Non
 
 
 async def _put_permission(session: Session, request_id: str, tool_name: str, description: str, preview: str,
-                          node_readable: str | None = None, run_in: str | None = None) -> dict:
-    """`run_in`: the folder the request runs in, when the harness reports it and it is not the session's own."""
+                          node_readable: str | None = None, run_in: str | None = None, waits: bool = False) -> dict:
+    """`run_in`: the folder the request runs in, when the harness reports it and it is not the session's own.
+    `waits`: somebody else is asked first (a machine with people): the card shows it, and nothing is read out until
+    it opens (_open_permission)."""
     try:
         tool_input = json.loads(preview)
     except ValueError:  # an older Claude Code cuts the preview, so what runs is not all here
@@ -9848,8 +10129,20 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
     state.drive.note(request_id, tool_name, tool_input, session.cwd, remote=bool(session.machine), run_in=run_in)
     REGISTRY.save()
     _night_blocked_now(session)
-    if state.conn is None:  # only a night shift's request is held with no call: nobody to read it to until morning
+    if not session.machine:
+        # The people on this machine who may approve see it too (guests.py). A session a person started asks that
+        # person first, and then this voice waits its turn as theirs does.
+        held = session.permission_answer is not None and not session.permission_answer.done()
+        waits = await PEOPLE.offer(session, request_id, tool_name, tool_input, description, preview, run_in,
+                                   session.permission_until if held and session.permission_until else None)
+    if state.conn is None or waits:  # with no call it is held for a night shift, or for a person on this machine
         return {}
+    await _announce_permission(session)
+    return {}
+
+
+async def _announce_permission(session: Session) -> None:
+    """The request is this voice's to answer: read out when its session has the focus, else announced or held."""
     if session is not REGISTRY.active and REGISTRY.mode == "orchestrator" and current_mode().reads_out \
             and not any(s.permission_id for s in REGISTRY.sessions.values() if s is not session):
         # Nothing else waits: the requesting session takes the focus and its request is read out, name first, so a voice
@@ -9865,7 +10158,6 @@ async def _put_permission(session: Session, request_id: str, tool_name: str, des
         logger.info(f"permission from {session.name}, not active: announced only")
         await say(_about(f"[{session.name} is waiting for a permission, not the active session] Tell the user in one "
                          f"line; they can switch to it by name.", session.name, "approval", "needs your approval"))
-    return {}
 
 
 async def _early_yes(session: Session, heard_it: bool) -> None:
@@ -9891,6 +10183,8 @@ async def _early_yes(session: Session, heard_it: bool) -> None:
 
 
 async def _read_out(session: Session, unsure: bool = False, early: bool = False, urgent: bool = False) -> None:
+    if _asked_first(session):
+        return  # somebody else is asked first: the card says who, and this voice reads it out when it opens
     if not current_mode().reads_out:
         if current_mode() is modes.BRAIN_DUMP:
             await _tone(False)  # the user is dumping thoughts: the page shows it, and it is asked at the review
@@ -10043,6 +10337,9 @@ async def approve(request: Request):
         raise HTTPException(status_code=409, detail="that request is no longer pending")
     if not online(session):
         raise HTTPException(status_code=409, detail=f"{session.machine} is offline: answer it in its terminal")
+    first = _asked_first(session) if session.machine else None  # at their own machine the owner's tap always counts
+    if first:
+        raise HTTPException(status_code=409, detail=f"{first['name']} is asked first. You can answer in a moment.")
     if decision == "allow" and session.permission_truncated:  # what runs is not all on the card: approve where it is
         raise HTTPException(status_code=409, detail="this request came cut short: approve it in its terminal, or deny it here")
     notified = p.get("via") == "notification"  # an action on a notification: the phone could not ask for Face ID
@@ -10376,9 +10673,20 @@ def _start_how(request: Request) -> str:
 
 
 @app.get("/voice/new-session")
-async def new_session_options():
+async def new_session_options(machine: str | None = None):
     """What the New session sheet offers: the agents this Mac can start, the machines, and the folders a session may
-    start in. The folders come from here and nowhere else."""
+    start in. The folders come from here and nowhere else. `?machine=avi-box`: the same for a machine somebody
+    invited this voice to, as that machine lists it for its owner, with `machine: {name, owner, permissions,
+    account}`: how its new sessions start, and the account they run as."""
+    if machine and machine != _here():
+        try:
+            node, got = await _machine_start_options(machine)
+        except StartRefused as e:
+            raise HTTPException(status_code=e.status, detail=str(e))
+        return {"harnesses": got["harnesses"], "machines": _start_machines(), "max_prompt": newsession.MAX_PROMPT,
+                "folders": [{**f, "source": "machine"} for f in got["folders"]],
+                "machine": {"name": node.name, "owner": node.machine.owner, "permissions": got.get("permissions") or "ask",
+                            "account": got.get("account") or ""}}
     return {"harnesses": _start_harnesses(), "machines": _start_machines(), "folders": _start_folders(),
             "max_prompt": newsession.MAX_PROMPT}
 
@@ -10400,10 +10708,25 @@ async def new_session(request: Request):
                                                      "not announce it.", False)
                 return {"cancelled": True}
             body = {"harness": pending[1]["harness"], "folder": pending[1]["folder"],
-                    "name": pending[1]["name"] if pending[1]["name_given"] else None}
+                    "name": pending[1]["name"] if pending[1]["name_given"] else None,
+                    "machine": pending[1].get("machine")}
             break
     if body.get("permissions") not in (None, "skip", "ask"):
         raise HTTPException(status_code=400, detail="permissions is skip or ask.")
+    if body.get("machine") and body["machine"] != _here() and getattr(paired_machine(str(body["machine"])), "dialed", False):
+        # On a machine somebody invited this voice to: it checks the folder and the agent, and how it starts is its
+        # owner's setting, never this request's.
+        try:
+            start = await _begin_start_there(str(body["machine"]), str(body.get("harness") or ""), str(body.get("folder") or ""),
+                                             body.get("name") or None, body.get("prompt") or "", _start_how(request))
+        except StartRefused as e:
+            raise HTTPException(status_code=e.status, detail=str(e))
+        if state.conn is not None:
+            await state.conn.injector.inject(f"[session starting] The user started a new session on {start.machine} "
+                                             f"from the screen. It is announced when it joins. Do not announce it now.", False)
+            if start.notice:
+                await _say_exactly(start.notice, "how that machine starts sessions")
+        return {"id": start.id, "name": start.name, "machine": start.machine, "notice": start.notice}
     try:
         what = _check_start(str(body.get("harness") or ""), body.get("folder") or "", body.get("name") or None,
                             body.get("prompt") or "", body.get("machine") or None)
@@ -10990,7 +11313,8 @@ async def _status(request: Request) -> dict:
             # New sessions (docs/design/new-session.md): the ones starting or just failed, and a read-back that waits.
             "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
             "start_pending": (lambda p: None if p is None else {k: p[1][k] for k in ("id", "line", "harness", "name")}
-                              | {"folder": p[1]["said_folder"], "expires_in": round(newsession.CONFIRM_SECS - (time.time() - p[0]))})(_start_pending()),
+                              | {"folder": p[1]["said_folder"], "expires_in": round(newsession.CONFIRM_SECS - (time.time() - p[0]))}
+                              | ({"machine": p[1]["machine"]} if p[1].get("machine") else {}))(_start_pending()),
             # Adding sessions (docs/design/attach-by-voice.md): a read-back that waits for a yes, a pick or a tap.
             "attach_pending": _attach_pending_view(),
             # A night shift (docs/design/night-shift.md): the running or last one in short, and a read-back that waits.
@@ -11019,7 +11343,29 @@ async def _status(request: Request) -> dict:
                           "blocked_on": "held message" if message_held(s) and terminal_wait(s) else
                                         s.blocked_on if terminal_wait(s) else None,
                           "mode": "channel" if s.channel_url else "inbox",
-                          **PEOPLE.session_status(s)} for s in REGISTRY.sessions.values()]}
+                          **(_there_status(s) if s.machine else PEOPLE.session_status(s))}
+                         for s in REGISTRY.sessions.values()]}
+
+
+def _there_status(s: Session) -> dict:
+    """What a session's entry in the status adds on a machine somebody invited this voice to: who started it, who is
+    asked first for its request and until when, whether this voice may answer it now, and who answered the last one.
+    Each absent when it does not apply."""
+    m = paired_machine(s.machine)
+    if m is None or not m.dialed:
+        return {}
+    out: dict = {}
+    if s.harness_data.get("started_by"):
+        out["started_by"] = s.harness_data["started_by"]
+    if s.permission_id:
+        first = _asked_first(s)
+        if first:
+            out["asked"] = first
+        out["can_answer"] = first is None and m.grant == "send" and online(s)
+    resolved = state.resolved_by.get(s.id)
+    if resolved and time.time() - resolved["at"] < guests.RESOLVED_SHOWN_SECS:
+        out["resolved_by"] = resolved
+    return out
 
 
 def _alert_name(s: Session) -> str:

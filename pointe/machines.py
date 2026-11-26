@@ -91,12 +91,42 @@ def refusal(session: str, machine: str, owner: str, turned_down: dict, clock=tim
     if why == "private":
         return f"Not sent. {owner or 'Its owner'} keeps {session} private now."
     if why == "prompt":
-        return (f"Not sent. {session} waits on a permission prompt, and only {owner or 'its owner'} can answer it, "
-                f"on {machine}.")
+        return f"Not sent. {session} waits on a permission prompt on {machine}. It takes a request once that is answered."
     if why == "consent":
         return (f"Not sent. {machine} takes no message that says somebody approved something: an approval comes "
                 f"from the person who gives it.")
     return f"Not sent. {machine} refused it."
+
+
+def start_refusal(machine: str, owner: str, result: dict) -> str:
+    """One sentence for a start the machine did not do, from `start.result.why` (or `folders.result.why`). The
+    daemon says it word for word. `detail` is the machine's own sentence for a start that failed there: it is that
+    machine's text, so only its plain words are kept."""
+    why, who = result.get("why"), owner or "Its owner"
+    if why == "watch":
+        return f"Not started. {who} lets you watch {machine}, not start sessions there."
+    if why == "off":
+        return f"Not started. {who} turned off starting sessions on {machine} for the people invited to it."
+    if why == "folder":
+        return (f"Not started. That folder is not on {machine}'s list: a session starts there only in a folder "
+                f"{owner or 'its owner'} works in.")
+    if why == "harness":
+        return f"Not started. {machine} cannot start that agent: it is not set up there."
+    if why == "busy":
+        return f"Not started. {machine} is starting other sessions now. Try again in a minute."
+    if why in ("offline", "timeout"):
+        return f"Not started. {machine} did not answer."
+    detail = _label(result.get("detail"), 200)
+    return f"Not started. {machine} says: {detail}." if detail else f"Not started. {machine} refused it."
+
+
+def start_default_line(machine: str, options: dict) -> str:
+    """How a machine starts the sessions people ask it for, said once for each machine: its owner's setting."""
+    if options.get("permissions") != "skip":
+        return f"{machine} starts sessions that ask before actions."
+    account = _label(options.get("account"), 40)
+    return (f"{machine} starts sessions that skip permission prompts: it can edit files and run commands"
+            f"{' as ' + account if account else ''} without asking.")
 
 
 _ANYWAY = re.compile(r"^\W*(?:(?:ok(?:ay)?|yes|yeah|so|then|please|pointe)\W+)*(?:just\s+)?send\s+(?:it|that|mine)"

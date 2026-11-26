@@ -159,11 +159,14 @@ class Start:
     found: object = None  # its discovery.Found, for the harness's reopen
     skip: bool = False  # it starts skipping its permission prompts (the setting "sessions.permissions")
     notice: str = ""  # one line the screens show under it while it starts (SKIP_NOTICE, the first time)
+    person: dict | None = None  # the person invited to this machine who asked for it: the session is theirs
+    machine: str = ""  # a machine somebody invited this voice to, when the session starts there
 
     def view(self, label: str) -> dict:
         return {"id": self.id, "name": self.name, "harness": self.harness, "label": label, "folder": Path(self.folder).name,
                 "state": self.state, "detail": self.detail, "since": self.since, "permissions": "skip" if self.skip else "ask",
-                "notice": self.notice}
+                "notice": self.notice, **({"by": self.person["name"]} if self.person else {}),
+                **({"machine": self.machine} if self.machine else {})}
 
     def fail(self, why: str) -> None:
         self.state, self.detail, self.ended = "failed", why, time.time()
