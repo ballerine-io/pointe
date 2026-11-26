@@ -26,6 +26,10 @@ Rules written before any paid row:
   results/ledger.jsonl after every launch, smoke runs included. A launch refuses to start unless the ledger's total
   plus --headroom-usd fits under --budget-usd, and stops typing turns once it has spent its headroom.
 - A paid launch waits while the 1-minute load is over 15.
+- Both fleet arms set POINTE_FLEET themselves, and every row carries `fleet_on` as the daemon states it
+  (/voice/context): the report counts the rows where that is not the arm's.
+- A run folder with a NOT_COUNTED file (its reason inside) is listed by the report and not counted: for a run the
+  operator stopped. Written when it is stopped, never after its rows were read.
 """
 
 import argparse
@@ -372,11 +376,23 @@ def turn_row(run: Launch, n: int, turn: dict, seed: int) -> dict:
         reader_calls=sum(c["choice"] == reader for c in texts), checker_calls=sum(c["choice"] != reader for c in texts),
         text_callers=sorted({c.get("caller", "") for c in texts}),
         load_end=os.getloadavg()[0])
+    row.update(daemon_fleet(run.fleet))
     if failed:
         row["error"] = failed[0]
     elif not settled:
         row["unsettled"] = True
     return row
+
+
+def daemon_fleet(fleet: sim.FleetSim) -> dict:
+    """The arm as the daemon itself states it (/voice/context, `fleet`): whether the fleet rules are on, and its own
+    estimate of the "what needs me" block. None on a build that has no such switch."""
+    try:
+        view = (fleet.voice.call("/voice/context", timeout=10)[1] or {}).get("fleet")
+    except (OSError, AttributeError):
+        view = None
+    view = view if isinstance(view, dict) else {}
+    return {"fleet_on": view.get("on"), "fleet_tokens_by_daemon": view.get("tokens"), "fleet_stats": view.get("stats")}
 
 
 def cmd_turns(a) -> None:
@@ -456,7 +472,8 @@ def cmd_burst(a) -> None:
                "named_in_speech": len(told), "named_in_held": len(kept),
                "lost": sorted(sid for sid in finals if sid not in told and sid not in kept),
                "reader_calls": sum(c["kind"] == "text" and c.get("caller") in ("_read_model",) for c in seen["calls"]),
-               "brain_steps": sum(c["kind"] == "step" for c in seen["calls"]), "load_end": os.getloadavg()[0], "error": None}
+               "brain_steps": sum(c["kind"] == "step" for c in seen["calls"]), "load_end": os.getloadavg()[0],
+               "fleet_on": (fleet_view or {}).get("on"), "error": None}
         run.write(row)
         print(f"  {len(finals)} finished: {len(row['spoken'])} spoken, {len(held)} held, {len(row['lost'])} lost", flush=True)
     except Exception as e:
@@ -504,6 +521,7 @@ def cmd_readers(a) -> None:
                        "active_sessions": len(active), "sessions": len(ids), "turns_ended": len(due), "window_secs": READERS_SECS,
                        "reader_calls": calls, "per_hour": calls * 3600 / READERS_SECS,
                        "callers": sorted({c.get("caller", "") for c in seen["calls"] if c["kind"] == "text"}),
+                       "fleet_on": (context.get("fleet") or {}).get("on") if isinstance(context, dict) else None,
                        "fleet_stats": (context.get("fleet") or {}).get("stats") if isinstance(context, dict) else None, "error": None})
             print(f"  {scenario}: {calls} reader calls for {len(due)} ended turns", flush=True)
         except Exception as e:

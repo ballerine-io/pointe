@@ -33,13 +33,16 @@ def load(results: Path) -> list[dict]:
         manifest, rows = folder / "manifest.json", folder / "rows.jsonl"
         if not manifest.exists():
             continue
-        runs.append({"manifest": json.loads(manifest.read_text()),
+        skip = folder / "NOT_COUNTED"
+        runs.append({"manifest": json.loads(manifest.read_text()), "not_counted": skip.read_text().strip() if skip.exists() else "",
                      "rows": [json.loads(line) for line in rows.read_text().splitlines() if line.strip()] if rows.exists() else []})
     return runs
 
 
 def counted(run: dict) -> bool:
     m = run["manifest"]
+    if run.get("not_counted"):
+        return False
     if m["what"] == "turns":
         return m["models"] == "real" and not m.get("limit")
     if m["what"] == "burst":
@@ -109,6 +112,13 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     if not measured_any:
         out += ["Nothing measured yet.", ""]
 
+    want = {"fleet-on": True, "fleet-off": False, "baseline": None}
+    checked = [x for r in used for x in r["rows"] if x["kind"] in ("turn", "burst", "readers") and not x.get("error")]
+    off_arm = [x for x in checked if x.get("fleet_on") is not want[x["arm"]]]
+    builds = sorted({(r["manifest"]["arm"], r["manifest"]["pointe"]["commit"][:8]) for r in used if "pointe" in r["manifest"]})
+    out += ["## The arms, as the daemon states them", "",
+            f"{len(checked) - len(off_arm)} of {len(checked)} rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's"
+            + (f"; **{len(off_arm)} do not**" if off_arm else "") + ". Builds: " + ", ".join(f"{a} at `{c}`" for a, c in builds) + ".", ""]
     out += ["## Every run", "",
             "| Arm | Size | Run | Clear: right | Clear: wrong session | Clear: asked instead | Clear: nothing | Ambiguous: asked | "
             "Ambiguous: sent | Ambiguous: neither | Crashed rows | Needs tokens, median / max | Brain input per turn, median | "
@@ -207,7 +217,7 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         out += ["| Run | Why | Rows |", "|---|---|---|"]
         for r in left:
             m = r["manifest"]
-            why = "stubbed models (a dry run)" if m["models"] == "stub" else f"a smoke run of {m.get('limit')} turns"
+            why = r.get("not_counted") or ("stubbed models (a dry run)" if m["models"] == "stub" else f"a smoke run of {m.get('limit')} turns")
             out.append(f"| {m['run']} | {why} | {len(r['rows'])} |")
         out.append("")
     else:
