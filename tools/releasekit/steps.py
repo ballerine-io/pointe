@@ -371,6 +371,8 @@ def dry_dmg(ctx: Ctx) -> str:
 
 
 def ios(ctx: Ctx) -> str:
+    if without_iphone(ctx):
+        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     if ctx.state.fact("ios_uploaded"):
         return ctx.state.fact("ios_uploaded")
     need(creds.xcode_tools())
@@ -483,8 +485,18 @@ def dry_linux(ctx: Ctx) -> str:
 
 # ---------- publish ----------
 
+MAC_UI_JOBS = ("mac-smoke", "mac-xcuitest")
+
+
+def without_iphone(ctx: Ctx) -> bool:
+    return "iphone" not in (ctx.state.fact("platforms") or "iphone,mac,linux").split(",")
+
+
 def ui(ctx: Ctx) -> str:
-    """The tag's own ui run (no push cancels a tag's). Red on a real bug: the fix is the next patch; the tag stays."""
+    """The tag's own ui run (no push cancels a tag's). Red on a real bug: the fix is the next patch; the tag stays. A
+    release without the iPhone app (--platforms mac,linux) gates on the Mac jobs only."""
+    if without_iphone(ctx):
+        return github.wait_jobs(ctx, ctx.state.fact("version_commit"), "ui", ctx.tag, MAC_UI_JOBS, "the tag's ui run, Mac jobs", 150)
     return github.wait_green(ctx, ctx.state.fact("version_commit"), ("ui",), ctx.tag, "the tag's ui run", 150)
 
 
@@ -672,6 +684,8 @@ def dry_live(ctx: Ctx) -> str:
 
 def testflight(ctx: Ctx) -> str:
     """Apple's processing of the upload, read with the keychain's API key: VALID, and the internal group testing it."""
+    if without_iphone(ctx):
+        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     from . import asc
 
     if not asc.have_key():
@@ -691,6 +705,8 @@ def testflight(ctx: Ctx) -> str:
 
 
 def external(ctx: Ctx) -> str:
+    if without_iphone(ctx):
+        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     from . import asc
 
     state = ""
@@ -715,6 +731,8 @@ def screenshots_age(tree: Path) -> str:
 def app_store(ctx: Ctx) -> str:
     """The App Store needs the owner's yes each time: the What's New text (the changelog line, never "beta"), the build,
     and screenshots from the tag's ui run when the screens changed."""
+    if without_iphone(ctx):
+        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     from . import asc
 
     whats_new = getattr(ctx.args, "summary", None) or "(the version's CHANGELOG line)"
@@ -728,6 +746,8 @@ def app_store(ctx: Ctx) -> str:
 
 
 def iphone(ctx: Ctx) -> str:
+    if without_iphone(ctx):
+        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     probe = creds.iphone()
     if not probe.ok:
         raise Stop(probe.detail, probe.fix, waiting=True)

@@ -91,6 +91,30 @@ def wait_green(ctx, sha: str, workflows: tuple[str, ...], ref: str | None, what:
         time.sleep(60)
 
 
+def jobs(run_id: int) -> dict[str, str]:
+    """Each job of a run and its state: its conclusion, or its status while it runs."""
+    got = gh_json(["run", "view", str(run_id), "--json", "jobs"]) or {}
+    return {j["name"]: (j.get("conclusion") or j.get("status") or "") for j in got.get("jobs", [])}
+
+
+def wait_jobs(ctx, sha: str, workflow: str, ref: str, names: tuple[str, ...], what: str, minutes: float) -> str:
+    """Like wait_green, for some jobs of one workflow's run: the others may fail (a platform left out of the release)."""
+    end = time.monotonic() + minutes * 60
+    while True:
+        state, run = commit_state(sha, (workflow,), ref)[workflow]
+        got = jobs(run["databaseId"]) if run else {}
+        red = {n: got[n] for n in names if got.get(n) in ("failure", "cancelled", "timed_out")}
+        if red:
+            raise Fail(f"{what}: " + ", ".join(f"{n} {s}" for n, s in red.items()) + f" ({run['url']})")
+        if all(got.get(n) == "success" for n in names):
+            others = {n: s for n, s in got.items() if n not in names}
+            return f"{what}: " + ", ".join(f"{n} green" for n in names) + (f" (not gating: {others})" if others else "")
+        if getattr(ctx.args, "no_wait", False) or time.monotonic() > end:
+            raise Stop(f"{what}: " + ", ".join(f"{n} {got.get(n, 'not started')}" for n in names), "tools/release resume (it waits again)", waiting=True)
+        ctx.say(f"    waiting for {', '.join(n for n in names if got.get(n) != 'success')} ({what})")
+        time.sleep(60)
+
+
 def release(tag: str) -> dict | None:
     return gh_json(["release", "view", tag, "--json", "tagName,isPrerelease,isDraft,assets,url,publishedAt,body,targetCommitish"])
 

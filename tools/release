@@ -9,7 +9,8 @@
 
 Options for cut and resume: --notes FILE (the release notes; default: the draft, which must be rewritten before the release
 is promoted), --no-wait (stop instead of waiting for CI), --site-approved (the owner has seen the site preview), --adopt
-(take over a tag this clone did not make, after checking it is yours), --suite-from-ci (when the Mac is too loaded for
+(take over a tag this clone did not make, after checking it is yours), --platforms mac,linux (leave the iPhone app out:
+no upload, and the tag's ui run gates on its Mac jobs only), --suite-from-ci (when the Mac is too loaded for
 the local suite: CI's full suite on the same commit stands in, and the report says the Mac-only tests did not run).
 
 Idempotent: each step's outcome is kept in a state file per version in the clone's git folder (pointe-release/<version>/),
@@ -52,6 +53,12 @@ def context(version: str, dry: bool, args) -> Ctx:
 
 def run(ctx: Ctx) -> int:
     os.environ["POINTE_RELEASE_VERSION"] = ctx.version
+    given = getattr(ctx.args, "platforms", None)
+    if given:
+        wanted = {p.strip() for p in given.split(",") if p.strip()}
+        if not wanted <= {"iphone", "mac", "linux"} or "linux" not in wanted:
+            raise Fail("--platforms takes iphone, mac and linux (linux, the tarball, is always in a release)")
+        ctx.state.set(platforms=",".join(sorted(wanted)))
     with Lock(HOME / "lock"):
         ctx.state.set(version=ctx.version, dry_run=ctx.dry_run, started=ctx.state.fact("started") or core.now())
         ctx.say(f"Pointe {ctx.version}: {'dry run (nothing is published)' if ctx.dry_run else 'release'}; state {ctx.state.path}")
@@ -241,6 +248,7 @@ def main(argv: list[str]) -> int:
         c.add_argument("--site-approved", action="store_true")
         c.add_argument("--adopt", action="store_true")
         c.add_argument("--suite-from-ci", action="store_true")
+        c.add_argument("--platforms", help="the platforms this release ships, of iphone,mac,linux (default all); kept for resume")
     st = sub.add_parser("status")
     st.add_argument("version", nargs="?")
     args = p.parse_args(argv)
