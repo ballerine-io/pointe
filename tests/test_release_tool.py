@@ -232,3 +232,11 @@ def test_an_openssl_der_signature_becomes_the_64_byte_jwt_form():
     r, s = b"\x00" + b"\x81" * 32, b"\x01" * 31  # r with DER's sign byte, s one byte short
     der = b"\x30" + bytes([4 + len(r) + len(s)]) + b"\x02" + bytes([len(r)]) + r + b"\x02" + bytes([len(s)]) + s
     assert asc._raw_signature(der) == b"\x81" * 32 + b"\x00" + b"\x01" * 31
+
+
+def test_a_network_drop_is_a_wait_not_a_defect():
+    """A fetch that cannot reach github.com stopped 0.10.0's push as "failed"; resume is the answer, not a fix."""
+    with pytest.raises(Stop, match="network dropped"):
+        core.sh(["sh", "-c", "echo \"fatal: unable to access: Failed to connect to github.com port 443\" >&2; exit 128"])
+    with pytest.raises(Fail):
+        core.sh(["sh", "-c", "exit 3"])

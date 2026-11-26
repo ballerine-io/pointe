@@ -12,6 +12,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -83,9 +84,16 @@ def sh(cmd: list[str], cwd: Path | None = None, env: dict | None = None, check: 
         except FileNotFoundError:
             out = subprocess.CompletedProcess(cmd, 127, "", f"{cmd[0]}: not found")
     LOG.write(f"  exit {out.returncode}\n" + "".join(f"  | {line}\n" for line in (out.stdout + out.stderr).splitlines()[-40:]))
+    if check and out.returncode != 0 and NETWORK.search(out.stdout + out.stderr):
+        raise Stop(f"the network dropped during `{' '.join(cmd[:3])}`: {tail(out.stderr or out.stdout, 2)}",
+                   "When the network is back: tools/release resume", waiting=True)
     if check and out.returncode != 0:
         raise Fail(f"`{' '.join(cmd)}` failed (exit {out.returncode}): {tail(out.stdout + out.stderr)}")
     return out
+
+
+NETWORK = re.compile(r"Could not resolve host|Failed to connect to|Couldn't connect to server|Connection timed out|"
+                     r"Network is unreachable|Temporary failure in name resolution|error connecting to api\.github\.com", re.I)
 
 
 def tail(text: str, lines: int = 6) -> str:
