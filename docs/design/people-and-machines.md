@@ -204,13 +204,20 @@ session the person marked ("keep tide quiet", lifted by "stop keeping tide quiet
 twenty most recent on its machine. Recent is by a session's activity when it joined and by the person's words since,
 not by its own work.
 
-**The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 2.6: the
-brain's vendor counted this block at 2.82 to 3.1 characters a token in the fleet benchmark, so 2.6 keeps its own count
-under the budget with 8% to spare. Twelve sessions
-or fewer: a line each, as before. More: a full line for each session in focus, then one line per machine ("avi-box
-(Linux, 23 ms): 18 more, 15 working, 3 idle, none need you"), and "And 4 more need you: a, b, c, d" for sessions that
-wait on the user and found no place in focus. A machine's latency is told again only when it moved a lot, so the
-block is the same text from turn to turn when nothing changed.
+**The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 2.6: the brain's
+vendor counted this block at 2.82 to 3.1 characters a token in the fleet benchmark, so 2.6 keeps its own count under
+the budget with 8% to spare. The budget is a ceiling: a fleet where little needs the user gets a few hundred tokens.
+Twelve sessions or fewer: a line each, as before. More: a full line for the active session and for each session in
+focus that needs the user; a short line for each of the four sessions last sent to that have not reported, and the
+names of the others; one line per machine for the rest ("avi-box (Linux, 23 ms): 18 more, 15 working, none need
+you"); and "And 4 more need you: a, b, c, d" for sessions that wait on the user and found no place in focus.
+
+The block is appended to the brain's history each time it changes, so its size and how often it changes are what the
+brain reads on every later step. A session that is only named or talked with has no line (it changed the block on 49
+of 59 turns of the benchmark). A machine's latency is told again only when it moved a lot. What never changes is said
+once, in the brain's instructions (`scale.RULES`), and the per-machine "Machines:" line is left out on a big fleet. The
+opening of a call counts the other sessions and does not list them. `tests/test_fleet_dataset_routing.py` holds the
+brain's assembled input at 5 machines of 20 within a tenth of one machine of 4 over a scripted call.
 
 **Routing.** With more than eight sessions the classifier sees eight at most: the thread, the active session, the
 best matches of the request's words against each session's name, goal, title, keywords and file names, then the

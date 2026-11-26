@@ -14,6 +14,7 @@ import json
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -72,8 +73,8 @@ def made(hosts: int, per: int) -> tuple[dict, list[dict]]:
             sessions.append({"id": f"{m:02d}{i:02d}-{name}", "machine": machine, "name": name, "shared": name in SHARED,
                              "topic": next(topics), "twin": False})
     plain = [s for s in sessions if not s["shared"]]
-    for a, b in ((plain[3], plain[per + 5]), (plain[7], plain[2 * per + 9])):  # two topics that two sessions share
-        b["topic"], a["twin"], b["twin"] = a["topic"], True, True
+    for a, b in ((3, per + 5), (7, 2 * per + 9)) if hosts > 2 else ():  # two topics that two sessions share
+        plain[b]["topic"], plain[a]["twin"], plain[b]["twin"] = plain[a]["topic"], True, True
     for s in sessions:
         s["goal"] = f"Find why the {s['topic']} drops records under load and fix it."
         s["files"] = [s["topic"].replace(" ", "_") + ".py", "test_" + s["topic"].replace(" ", "_") + ".py", "README.md"]
@@ -102,7 +103,7 @@ def made(hosts: int, per: int) -> tuple[dict, list[dict]]:
     for text in ("Tell nimbus to {}.", "Ask drizzle to {}.", "Ask the session working on the passport scanner to {}.",
                  "Tell the session working on the elevator firmware to {}."):
         add("ambiguous_none", text.format(next(task)), {"action": "ask", "fits": []})
-    return {"machines": machines, "voice_machine": machines[0], "shared_names": {n: [machines[i] for i in on] for n, on in SHARED.items()},
+    return {"machines": machines, "voice_machine": machines[0], "shared_names": {n: [machines[i] for i in on if i < hosts] for n, on in SHARED.items()},
             "sessions": sessions}, turns
 
 
@@ -143,6 +144,7 @@ class Rig:
         d.REGISTRY.active_id = None
         monkeypatch.setenv("POINTE_FLEET", "on")
         monkeypatch.setattr(d, "_add_worker", lambda s: asyncio.sleep(0))
+        monkeypatch.setattr(d, "_refresh_brief", lambda s: asyncio.sleep(0))  # the reading model is never called here
         files: dict[str, list[str]] = {}
         monkeypatch.setattr(d, "_git_files", lambda cwd, timeout: "\0".join(files.get(cwd, [])))
         node.machines.clear()
@@ -382,3 +384,111 @@ def test_list_sessions_rows_are_slim_for_sessions_out_of_focus(rig):
     p = Params()
     asyncio.run(d.list_sessions(p))
     assert "latest" in p.results[0]["sessions"][0]  # the active session, in focus: the whole row
+
+
+# ---------- the brain's input does not grow with the fleet ----------
+
+def _a_call(d, monkeypatch, rig, turns: int = 30) -> list[int]:  # noqa: F811
+    """A call of `turns` scripted turns of the benchmark's kinds, with a stub model that sends what is asked and then
+    says a line. Returns the size of the brain's whole input at each turn's first step, in tokens by the budget's own
+    estimate (characters over 2.6): the prompt, the tools and the history as assembled."""
+    from pipecat.frames.frames import InputTextRawFrame
+    from pipecat.processors.frame_processor import FrameDirection
+
+    monkeypatch.setattr(d, "FRONT", "brain")
+    monkeypatch.setattr(d, "FIRST_HELLO", Path("/dev/null"))
+    monkeypatch.setattr(d, "_may_fast_send", lambda: False)  # every turn goes through the brain, as in the paid runs
+    sizes: list[list[int]] = []
+
+    async def step(choice, instructions, messages, decls, heard=None):
+        chars = len(instructions) + len(json.dumps(decls, ensure_ascii=False)) + sum(map(d.Brain._chars, messages))
+        sizes[-1].append(int(chars / scale.CHARS_PER_TOKEN))
+        last = messages[-1]
+        asked = next((m["content"] for m in reversed(messages) if m["role"] == "user" and not m["content"].startswith("[")), "")
+        if last["role"] != "tool" and d._FAST_SEND.match(asked) and len(sizes[-1]) == 1:
+            calls = [{"id": f"c{len(sizes)}", "name": "send_to_claude_code", "args": {"message": asked.split(" to ", 1)[-1]}}]
+        else:
+            calls = [{"id": f"s{len(sizes)}-{len(sizes[-1])}", "name": "speak", "args": {"text": "Done."}}]
+        return SimpleNamespace(calls=calls, said="", raw=None, vendor="fake", usage={})
+
+    monkeypatch.setattr(d.vendors, "step", step)
+
+    async def delivered(target, message, anyway=False):
+        return True
+    monkeypatch.setattr(d, "deliver", delivered)
+    d.state = d.State()
+    d.state.conn = fake_conn()
+    d.state.conn.injector.queued_reports = lambda: {}
+    front = d.BrainFront(d._opening_context())
+    d.state.front = front
+    tasks: list = []
+
+    async def push(frame, direction=FrameDirection.DOWNSTREAM):
+        pass
+    front.push_frame = push
+    front.create_task = lambda coro, name=None: tasks.append(asyncio.ensure_future(coro))
+    kinds = ("clear_name", "clear_machine_name", "clear_description", "ambiguous_name", "ambiguous_none", "needs_me")
+    by_kind = {k: [t for t in rig.turns if t["kind"] == k] for k in kinds}
+
+    async def run():
+        for i in range(turns):
+            pool = by_kind[kinds[i % len(kinds)]] or by_kind["clear_name"]
+            turn = pool[(i // len(kinds)) % len(pool)] if kinds[i % len(kinds)] != "needs_me" else {"text": "What needs me?", "expect": {}}
+            rig.answer = rig.by_id.get(turn["expect"].get("session"))  # the classifier, when asked: the labelled session
+            open_gates(d, monkeypatch, turn["text"])
+            sizes.append([])
+            await front.process_frame(InputTextRawFrame(text=turn["text"]), FrameDirection.DOWNSTREAM)
+            while tasks:
+                await asyncio.gather(tasks.pop(0))
+    asyncio.run(run())
+    d.state.front = None
+    return [s[0] for s in sizes if s]
+
+
+def test_the_brains_input_at_5x20_is_within_a_tenth_of_1x4(d, node, monkeypatch):  # noqa: F811
+    """The paid rows: 31,253 tokens a turn at 5x20 against 25,941 at 1x4 (+20%), and a first step that carried 2,300
+    tokens the cache had not seen against 113. Three things grew with the fleet: the opening listed every session
+    (15,700 characters against 950), the block had a line for every session named lately so it changed on 49 of 59
+    turns, and each copy of it was 4,700 characters against 1,900."""
+    import statistics
+
+    small = _a_call(d, monkeypatch, Rig(d, node, monkeypatch, "1x4"))
+    big = _a_call(d, monkeypatch, Rig(d, node, monkeypatch, "5x20"))
+    assert len(small) == len(big) == 30
+    print(f"brain input, first step, tokens at 2.6 characters: 1x4 median {statistics.median(small)}, first {small[0]}, "
+          f"last {small[-1]}; 5x20 median {statistics.median(big)}, first {big[0]}, last {big[-1]}")
+    assert statistics.median(big) <= 1.10 * statistics.median(small)
+    assert big[0] <= 1.10 * small[0] and big[-1] <= 1.10 * small[-1]  # at the call's start and after thirty turns
+
+
+def test_the_block_of_a_big_fleet_does_not_change_when_a_session_is_only_named(rig):
+    d = rig.d
+    before = d._needs_now()
+    for s in list(rig.by_id.values())[30:40]:
+        d._fleet_touch(s)  # named, asked about: in focus for the reader and the routing
+    d.state.thread = (list(rig.by_id.values())[50].id, time.time())
+    assert d._fleet_tiers()[list(rig.by_id.values())[35].id] == scale.FOCUS
+    assert d._needs_now() == before and scale.tokens(before) < 500  # the budget is a ceiling: little needs the user here
+
+
+def test_sessions_sent_to_have_a_short_line_each_and_past_four_only_their_names(rig):
+    d = rig.d
+    sent = list(rig.by_id.values())[20:27]
+    for n, s in enumerate(sent):
+        d.state.unconfirmed[s.id] = [f"Rebase onto main and run the tests, round {n}."]
+        s.last_delegation_at = 1000.0 + n
+    block = d._needs_now()
+    newest = sent[-1]
+    assert (f"- {newest.name} (on {newest.machine}, not working). Sent to it, with no report back yet: Rebase onto main "
+            f"and run the tests, round 6.") in block
+    assert f"- And 3 more sent to, with no report back yet: {sent[2].name}, {sent[1].name}, {sent[0].name}." in block
+    assert block.count("Sent to it, with no report back yet") == 4 and scale.tokens(block) < 800
+    assert f"- {sent[0].machine} (Linux, 20 ms): 13 more, 0 working, none need you" in block  # the 7 are not counted twice
+
+
+def test_the_opening_of_a_big_fleet_counts_the_other_sessions_and_the_machines_line_is_only_the_rule(rig):
+    d = rig.d
+    opening = json.dumps(d._opening_context())
+    assert "99 other sessions are on the voice" in opening and len(opening) < 1500
+    assert d._machines_line() is None and "avi-box (Linux, 20 ms)" in d._needs_now()
+    assert "only when it tells two sessions apart" in scale.RULES and "no look-up first" in scale.RULES  # said once

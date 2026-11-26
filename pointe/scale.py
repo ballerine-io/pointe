@@ -117,11 +117,10 @@ class MachineLine:
     more: bool  # it also has sessions in focus, listed above
 
     def text(self) -> str:
-        idle = self.total - self.working
         need = "none need you" if not self.needs else f"{self.needs} need{'s' if self.needs == 1 else ''} you"
         what = f"{self.total} more" if self.more else f"{self.total} session{'' if self.total == 1 else 's'}"
         where = f"{clip(self.name, 40)} ({self.label})" if self.label else clip(self.name, 40)
-        return f"- {where}: {what}, {self.working} working, {idle} idle, {need}"
+        return f"- {where}: {what}, {self.working} working, {need}"
 
 
 def machine_lines(rows: list[Row], tier: dict[str, str], labels: dict[str, tuple[str, str]]) -> list[MachineLine]:
@@ -171,17 +170,42 @@ def _need_line(names: list[str], chars: int) -> str:
     return f"And {len(names)} more need{'s' if len(names) == 1 else ''} you: {', '.join(said)}{tail}."
 
 
-REST_HEAD = ("The other sessions, by machine. None of them is listed above; list_sessions with a machine, a state or a "
-             "query reads any of them. To send to one, call send_to_claude_code with the user's words and no look-up "
-             "first: the daemon finds the session by its name, its machine or what it works on, and asks when it cannot:")
+REST_HEAD = "The other sessions, by machine:"
+# Said once, in the brain's instructions (a call that starts with the rules on): in the block it was repeated in every
+# copy the history keeps, and the block is appended each time it changes.
+RULES = """
+
+Many sessions: the [right now] message lists in full only the sessions that need the user and the active one, a short \
+line for each one you sent to that has not reported, and one line per machine for the rest. list_sessions reads any of \
+the rest, by machine, state or query. To send to a session that is not listed, call send_to_claude_code with the user's \
+words and no look-up first: the daemon finds the session by its name, its machine or what it works on, and asks when it \
+cannot. Say a session's machine only when it tells two sessions apart, when you move to a session on another machine, \
+and when asked where one runs; machine names come from [right now] and list_sessions, never from memory. An offline \
+session cannot be sent to or approved: say its machine is offline."""
+SENT_SHOWN = 4  # sessions sent to with no report yet that have their own line; the others are named in one
+SENT_CHARS = 140
 
 
-def fit(head: str, lines: list[str], machines: list[MachineLine] = (), needing: list[str] = (),
+def sent_lines(items: list[tuple[str, str, bool, list[str]]], shown: int = SENT_SHOWN) -> list[str]:
+    """A short line for each session that was sent to and has not reported, newest first: (name, where, working,
+    what was sent). It needs nothing from the user, so its notes are left out. Past `shown`, the names in one line."""
+    out = [f"- {clip(name, 40)} ({where + ', ' if where else ''}{'working' if working else 'not working'}). Sent to it, with no "
+           f"report back yet: {clip('; '.join(sent), SENT_CHARS)}" for name, where, working, sent in items[:shown]]
+    more = [clip(name, 40) for name, *_ in items[shown:]]
+    if more:
+        left = len(more) - 8
+        out.append(f"- And {len(more)} more sent to, with no report back yet: {', '.join(more[:8])}"
+                   + (f", and {left} other{'' if left == 1 else 's'}" if left > 0 else "") + ".")
+    return out
+
+
+def fit(head: str, lines: list[str], machines: list[MachineLine] = (), needing: list[str] = (), sent: list[str] = (),
         budget: int = BUDGET_TOKENS) -> str:
-    """The whole block, within the budget whatever the fleet's size. Nothing is cut while it fits. Over it: the
-    machines past the first few become one count, then each session's line is shortened, the longest first."""
+    """The whole block, within the budget whatever the fleet's size. The budget is a ceiling: a fleet where little
+    needs the user gets a block of a few hundred tokens. Nothing is cut while it fits. Over it: the machines past the
+    first few become one count, then each session's line is shortened, the longest first."""
     room = int(budget * CHARS_PER_TOKEN)
-    tail: list[str] = []
+    tail: list[str] = list(sent)
     if needing:
         tail.append(_need_line(list(needing), room // 8))
     if machines:

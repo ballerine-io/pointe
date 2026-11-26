@@ -1394,6 +1394,8 @@ def _machines_line() -> str | None:
     """For the brain, when sessions run on more than one machine: where, and how to speak of it."""
     if not _multi_machine():
         return None
+    if scale.enabled() and len(REGISTRY.sessions) > scale.FOCUS_MAX:
+        return None  # a big fleet: each machine has its line in "what needs me" (_fleet_split), and scale.RULES the rest
     on = [s.machine for s in REGISTRY.sessions.values()]
     parts = [f"{_here()} (this Mac, {_count(on.count(''))})"] if "" in on else []
     known = {m.name: m for m in paired_machines()}
@@ -1638,7 +1640,7 @@ def make_brain(speak, filler=None) -> Brain:
         logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in"
                     + (f", {u['cached']} of them cached" if u.get("cached") else ""))
 
-    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES, TOOLS.standard_tools, _brain_context, speak, filler,
+    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES + (scale.RULES if scale.enabled() else ""), TOOLS.standard_tools, _brain_context, speak, filler,
                   _open_items, lambda: bool(state.unconfirmed), usage, fallback=vendors.BRAIN_FALLBACK.get(setup().brain),
                   may_stay_silent=lambda: ack_only(state.last_utterance), language_problem=_language_problem)
     brain.translate = _translate
@@ -6574,6 +6576,8 @@ def _fleet_label(machine: str) -> tuple[str, str]:
     if m is None or not m.online:
         return machine, _since(m.since if m else None)
     facts = [_OS_NAMES.get(m.os, m.os)]
+    if m.owner:  # somebody invited the user to it (as _machines_line says on a small fleet)
+        facts.insert(0, f"{m.owner}'s machine" + (", the user may only watch it" if m.grant == "watch" else ""))
     if m.rtt_ms is not None:
         shown = state.fleet_rtt.get(machine)
         if shown is None or abs(m.rtt_ms - shown) > max(20, shown // 2):
@@ -6582,18 +6586,30 @@ def _fleet_label(machine: str) -> tuple[str, str]:
     return machine, ", ".join(f for f in facts if f)
 
 
-def _fleet_split(pool: list[Session]) -> tuple[list[Session], list[scale.MachineLine], list[str]]:
-    """The sessions whose full lines the brain is told, then one line per machine for the rest, and the names of those
-    that need the user and found no place in focus. Twelve sessions or fewer: each has its line, as before, and the
-    tiers decide only what is read and said. A place in the list never depends on which session moved last, or the
-    block would change on every turn."""
+def _fleet_split(pool: list[Session]) -> tuple[list[Session], list[scale.MachineLine], list[str], list[str]]:
+    """The sessions whose full lines the brain is told; one line per machine for the rest; the names of those that
+    need the user and found no place in focus; and a short line for each session sent to with no report yet. Twelve
+    sessions or fewer: each has its line, as before, and the tiers decide only what is read and said.
+
+    A full line is for the active session and for a session in focus that needs the user. A session in focus only
+    because it was named, or is the one talked with, has no line: the block is appended to the brain's history each
+    time it changes, and a line that came and went with every name said made a new 1,600-token copy on almost every
+    turn (49 of 59 turns in the fleet benchmark, against a few hundred tokens a turn on a small fleet)."""
     if len(REGISTRY.sessions) <= scale.FOCUS_MAX:
-        return pool, [], []
+        return pool, [], [], []
     rows = _fleet_rows()
     tier = scale.tiers(rows, time.time())
+    by_id = {r.id: r for r in rows}
+    full = [s for s in pool if tier[s.id] == scale.FOCUS and (by_id[s.id].active or by_id[s.id].needs)]
+    several = _multi_machine()
+    waited = sorted((s for s in pool if tier[s.id] == scale.FOCUS and s not in full and by_id[s.id].awaiting),
+                    key=lambda s: (-s.last_delegation_at, s.name))
+    sent = scale.sent_lines([(s.name, f"on {_machine_of(s)}" if several else "", _working(s),
+                              list(state.unconfirmed.get(s.id) or ["a request"])) for s in waited])
+    listed = {s.id for s in full} | {s.id for s in waited}
+    shown = {sid: scale.FOCUS if sid in listed else scale.BACKGROUND for sid in tier}
     labels = {m: _fleet_label(m) for m in {r.machine for r in rows}}
-    return ([s for s in pool if tier[s.id] == scale.FOCUS], scale.machine_lines(rows, tier, labels),
-            scale.more_need(rows, tier))
+    return full, scale.machine_lines(rows, shown, labels), scale.more_need(rows, tier), sent
 
 
 def fleet_needs() -> dict:
@@ -6846,7 +6862,7 @@ def _fleet_listing(args: dict) -> dict:
     """Beside list_sessions' rows: how many more matched, and one line per machine for the sessions out of focus."""
     if not scale.enabled():
         return {}
-    _, machines, _ = _fleet_split(list(REGISTRY.sessions.values()))
+    _, machines, *_ = _fleet_split(list(REGISTRY.sessions.values()))
     more = _fleet_select(args)[1]
     return {"more": more, "machines": [m.text()[2:] for m in machines],
             **({"note": f"{more} more match: narrow with machine, owner, state or query."} if more else {})}
@@ -12145,6 +12161,10 @@ def _opening_context() -> list[dict]:
     others = [f"{s.name} ({(_brief_of(s) or {}).get('state') or 'no notes yet'})"
               for s in REGISTRY.sessions.values() if s is not session and REGISTRY.mode != "session"]
     extra = f" Other sessions: {'; '.join(others)}." if others else ""
+    if others and scale.enabled() and len(REGISTRY.sessions) > scale.FOCUS_MAX:
+        # A big fleet: a line per session here was 5,000 tokens in every step until the first trim. The count; what
+        # needs the user and the machines are in the [right now] block, and list_sessions has the rest.
+        extra = f" {len(others)} other sessions are on the voice: what each needs is told before your reply."
     mode = (f"Routing mode: session mode, pinned to {session.name}." if REGISTRY.mode == "session"
             else "Routing mode: orchestrator.")  # stated, never guessed from history
     unread = "" if notes else (" You have only seen its first and latest lines: until notes arrive say you are still catching "

@@ -201,11 +201,11 @@ def test_the_budget_holds_at_the_plans_sizes_and_the_block_grows_by_machines_not
     assert all(sizes[k] <= 1800 for k in ("1x4", "5x20", "10x30", "30x40"))
     assert sizes["30x40 off"] > 20 * sizes["30x40"]  # without the tiers it is a line per session
     lines = d._needs_now().split("\n")
-    assert "- box-01 (Linux, 23 ms): 40 sessions, 0 working, 40 idle, none need you" in lines
-    assert lines[-1] == "- and 9 more machines: 359 sessions, 0 working, none need you"  # past a third of the budget: a count
+    assert "- box-01 (Linux, 23 ms): 40 sessions, 0 working, none need you" in lines
+    assert lines[-1] == "- and 6 more machines: 239 sessions, 0 working, none need you"  # past a third of the budget: a count
     d.REGISTRY.sessions.clear()
     build(d, node, 2, 7)
-    assert "- box-00 (Linux, 23 ms): 6 more, 0 working, 6 idle, none need you" in d._needs_now()  # the active one is above"
+    assert "- box-00 (Linux, 23 ms): 6 more, 0 working, none need you" in d._needs_now()  # the active one is above"
 
 
 def test_a_machines_latency_does_not_change_the_block_turn_to_turn(d, node, fleet_on):
