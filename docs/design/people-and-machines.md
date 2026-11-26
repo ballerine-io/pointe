@@ -191,6 +191,49 @@ person's key is deleted from `people.json`, a live link is closed with 4401, and
 again. The private-sessions list stays. They keep the machines this voice dials
 ([SECURITY.md](../../SECURITY.md#people-on-a-machine)).
 
+## A big fleet
+
+The rules are in `pointe/scale.py` and the tests in `tests/test_fleet_scale.py`. `POINTE_FLEET=off` turns all of them
+off, so one build can be measured with and without them.
+
+**Tiers.** Every session is in one tier at a time. In focus: the active session, the thread, sessions that wait on the
+user, urgent ones, sessions sent to with no report yet, and sessions named or asked about in the last ten minutes;
+twelve at most. An event puts a session in focus, never a model's choice. Background: the rest. Quiet: a background
+session the person marked ("keep tide quiet", lifted by "stop keeping tide quiet"), and by default every one past the
+twenty most recent on its machine. Recent is by a session's activity when it joined and by the person's words since,
+not by its own work.
+
+**The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 3.5. Twelve sessions
+or fewer: a line each, as before. More: a full line for each session in focus, then one line per machine ("avi-box
+(Linux, 23 ms): 18 more, 15 working, 3 idle, none need you"), and "And 4 more need you: a, b, c, d" for sessions that
+wait on the user and found no place in focus. A machine's latency is told again only when it moved a lot, so the
+block is the same text from turn to turn when nothing changed.
+
+**Routing.** With more than eight sessions the classifier sees eight at most: the thread, the active session, the
+best matches of the request's words against each session's name, goal, title, keywords and file names, then the
+sessions in focus. No match and no thread: Pointe asks. A tie of more than eight (a machine named, with many sessions
+on it) is narrowed the same way. The same name on several machines is a tie unless the words name the machine; a
+session of the user's own on this machine keeps the plain name.
+
+**"Which session?"** Three options at most, grouped by machine when they span machines. More: the machine first
+("Which machine? shop is on avi-box, kestrel and 8 more."), and the machine's name alone answers it.
+
+**`list_sessions`** takes `machine`, `owner`, `state` and `query`, returns twenty rows at most, a count of the rest in
+`more`, and the per-machine lines. "What's going on everywhere" with more than five sessions is said by the daemon
+from its counts, machine by machine.
+
+**Quiet sessions.** A quiet session's finished turn is not read by the reading model. It is read when its last words
+end in a question, and its notes are read when it is next named, asked about or sent to.
+
+**Speech.** Approvals first, then sessions that need the user, then the thread's reports, then the rest. More than two
+background reports waiting become one line per machine ("Three on avi-box finished: tide, harbor and ferry; ferry has
+a question."). Past four background lines in a minute the rest are held for the screen and for "anything from the
+others?". A report with a question for the user is never held.
+
+**For the benchmark.** `GET /voice/context` has `fleet`: the block and its token estimate, the count of sessions per
+tier, the candidates of the last routing decision with how each was picked, and counters of reader calls made and
+skipped, report lines spoken and reports held. The journal has a `fleet:` line for each of these events.
+
 ## Not in phase 1
 
 A person approving a prompt or starting a session on the machine (phase 3). The context budget, tiers and quiet

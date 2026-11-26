@@ -104,6 +104,7 @@ class Session:
     urgency: str = "normal"
     typed_approval: str = ""
     on_hold: bool = False  # the user said to hold this session: a broadcast skips it, and only its name reaches it
+    quiet: bool = False  # the user said to keep it quiet (scale.py): no reader call until it needs them or is named
     noise: int = 0  # harness messages kept out of the feed: "how much was junk" has an answer
     harness: str = "claude-code"  # which coding agent runs it: harnesses/ (claude-code, opencode)
     machine: str = ""  # the node it runs on; "" is this machine. Its adapter is harnesses.of(session), never get()
@@ -126,7 +127,7 @@ class Session:
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
              "permission_id", "permission_text", "permission_since", "permission_cut", "permission_full", "permission_spoken",
              "permission_note", "permission_truncated",
-             "harness", "home", "harness_data", "machine", "tone", "owner")  # Claude Code still waits after a restart
+             "harness", "home", "harness_data", "machine", "tone", "owner", "quiet")  # Claude Code still waits after a restart
 MAX_DEPARTED = 20
 
 
