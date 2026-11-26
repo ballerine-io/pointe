@@ -10,7 +10,8 @@ router (Soniox ears, one Sonnet call per utterance, Pointe's own voice), so the 
 - `voices.toml`: four native Kokoro voices, four accented ones (a Kokoro voice of another language reading English), and
   an Israeli voice for Hebrew, mixed speech and accented English (OpenAI gpt-4o-mini-tts).
 - `dialogues/play.py`: one dialogue on one arm, the scripted user (no model plays the user), and the record.
-- `dialogues/score.py`: every measure from the record; `dialogues/judge.py`: a blind Fable naturalness score.
+- `dialogues/score.py`: every measure from the record; `dialogues/judge.py`: a blind, model-judged naturalness score (Fable unless
+  `DLG_JUDGE_MODEL` or `--judge` names another model; never people's ratings).
 - `adapters/`: Pointe on an isolated daemon (own state under /tmp, ports 9800-9899) and the plain router.
 
 ```

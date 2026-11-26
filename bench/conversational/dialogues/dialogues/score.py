@@ -363,7 +363,8 @@ def table(results: dict) -> str:
     labels = list(results)
     out = ["| measure | " + " | ".join(labels) + " |", "|---|" + "---|" * len(labels)]
     for k in keys:
-        out.append(f"| {k} | " + " | ".join(fmt(results[l].get(k)) for l in labels) + " |")
+        name = "naturalness (model-judged)" if k == "naturalness" else k  # a model's reading, not people's ratings
+        out.append(f"| {name} | " + " | ".join(fmt(results[l].get(k)) for l in labels) + " |")
     for k in results[labels[0]]["dimensions"]:
         out.append(f"| **{k}** (0-100) | " + " | ".join(fmt(results[l]["dimensions"].get(k)) for l in labels) + " |")
     out.append("| **composite** | " + " | ".join(fmt(results[l]["composite"]) for l in labels) + " |")

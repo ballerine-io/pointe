@@ -49,7 +49,7 @@ once. No vendor publishes a stop time in ms; 0.6 s is ours, the 0.5 s minimum pl
 |---|---|---|---|
 | Words over need | words spoken in a turn minus its need (answer 30, send acknowledgement 8, nothing 3, question 20), median over turns that speak | <= 0 | 40 |
 | Needless confirmations per 10 turns | a spoken question on a turn whose words were clear (send, answer, plain yes) | <= 0.5 | 4 |
-| Naturalness (blind judge) | a Fable judge reads each dialogue's timed transcript, arms shuffled and unnamed, and scores 1-5 on the rubric in `judge.py` | >= 4.3 | 2.5 |
+| Naturalness (model-judged, blind) | a model judge (Fable by default, or the one `DLG_JUDGE_MODEL` or `--judge` names) reads each dialogue's timed transcript, arms shuffled and unnamed, and scores 1-5 on the rubric in `judge.py` | >= 4.3 | 2.5 |
 
 ## 5. Recovery
 

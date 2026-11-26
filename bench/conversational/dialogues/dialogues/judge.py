@@ -1,4 +1,4 @@
-"""The naturalness judge: Fable reads one dialogue run at a time as a timed transcript (what the user said, what the
+"""The naturalness judge, a model, not people: Fable (or the model DLG_JUDGE_MODEL or --judge names) reads one dialogue run at a time as a timed transcript (what the user said, what the
 voice said, when, and where the user's words were delivered), with the arm's name removed, and scores it 1 to 5 on the
 rubric below. Runs are judged one by one in a shuffled order, so a score is absolute, not a ranking against the arm
 beside it. Spend goes into the suite's ledger.
