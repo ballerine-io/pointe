@@ -71,6 +71,30 @@ def developer_id() -> Probe:
                  f"The owner: Xcode, Settings, Accounts, team {TEAM}, Manage Certificates, +, Developer ID Application")
 
 
+PROFILES = {"io.ballerine.pointe": os.environ.get("POINTE_IOS_PROFILE", "Pointe App Store"),
+            "io.ballerine.pointe.widget": os.environ.get("POINTE_WIDGET_PROFILE", "Pointe Widget App Store")}
+
+
+def apple_distribution() -> Probe:
+    """The iPhone export's manual signing: the Apple Distribution identity and the two App Store profiles by name."""
+    out = sh(["/usr/bin/security", "find-identity", "-v", "-p", "codesigning"], check=False, timeout=30).stdout
+    identity = any("Apple Distribution" in line and f"({TEAM})" in line for line in out.splitlines())
+    folder = Path.home() / "Library" / "MobileDevice" / "Provisioning Profiles"
+    names = set()
+    for f in folder.glob("*.mobileprovision") if folder.is_dir() else []:
+        decoded = sh(["/usr/bin/security", "cms", "-D", "-i", str(f)], check=False, timeout=30).stdout
+        try:
+            names.add(plistlib.loads(decoded.encode()).get("Name"))
+        except Exception:  # noqa: BLE001: an unreadable profile is not one of ours
+            continue
+    missing = [n for n in PROFILES.values() if n not in names]
+    ok = identity and not missing
+    return Probe("apple-distribution", ok, "the Apple Distribution identity and both App Store profiles are installed" if ok else
+                 ("no Apple Distribution identity of team " + TEAM if not identity else "") + (f" missing profiles: {missing}" if missing else ""),
+                 'The owner, at developer.apple.com: an "Apple Distribution" certificate in the login keychain, and the App Store '
+                 'profiles "Pointe App Store" and "Pointe Widget App Store" (group.io.ballerine.pointe) installed')
+
+
 def notary_profile() -> Probe:
     """notarytool's saved credentials (made once with store-credentials). Asking Apple for the history proves they work."""
     out = sh(["xcrun", "notarytool", "history", "--keychain-profile", NOTARY_PROFILE], check=False, timeout=90)
@@ -124,8 +148,8 @@ def docker() -> Probe:
 
 
 def all_probes(network: bool = True) -> list[Probe]:
-    found = [gh_signed_in(), xcode_tools(), xcode_account(), keychain_unlocked(), developer_id()]
-    if network and found[3].ok:
+    found = [gh_signed_in(), xcode_tools(), keychain_unlocked(), developer_id(), apple_distribution()]
+    if network and found[2].ok:
         found.append(notary_profile())
     found += [asc_api_key(), docker()]
     if network:

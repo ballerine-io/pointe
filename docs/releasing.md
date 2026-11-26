@@ -93,9 +93,10 @@ The tool asks for each before the step that needs it, and stops there; nothing i
 | Step | Needs | Who, and how | Kept |
 |---|---|---|---|
 | Everything on GitHub | `gh` signed in with write access | `gh auth login` | gh's own store |
-| The Mac app's export and notarization; the iPhone archive and upload | An Apple Account in Xcode for team PP445E78PD (Account Holder or Admin for the Developer ID export; App Manager or more for uploads) | The owner: Xcode, Settings, Accounts, + | Xcode |
-| Signing the disk image | The "Developer ID Application" identity of the team, in the login keychain | The owner, once: Xcode, Settings, Accounts, the team, Manage Certificates, +, Developer ID Application | login keychain |
-| Notarizing the disk image | notarytool profile `pointe-notary` | The owner, once: `xcrun notarytool store-credentials pointe-notary --apple-id <account> --team-id PP445E78PD` (an app-specific password) | login keychain |
+| The Mac app and the disk image: signing | The "Developer ID Application" identity of team PP445E78PD, in the login keychain (manual signing: no Xcode account) | The owner, once: Xcode, Settings, Apple Accounts, the team, Manage Certificates, +, Developer ID Application | login keychain |
+| Notarizing the app and the image | notarytool profile `pointe-notary` | Once: `xcrun notarytool store-credentials pointe-notary` with the App Store Connect API key (`--key/--key-id/--issuer`) or an Apple Account and an app-specific password; it needs an interactive session (the keychain refuses the write otherwise) | login keychain |
+| The iPhone export | The "Apple Distribution" identity of the team, and the App Store profiles "Pointe App Store" (io.ballerine.pointe) and "Pointe Widget App Store" (io.ballerine.pointe.widget), both with group.io.ballerine.pointe (manual signing: no Xcode account) | The owner, once a year as they expire: developer.apple.com, Certificates and Profiles | login keychain, ~/Library/MobileDevice/Provisioning Profiles |
+| The iPhone upload | The App Store Connect API key, handed to altool as a file | **Needs the owner's yes** (`--asc-key-file`): altool reads the key only from a regular file (a pipe and a named pipe are refused), so it goes in a 0600 file in a 0700 folder for the upload and is removed after; the repository's rule is that a secret never goes in a file. Without it the tool stops with the exported `.ipa` and the command | |
 | Every signing step | The login keychain unlocked (a locked one makes codesign and notarytool hang) | The owner unlocks the Mac | |
 | The site | wrangler signed in to Ballerine's Cloudflare account | The owner: `npx -y wrangler@4.166.0 login` | wrangler's own store |
 | A site preview | The owner's look, when a hand-written page changed | The owner opens the preview, then `tools/release resume --site-approved` | |
@@ -103,9 +104,10 @@ The tool asks for each before the step that needs it, and stops there; nothing i
 | The App Store submission | The owner's yes, every time | The owner | |
 | The owner's iPhone | Unlocked, paired with Xcode, on the network or a cable | The owner | |
 
-**When xcodebuild cannot use Xcode's account.** On Xcode 27.2 the account worked in Xcode's own window while
-`xcodebuild -exportArchive` answered "No Accounts", from any Terminal (0.10.1). Then Xcode exports from the archives the
-tool already built: open `apps/macos/build/dmg/Pointe.xcarchive` (Organizer, Distribute App, Direct Distribution) and
+**Why no Xcode account.** On Xcode 27.2 the account worked in Xcode's own window while `xcodebuild -exportArchive`
+answered "No Accounts", from any Terminal (0.10.1). So the exports sign manually with the identities in the keychain
+(above), and Xcode's account is not part of a release (`tools/build_dmg.sh --xcode-account` keeps the old way). If an
+export still cannot be made from the command line, Xcode exports from the archives the tool already built: open `apps/macos/build/dmg/Pointe.xcarchive` (Organizer, Distribute App, Direct Distribution) and
 export the notarized `Pointe.app`, then `tools/release resume --mac-app <that Pointe.app>`, which makes, notarizes and
 attaches the image from it; open `apps/ios/build/Pointe.xcarchive` (Distribute App, App Store Connect, Upload), and the
 next `resume` sees the build in App Store Connect and does not upload it again.
@@ -116,8 +118,8 @@ openssl on a pipe, and never writes or prints it. It has the Developer role: the
 state are read with it; creating the App Store version, the external group, Beta App Review and the submission are
 refused (403), so the tool stops there with the clicks.
 
-**Recommendations.** Keep Xcode's account and the notary profile on the owner's Mac until the CI path below is
-approved: they are the two that stopped releases. Give the API key the App Manager role only if the owner wants
+**Recommendations.** Keep the two identities, the profiles and the notary profile on the owner's Mac until the CI path
+below is approved. Decide `--asc-key-file` (above): with it, nothing in a release needs a person until the App Store. Give the API key the App Manager role only if the owner wants
 TestFlight's external group and Beta App Review done without a click (the tool would then need those calls; not built).
 The App Store submission stays the owner's, by choice.
 
@@ -230,12 +232,11 @@ Then the Mac app, from that commit, so the `install.sh` built into it installs t
 tools/build_dmg.sh --upload     # dist/Pointe-X.Y.Z.dmg and .sha256, signed, notarized, stapled; attached to the release
 ```
 
-**Signing is set up on the owner's Mac.** The app is archived and sent to Apple's notary service through Xcode's
-account (the team's cloud-managed Developer ID certificate, export destination "upload"). The disk image is signed with
-the "Developer ID Application: Alon Peretz (PP445E78PD)" identity in the login keychain and notarized with the
-notarytool profile `pointe-notary` (an App Store Connect API key with the Developer role), then stapled. On another
-Mac, the script names whichever of the two is missing and attaches nothing. `--app <notarized Pointe.app>` makes the
-image again from an app already notarized, without a new archive.
+**Signing is set up on the owner's Mac, without Xcode's account.** The app is archived and exported with manual signing
+by the "Developer ID Application: Alon Peretz (PP445E78PD)" identity in the login keychain, notarized with the notarytool
+profile `pointe-notary`, and stapled; the disk image is signed with the same identity, notarized and stapled. On another
+Mac, the script names whichever of the two is missing before it archives, and attaches nothing. `--app <notarized
+Pointe.app>` makes the image again from an app already notarized, without a new archive.
 
 Check before attaching: `spctl -a -vvv -t install` on the image and `spctl -a -vvv -t exec` on the app say
 "accepted, source=Notarized Developer ID"; `xcrun stapler validate` passes on both; and a quarantined copy of the image

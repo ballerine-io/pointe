@@ -323,7 +323,7 @@ def dry_pin(ctx: Ctx) -> str:
 
 
 def _dmg_probes() -> None:
-    for probe in (creds.xcode_tools, creds.keychain_unlocked, creds.xcode_account, creds.developer_id, creds.notary_profile):
+    for probe in (creds.xcode_tools, creds.keychain_unlocked, creds.developer_id, creds.notary_profile):
         need(probe())
 
 
@@ -369,7 +369,7 @@ def preflight_tail(text: str) -> str:
 
 
 def dry_dmg(ctx: Ctx) -> str:
-    probes = [p() for p in (creds.xcode_tools, creds.keychain_unlocked, creds.xcode_account, creds.developer_id, creds.notary_profile)]
+    probes = [p() for p in (creds.xcode_tools, creds.keychain_unlocked, creds.developer_id, creds.notary_profile)]
     sh(["bash", "-n", "tools/build_dmg.sh"], cwd=ctx.tree)
     missing = [p for p in probes if not p.ok]
     if missing:
@@ -390,18 +390,33 @@ def ios(ctx: Ctx) -> str:
         return done
     need(creds.xcode_tools())
     need(creds.keychain_unlocked())
-    need(creds.xcode_account())
-    git(ctx, "checkout", "-q", "--detach", ctx.state.fact("pin_commit"))
-    (ctx.tree / "apps" / "ios" / ".team").write_text(creds.TEAM + "\n")
-    out = sh(["apps/ios/release.sh", "--upload"], cwd=ctx.tree, check=False, timeout=5400, stream=True)
+    need(creds.apple_distribution())
     build = ctx.state.fact("ios_build")
+    ipa = ctx.tree / "apps" / "ios" / "build" / "export" / "Pointe.ipa"
+    if not ipa.exists() or ctx.state.fact("ipa_build") != build:
+        git(ctx, "checkout", "-q", "--detach", ctx.state.fact("pin_commit"))
+        (ctx.tree / "apps" / "ios" / ".team").write_text(creds.TEAM + "\n")
+        # manual signing: the Apple Distribution identity and the App Store profiles installed on this Mac, no Xcode account
+        out = sh(["apps/ios/release.sh", "--manual"], cwd=ctx.tree, check=False, timeout=5400, stream=True)
+        if out.returncode != 0 or not ipa.exists():
+            said = out.stdout + out.stderr
+            if re.search(r"No signing certificate|no .*profile|doesn't match|Provisioning profile", said, re.I):
+                raise Stop("the manual iPhone export needs the Apple Distribution identity and the two App Store profiles",
+                           'The owner: an "Apple Distribution" certificate of team ' + creds.TEAM + ' in the login keychain, and the '
+                           'App Store profiles "Pointe App Store" and "Pointe Widget App Store" installed', waiting=True)
+            raise Fail(f"the iPhone export failed: {preflight_tail(said)}")
+        ctx.state.set(ipa_build=build)
+    if not getattr(ctx.args, "asc_key_file", False):
+        raise Stop(f"Pointe.ipa {ctx.version} ({build}) is exported ({ipa}); the upload needs the API key as a file, which needs the owner's yes",
+                   f"The owner approves it once: tools/release resume --asc-key-file. Or uploads {ipa} with Transporter.", waiting=True)
+    from . import asc as asc_
+
+    out = asc_.upload_ipa(str(ipa))
     said = out.stdout + out.stderr
-    if out.returncode == 0 and "uploaded" in said:
-        done = f"Pointe {ctx.version} ({build}) uploaded to App Store Connect"
+    if out.returncode == 0 and re.search(r"No errors uploading|UPLOAD SUCCEEDED|Delivery UUID", said, re.I):
+        done = f"Pointe {ctx.version} ({build}) uploaded to App Store Connect (manual signing, API key)"
     elif re.search(r"bundle version must be higher|already been (used|uploaded)|redundant binary upload", said, re.I):
         done = f"App Store Connect already has {ctx.version} ({build}): uploaded by another run; not uploaded again"
-    elif re.search(r"App Store Connect access .* is required|No Accounts|not signed in", said, re.I):
-        raise Stop("Xcode cannot reach App Store Connect for the team", creds.xcode_account().fix, waiting=True)
     else:
         raise Fail(f"the iPhone upload failed: {preflight_tail(said)}")
     ctx.state.set(ios_uploaded=done)
@@ -409,7 +424,7 @@ def ios(ctx: Ctx) -> str:
 
 
 def dry_ios(ctx: Ctx) -> str:
-    probes = [creds.xcode_tools(), creds.keychain_unlocked(), creds.xcode_account()]
+    probes = [creds.xcode_tools(), creds.keychain_unlocked(), creds.apple_distribution()]
     sh(["bash", "-n", "apps/ios/release.sh"], cwd=ctx.tree)
     missing = [p for p in probes if not p.ok]
     if missing:
@@ -763,14 +778,13 @@ def iphone(ctx: Ctx) -> str:
     if without_iphone(ctx):
         return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     probe = creds.iphone()
-    if not probe.ok:
-        raise Stop(probe.detail, probe.fix, waiting=True)
-    need(creds.xcode_account())
+    if not probe.ok:  # not a blocker: TestFlight's internal group puts the build on the owner's iPhone
+        return f"skip: {probe.detail}; TestFlight's internal group reaches the owner's iPhone"
     git(ctx, "checkout", "-q", "--detach", ctx.state.fact("pin_commit"))
     device = ["--device", creds.IPHONE] if creds.IPHONE else []
     out = sh(["bin/pointe", "apps", "ios", "--team", creds.TEAM, "--no-launch", *device], cwd=ctx.tree, check=False, timeout=3600, stream=True)
     if out.returncode != 0:
-        raise Fail(f"the iPhone install failed: {preflight_tail(out.stdout)}")
+        return f"skip: the direct install failed ({preflight_tail(out.stdout)}); TestFlight's internal group reaches the owner's iPhone"
     return f"Pointe {ctx.version} built from the release commit and installed on the owner's iPhone (not opened)"
 
 

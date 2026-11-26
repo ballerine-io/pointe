@@ -250,6 +250,8 @@ def main(argv: list[str]) -> int:
         c.add_argument("--site-approved", action="store_true")
         c.add_argument("--adopt", action="store_true")
         c.add_argument("--suite-from-ci", action="store_true")
+        c.add_argument("--asc-key-file", action="store_true",
+                       help="upload the iPhone build with altool, the API key in a 0600 file removed after: only with the owner's yes")
         c.add_argument("--mac-app", help="a Pointe.app already notarized (Xcode's Organizer): the disk image is made from it")
         c.add_argument("--platforms", help="the platforms this release ships, of iphone,mac,linux (default all); kept for resume")
     st = sub.add_parser("status")

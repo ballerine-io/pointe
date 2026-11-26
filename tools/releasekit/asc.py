@@ -76,6 +76,29 @@ def token() -> str:
     return f"{head}.{body}.{_b64url(_raw_signature(signed.stdout))}"
 
 
+def upload_ipa(ipa: str) -> subprocess.CompletedProcess:
+    """altool --upload-package with the API key. altool reads the key only from a regular file (a pipe and a named pipe
+    are refused), so it is written to a 0600 file in a 0700 folder and removed when altool ends. Only with the owner's
+    yes (tools/release --asc-key-file); the repository's rule is that a secret never goes in a file."""
+    import shutil
+    import tempfile
+
+    got = subprocess.run(["/usr/bin/security", "find-generic-password", "-s", SERVICE, "-a", KEY_ID, "-w"], capture_output=True)
+    if got.returncode != 0:
+        raise Stop("no App Store Connect API key in the keychain", f"service {SERVICE}, account {KEY_ID}")
+    folder = tempfile.mkdtemp(prefix="pointe-asc-")
+    os.chmod(folder, 0o700)
+    path = os.path.join(folder, f"AuthKey_{KEY_ID}.p8")
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "wb") as f:
+            f.write(base64.b64decode(got.stdout.strip()))
+        return subprocess.run(["xcrun", "altool", "--upload-package", ipa, "--api-key", KEY_ID, "--api-issuer", ISSUER,
+                               "--p8-file-path", path, "--output-format", "normal"], capture_output=True, text=True, timeout=3600)
+    finally:
+        shutil.rmtree(folder, ignore_errors=True)
+
+
 def get(path: str, params: dict | None = None) -> dict:
     url = f"{API}/{path}" + ("?" + urllib.parse.urlencode(params) if params else "")
     request = urllib.request.Request(url, headers={"Authorization": f"Bearer {token()}"})

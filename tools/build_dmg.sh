@@ -10,14 +10,15 @@
 #                                 apps/macos/build/dmg/app): for the disk image step again, once its credentials exist
 #   tools/build_dmg.sh --ci       the mac-release workflow: see "Signing" below
 #
-# Signing. Locally the app is signed and notarized through Xcode's own account: automatic signing with the team's
-# cloud-managed Developer ID certificate, exported with destination "upload", so Xcode sends it to Apple's notary
-# service; nothing is stored here. The disk image needs two things Xcode's account cannot lend a script: a "Developer ID
-# Application" identity in the keychain (codesign), and a notarytool profile named pointe-notary, made once with
-#   xcrun notarytool store-credentials pointe-notary --apple-id <Apple Account> --team-id PP445E78PD
-# Without them it stops after the unsigned image and names the missing one; nothing is uploaded.
-# --ci signs the app and the image with the Developer ID identity in the keychain the workflow made from its .p12, and
-# notarizes both with an App Store Connect API key: NOTARY_KEY (the .p8 file's path), NOTARY_KEY_ID, NOTARY_ISSUER.
+# Signing, with no Xcode account: the archive and the export use manual signing with the "Developer ID Application"
+# identity in the keychain (its private key never leaves it), the app and then the image are notarized with notarytool,
+# and both are stapled. notarytool's credentials: locally the keychain profile pointe-notary, made once with
+#   xcrun notarytool store-credentials pointe-notary --key <the App Store Connect API key's .p8> --key-id <id> --issuer <id>
+# (or --apple-id and an app-specific password); in CI (--ci) an App Store Connect API key, NOTARY_KEY (the .p8 file's
+# path), NOTARY_KEY_ID, NOTARY_ISSUER, and the identity in the keychain the workflow made from its .p12. Without the
+# identity or the credentials it stops before the archive and names the missing one; nothing is uploaded.
+#   tools/build_dmg.sh --xcode-account   the old way: automatic signing and Xcode's account sends the app to the notary
+#                                        service (Xcode 27.2's xcodebuild stopped seeing that account: "No Accounts")
 #
 # The app installs exactly the release install.sh pins, so install.sh must be pinned to this version first
 # (tools/release_tarball.py pin). Nothing here prints a secret.
@@ -27,12 +28,13 @@ TEAM="${POINTE_TEAM:-PP445E78PD}"
 PROFILE="${POINTE_NOTARY_PROFILE:-pointe-notary}"
 WORK="$ROOT/apps/macos/build/dmg"
 VOLUME="Pointe"
-UPLOAD=""; CI_MODE=""; GIVEN=""
+UPLOAD=""; CI_MODE=""; GIVEN=""; XCODE_ACCOUNT=""
 while [ $# -gt 0 ]; do
   arg="$1"; shift
   case "$arg" in
     --upload) UPLOAD=1 ;;
     --ci)     CI_MODE=1 ;;
+    --xcode-account) XCODE_ACCOUNT=1 ;;
     --app)    GIVEN="$(cd "${1:?--app needs a Pointe.app}" && pwd)"; shift ;;
     -h|--help) sed -n '2,24p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "build_dmg.sh: no option $arg (--help lists them)" >&2; exit 2 ;;
@@ -71,6 +73,10 @@ submit() {  # $1: a zip or a disk image. Waits for Apple's answer and prints the
 }
 developer_id() { security find-identity -v -p codesigning | sed -n "s/.*\"\(Developer ID Application: .*($TEAM)\)\"/\1/p" | head -1; }
 
+if [ -z "$GIVEN" ] && [ -z "$XCODE_ACCOUNT" ]; then  # the two things manual signing needs, before a long archive
+  [ -n "$(developer_id)" ] || { say "STOP     no \"Developer ID Application\" identity of team $TEAM in the keychain"; exit 3; }
+  can_notarize || { say "STOP     no notarytool credentials (profile $PROFILE, or --ci's key)"; exit 3; }
+fi
 [ ! -e "/Volumes/$VOLUME" ] || die "a volume named $VOLUME is mounted: eject it first (Finder lays out the new one by that name)"
 if [ -n "$GIVEN" ]; then  # kept out of $WORK, which is emptied below
   rm -rf "$ROOT/dist/.given.app" && ditto "$GIVEN" "$ROOT/dist/.given.app" && GIVEN="$ROOT/dist/.given.app"
@@ -84,7 +90,7 @@ if [ -n "$GIVEN" ]; then
 else
 step "1. Archive Pointe $VERSION"
 SIGN=(DEVELOPMENT_TEAM="$TEAM")
-if [ -n "$CI_MODE" ]; then SIGN+=(CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Developer ID Application")
+if [ -z "$XCODE_ACCOUNT" ]; then SIGN+=(CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Developer ID Application")
 else SIGN+=(CODE_SIGN_IDENTITY="Apple Development" -allowProvisioningUpdates); fi
 xcodebuild archive -project "$ROOT/apps/macos/PointeMac.xcodeproj" -scheme PointeMac -configuration Release \
   -archivePath "$ARCHIVE" -derivedDataPath "$WORK/dd" "${SIGN[@]}" -quiet >"$WORK/archive.log" 2>&1 \
@@ -93,7 +99,7 @@ say "ok       $ARCHIVE"
 
 step "2. Sign with Developer ID and notarize the app"
 OPTIONS="$WORK/export.plist"
-if [ -n "$CI_MODE" ]; then
+if [ -z "$XCODE_ACCOUNT" ]; then
   /usr/libexec/PlistBuddy -c "Add :method string developer-id" -c "Add :signingStyle string manual" -c "Add :teamID string $TEAM" \
     -c "Add :signingCertificate string Developer ID Application" -c "Add :destination string export" "$OPTIONS" >/dev/null
   xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportOptionsPlist "$OPTIONS" -exportPath "$WORK/app" >"$WORK/export.log" 2>&1 \
