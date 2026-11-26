@@ -13,15 +13,11 @@ case "$ACTION" in on|off|toggle) ;; *) echo "voice-talk: on, off or toggle" >&2;
 # Only to the daemon itself: with it down, another program on the port would get the token.
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || { echo "Pointe is not running on this Mac."; exit 1; }
 # The token goes through a curl config on a pipe, never an argument, so it shows in no process list.
-RESPONSE="$(curl -sS -m 5 -w '\n%{http_code}' -X POST -H 'content-type: application/json' --data "{\"action\": \"$ACTION\"}" \
-  --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/talk" 2>/dev/null)" \
-  || { echo "Pointe is not running on this Mac."; exit 1; }
-CODE="${RESPONSE##*$'\n'}"
-BODY="${RESPONSE%$'\n'*}"
-if [ "$CODE" = "200" ]; then
+# voice-ask: the body on a 200, else one sentence (the daemon's own reason, or what another version of Pointe means).
+if BODY="$("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ask" cli /voice/talk -m 5 -X POST -H 'content-type: application/json' \
+    --data "{\"action\": \"$ACTION\"}" 2>&1)"; then
   case "$BODY" in *'"open": true'*|*'"open":true'*) echo "Talking." ;; *) echo "Not talking." ;; esac
   exit 0
 fi
-DETAIL="$(printf '%s' "$BODY" | sed -n 's/.*"detail": *"\([^"]*\)".*/\1/p')"
-echo "${DETAIL:-Pointe said no ($CODE).}"
+echo "${BODY#Pointe: }"
 exit 1

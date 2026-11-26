@@ -224,7 +224,7 @@ def test_the_register_script_passes_the_start_id(tmp_path):
     """bin/register-session --start: the id reaches the daemon in the body. A fake curl on PATH records what was sent."""
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
-    (fake_bin / "curl").write_text('#!/bin/sh\ncat > "$OUT"\necho \'{"name": "shop-2"}\'\n')
+    (fake_bin / "curl").write_text('#!/bin/sh\ncat > "$OUT"\necho \'{"name": "shop-2"}\'\nprintf 200\n')  # the body, then the status bin/voice-ask asks for
     (fake_bin / "curl").chmod(0o755)
     (tmp_path / "token").write_text("t")
     listener = socket.create_server(("127.0.0.1", 0))  # the daemon's port, held by this process (bin/voice-ours)

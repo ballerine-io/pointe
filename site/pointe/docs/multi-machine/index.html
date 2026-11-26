@@ -311,6 +311,43 @@ says which setting is on.</p>
 <p><strong>Names.</strong> The hub's name is <code>"machine"</code> in its <code>~/.claude-voice/config.json</code> (else its short host name). Rename the hub
 there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
 (<code>pointe hub invite --name devbox</code>); to change it, pair again.</p>
+<h2 id="versions-an-old-pointe-next-to-a-new-one">Versions: an old Pointe next to a new one</h2>
+<p>Two machines, or a plugin and the Pointe it calls, are often on different versions. Each pair says what it speaks when
+it connects, and a pair with nothing in common fails in one sentence that names the side to update and the command.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Pair</th>
+<th>What each side says</th>
+<th>No common version</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A node and its hub</td>
+<td>The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak, and a list of features. The link uses the newest protocol both speak and the features both list</td>
+<td>The link closes with code 4426. <code>pointe node status</code> on the node says which side is old: "studio runs an older Pointe (0.9.0) than this machine: update it there with pointe update", or "studio needs a newer Pointe on this machine". On the hub the machine stays in Settings → Machines, offline, with "devbox runs an older Pointe (0.9.0). Update it there to see its sessions: pointe update". Nobody's key is deleted, and the node reconnects by itself after the update</td>
+</tr>
+<tr>
+<td>A script, hook or command and the Pointe on the same machine</td>
+<td><code>X-Pointe-Client: &lt;part&gt;/&lt;version&gt; api=&lt;n&gt;</code> on every request</td>
+<td>The answer is <code>426</code> with <code>{"error", "need", "have", "how"}</code>. The script prints the sentence in <code>error</code>; <code>how</code> is the command. A permission hook that is refused leaves the prompt in the terminal: it never blocks Claude Code</td>
+</tr>
+<tr>
+<td>The iPhone app and the Mac</td>
+<td>The call protocol and the oldest one served, in the status (<a href="../phone/">phone.md</a>)</td>
+<td>The app says which of the two to update</td>
+</tr>
+</tbody>
+</table></div>
+<p>Every script prints one sentence for any answer that is not what it expects: a refusal, a Pointe that does not know
+the request, something that is not Pointe. A script from a release before 0.10 sends no header and is served as
+before; one so old that it fails by itself (the 0.1.6 plugin) is named by <code>pointe doctor</code>, with the commands that
+update or remove it.</p>
+<p><strong>What is tested.</strong> A node as 0.9.0 sends its hello (one protocol, no range, no features) links with this hub. The
+requests the scripts of 0.1.6, 0.8.0, 0.8.7 and 0.9.0 send are replayed against this daemon on every push
+(<code>tests/fixtures/skew_requests.json</code>): each gets a 200 or a refusal with a sentence. A pair further apart than that
+is not tested.</p>
 <h2 id="limits">Limits</h2>
 <ul>
 <li><strong>One hub per node.</strong> To move a node to another hub, <code>pointe node leave</code>, then join the new one.</li>
@@ -359,6 +396,7 @@ there and restart it: each node takes the new name at its next link. A node's na
 <li class="dx-l2"><a href="#approvals">Approvals</a></li>
 <li class="dx-l2"><a href="#what-goes-where">What goes where</a></li>
 <li class="dx-l2"><a href="#everyday-commands">Everyday commands</a></li>
+<li class="dx-l2"><a href="#versions-an-old-pointe-next-to-a-new-one">Versions: an old Pointe next to a new one</a></li>
 <li class="dx-l2"><a href="#limits">Limits</a></li>
 </ul>
 </details>

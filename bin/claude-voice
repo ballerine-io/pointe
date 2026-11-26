@@ -26,6 +26,9 @@ CHANNEL_PORT="$(python3 -I -c 'import socket; s=socket.socket(); s.bind(("127.0.
 CLAUDE_VOICE_TOKEN="$(cat "$STATE/token")"
 export CLAUDE_VOICE_TOKEN CLAUDE_VOICE_CHANNEL_PORT="$CHANNEL_PORT" CLAUDE_VOICE_DAEMON_URL="http://127.0.0.1:$PORT"
 export CLAUDE_VOICE_STATE="$STATE" CLAUDE_VOICE_DAEMON_PORT="$PORT"  # for the SessionStart hook
+# Who the channel says it is to the daemon (pointe/skew.py): a daemon of another version answers it in a sentence.
+POINTE_CLIENT="channel/$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$ROOT/.claude-plugin/plugin.json" | head -1) api=$(python3 -I "$ROOT/pointe/skew.py" api)"
+export POINTE_CLIENT
 SESSION_STATE="$STATE/sessions/$$"
 mkdir -p "$SESSION_STATE"
 find "$STATE/sessions" -mindepth 1 -maxdepth 1 -mtime +1 -exec rm -rf {} + 2>/dev/null || true
@@ -39,7 +42,9 @@ cat >"$SESSION_STATE/settings.json" <<EOF
 EOF
 
 "$ROOT/bin/voice-ours" || { echo "claude-voice: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
-CONNECTED="$(curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["connected"])')"
+CONNECTED="$({ "$ROOT/bin/voice-ask" plugin /voice/status || true; } | python3 -I -c 'import json,sys
+try: print(json.load(sys.stdin)["connected"])
+except Exception: pass' 2>/dev/null || true)"  # a Pointe of another version: voice-ask said so in one sentence
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$ROOT/bin/voice-open"
 
 # exec: the session's pid is Claude Code itself, which is what liveness checks watch.

@@ -29,6 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a scrip
 import harnesses  # noqa: E402
 import nodelink  # noqa: E402
 import sessions  # noqa: E402
+import skew  # noqa: E402
 from guards import valid_name  # noqa: E402
 from harnesses.remote import RemoteHarness  # noqa: E402
 from nodelink import NODE_FRAMES, decode, encode, hub_session_id  # noqa: E402
@@ -548,6 +549,9 @@ class Node:
     full: bool = False  # its mirrors reached MAX_MIRROR_BYTES_PER_NODE (logged once)
     heartbeat: nodelink.Heartbeat | None = None  # the live link's
     link_tasks: set[asyncio.Task] = field(default_factory=set)  # the live link's reader and keep-alive
+    protocol: int = nodelink.MIN_PROTOCOL  # the live link's: the newest both sides speak
+    features: list[str] = field(default_factory=list)  # the live link's: those both sides listed (nodelink.FEATURES)
+    skewed: bool = False  # machine.notice is _skewed's line: cleared when the machine links
     heard: asyncio.Event = field(default_factory=asyncio.Event)  # set on every frame from the node
     probing: bool = False
     address: str = ""  # the peer address of the live link
@@ -838,23 +842,42 @@ class Hub:
         """The challenge and the node's answer: (its pairing, its hello), or None once the socket is closed."""
         await ws.accept()
         nonce = nodelink.new_nonce()
-        await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": _here(self.state_dir)}))
+        await ws.send_text(encode("challenge", nonce=nonce, hub={"id": self.nodes.hub_id, "name": _here(self.state_dir)},
+                                  protocol=nodelink.PROTOCOL, protocol_min=nodelink.MIN_PROTOCOL, version=skew.version()))
         try:
             hello = decode(await asyncio.wait_for(ws.receive_text(), HELLO_WAIT_SECS), NODE_FRAMES)
         except Exception:  # silence, or it went
             return await _close(ws, nodelink.CLOSE_BAD_HELLO, "no hello")
         if hello is None or hello["t"] != "hello":
             return await _close(ws, nodelink.CLOSE_BAD_HELLO, "hello first")
-        if hello["protocol"] < nodelink.MIN_PROTOCOL:  # before the HMAC: an older node may answer it differently
-            return await _close(ws, nodelink.CLOSE_TOO_OLD,
-                                f"this hub needs protocol {nodelink.MIN_PROTOCOL}: update Pointe on this machine")
         paired = self.nodes.get(hello["node"]["id"])
+        if nodelink.common(hello["protocol"], hello.get("protocol_min")) is None:
+            # No protocol both speak: said to the node in the close, and on this side with the machine, by name, when
+            # the hello is from the machine it claims to be (its key answers the nonce as every protocol has).
+            older = hello["protocol"] < nodelink.MIN_PROTOCOL
+            if paired is not None and nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
+                self._skewed(paired, _cut(hello["node"]["version"], 20), older)
+            return await _close(ws, nodelink.CLOSE_TOO_OLD, nodelink.too_old(
+                "host", nodelink.MIN_PROTOCOL, hello["protocol"]) if older else nodelink.too_old(
+                "voice", hello.get("protocol_min") or hello["protocol"], nodelink.PROTOCOL))
         if paired is None or not nodelink.check(paired["key"], nonce, self.nodes.hub_id, hello["auth"]):
             if self._tell_refusal(address):
                 logger.warning(f"node link from {address or 'loopback'} refused: "
                                f"{_cut(hello['node']['name'], MAX_LABEL_CHARS)!r} is not paired, or its key is wrong")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not paired with this hub")
         return paired, hello
+
+    def _skewed(self, paired: dict, version: str, older: bool) -> None:
+        """A paired machine whose Pointe shares no protocol with this one: it stays listed, offline, with one line
+        that says which side to update. Its sessions are not offered until it links."""
+        node = self.live.get(paired["id"]) or self._track(paired)
+        sessions.MACHINES[node.name] = node.machine
+        node.machine.notice = (
+            f"{node.name} runs an older Pointe ({version}). Update it there to see its sessions: pointe update" if older
+            else f"{node.name} runs a newer Pointe ({version}) than this machine. Update this one to see its sessions: "
+                 "pointe update")
+        node.skewed = True
+        logger.warning(f"node link refused: {node.machine.notice}")
 
     async def _linked(self, ws, address: str, paired: dict, hello: dict) -> None:
         """A proven node: one link per key, then frames until it drops."""
@@ -867,11 +890,15 @@ class Hub:
         node.machine.online, node.machine.since = True, None
         node.machine.link += 1
         node.machine.skew = self._clock() - hello["now"]
+        node.protocol = nodelink.common(hello["protocol"], hello.get("protocol_min"))
+        node.features = nodelink.shared(hello.get("features"))
+        if node.skewed:  # the machine was updated: _skewed's line no longer holds
+            node.skewed, node.machine.notice = False, ""
         heartbeat = node.heartbeat = nodelink.Heartbeat(self._mono)
         logger.info(f"node {node.name} connected (skew {node.machine.skew:+.1f} s)")
         try:
             call = self._call_state()
-            await self._send(node, encode("welcome", protocol=nodelink.PROTOCOL, call_up=call["up"],
+            await self._send(node, encode("welcome", protocol=node.protocol, features=node.features, call_up=call["up"],
                                           approvals_terminal=call["approvals_terminal"], vendors=self._vendors(),
                                           resume=self.mirrors.resume(node.id)))
             if node.socket is not ws:  # replaced (_replace_stale) while the welcome was going out
@@ -1200,12 +1227,16 @@ def _daemon(method: str, path: str, body: dict | None = None) -> dict:
         raise SystemExit("The voice daemon has not run on this Mac yet: start it with /pointe:voice, then retry.")
     request = urllib.request.Request(f"http://127.0.0.1:{port}{path}", method=method,
                                      data=json.dumps(body).encode() if body is not None else None,
-                                     headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+                                     headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                                              skew.HEADER: skew.header("cli", skew.version())})
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
             return json.loads(response.read())
     except urllib.error.HTTPError as e:
-        raise SystemExit(e.read().decode(errors="replace") or str(e))
+        said = e.read().decode(errors="replace")
+        if said.lstrip().startswith("{"):  # a Pointe of another version, or without this key: its sentence (skew.py)
+            raise SystemExit(skew.sentence(e.code, said, port))
+        raise SystemExit(said or str(e))
     except urllib.error.URLError:
         raise SystemExit(f"The voice daemon is not running on port {port}: start it with /pointe:voice, then retry.")
 

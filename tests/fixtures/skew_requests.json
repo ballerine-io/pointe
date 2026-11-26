@@ -1,0 +1,421 @@
+{
+ "what": "The requests each release's scripts send to the voice on the same machine (bin/, hooks/), transcribed from the scripts at each tag: 0.1.6 is commit 99966ac9, the others their v tags. tests/test_skew.py replays every one against this tree's daemon: a 200, or a refusal whose body is a sentence, never a 5xx or a bare status. `client` and `api` build the X-Pointe-Client header of releases that send one. Synthetic bodies only.",
+ "releases": [
+  {
+   "release": "0.1.6",
+   "requests": [
+    {
+     "method": "GET",
+     "path": "/voice/status",
+     "token": false,
+     "answers": [
+      403
+     ],
+     "note": "claude-voice-attach asked for the status with no token: the field report this matrix starts from"
+    },
+    {
+     "method": "POST",
+     "path": "/voice/register",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "id": "skew-sess-1",
+      "name": "shop/main",
+      "cwd": "/tmp",
+      "pid": 0,
+      "transcript": "/tmp/skew-sess-1.jsonl",
+      "inbox_socket": null,
+      "inbox_token": null,
+      "channel_url": null,
+      "name_given": false
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/session",
+     "token": true,
+     "answers": [
+      404
+     ],
+     "body": {
+      "session_id": "skew-sess-1",
+      "hook_event_name": "SessionStart"
+     },
+     "note": "bin/session-hook: a route that no longer exists"
+    }
+   ]
+  },
+  {
+   "release": "0.8.0",
+   "requests": [
+    {
+     "method": "GET",
+     "path": "/voice/health",
+     "token": false,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "/voice/status",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/register",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "id": "skew-sess-1",
+      "name": "shop/main",
+      "cwd": "/tmp",
+      "pid": 0,
+      "transcript": "/tmp/skew-sess-1.jsonl",
+      "inbox_socket": null,
+      "inbox_token": null,
+      "channel_url": null,
+      "name_given": false,
+      "config_dir": "/tmp/claude-home"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/disconnect",
+     "token": true,
+     "answers": [
+      200,
+      404
+     ],
+     "body": {
+      "id": "never-joined"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/permission-hook",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "session_id": "not-on-the-voice",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "cwd": "/tmp"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/voice/context",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/talk",
+     "token": true,
+     "answers": [
+      200,
+      409
+     ],
+     "body": {
+      "action": "on"
+     }
+    }
+   ]
+  },
+  {
+   "release": "0.8.7",
+   "requests": [
+    {
+     "method": "GET",
+     "path": "/voice/health",
+     "token": false,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "/voice/status",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/register",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "id": "skew-sess-1",
+      "name": "shop/main",
+      "cwd": "/tmp",
+      "pid": 0,
+      "transcript": "/tmp/skew-sess-1.jsonl",
+      "inbox_socket": null,
+      "inbox_token": null,
+      "channel_url": null,
+      "name_given": false,
+      "config_dir": "/tmp/claude-home"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/disconnect",
+     "token": true,
+     "answers": [
+      200,
+      404
+     ],
+     "body": {
+      "id": "never-joined"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/permission-hook",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "session_id": "not-on-the-voice",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "cwd": "/tmp"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/voice/context",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/talk",
+     "token": true,
+     "answers": [
+      200,
+      409
+     ],
+     "body": {
+      "action": "on"
+     }
+    }
+   ]
+  },
+  {
+   "release": "0.9.0",
+   "requests": [
+    {
+     "method": "GET",
+     "path": "/voice/health",
+     "token": false,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "GET",
+     "path": "/voice/status",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/register",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "id": "skew-sess-1",
+      "name": "shop/main",
+      "cwd": "/tmp",
+      "pid": 0,
+      "transcript": "/tmp/skew-sess-1.jsonl",
+      "inbox_socket": null,
+      "inbox_token": null,
+      "channel_url": null,
+      "name_given": false,
+      "config_dir": "/tmp/claude-home"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/disconnect",
+     "token": true,
+     "answers": [
+      200,
+      404
+     ],
+     "body": {
+      "id": "never-joined"
+     }
+    },
+    {
+     "method": "POST",
+     "path": "/voice/permission-hook",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "session_id": "not-on-the-voice",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "cwd": "/tmp"
+     }
+    },
+    {
+     "method": "GET",
+     "path": "/voice/context",
+     "token": true,
+     "answers": [
+      200
+     ]
+    },
+    {
+     "method": "POST",
+     "path": "/voice/talk",
+     "token": true,
+     "answers": [
+      200,
+      409
+     ],
+     "body": {
+      "action": "on"
+     }
+    }
+   ]
+  },
+  {
+   "release": "0.10.0",
+   "requests": [
+    {
+     "method": "GET",
+     "path": "/voice/health",
+     "token": false,
+     "answers": [
+      200
+     ],
+     "client": "plugin",
+     "api": 2
+    },
+    {
+     "method": "GET",
+     "path": "/voice/status",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "client": "plugin",
+     "api": 2
+    },
+    {
+     "method": "POST",
+     "path": "/voice/register",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "id": "skew-sess-1",
+      "name": "shop/main",
+      "cwd": "/tmp",
+      "pid": 0,
+      "transcript": "/tmp/skew-sess-1.jsonl",
+      "inbox_socket": null,
+      "inbox_token": null,
+      "channel_url": null,
+      "name_given": false,
+      "config_dir": "/tmp/claude-home"
+     },
+     "client": "plugin",
+     "api": 2
+    },
+    {
+     "method": "POST",
+     "path": "/voice/disconnect",
+     "token": true,
+     "answers": [
+      200,
+      404
+     ],
+     "body": {
+      "id": "never-joined"
+     },
+     "client": "plugin",
+     "api": 2
+    },
+    {
+     "method": "POST",
+     "path": "/voice/permission-hook",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "body": {
+      "session_id": "not-on-the-voice",
+      "tool_name": "Bash",
+      "tool_input": {
+       "command": "ls"
+      },
+      "cwd": "/tmp"
+     },
+     "client": "hook",
+     "api": 2
+    },
+    {
+     "method": "GET",
+     "path": "/voice/context",
+     "token": true,
+     "answers": [
+      200
+     ],
+     "client": "cli",
+     "api": 2
+    },
+    {
+     "method": "POST",
+     "path": "/voice/talk",
+     "token": true,
+     "answers": [
+      200,
+      409
+     ],
+     "body": {
+      "action": "on"
+     },
+     "client": "cli",
+     "api": 2
+    }
+   ]
+  }
+ ]
+}

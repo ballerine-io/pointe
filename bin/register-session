@@ -55,9 +55,13 @@ print(json.dumps({
 
 # The token and the body (it holds the inbox token) go by file descriptor, never on a command line, and only to the
 # daemon itself: with it down, another program on the port would get them.
-"$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || {
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$BIN/voice-ours" || {
   [ -n "$QUIET" ] || echo "register-session: daemon not reachable on port $PORT" >&2; exit 1; }
-RESULT="$(printf %s "$BODY" | curl -sf -m 3 -X POST "http://127.0.0.1:$PORT/voice/register" \
-  --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") -H 'content-type: application/json' --data-binary @-)" || {
-  [ -n "$QUIET" ] || echo "register-session: daemon not reachable on port $PORT" >&2; exit 1; }
+# voice-ask says who calls (X-Pointe-Client) and turns a refusal from another version of Pointe into one sentence.
+WHY="$(mktemp)"
+RESULT="$(printf %s "$BODY" | "$BIN/voice-ask" plugin /voice/register -m 3 -X POST -H 'content-type: application/json' --data-binary @- 2>"$WHY")" || {
+  [ -n "$QUIET" ] || { cat "$WHY" >&2; echo "register-session: this session did not join Pointe on port $PORT" >&2; }
+  rm -f "$WHY"; exit 1; }
+rm -f "$WHY"
 [ -n "$QUIET" ] || echo "$RESULT"

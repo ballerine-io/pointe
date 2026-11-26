@@ -11,6 +11,7 @@ import shutil
 import socket
 import sys
 import textwrap
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -18,6 +19,7 @@ import no_telemetry  # noqa: F401  (before anything imports onnxruntime)
 import childenv
 import local
 import setups
+import skew
 import vendors
 
 ROLES = [("brain", "CLAUDE_VOICE_BRAIN", vendors.BRAIN_ORDER), ("reader", "CLAUDE_VOICE_READER", vendors.READER_ORDER),
@@ -224,8 +226,11 @@ def running_status() -> dict | None:
     try:
         os.kill(int((state_dir() / "daemon.pid").read_text()), 0)  # this state dir's own daemon or node, nothing else
         token = (state_dir() / "token").read_text().strip()
-        request = urllib.request.Request(f"http://127.0.0.1:{port}/voice/status", headers={"Authorization": f"Bearer {token}"})
+        request = urllib.request.Request(f"http://127.0.0.1:{port}/voice/status", headers={
+            "Authorization": f"Bearer {token}", skew.HEADER: skew.header("cli", skew.version())})
         got = json.loads(urllib.request.urlopen(request, timeout=3).read())
+    except urllib.error.HTTPError as e:  # a Pointe of another version says so (skew.py): doctor repeats its sentence
+        return {"problem": skew.sentence(e.code, e.read(1 << 16), port)} if e.code == skew.STATUS else None
     except (OSError, ValueError):
         return None
     return got if isinstance(got, dict) else None

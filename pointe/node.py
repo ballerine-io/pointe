@@ -258,6 +258,10 @@ class Node:
         self._last_heard = 0.0
         self.hub_offsets: dict[str, dict] = {}  # the hub's resume, by local id: where its mirror of each session ends
         self.linked = asyncio.Event()  # set while welcomed
+        self.protocol = nodelink.MIN_PROTOCOL  # the live link's: the newest both sides speak
+        self.features: list[str] = []  # the live link's: those both sides listed (nodelink.FEATURES)
+        self._close_reason = ""  # the last close frame's reason: CLOSE_TOO_OLD says which side to update
+        self._hub_version = ""  # as the hub said in its challenge; "" from a hub before 0.10
         self.finished = asyncio.Event()  # unpaired, revoked or left: the node has nothing left to do
         saved = _read_json(self.state / "node_tails.json")
         self._saved_tails = {k: v for k, v in saved.items() if isinstance(v, dict)}
@@ -459,7 +463,7 @@ class Node:
         async def leave():
             return {"left": True, "told_hub": await self.leave()}
 
-        return _LocalOnly(api, lambda: self.token)
+        return guards.ClientSkew(_LocalOnly(api, lambda: self.token), _version())  # a script of another version hears why
 
     # ---- the link ----
 
@@ -494,15 +498,26 @@ class Node:
                 if challenge["hub"]["id"] != hub["id"]:
                     self.link_error = f"this is not {hub.get('name')}: another hub answers at {hub['host']}"
                     return False
+                self._hub_version = str(challenge.get("version") or "")
                 await ws.send_str(nodelink.encode(
-                    "hello", protocol=nodelink.PROTOCOL, auth=nodelink.answer(key, challenge["nonce"], hub["id"]),
+                    "hello", protocol=nodelink.PROTOCOL, protocol_min=nodelink.MIN_PROTOCOL,
+                    features=list(nodelink.FEATURES), auth=nodelink.answer(key, challenge["nonce"], hub["id"]),
                     now=time.time(), node={"id": str(config.get("id")), "name": str(config.get("name") or ""),
                                            "os": _os(), "arch": platform.machine(), "version": _version(),
                                            "harnesses": harnesses.names()}))
                 welcome = await self._receive(ws, 10)
                 if not welcome or welcome["t"] != "welcome":
-                    self._closed(ws)
+                    self._closed(ws, hub.get("name") or "the hub")
                     return False
+                if not nodelink.MIN_PROTOCOL <= welcome["protocol"] <= nodelink.PROTOCOL:
+                    # A hub from before ranges welcomes with its own protocol whatever this machine said: it is the
+                    # old side, and it cannot say so itself.
+                    self.link_error = nodelink.skew_sentence(
+                        nodelink.too_old("voice", nodelink.MIN_PROTOCOL, welcome["protocol"]),
+                        hub.get("name") or "the hub", self._hub_version)
+                    await ws.close(code=nodelink.CLOSE_TOO_OLD)
+                    return False
+                self.protocol, self.features = welcome["protocol"], nodelink.shared(welcome.get("features"))
                 welcomed = True
                 self._hub_named(config, challenge["hub"].get("name"))
                 await self._welcomed(ws, welcome)
@@ -517,7 +532,7 @@ class Node:
                             await self._on_frame(frame)
                 finally:
                     watchdog.cancel()
-                self._closed(ws)
+                self._closed(ws, hub.get("name") or "the hub")
         except aiohttp.ServerFingerprintMismatch:
             self.link_error = ("the hub's certificate is not the one paired. If the hub re-paired or rotated its "
                                "certificate (pointe pair rotate), pair again: pointe node leave, then a new invite")
@@ -542,12 +557,13 @@ class Node:
             current["hub"]["name"] = name
             _write_private(self.state / "node.json", json.dumps(current) + "\n")  # one line, as node_cli writes it
 
-    @staticmethod
-    async def _receive(ws, timeout: float) -> dict | None:
+    async def _receive(self, ws, timeout: float) -> dict | None:
         msg = await ws.receive(timeout=timeout)
+        if msg.type == aiohttp.WSMsgType.CLOSE:
+            self._close_reason = str(msg.extra or "")
         return nodelink.decode(msg.data, nodelink.HUB_FRAMES) if msg.type == aiohttp.WSMsgType.TEXT else None
 
-    def _closed(self, ws) -> None:
+    def _closed(self, ws, hub: str = "the hub") -> None:
         code = ws.close_code
         if code == nodelink.CLOSE_UNAUTHORIZED:
             self.link_error = "the hub no longer knows this machine (revoked): the key is deleted; pair again"
@@ -559,7 +575,7 @@ class Node:
         elif code == nodelink.CLOSE_ALREADY_CONNECTED:
             self.link_error = "already connected: another process with this machine's key is linked to the hub"
         elif code == nodelink.CLOSE_TOO_OLD:
-            self.link_error = "the hub needs a newer Pointe on this machine: update it, then it reconnects"
+            self.link_error = nodelink.skew_sentence(self._close_reason, hub, self._hub_version)
         elif code == nodelink.CLOSE_DEAD:
             self.link_error = "the link went quiet (no heartbeat)"
         else:
@@ -1068,7 +1084,7 @@ class _LocalOnly:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
         from starlette.requests import HTTPConnection
-        from starlette.responses import PlainTextResponse
+        from starlette.responses import JSONResponse, PlainTextResponse
 
         connection = HTTPConnection(scope)
         token = self.token()
@@ -1076,6 +1092,8 @@ class _LocalOnly:
             scope["path"] == "/voice/health" or (token and hmac.compare_digest(
                 connection.headers.get("authorization", "").encode(), f"Bearer {token}".encode())))
         if not ok:
+            if guards._local_headers(connection.headers):  # a script of another Pointe: a sentence it can print
+                return await JSONResponse(guards.NO_KEY, status_code=403)(scope, receive, send)
             return await PlainTextResponse("forbidden", status_code=403)(scope, receive, send)
         return await self.app(scope, receive, send)
 

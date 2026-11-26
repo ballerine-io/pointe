@@ -145,7 +145,14 @@ together:</p>
 <li>
 <p><code>CHANGELOG.md</code>: one line on top, the same words as the commit subject</p>
 </li>
-<li><code>python3 tools/site_version.py</code>: writes the version into the site's pages (<code>site/deploy.sh</code> runs it too)</li>
+<li>
+<p><code>tests/fixtures/skew_requests.json</code>: an entry for the new version, with the requests its scripts send (copy the
+  newest entry and change what moved). <code>tests/test_skew.py</code> replays every release's requests against the new daemon,
+  and fails while the new version has no entry</p>
+</li>
+<li>
+<p><code>python3 tools/site_version.py</code>: writes the version into the site's pages (<code>site/deploy.sh</code> runs it too)</p>
+</li>
 </ul>
 <p>Commit as <code>Version X.Y.Z: &lt;what changed, in the words a user would use&gt;</code>, with <code>git commit -s</code>.
 <code>tests/test_version.py</code> fails when the manifest, <code>pyproject.toml</code>, <code>uv.lock</code>, the two apps and the changelog disagree.

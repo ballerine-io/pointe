@@ -16,9 +16,12 @@ from urllib.parse import parse_qs, urlparse
 
 from loguru import logger
 
-PROTOCOL = 1
+PROTOCOL = 1  # the newest this copy speaks
 INVITE_VERSION = 1  # the `pointe://hub?v=` line's format
-MIN_PROTOCOL = 1  # the hub refuses a hello below this with CLOSE_TOO_OLD
+MIN_PROTOCOL = 1  # the oldest this copy speaks. Each side says its range; no common version closes with CLOSE_TOO_OLD
+# What this copy can do beyond the frames every protocol 1 side has. Each side lists its own; the link uses those both
+# list, and one that is absent is unsupported (an older side lists none).
+FEATURES = ("attach", "held")
 PATH = "/voice/node"
 PAIR_PATH = "/voice/node/pair"
 
@@ -94,7 +97,10 @@ _token = lambda v: _str(v) and len(v) <= 128  # noqa: E731: an id (16 hex) or an
 
 # Field name -> check. A name ending in "?" is optional. Extra fields are kept and ignored.
 NODE_FRAMES: dict[str, dict[str, Check]] = {
-    "hello": {"protocol": _int, "auth": _token, "now": _num,
+    # `protocol` is the newest the node speaks and `protocol_min` the oldest (absent: the same, a node from before
+    # ranges). An int, not a range, so a hub from before ranges still reads the hello.
+    "hello": {"protocol": _int, "protocol_min?": _int, "features?": _list_of(_short, MAX_FILES), "auth": _token,
+              "now": _num,
               "node": _has(id=_token, name=_short, os=_short, arch=_short, version=_short,
                            harnesses=_list_of(_short, MAX_FILES))},
     "sessions": {"sessions": _list_of(_session)},
@@ -118,9 +124,12 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
 }
 
 HUB_FRAMES: dict[str, dict[str, Check]] = {
-    "challenge": {"nonce": _str, "hub": _has(id=_str, name=_str)},
-    "welcome": {"protocol": _int, "call_up": _bool, "approvals_terminal": _bool, "vendors": _list_of(_str),
-                "resume": _resume},
+    # The hub says its range and version before the node proves anything, so a node too new for it can say so there.
+    "challenge": {"nonce": _str, "hub": _has(id=_str, name=_str), "protocol?": _int, "protocol_min?": _int,
+                  "version?": _short},
+    # `protocol`: the one chosen, the newest both speak. `features`: those both listed.
+    "welcome": {"protocol": _int, "features?": _list_of(_short, MAX_FILES), "call_up": _bool,
+                "approvals_terminal": _bool, "vendors": _list_of(_str), "resume": _resume},
     "resume": {"resume": _resume},
     "call": {"up": _bool, "approvals_terminal": _bool},
     "send": {"req": _str, "id": _str, "text": _str},
@@ -256,6 +265,48 @@ def parse_invite(line: str) -> dict:
             and len(fp) == 64 and all(c in "0123456789abcdef" for c in fp)):
         raise ValueError("the invite is incomplete: copy the whole line `pointe hub invite` printed")
     return {"host": query["host"], "port": int(port), "fp": fp, "code": query["code"]}
+
+
+def common(theirs_max: int, theirs_min: int | None = None, mine_min: int | None = None,
+           mine_max: int | None = None) -> int | None:
+    """The protocol a link uses: the newest both sides speak, or None when there is none. A side that names no
+    oldest speaks only its newest (every release before ranges)."""
+    mine_min = MIN_PROTOCOL if mine_min is None else mine_min
+    mine_max = PROTOCOL if mine_max is None else mine_max
+    theirs_min = theirs_max if theirs_min is None else min(theirs_min, theirs_max)
+    chosen = min(mine_max, theirs_max)
+    return chosen if chosen >= max(mine_min, theirs_min) else None
+
+
+def shared(theirs) -> list[str]:
+    """The features both sides listed, in this copy's order."""
+    return [f for f in FEATURES if isinstance(theirs, list) and f in theirs]
+
+
+CLOSE_REASON_BYTES = 123  # RFC 6455: a close frame's reason
+
+
+def too_old(update: str, need: int, have: int, how: str = "pointe update") -> str:
+    """CLOSE_TOO_OLD's reason, read by `skew_sentence` on the other side: which side to update ("host", the machine
+    with the sessions, or "voice", the one with the call), the protocol needed, the one offered and the command."""
+    reason = json.dumps({"update": update, "need": need, "have": have, "how": how}, separators=(",", ":"))
+    assert len(reason.encode()) <= CLOSE_REASON_BYTES
+    return reason
+
+
+def skew_sentence(reason, hub: str, version: str = "") -> str:
+    """One sentence for the person at the machine with the sessions, from a CLOSE_TOO_OLD reason. A release from
+    before structured reasons sent plain words: this machine is the old side then, as it always was."""
+    try:
+        got = json.loads(reason) if isinstance(reason, str) else None
+    except ValueError:
+        got = None
+    got = got if isinstance(got, dict) else {}
+    how = got.get("how") if isinstance(got.get("how"), str) and len(got["how"]) < 80 else "pointe update"
+    if got.get("update") == "voice":
+        runs = f" ({version})" if version else ""
+        return f"{hub} runs an older Pointe{runs} than this machine: update it there with {how}, then this machine reconnects"
+    return f"{hub} needs a newer Pointe on this machine: update it with {how}, then it reconnects"
 
 
 def new_nonce() -> str:

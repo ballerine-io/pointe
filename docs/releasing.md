@@ -24,6 +24,9 @@ together:
 - `apps/macos/tools/make_project.py`: `VERSION`, and `BUILD` one higher, then `python3 apps/macos/tools/make_project.py` (it
   writes `apps/macos/PointeMac.xcodeproj`)
 - `CHANGELOG.md`: one line on top, the same words as the commit subject
+- `tests/fixtures/skew_requests.json`: an entry for the new version, with the requests its scripts send (copy the
+  newest entry and change what moved). `tests/test_skew.py` replays every release's requests against the new daemon,
+  and fails while the new version has no entry
 - `python3 tools/site_version.py`: writes the version into the site's pages (`site/deploy.sh` runs it too)
 
 Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `git commit -s`.

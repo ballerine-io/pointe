@@ -96,17 +96,21 @@ def test_install_sh_prints_the_advice_after_it_installs():
 
 def attach_with(tmp_path: Path, status_answer: str) -> subprocess.CompletedProcess:
     """bin/claude-voice-attach in a folder of its own, beside fakes of the scripts it calls, with a fake curl whose
-    /voice/status answers as `status_answer` says: "403" (curl -f prints nothing and fails), or a body."""
+    /voice/status answers as `status_answer` says: "403" (no body, and the status bin/voice-ask asks curl to print
+    after it), or a body with a 200."""
     bin_dir, fake = tmp_path / "bin", tmp_path / "fakebin"
     bin_dir.mkdir()
     fake.mkdir()
     shutil.copy(ROOT / "bin" / "claude-voice-attach", bin_dir)
+    shutil.copy(ROOT / "bin" / "voice-ask", bin_dir)  # the one script that asks the daemon, and the words it prints
+    (tmp_path / "pointe").mkdir()
+    shutil.copy(ROOT / "pointe" / "skew.py", tmp_path / "pointe")
     scripts = {"voice-daemon": "echo http://127.0.0.1:7999", "register-session": 'echo \'{"name": "shop", "active": true}\'',
                "voice-ours": "exit 0", "voice-open": f"touch {tmp_path / 'opened'}"}
     for name, body in scripts.items():
         (bin_dir / name).write_text(f"#!/bin/sh\n{body}\n")
         (bin_dir / name).chmod(0o755)
-    answer = "exit 22" if status_answer == "403" else f"printf '%s' '{status_answer}'"
+    answer = "printf '\\n403'" if status_answer == "403" else f"printf '%s\\n200' '{status_answer}'"
     (fake / "curl").write_text(f"#!/bin/sh\n{answer}\n")
     (fake / "curl").chmod(0o755)
     state = tmp_path / "state"

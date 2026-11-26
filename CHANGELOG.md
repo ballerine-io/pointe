@@ -10,6 +10,14 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.8 (beta)
 
+- **Unreleased** (beta): An old part of Pointe next to a new one fails in one sentence with the command that fixes it
+
+  The first step of Pointe over many machines and several people. A node and its hub each say the oldest and newest
+  link protocol they speak, and their features: with none in common the node says which side to update, and the hub
+  keeps the machine listed, offline, with the same line. Every script, hook and command says its version to the Pointe
+  on its machine (`X-Pointe-Client`), which answers one of another version with `426` and the command. A script prints
+  one sentence for any refusal, and a refused permission hook leaves the prompt in the terminal
+  ([docs/multi-machine.md](docs/multi-machine.md#versions-an-old-pointe-next-to-a-new-one)).
 - **Unreleased** (beta): New Claude Code sessions Pointe starts skip permission prompts by default, with a setting to ask
   before actions and "start a session that asks first" for one session
 

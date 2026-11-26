@@ -9,6 +9,7 @@ import { z } from 'zod'
 const TOKEN = process.env.CLAUDE_VOICE_TOKEN
 const CHANNEL_PORT = Number(process.env.CLAUDE_VOICE_CHANNEL_PORT)
 const DAEMON_URL = process.env.CLAUDE_VOICE_DAEMON_URL ?? 'http://127.0.0.1:7860'
+const CLIENT = process.env.POINTE_CLIENT ?? ''
 
 if (!TOKEN) {
   process.stderr.write('CLAUDE_VOICE_TOKEN is not set; launch through bin/claude-voice\n')
@@ -42,12 +43,17 @@ const PermissionRequest = z.object({
 
 mcp.setNotificationHandler(PermissionRequest, async ({ params }) => {
   try {
-    await fetch(`${DAEMON_URL}/voice/permission`, {
+    const answer = await fetch(`${DAEMON_URL}/voice/permission`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}` },
+      // x-pointe-client: who is calling (pointe/skew.py). A daemon of another version answers 426 with one sentence.
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}`, ...(CLIENT ? { 'x-pointe-client': CLIENT } : {}) },
       // The daemon serves several sessions; this channel's own URL says which one is asking.
       body: JSON.stringify({ ...params, channel_url: `http://127.0.0.1:${CHANNEL_PORT}` }),
     })
+    if (!answer.ok) {
+      const refused = await answer.json().catch(() => ({}))
+      process.stderr.write(`Pointe: ${refused.error ?? `the daemon answered ${answer.status} to a permission request`}\n`)
+    }
   } catch (err) {
     process.stderr.write(`permission relay failed: ${err}\n`)
   }

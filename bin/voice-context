@@ -9,7 +9,7 @@ PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ours" || {  # the token goes only to the daemon itself
   echo "voice-context: Pointe is not running on port $PORT" >&2; exit 1; }
-BODY="$(curl -fsS --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/context")"
+BODY="$("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/voice-ask" cli /voice/context)" || exit 1  # its one sentence is on stderr
 # The context goes on stdin: on a command line any local user could read it with ps, and a long one does not fit.
 SHOW="$(cat <<'PY'
 import json, sys

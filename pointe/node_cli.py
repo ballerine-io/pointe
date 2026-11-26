@@ -17,6 +17,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -25,6 +26,7 @@ import aiohttp
 import guards
 from node import (DAEMON_HERE, PORT, ROOT, STATE, _daemon_here, _netloc, _os, _read_json, _version, _write_private,
                   forget, nodelink, pairing)
+import skew  # noqa: E402
 import childenv  # noqa: E402  (after node, which puts the plugin's folder on the path)
 
 def peer_fingerprint(host: str, port: int, timeout: float = 10) -> str:
@@ -53,8 +55,13 @@ def _local(path: str, port: int, state: Path, body: dict | None = None) -> dict 
         request = urllib.request.Request(
             f"http://127.0.0.1:{port}{path}", method="POST" if body is not None else "GET",
             data=json.dumps(body).encode() if body is not None else None,
-            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"})
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
+                     skew.HEADER: skew.header("cli", _version())})
         return json.loads(urllib.request.urlopen(request, timeout=5).read())
+    except urllib.error.HTTPError as e:
+        if e.code == skew.STATUS:  # the host running here is another version of Pointe: its sentence, not "not running"
+            print(skew.sentence(e.code, e.read(1 << 16), port), file=sys.stderr)
+        return None
     except (OSError, ValueError):
         return None
 

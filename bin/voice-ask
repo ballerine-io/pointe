@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# One request to the Pointe on this machine (the voice, or the host in its place), as every script here makes it.
+#   voice-ask PART ROUTE [options]       PART: who is calling (plugin, hook, cli), sent in X-Pointe-Client
+# A 200 with JSON: the body on stdout, exit 0. Anything else (another version of Pointe, a refusal, nothing listening,
+# a body that is not JSON): one sentence on stderr and exit 22, never a traceback (pointe/skew.py holds the words).
+# The token and the header go through a curl config on a pipe, never an argument, and only to our own process on the
+# port (voice-ours): with Pointe down, another program there would get the token.
+STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
+PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
+BIN="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+[ $# -ge 2 ] || { echo "usage: voice-ask PART ROUTE [request options]" >&2; exit 2; }
+PART="$1" ROUTE="$2"
+shift 2
+say() { python3 -I "$BIN/../pointe/skew.py" sentence "$1" "$PORT" >&2; }
+[ -r "$STATE/token" ] && "$BIN/voice-ours" </dev/null || { say 0 </dev/null; exit 22; }
+VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$BIN/../.claude-plugin/plugin.json" 2>/dev/null | head -1)"
+API="$(sed -n 's/^API = \([0-9][0-9]*\).*/\1/p' "$BIN/../pointe/skew.py" | head -1)"
+OUT="$(curl -sS -w '\n%{http_code}' "$@" --config <(printf 'header = "Authorization: Bearer %s"\nheader = "X-Pointe-Client: %s/%s api=%s"\n' \
+  "$(cat "$STATE/token")" "$PART" "${VERSION:-0}" "${API:-1}") "http://127.0.0.1:$PORT$ROUTE" 2>/dev/null)" || true
+CODE="${OUT##*$'\n'}"
+BODY="${OUT%$'\n'*}"
+[ "$OUT" != "$CODE" ] || BODY=""
+case "$CODE:$BODY" in
+  200:\{*|200:\[*) printf '%s\n' "$BODY"; exit 0 ;;
+esac
+case "$CODE" in ''|*[!0-9]*) CODE=0 ;; esac
+printf '%s' "$BODY" | say "$((10#$CODE))"
+exit 22

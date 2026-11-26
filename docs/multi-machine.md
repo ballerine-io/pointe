@@ -120,6 +120,27 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
 (`pointe hub invite --name devbox`); to change it, pair again.
 
+## Versions: an old Pointe next to a new one
+
+Two machines, or a plugin and the Pointe it calls, are often on different versions. Each pair says what it speaks when
+it connects, and a pair with nothing in common fails in one sentence that names the side to update and the command.
+
+| Pair | What each side says | No common version |
+|---|---|---|
+| A node and its hub | The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak, and a list of features. The link uses the newest protocol both speak and the features both list | The link closes with code 4426. `pointe node status` on the node says which side is old: "studio runs an older Pointe (0.9.0) than this machine: update it there with pointe update", or "studio needs a newer Pointe on this machine". On the hub the machine stays in Settings → Machines, offline, with "devbox runs an older Pointe (0.9.0). Update it there to see its sessions: pointe update". Nobody's key is deleted, and the node reconnects by itself after the update |
+| A script, hook or command and the Pointe on the same machine | `X-Pointe-Client: <part>/<version> api=<n>` on every request | The answer is `426` with `{"error", "need", "have", "how"}`. The script prints the sentence in `error`; `how` is the command. A permission hook that is refused leaves the prompt in the terminal: it never blocks Claude Code |
+| The iPhone app and the Mac | The call protocol and the oldest one served, in the status ([phone.md](phone.md)) | The app says which of the two to update |
+
+Every script prints one sentence for any answer that is not what it expects: a refusal, a Pointe that does not know
+the request, something that is not Pointe. A script from a release before 0.10 sends no header and is served as
+before; one so old that it fails by itself (the 0.1.6 plugin) is named by `pointe doctor`, with the commands that
+update or remove it.
+
+**What is tested.** A node as 0.9.0 sends its hello (one protocol, no range, no features) links with this hub. The
+requests the scripts of 0.1.6, 0.8.0, 0.8.7 and 0.9.0 send are replayed against this daemon on every push
+(`tests/fixtures/skew_requests.json`): each gets a 200 or a refusal with a sentence. A pair further apart than that
+is not tested.
+
 ## Limits
 
 - **One hub per node.** To move a node to another hub, `pointe node leave`, then join the new one.

@@ -9,14 +9,16 @@ PORT="${CLAUDE_VOICE_DAEMON_PORT:-7860}"
 STATE="${CLAUDE_VOICE_STATE:-$HOME/.claude-voice}"
 
 case "${1:-on}" in
-  status) "$BIN/voice-daemon" status; "$BIN/voice-ours" || exit 0; curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "http://127.0.0.1:$PORT/voice/status" && echo; exit 0 ;;
+  status) "$BIN/voice-daemon" status; "$BIN/voice-ask" plugin /voice/status || true; exit 0 ;;
   off)  # this session leaves the voice; it keeps running here, and /pointe:voice joins it again
     : "${CLAUDE_CODE_SESSION_ID:?run this from inside a Claude Code session}"
     "$BIN/voice-ours" || { echo "this session was not on the voice"; exit 0; }  # the token goes only to the daemon
-    curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") -H 'Content-Type: application/json' \
-      -d "{\"id\": \"$CLAUDE_CODE_SESSION_ID\"}" "http://127.0.0.1:$PORT/voice/disconnect" >/dev/null \
-      && echo "this session left the voice; its permission prompts are back in this terminal" \
-      || echo "this session was not on the voice"
+    # voice-ask prints the body, or one sentence on stderr: "not on the voice" (a 404) is the ordinary answer here.
+    if WHY="$("$BIN/voice-ask" plugin /voice/disconnect -H 'Content-Type: application/json' -d "{\"id\": \"$CLAUDE_CODE_SESSION_ID\"}" 2>&1)"; then
+      echo "this session left the voice; its permission prompts are back in this terminal"
+    else
+      case "$WHY" in *"not on the voice"*|"") echo "this session was not on the voice" ;; *) echo "$WHY" ;; esac
+    fi
     exit 0 ;;
   heard)  # /pointe:setup's first call: waits until Pointe answered the person's first words (daemon.py writes first-hello)
     [ -f "$STATE/first-hello" ] && { echo "Pointe has answered you on this Mac before. You're set up."; exit 0; }
@@ -37,13 +39,18 @@ URL="$("$BIN/voice-daemon" ensure)"
 RESULT="$("$BIN/register-session" "$@" </dev/null)"
 echo "this session joined Pointe: $RESULT"
 "$BIN/voice-ours" || { echo "Pointe: the program on port $PORT is not Pointe, or nothing here can tell (lsof, ss or /proc)" >&2; exit 1; }  # the token goes only to the daemon
-# Whether a call is up, so the page opens only when none is. A refused or unreadable answer (a daemon from another
-# version of Pointe, a 403 without the key) is said in words and the page still opens: never a traceback.
-CONNECTED="$({ curl -sf --config <(printf 'header = "Authorization: Bearer %s"\n' "$(cat "$STATE/token")") "$URL/voice/status" 2>/dev/null || true; } \
+# Whether a call is up, so the page opens only when none is. A refused or unreadable answer (a Pointe of another
+# version, a 426 or a 403) is said in one sentence (voice-ask) and the page still opens: never a traceback.
+WHY="$(mktemp)"
+CONNECTED="$({ "$BIN/voice-ask" plugin /voice/status 2>"$WHY" || true; } \
   | python3 -I -c 'import json,sys
 try: print(json.load(sys.stdin)["connected"])
 except Exception: pass' 2>/dev/null || true)"
-[ "$CONNECTED" = True ] || [ "$CONNECTED" = False ] || echo "Pointe: the voice did not say whether a call is up (its status was refused or unreadable). pointe doctor says whether an older Pointe plugin is installed next to a newer Pointe." >&2
+if [ "$CONNECTED" != True ] && [ "$CONNECTED" != False ]; then
+  cat "$WHY" >&2
+  echo "Pointe: the voice did not say whether a call is up (its status was refused or unreadable). pointe doctor says whether an older Pointe plugin is installed next to a newer Pointe." >&2
+fi
+rm -f "$WHY"
 [ -n "${CLAUDE_VOICE_NO_BROWSER:-}" ] || [ "$CONNECTED" = True ] || "$BIN/voice-open"
 echo "For the person (nothing here waits on them, and nothing is for you to do): they talk in the voice tab or the phone app;"
 echo "$BIN/voice-open opens the tab again. Stop all voice with: $BIN/voice-daemon stop"

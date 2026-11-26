@@ -110,6 +110,7 @@ from guards import (relays_approval, remote_readable,
     JsonPosts,
     NoExit,
     LocalAuth,
+    ClientSkew,
     loopback_sockets,
     page_csp,
     permission_answer,
@@ -8677,6 +8678,7 @@ REMOTE = remote.Remote(STATE_DIR)
 remote.install(REMOTE, app)  # localhost as before; a paired phone over HTTPS through the private network
 PHONES = phone_pairing.Phones(STATE_DIR)  # each phone's key (hashed), name and last seen (Settings → Phone)
 app.add_middleware(LocalAuth, token=TOKEN, page_key=PAGE_KEY, remote=REMOTE, phone=PHONES.allowed)
+app.add_middleware(ClientSkew, version=VERSION)  # outermost: a script of another version hears why (skew.py)
 
 _listeners = app.router.lifespan_context  # remote.install's: the phone's HTTPS listener runs inside it
 

@@ -196,7 +196,7 @@ def test_a_good_hello_gets_welcome_with_the_call_state_vendors_and_resume(world)
     async def go():
         fake = FakeNode(hub, node)
         welcome = await fake.connect()
-        assert welcome == {"t": "welcome", "protocol": nodelink.PROTOCOL, "call_up": True, "approvals_terminal": False,
+        assert welcome == {"t": "welcome", "protocol": nodelink.PROTOCOL, "features": [], "call_up": True, "approvals_terminal": False,
                            "vendors": ["Anthropic", "Soniox"], "resume": {}}
         assert hub.live[node["id"]].online
         await fake.drop()

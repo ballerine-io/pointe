@@ -13,11 +13,12 @@ import unicodedata
 
 import local_proof
 import readout
+import skew
 from html.parser import HTMLParser
 from urllib.parse import parse_qs, urlparse
 
 from fastapi import Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from starlette.datastructures import Headers
 from starlette.requests import HTTPConnection
 from starlette.responses import RedirectResponse
@@ -941,6 +942,29 @@ _PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/liste
 _NODE_PATHS = {"/voice/node": "websocket", "/voice/node/pair": "http", "/voice/phone/pair": "http"}
 _NEEDS_KEY = "Open this page with bin/voice-open, or run /pointe:voice in a Claude Code session (pointe join for other agents). It carries the key this address needs."
 _NO_FRAMING = (b"content-security-policy", b"frame-ancestors 'self'")
+NO_KEY = {"error": "This call does not carry the key of the Pointe running on this machine: it comes from another "
+                   "version or another install of Pointe. pointe doctor names every copy and how to update",
+          "how": "pointe doctor"}
+
+
+class ClientSkew:
+    """A caller from another version of Pointe (skew.py) is told so in one sentence, with the command that fixes it.
+    Outside LocalAuth, so before the token is looked at: a refused token is what two versions side by side look
+    like, and the sentence is what the person needs. Only for a request addressed to this machine: a page cannot set
+    the header, and nothing off the machine learns the version."""
+
+    def __init__(self, app, version: str):
+        self.app, self.version = app, version
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            headers = Headers(scope=scope)
+            offered = headers.get(skew.HEADER)
+            if offered is not None and _local_headers(headers):
+                refused = skew.refusal(offered, self.version)
+                if refused is not None:
+                    return await JSONResponse(refused, status_code=skew.STATUS)(scope, receive, send)
+        await self.app(scope, receive, send)
 
 
 class LocalAuth:
@@ -1033,6 +1057,10 @@ class LocalAuth:
         if (proof := connection.headers.get(local_proof.HEADER)) is not None:
             return await self._proven(scope, receive, framed, proof)
         if not self._authorized(connection):
+            if scope["type"] == "http" and path != "/voice":
+                # A caller on this machine without the key is most often a script of another Pointe (a plugin left
+                # beside a newer install): it gets a sentence it can print, never a bare status (skew.py).
+                return await JSONResponse(NO_KEY, status_code=403)(scope, receive, send)
             return await self._refuse(scope, receive, send, _NEEDS_KEY if path == "/voice" else "forbidden")
         await self.app(scope, receive, framed)
 
