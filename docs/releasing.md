@@ -99,15 +99,20 @@ The tool asks for each before the step that needs it, and stops there; nothing i
 | Every signing step | The login keychain unlocked (a locked one makes codesign and notarytool hang) | The owner unlocks the Mac | |
 | The site | wrangler signed in to Ballerine's Cloudflare account | The owner: `npx -y wrangler@4.166.0 login` | wrangler's own store |
 | A site preview | The owner's look, when a hand-written page changed | The owner opens the preview, then `tools/release resume --site-approved` | |
-| TestFlight external group, Beta App Review, the App Store | App Store Connect: an App Manager role. The Developer-role key the release used before was refused every write | The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text) | |
+| TestFlight external group, Beta App Review, the App Store | App Store Connect with an App Manager role or more. The keychain's API key has the Developer role: reads only | The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text) | |
 | The App Store submission | The owner's yes, every time | The owner | |
 | The owner's iPhone | Unlocked, paired with Xcode, on the network or a cable | The owner | |
 
+**The App Store Connect API key.** A generic password in the login keychain (service `pointe-asc-api-key-p8`, account
+the key ID, holding the base64 of the `.p8`). `tools/release` reads it into memory, signs a short-lived token with
+openssl on a pipe, and never writes or prints it. It has the Developer role: the build's processing and TestFlight
+state are read with it; creating the App Store version, the external group, Beta App Review and the submission are
+refused (403), so the tool stops there with the clicks.
+
 **Recommendations.** Keep Xcode's account and the notary profile on the owner's Mac until the CI path below is
-approved: they are the two that stop a release today. Create an App Store Connect API key with the App Manager role
-only if the owner wants TestFlight's external group and Beta App Review done without a click; it would live in the
-Keychain (service `pointe-asc-api-key`), and the tool would then submit (not built yet: the step stops with the
-clicks). The App Store submission stays the owner's, by choice.
+approved: they are the two that stopped releases. Give the API key the App Manager role only if the owner wants
+TestFlight's external group and Beta App Review done without a click (the tool would then need those calls; not built).
+The App Store submission stays the owner's, by choice.
 
 ## Proposed: Mac signing and notarization in CI (not done)
 

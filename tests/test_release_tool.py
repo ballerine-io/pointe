@@ -219,3 +219,11 @@ def test_commits_are_grouped_by_what_a_person_uses_and_test_only_commits_are_too
     assert c("3", "Keys in the login keyring on Linux", ["pointe/keys.py"]).group == "Linux"
     assert c("4", "CI runs the Linux hub smoke", [".github/workflows/test.yml"]).group.startswith("Tests")
     assert c("5", "Sheets say their title once", ["apps/PointeKit/Sources/PointeUI/Sheet.swift"]).group == "Both apps"
+
+
+def test_an_openssl_der_signature_becomes_the_64_byte_jwt_form():
+    from releasekit import asc
+
+    r, s = b"\x00" + b"\x81" * 32, b"\x01" * 31  # r with DER's sign byte, s one byte short
+    der = b"\x30" + bytes([4 + len(r) + len(s)]) + b"\x02" + bytes([len(r)]) + r + b"\x02" + bytes([len(s)]) + s
+    assert asc._raw_signature(der) == b"\x81" * 32 + b"\x00" + b"\x01" * 31

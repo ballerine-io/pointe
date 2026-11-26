@@ -58,6 +58,7 @@ allowlist.
 | `github.com`, `release-assets.githubusercontent.com` | Kokoro v1.0 and ERes2Net release assets; the `en-core-web-sm` wheel; uv's binaries; Pointe's release tarball and its `.sha256`, and the `/releases/latest` redirect | first use of `mouth: local`, the voice lock; `uv sync --extra local`; `bin/install-uv`; the standalone installer (install.sh) and `pointe update` |
 | `download.tensorflow.org`, `groups.inf.ed.ac.uk` | recorded human speech for the benchmarks: the Speech Commands test set and the AMI corpus annotations, each checked against a pinned SHA-256 | `bench/conversational/dialogues/run.py human`, `bench/human_turns.py fetch`, run by a maintainer; never by the plugin |
 | `api.github.com` | the roadmap issues and their 👍 counts, through `gh api` | `tools/roadmap.py` (`site/deploy.sh --roadmap`), run by a maintainer; never by the plugin |
+| `api.appstoreconnect.apple.com` | the iPhone build's processing and TestFlight state, with a token signed in memory from the team's API key in the login keychain (Developer role: reads only) | `tools/release`, run by a maintainer at a release; never by the plugin |
 | `eng.ballerine.com` | the live site's page and `/pointe/install.sh`, read after a deploy to check the hero line and the pin | `tools/release`, run by a maintainer at a release; never by the plugin |
 | `astral.sh`, `releases.astral.sh` | the pinned uv installer | `bin/install-uv`, when uv is missing |
 | `pypi.org`, `files.pythonhosted.org` | Python packages, by hash | `uv sync --locked` |

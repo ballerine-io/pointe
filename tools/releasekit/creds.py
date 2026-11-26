@@ -89,12 +89,14 @@ def wrangler() -> Probe:
 
 
 def asc_api_key() -> Probe:
-    """An App Store Connect API key with the App Manager role, for TestFlight's external group, Beta App Review and the App
-    Store submission. Kept in the Keychain (service pointe-asc-api-key), never on disk. Today there is none: those steps
-    are the owner's, in App Store Connect."""
-    out = sh(["/usr/bin/security", "find-generic-password", "-s", "pointe-asc-api-key"], check=False, timeout=15)
-    return Probe("asc-key", out.returncode == 0, "an App Store Connect API key is in the Keychain" if out.returncode == 0
-                 else "no App Store Connect API key in the Keychain",
+    """The App Store Connect API key in the login keychain (releasekit/asc.py). Developer role: reads (build processing,
+    TestFlight state) work; creating an App Store version, the external group and submissions are refused, so those are
+    the owner's, in App Store Connect."""
+    from . import asc
+
+    ok = asc.have_key()
+    return Probe("asc-key", ok, f"App Store Connect API key {asc.KEY_ID} in the keychain (Developer role: reads only)" if ok
+                 else "no App Store Connect API key in the keychain",
                  "The owner, in App Store Connect (appstoreconnect.apple.com): TestFlight, the build, add it to the external group "
                  "and submit it for Beta App Review; App Store, the version, choose the build, Add for Review")
 

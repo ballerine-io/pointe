@@ -659,14 +659,34 @@ def dry_live(ctx: Ctx) -> str:
 # ---------- distribution ----------
 
 def testflight(ctx: Ctx) -> str:
-    return (f"{ctx.state.fact('ios_uploaded')}. The internal group gets it automatically once Apple has processed it "
-            "(not checked here: no App Store Connect API key)")
+    """Apple's processing of the upload, read with the keychain's API key: VALID, and the internal group testing it."""
+    from . import asc
+
+    if not asc.have_key():
+        return f"{ctx.state.fact('ios_uploaded')}. The internal group gets it once Apple has processed it (not checked: no API key)"
+    build = ctx.state.fact("ios_build")
+    end = time.monotonic() + 60 * 60
+    while True:
+        got = asc.build(ctx.version, build)
+        if got and got["processing"] == "VALID" and got["internal"] in ("IN_BETA_TESTING", "READY_FOR_BETA_TESTING"):
+            return f"TestFlight {ctx.version} ({build}): processing VALID, internal {got['internal']}"
+        if got and got["processing"] in ("FAILED", "INVALID"):
+            raise Fail(f"App Store Connect could not process {ctx.version} ({build}): {got['processing']}")
+        if getattr(ctx.args, "no_wait", False) or time.monotonic() > end:
+            raise Stop(f"TestFlight {ctx.version} ({build}): {got or 'not listed yet'}", "tools/release resume (waits again)", waiting=True)
+        ctx.say(f"    App Store Connect: {got or 'not listed yet'}")
+        time.sleep(60)
 
 
 def external(ctx: Ctx) -> str:
-    probe = creds.asc_api_key()
-    raise Stop(f"TestFlight's external group and Beta App Review for {ctx.version} ({ctx.state.fact('ios_build')}): "
-               + ("an API key is in the Keychain, but this tool does not submit yet" if probe.ok else probe.detail),
+    from . import asc
+
+    state = ""
+    if asc.have_key():
+        got = asc.build(ctx.version, ctx.state.fact("ios_build")) or {}
+        state = f" (external state now: {got.get('external')})"
+    raise Stop(f"TestFlight's external group and Beta App Review for {ctx.version} ({ctx.state.fact('ios_build')}){state}: the API key "
+               "has the Developer role, which Apple refuses for these writes",
                "The owner, in App Store Connect: TestFlight, the build, add it to the group 'Beta testers', submit for Beta App Review",
                waiting=True)
 
@@ -683,8 +703,12 @@ def screenshots_age(tree: Path) -> str:
 def app_store(ctx: Ctx) -> str:
     """The App Store needs the owner's yes each time: the What's New text (the changelog line, never "beta"), the build,
     and screenshots from the tag's ui run when the screens changed."""
+    from . import asc
+
     whats_new = getattr(ctx.args, "summary", None) or "(the version's CHANGELOG line)"
-    raise Stop(f"App Store submission of {ctx.version} ({ctx.state.fact('ios_build')}): needs the owner's yes. Screenshots: "
+    versions = ", ".join(f"{v['version']} {v['state']}" for v in asc.app_store_versions()) if asc.have_key() else "not read"
+    raise Stop(f"App Store submission of {ctx.version} ({ctx.state.fact('ios_build')}): needs the owner's yes; the API key cannot "
+               f"create the version (Developer role). App Store versions now: {versions}. Screenshots: "
                + screenshots_age(ctx.tree),
                f"The owner, in App Store Connect: App Store, + version {ctx.version}, What's New: \"{whats_new}\", choose build "
                f"{ctx.state.fact('ios_build')}, Add for Review. If the screens changed, take the six shots from the tag's ui run "

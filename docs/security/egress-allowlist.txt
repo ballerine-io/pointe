@@ -36,6 +36,7 @@ release-assets.githubusercontent.com where github.com release downloads redirect
 
 # maintainers' tools, never the plugin
 eng.ballerine.com          the site: tools/release reads its live page and /pointe/install.sh after a deploy (release checks only); also the site's own address in link previews and where a person downloads install.sh
+api.appstoreconnect.apple.com  App Store Connect's API, read with the team's key from the keychain: build processing and TestFlight state (tools/release, release checks only)
 api.github.com             the roadmap issues and their 👍 counts, through `gh api` (tools/roadmap.py, site/deploy.sh --roadmap)
 
 # installers

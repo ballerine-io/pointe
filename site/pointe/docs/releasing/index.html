@@ -310,7 +310,7 @@ lock, taken over only from a run that died. A stopped step names the one thing t
 </tr>
 <tr>
 <td>TestFlight external group, Beta App Review, the App Store</td>
-<td>App Store Connect: an App Manager role. The Developer-role key the release used before was refused every write</td>
+<td>App Store Connect with an App Manager role or more. The keychain's API key has the Developer role: reads only</td>
 <td>The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text)</td>
 <td></td>
 </tr>
@@ -328,11 +328,15 @@ lock, taken over only from a run that died. A stopped step names the one thing t
 </tr>
 </tbody>
 </table></div>
+<p><strong>The App Store Connect API key.</strong> A generic password in the login keychain (service <code>pointe-asc-api-key-p8</code>, account
+the key ID, holding the base64 of the <code>.p8</code>). <code>tools/release</code> reads it into memory, signs a short-lived token with
+openssl on a pipe, and never writes or prints it. It has the Developer role: the build's processing and TestFlight
+state are read with it; creating the App Store version, the external group, Beta App Review and the submission are
+refused (403), so the tool stops there with the clicks.</p>
 <p><strong>Recommendations.</strong> Keep Xcode's account and the notary profile on the owner's Mac until the CI path below is
-approved: they are the two that stop a release today. Create an App Store Connect API key with the App Manager role
-only if the owner wants TestFlight's external group and Beta App Review done without a click; it would live in the
-Keychain (service <code>pointe-asc-api-key</code>), and the tool would then submit (not built yet: the step stops with the
-clicks). The App Store submission stays the owner's, by choice.</p>
+approved: they are the two that stopped releases. Give the API key the App Manager role only if the owner wants
+TestFlight's external group and Beta App Review done without a click (the tool would then need those calls; not built).
+The App Store submission stays the owner's, by choice.</p>
 <h2 id="proposed-mac-signing-and-notarization-in-ci-not-done">Proposed: Mac signing and notarization in CI (not done)</h2>
 <p>So that a release does not depend on the owner's Mac being awake, signed in and unlocked, <code>mac-release</code>
 (<code>.github/workflows/mac-release.yml</code>) already builds <code>tools/build_dmg.sh --ci</code> with a Developer ID <code>.p12</code> and an App
