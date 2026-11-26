@@ -89,7 +89,7 @@ extension Demo {
             state: {
                 guard let (name, grant) = state.waiting else { return API.PeopleInvite(code: "", paired: false) }
                 state.checks += 1
-                guard state.checks >= 4 else {
+                guard state.checks >= 8 else {  // about twelve seconds: long enough to see the line
                     return API.PeopleInvite(code: "K7PQ-2MXD", link: personInviteLink, expires_in: 600, name: name, grant: grant)
                 }
                 state.waiting = nil

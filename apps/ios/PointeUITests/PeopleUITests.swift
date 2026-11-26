@@ -27,24 +27,37 @@ final class PeopleUITests: XCTestCase {
         app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
     }
 
+    /// The Sessions sheet opens at half height and draws its lower rows only when they come on screen: scroll to one.
+    private func reveal(_ element: XCUIElement) {
+        for _ in 0..<5 where !element.exists { app.swipeUp(velocity: .slow) }
+    }
+
     // MARK: whose it is
 
     func testTheSessionsListSaysWhoseEachMachineAndSessionIs() throws {
         launch("people", sheet: "sessions")
-        let section = any("machineSection.avi-box")
-        XCTAssertTrue(section.waitForExistence(timeout: 15))
-        XCTAssertTrue(section.label.contains("avi-box · Avi's · Linux · 31 ms"), section.label)
+        XCTAssertTrue(any("machineChip.mine").waitForExistence(timeout: 15), "Mine, once some session is somebody else's")
         XCTAssertTrue(any("machineSection.studio").label.contains("studio · this Mac"), "my own machine says no owner")
-        XCTAssertTrue(label("Dana is using it").exists, "who a session works for")
+        XCTAssertFalse(any("session.shop").label.contains("'s"), "no owner tag on mine")
+        let section = any("machineSection.avi-box")
+        reveal(section)
+        XCTAssertTrue(section.waitForExistence(timeout: 5))
+        XCTAssertTrue(section.label.contains("avi-box · Avi's · Linux · 31 ms"), section.label)
+        reveal(any("session.tide"))
+        XCTAssertTrue(label("Dana is using it").waitForExistence(timeout: 5), "who a session works for")
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Avi's")).firstMatch.exists, "an owner tag on Avi's sessions")
-        XCTAssertFalse(any("session.shop").label.contains("'s"), "none on mine")
-        XCTAssertEqual(any("session.billing").value as? String, "private", "the lock, in words")
         shot("people-sessions")
+    }
+
+    func testMineShowsOnlyMySessions() throws {
+        launch("people", sheet: "sessions")
         let mine = any("machineChip.mine")
-        XCTAssertTrue(mine.exists, "Mine, once some session is somebody else's")
+        XCTAssertTrue(mine.waitForExistence(timeout: 15))
         mine.tap()
-        XCTAssertTrue(section.waitForNonExistence(timeout: 5), "Mine hides Avi's machine")
-        XCTAssertTrue(any("session.shop").exists)
+        XCTAssertEqual(any("session.billing").value as? String, "private", "the lock, in words")
+        for _ in 0..<3 { app.swipeUp(velocity: .slow) }
+        XCTAssertFalse(any("machineSection.avi-box").exists, "Mine hides Avi's machine")
+        XCTAssertFalse(any("session.tide").exists)
         shot("people-sessions-mine")
     }
 
@@ -68,7 +81,9 @@ final class PeopleUITests: XCTestCase {
     func testAMachineThatRemovedYouSaysSoAndOffersRemove() throws {
         launch("peopleRemoved", sheet: "sessions")
         let gone = any("machineGone.avi-box")
-        XCTAssertTrue(gone.waitForExistence(timeout: 15))
+        XCTAssertTrue(any("machineChip.all").waitForExistence(timeout: 15))
+        reveal(gone)
+        XCTAssertTrue(gone.waitForExistence(timeout: 5))
         XCTAssertEqual(gone.label, "avi-box removed you")
         XCTAssertTrue(any("machineSection.avi-box").label.contains("offline since"), "an offline machine")
         shot("people-removed-you")
@@ -199,7 +214,7 @@ final class PeopleUITests: XCTestCase {
 
     func testAMachineAddedElsewhereSaysOnceWhereItsTranscriptsGo() throws {
         launch("peopleAdded")
-        let ok = app.buttons["disclosureOK"]
+        let ok = app.alerts.buttons["OK"].firstMatch  // an alert's button keeps no identifier
         XCTAssertTrue(ok.waitForExistence(timeout: 15))
         XCTAssertTrue(label("Your voice sends the transcripts of the sessions on avi-box").exists)
         shot("disclosure")

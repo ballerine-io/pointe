@@ -208,7 +208,9 @@ struct AddMachineSheet: View {
             .frame(maxWidth: .infinity).frame(height: 260)
             .background(Brand.raised, in: RoundedRectangle(cornerRadius: 16))
             .clipShape(RoundedRectangle(cornerRadius: 16))
-            .listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Brand.line))
+            .padding(.vertical, 4)  // inside the card, with Paste under it: on a clear row it floated over the sheet
+            .listRowSeparator(.hidden)
             .accessibilityIdentifier("addMachineScanner")
         } else {
             kept

@@ -310,6 +310,6 @@ enum QRCode {
     }
 
     static func image(_ text: String) -> Image? {
-        cgImage(text).map { Image(decorative: $0, scale: 1) }
+        cgImage(text).map { Image($0, scale: 1, label: Text("The invite as a code to scan")) }  // not decorative: VoiceOver and the UI tests find it
     }
 }

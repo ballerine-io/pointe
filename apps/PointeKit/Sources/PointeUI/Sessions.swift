@@ -389,9 +389,11 @@ struct SessionsSheet: View {
                 // name longer than the column loses its middle, never breaking inside a word.
                 ViewThatFits(in: .horizontal) {
                     HStack {
-                        name(s)
+                        // A short name is never squeezed to fit the line: with an owner tag and "watch only" beside
+                        // it, "shop" was drawn as nothing. If the line is too narrow, the state goes under the name.
+                        name(s).fixedSize(horizontal: machines.short(s).count <= 16, vertical: false)
                         Spacer()
-                        rowState(s)
+                        rowState(s).fixedSize()
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         name(s)
