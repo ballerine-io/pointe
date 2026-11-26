@@ -19,3 +19,15 @@
 {"at": "2026-11-26T19:44:21+0200", "launch": "fleet-20261126-193413-turns-5x20-fleet-off-r1", "what": "turns", "usd": 2.630411, "calls": 167}
 {"at": "2026-11-26T19:53:53+0200", "launch": "fleet-20261126-194422-turns-5x20-fleet-off-r2", "what": "turns", "usd": 2.567657, "calls": 145}
 {"at": "2026-11-26T20:02:41+0200", "launch": "fleet-20261126-195354-turns-5x20-fleet-off-r3", "what": "turns", "usd": 2.228681, "calls": 129}
+{"at": "2026-11-26T20:13:48+0200", "launch": "fleet-20261126-200427-turns-5x20-fleet-on-r1", "what": "turns", "usd": 1.139803, "calls": 140}
+{"at": "2026-11-26T20:24:16+0200", "launch": "fleet-20261126-201349-turns-5x20-fleet-on-r2", "what": "turns", "usd": 1.436414, "calls": 156}
+{"at": "2026-11-26T20:33:51+0200", "launch": "fleet-20261126-202417-turns-5x20-fleet-on-r3", "what": "turns", "usd": 1.252965, "calls": 142}
+{"at": "2026-11-26T20:44:40+0200", "launch": "fleet-20261126-203352-turns-5x20-fleet-off-r1", "what": "turns", "usd": 2.728083, "calls": 162}
+{"at": "2026-11-26T20:54:32+0200", "launch": "fleet-20261126-204441-turns-5x20-fleet-off-r2", "what": "turns", "usd": 2.600433, "calls": 152}
+{"at": "2026-11-26T21:04:07+0200", "launch": "fleet-20261126-205432-turns-5x20-fleet-off-r3", "what": "turns", "usd": 2.672896, "calls": 152}
+{"at": "2026-11-26T21:10:55+0200", "launch": "fleet-20261126-210408-turns-1x4-fleet-on-r1", "what": "turns", "usd": 0.372761, "calls": 97}
+{"at": "2026-11-26T21:18:02+0200", "launch": "fleet-20261126-211055-turns-1x4-fleet-on-r2", "what": "turns", "usd": 0.465248, "calls": 120}
+{"at": "2026-11-26T21:25:05+0200", "launch": "fleet-20261126-211802-turns-1x4-fleet-on-r3", "what": "turns", "usd": 0.433351, "calls": 103}
+{"at": "2026-11-26T21:32:05+0200", "launch": "fleet-20261126-212506-turns-1x4-fleet-off-r1", "what": "turns", "usd": 0.390235, "calls": 101}
+{"at": "2026-11-26T21:39:03+0200", "launch": "fleet-20261126-213205-turns-1x4-fleet-off-r2", "what": "turns", "usd": 0.464078, "calls": 109}
+{"at": "2026-11-26T21:46:06+0200", "launch": "fleet-20261126-213903-turns-1x4-fleet-off-r3", "what": "turns", "usd": 0.467372, "calls": 123}
