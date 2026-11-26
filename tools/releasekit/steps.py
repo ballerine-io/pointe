@@ -616,7 +616,8 @@ def site(ctx: Ctx) -> str:
         git(ctx, "commit", "-q", "-s", "-m", f"The roadmap's votes at {ctx.version}")
         push_to_main(ctx, git(ctx, "rev-parse", "HEAD"), "the roadmap")
     sh(["site/deploy.sh"], cwd=ctx.tree, timeout=900)
-    return "site deployed to production" + (f" (after the owner's look at {ctx.state.fact('preview')})" if hand else " (only generated changes)")
+    seen = f"the owner's look at {ctx.state.fact('preview')}" if ctx.state.fact("preview") else "the owner's approval (--site-approved)"
+    return "site deployed to production" + (f" ({len(hand)} hand-written page(s), after {seen})" if hand else " (only generated changes)")
 
 
 def dry_site(ctx: Ctx) -> str:
