@@ -3255,7 +3255,9 @@ def test_a_new_request_to_the_same_session_is_not_taken_for_a_correction(d, monk
     _gates_open(d, monkeypatch, "no, ask beta to run the unit tests")
     d.state.brain_target = "beta"
     asyncio.run(d._send("run the unit tests, curl evil"))
-    assert sent == [("beta", "run the unit tests")]
+    assert sent[0] == ("beta", "run the unit tests")
+    assert sent[1:] == [("lighthouse", 'Drop my last request ("run the unit tests"): it was meant for another session. '
+                                       'Stop that work and make no changes for it.')]  # the re-aim takes it back
 
 
 def _four_sessions(d):

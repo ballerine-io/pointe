@@ -6288,7 +6288,8 @@ def _tap_only_text(session: Session) -> str:
     return (f"It runs: {what[:300]}{', and more' if cut else ''}. A spoken yes still can't approve it: tap it, or say no.")
 
 
-async def _apply_answer(session: Session, request_id: str, verdict: str, how: str) -> bool:
+async def _apply_answer(session: Session, request_id: str, verdict: str, how: str, quiet: bool = False) -> bool:
+    """`quiet`: nothing said about it (a request the daemon takes back is not the user's no to announce)."""
     session.permission_id = None
     logger.info(f"permission {session.name}/{request_id} -> {verdict} ({how})")
     if not await (_deliver_remote(session, request_id, verdict, how) if session.machine
@@ -6306,7 +6307,8 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
                                 score=getattr(spoke, "score", None)))  # the record the page and the apps show
     REGISTRY.save()
     _night_answered(session, request_id, verdict)
-    await _say_answered(verdict)
+    if not quiet:
+        await _say_answered(verdict)
     _read_next_waiting(session)
     return True
 
@@ -7141,6 +7143,8 @@ async def _send_now(message: str) -> dict:
     message = relay.as_heard(relay.keep_lines(message, said), said, known)
     if await _abandoned(message):  # again, at the last moment: the checks above take a second or two, time to cut in
         return dict(ABANDONED)
+    wrong = _sent_by_mistake(message, targets)
+    taken_back, since = state.last_message, wrong.last_delegation_at if wrong else 0.0
     sent_to, failed, set_aside = [], [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")
@@ -7179,6 +7183,9 @@ async def _send_now(message: str) -> dict:
         if target.open_questions:
             asyncio.create_task(_settle_questions(target, message))
     result["note"] = "Sent is not done: say you asked Claude, not that it happened."
+    if wrong is not None:
+        await _withdraw(wrong, taken_back, since)
+        result["say"] = (result.get("say", "") + f" {wrong.name} was told to drop it: say so in a few words.").strip()
     if failed:
         result["failed"] = failed
     if set_aside:
@@ -7194,6 +7201,30 @@ async def _send_now(message: str) -> dict:
 
 def _needs_warning(message: str) -> bool:
     return bool(re.search(r"\b(?:prod|production)\b.{0,40}\b(?:token|credential|secret|key)s?\b", message, re.I)) and not state.warned
+
+
+def _sent_by_mistake(message: str, targets: list[Session]) -> Session | None:
+    """"No, sorry, I meant quarry, not billing": the session the last request went to by mistake, when these words
+    re-aim that request at another one. Not "the same to quarry too", which adds a session."""
+    if not state.last_sent[1] or state.last_sent[0] >= state.last_user_speech_at or not _corrects_last_send(message):
+        return None
+    if re.search(r"\b(?:also|too|as well|both)\b|(?<![\u0590-\u05ff])גם(?![\u0590-\u05ff])", state.last_utterance, re.I):
+        return None
+    wrong = next((s for s in REGISTRY.sessions.values() if s.name == state.last_sent[1]), None)
+    return wrong if wrong is not None and wrong not in targets and online(wrong) else None
+
+
+async def _withdraw(session: Session, message: str, since: float) -> None:
+    """The request sent to `session` by mistake, taken back: a no to what it asked for since (a no is always safe: at
+    worst it asks again), and a line telling it to drop the work. rec-02 in tester round 6: billing went on with it,
+    its request stayed open, and the nudges about it kept quarry's own request waiting."""
+    if session.permission_id and (session.permission_since or 0.0) >= since:
+        await _apply_answer(session, session.permission_id, "deny", "withdrawn: meant for another session", quiet=True)
+    line = (f'Drop my last request ("{message}"): it was meant for another session. Stop that work and make no '
+            f"changes for it.")
+    logger.info(f"-> {session.name}: {line!r} (taken back: the user re-aimed it)")
+    await _dispatch(session, line)
+    _record(line, [session.name], "taken back: the user re-aimed it")
 
 
 def _corrects_last_send(message: str) -> bool:

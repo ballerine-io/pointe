@@ -80,6 +80,10 @@ With the default brain, a permission prompt is approved only when all of these h
   yes after a full read-out approves what was read, without friction); "Approved." confirms it. In any other case
   (another request waiting, anything else said since, a read-out the user cut) a yes brings the request again before
   anything is approved. Drive mode does not read one out: it waits until you stop.
+- A request re-aimed at another session ("no, I meant quarry, not billing") is taken back from the first: Pointe tells
+  it to drop that work and make no changes for it, and says no to a permission it asked for since the request reached
+  it. Pointe never approves on its own; a no is safe (at worst the session asks again). A request it was waiting on
+  before then is left alone.
 - A command that only looks is said as that: "look around, read only: pwd, ls, git status, grep and find", and "also
   in /tmp" when it looks outside the project or at a hidden or secret-looking file (`readout.looking`); a project next
   to this one is said by its name ("also in tariff-api, next to the project") and "/" as "the whole disk". A session
