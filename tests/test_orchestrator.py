@@ -138,6 +138,11 @@ def d(tmp_path, monkeypatch):
     monkeypatch.setattr(daemon, "ECHO", daemon.EchoGuard())
     monkeypatch.setattr(daemon, "DELEGATION_GRACE_SECS", 0.1)
     monkeypatch.setattr(daemon, "COPY_SESSIONS", False)  # never start Claude Code from a test
+    # Past its first call: the state folder is fixed at the daemon's first import, so whether an earlier test left the
+    # marker there decided the greeting (test_o125 failed alone). tests/test_first_hello.py points it elsewhere.
+    (tmp_path / "past-first-call").mkdir()
+    (tmp_path / "past-first-call" / "first-hello").touch()
+    monkeypatch.setattr(daemon, "FIRST_HELLO", tmp_path / "past-first-call" / "first-hello")
     return daemon
 
 
