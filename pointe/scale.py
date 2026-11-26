@@ -25,6 +25,12 @@ import re
 from dataclasses import dataclass
 
 FOCUS_MAX = 12
+# Up to this many sessions the brain is told exactly what it is told with the rules off: the same block, opening,
+# instructions and list_sessions. The fleet benchmark at four sessions: with the big fleet's guidance in the
+# instructions ("send with no look-up first") the brain sent words for a session nobody has, 9 of 21 against 1 of 21.
+# The routing rules that decide in code (one name on several machines, a machine said, nobody of that name) apply at
+# every size.
+SMALL_FLEET = FOCUS_MAX
 RECENT_PER_MACHINE = 20
 FOCUS_SECS = 600.0  # named, asked about or sent to this long ago: back to the background
 BUDGET_TOKENS = 1800
@@ -46,6 +52,11 @@ FOCUS, BACKGROUND, QUIET = "focus", "background", "quiet"
 
 def enabled() -> bool:
     return os.environ.get("POINTE_FLEET", "off").strip().lower() in ("on", "1", "true", "yes")
+
+
+def big(sessions: int) -> bool:
+    """The fleet is past SMALL_FLEET and the rules are on: what the brain is told takes the big fleet's form."""
+    return enabled() and sessions > SMALL_FLEET
 
 
 def tokens(text: str) -> int:
@@ -171,6 +182,10 @@ def _need_line(names: list[str], chars: int) -> str:
 
 
 REST_HEAD = "The other sessions, by machine:"
+# When the call began on a small fleet, the instructions do not have RULES: the block says the part that routes.
+REST_HEAD_UNTOLD = ("The other sessions, by machine (list_sessions reads them; to send to one, send_to_claude_code with the "
+                    "user's words, with no look-up first: the daemon finds it or asks):")
+SENT_BATCH = 4  # sends with no report yet are added to the block this many at a time (daemon._fleet_sent)
 # Said once, in the brain's instructions (a call that starts with the rules on): in the block it was repeated in every
 # copy the history keeps, and the block is appended each time it changes.
 RULES = """
@@ -200,7 +215,7 @@ def sent_lines(items: list[tuple[str, str, bool, list[str]]], shown: int = SENT_
 
 
 def fit(head: str, lines: list[str], machines: list[MachineLine] = (), needing: list[str] = (), sent: list[str] = (),
-        budget: int = BUDGET_TOKENS) -> str:
+        told: bool = True, budget: int = BUDGET_TOKENS) -> str:
     """The whole block, within the budget whatever the fleet's size. The budget is a ceiling: a fleet where little
     needs the user gets a block of a few hundred tokens. Nothing is cut while it fits. Over it: the machines past the
     first few become one count, then each session's line is shortened, the longest first."""
@@ -216,7 +231,7 @@ def fit(head: str, lines: list[str], machines: list[MachineLine] = (), needing: 
             shown.append(m)
             used += len(m.text()) + 1
         left = list(machines)[len(shown):]
-        tail += [REST_HEAD] + [m.text() for m in shown]
+        tail += [REST_HEAD if told else REST_HEAD_UNTOLD] + [m.text() for m in shown]
         if left:
             needs = sum(m.needs for m in left)
             tail.append(f"- and {len(left)} more machine{'' if len(left) == 1 else 's'}: {sum(m.total for m in left)} "
@@ -302,6 +317,11 @@ def who_words(who: str) -> set[str]:
     """The words of an address that can describe a session ("the session working on the coupon ledger": coupon,
     ledger). None left: a pronoun or "the other one", which points at the talk and not at a description."""
     return words(who) - _WHO_NOISE
+
+
+def named_like(who: str) -> bool:
+    """The address is one word, as a name is ("nimbus", "the nimbus session"), and not a description of some work."""
+    return len(who_words(who) - {"session"}) == 1 and len(who.split()) <= 3
 
 
 def singled_out(who: str, docs: list[Doc], sid: str) -> bool:

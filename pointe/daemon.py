@@ -1394,7 +1394,7 @@ def _machines_line() -> str | None:
     """For the brain, when sessions run on more than one machine: where, and how to speak of it."""
     if not _multi_machine():
         return None
-    if scale.enabled() and len(REGISTRY.sessions) > scale.FOCUS_MAX:
+    if scale.big(len(REGISTRY.sessions)):
         return None  # a big fleet: each machine has its line in "what needs me" (_fleet_split), and scale.RULES the rest
     on = [s.machine for s in REGISTRY.sessions.values()]
     parts = [f"{_here()} (this Mac, {_count(on.count(''))})"] if "" in on else []
@@ -1640,7 +1640,8 @@ def make_brain(speak, filler=None) -> Brain:
         logger.info(f"brain step: {u.get('ms')} ms, {u.get('context')} tokens in"
                     + (f", {u['cached']} of them cached" if u.get("cached") else ""))
 
-    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES + (scale.RULES if scale.enabled() else ""), TOOLS.standard_tools, _brain_context, speak, filler,
+    state.fleet_rules_told = scale.big(len(REGISTRY.sessions))  # a small fleet's brain is told what it is told with the rules off
+    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES + (scale.RULES if state.fleet_rules_told else ""), TOOLS.standard_tools, _brain_context, speak, filler,
                   _open_items, lambda: bool(state.unconfirmed), usage, fallback=vendors.BRAIN_FALLBACK.get(setup().brain),
                   may_stay_silent=lambda: ack_only(state.last_utterance), language_problem=_language_problem)
     brain.translate = _translate
@@ -3131,6 +3132,8 @@ class State:
     unaddressed: int = 0  # side talk dropped since Pointe started (addressed.py): a count, never the words
     # A big fleet (scale.py). Per session: when it was last named, asked about or sent to (what puts it in focus).
     fleet_touched: dict[str, float] = field(default_factory=dict)
+    fleet_sent: list[str] = field(default_factory=list)  # the sessions the block lists as sent to, with no report yet
+    fleet_rules_told: bool = False  # this call's brain has scale.RULES in its instructions
     fleet_first: dict[str, float] = field(default_factory=dict)  # per session: its activity when first seen here
     fleet_unread: set[str] = field(default_factory=set)  # quiet sessions with a finished turn the reader did not read
     fleet_route: dict | None = None  # the candidates of the last routing decision, and how each was picked
@@ -6595,21 +6598,33 @@ def _fleet_split(pool: list[Session]) -> tuple[list[Session], list[scale.Machine
     because it was named, or is the one talked with, has no line: the block is appended to the brain's history each
     time it changes, and a line that came and went with every name said made a new 1,600-token copy on almost every
     turn (49 of 59 turns in the fleet benchmark, against a few hundred tokens a turn on a small fleet)."""
-    if len(REGISTRY.sessions) <= scale.FOCUS_MAX:
-        return pool, [], [], []
+    if not scale.big(len(REGISTRY.sessions)):
+        return pool, [], [], [], True
     rows = _fleet_rows()
     tier = scale.tiers(rows, time.time())
     by_id = {r.id: r for r in rows}
     full = [s for s in pool if tier[s.id] == scale.FOCUS and (by_id[s.id].active or by_id[s.id].needs)]
     several = _multi_machine()
-    waited = sorted((s for s in pool if tier[s.id] == scale.FOCUS and s not in full and by_id[s.id].awaiting),
-                    key=lambda s: (-s.last_delegation_at, s.name))
+    waited = _fleet_sent([s for s in pool if tier[s.id] == scale.FOCUS and s not in full and by_id[s.id].awaiting])
     sent = scale.sent_lines([(s.name, f"on {_machine_of(s)}" if several else "", _working(s),
                               list(state.unconfirmed.get(s.id) or ["a request"])) for s in waited])
     listed = {s.id for s in full} | {s.id for s in waited}
     shown = {sid: scale.FOCUS if sid in listed else scale.BACKGROUND for sid in tier}
     labels = {m: _fleet_label(m) for m in {r.machine for r in rows}}
-    return full, scale.machine_lines(rows, shown, labels), scale.more_need(rows, tier), sent
+    return full, scale.machine_lines(rows, shown, labels), scale.more_need(rows, tier), sent, state.fleet_rules_told
+
+
+def _fleet_sent(awaiting: list[Session]) -> list[Session]:
+    """The sessions sent to with no report yet that the block lists, newest first. A session that reported leaves at
+    once. New ones join scale.SENT_BATCH at a time: the block is appended to the brain's history whenever it changes,
+    and one that changed with every send was a new copy on 47 of 59 turns of the fleet benchmark. The sends not listed
+    yet are the brain's own latest tool calls, a few lines above in its history."""
+    by_id = {s.id: s for s in awaiting}
+    new = [sid for sid in by_id if sid not in state.fleet_sent]
+    if len(new) >= scale.SENT_BATCH or not state.fleet_sent:
+        state.fleet_sent = list(by_id)
+    state.fleet_sent = [sid for sid in state.fleet_sent if sid in by_id]
+    return sorted((by_id[sid] for sid in state.fleet_sent), key=lambda s: (-s.last_delegation_at, s.name))
 
 
 def fleet_needs() -> dict:
@@ -6699,7 +6714,7 @@ def _fleet_who(said: str, sessions: list[Session]) -> str:
     the session working on the coupon ledger to ...". "" when they address a session by name, nobody, or the talk
     ("tell it to ...", "ask the other one ..."), and in a fleet small enough to be routed as before."""
     m = _FAST_SEND.match(said.strip())
-    if not m or len(sessions) <= scale.CANDIDATES_MAX or broadcast_intent(said) or not scale.who_words(m["who"]):
+    if not m or len(sessions) < 2 or broadcast_intent(said) or not scale.who_words(m["who"]):
         return ""
     return m["who"]
 
@@ -6805,7 +6820,14 @@ def _fleet_which(how: str, said: str) -> str | None:
         if scoped:
             return f"Which session on {route['machines'][0]} is it for?"
         state.fleet_ask = (time.time(), list(REGISTRY.sessions))
-        if route.get("who"):  # "tell nimbus to ...", "the session working on the passport scanner": there is none
+        fits = [c for c in route.get("candidates", ()) if c["how"] == "lexical" and c["score"] >= scale.SCORE_FLOOR
+                and c["id"] in REGISTRY.sessions]
+        top = [REGISTRY.sessions[c["id"]] for c in fits if c["score"] * 1.5 >= fits[0]["score"]]
+        if route.get("who") and 2 <= len(top) <= scale.NAMES_IN_A_LINE:
+            # "The session working on the warranty webhook", and two work on it: those two, by name.
+            state.fleet_ask = (time.time(), [x.id for x in top])
+            return scale.which_question([(_fleet_spoken(x), x.machine) for x in top])
+        if route.get("who") and not route.get("matched"):  # "tell nimbus to ...": there is none
             return "I found no session like that. " + ("Which machine is it on?" if _multi_machine() else "Which session is it?")
         return "Which machine is it for?" if _multi_machine() else "Which session is it for?"
     tied = _tied_in(said) if how == "ambiguous" else []
@@ -6830,7 +6852,7 @@ def _fleet_listed(args: dict) -> list[Session]:
     """The sessions list_sessions returns: all of them as before with the fleet rules off; else those its arguments
     pick, the ones in focus first, twenty at most."""
     sessions = list(REGISTRY.sessions.values())
-    if not scale.enabled():
+    if not scale.big(len(sessions)):
         return sessions
     return [REGISTRY.sessions[r["id"]] for r in _fleet_select(args)[0]]
 
@@ -6849,18 +6871,19 @@ def _fleet_select(args: dict) -> tuple[list[dict], int]:
 def _fleet_slim(rows: list[dict]) -> list[dict]:
     """list_sessions' rows on a big fleet: the whole row for a session in focus; for the others its name, machine and
     state, without its latest lines and empty fields. Twenty whole rows were about 2,000 tokens in every later step."""
-    if not scale.enabled() or len(REGISTRY.sessions) <= scale.FOCUS_MAX:
+    if not scale.big(len(REGISTRY.sessions)):
         return rows
     tier = {REGISTRY.sessions[sid].name: t for sid, t in _fleet_tiers().items()}
-    keep = ("name", "agent", "machine", "working", "where_it_stands")
     return [r if tier.get(r["name"]) == scale.FOCUS else
-            {**{k: r[k] for k in keep if r.get(k) not in (None, "")}, **({} if r["online"] else {"online": False}),
+            {"name": r["name"], "machine": r["machine"], **({"working": True} if r["working"] else {}),
+             **({"where_it_stands": scale.clip(str(r["where_it_stands"]), 90)} if r.get("where_it_stands") else {}),
+             **({} if r["online"] else {"online": False}),
              **({"needs_from_user": r["needs_from_user"]} if r["needs_from_user"] else {})} for r in rows]
 
 
 def _fleet_listing(args: dict) -> dict:
     """Beside list_sessions' rows: how many more matched, and one line per machine for the sessions out of focus."""
-    if not scale.enabled():
+    if not scale.big(len(REGISTRY.sessions)):
         return {}
     _, machines, *_ = _fleet_split(list(REGISTRY.sessions.values()))
     more = _fleet_select(args)[1]
@@ -7170,7 +7193,9 @@ async def _route(message: str, said: str | None = None) -> tuple[list[Session], 
     if scale.enabled():  # stage one, in code: the classifier sees at most eight sessions whatever the fleet's size
         who = _fleet_who(said, sessions)
         pool, matched, scoped = _fleet_candidates(said, message, sessions, who)
-        if not pool or (len(sessions) > scale.CANDIDATES_MAX and not matched and not scoped and (who or _thread() is None)):
+        nobody = who and (not matched if len(sessions) > scale.CANDIDATES_MAX else  # over the floor on a big fleet;
+                          not scale.scores(who, _fleet_docs(sessions)) and scale.named_like(who))  # a name nobody has
+        if not pool or nobody or (len(sessions) > scale.CANDIDATES_MAX and not matched and not scoped and _thread() is None):
             # Nothing in the words says which session, and no conversation to go on: ask. "Tell nimbus to ..." with no
             # nimbus is asked whatever the conversation: words for somebody else never go to the session talked with.
             return [], "unmatched"
@@ -7797,6 +7822,8 @@ def _sent_by_mistake(message: str, targets: list[Session]) -> Session | None:
     re-aim that request at another one. Not "the same to quarry too", which adds a session."""
     if not state.last_sent[1] or state.last_sent[0] >= state.last_user_speech_at or not _corrects_last_send(message):
         return None
+    if sum(at > state.last_sent[0] + 0.05 for at, _ in state.recent_said) > 1:
+        return None  # the user said other things since that send: the same task for another session is a new request
     if re.search(r"\b(?:also|too|as well|both)\b|(?<![\u0590-\u05ff])גם(?![\u0590-\u05ff])", state.last_utterance, re.I):
         return None
     wrong = next((s for s in REGISTRY.sessions.values() if s.name == state.last_sent[1]), None)
@@ -12161,7 +12188,7 @@ def _opening_context() -> list[dict]:
     others = [f"{s.name} ({(_brief_of(s) or {}).get('state') or 'no notes yet'})"
               for s in REGISTRY.sessions.values() if s is not session and REGISTRY.mode != "session"]
     extra = f" Other sessions: {'; '.join(others)}." if others else ""
-    if others and scale.enabled() and len(REGISTRY.sessions) > scale.FOCUS_MAX:
+    if others and scale.big(len(REGISTRY.sessions)):
         # A big fleet: a line per session here was 5,000 tokens in every step until the first trim. The count; what
         # needs the user and the machines are in the [right now] block, and list_sessions has the rest.
         extra = f" {len(others)} other sessions are on the voice: what each needs is told before your reply."

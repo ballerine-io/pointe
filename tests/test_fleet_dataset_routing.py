@@ -29,6 +29,8 @@ from test_orchestrator import Params, add, d, fake_conn, open_gates, record_disp
 DATASET = ROOT / "bench" / "fleet" / "dataset"
 FROZEN = {"fleet-5x20.json": "69534134ec5f963b3c89991a5bba747cceced77d8b443e3f9a49d485f1ed0964",
           "turns-5x20.json": "9b3d35443b7ae2da381c2a2fe9612869f0c1316de85ea94f18bc9af6078eb4bd",
+          "fleet-1x4.json": "7c36b40a112e9cb472dcc2b034f7f2d0ea7a317e9c7e5245a5dca535e340a584",
+          "turns-1x4.json": "398a5954689f67a4d77aa4ca3cce6739459eb6c9422c2772aa69b257fa61e084",
           "fleet-10x30.json": "275e6af100aa9fd2cebc2422e98aa0080a3c68be3331f72ff935454a883bc889",
           "turns-10x30.json": "78717476a6af70010a135eb4fa5955a3da864b5690358cb8292fcf0a69516002"}  # bench/fleet/FROZEN.json
 
@@ -198,8 +200,9 @@ class Rig:
 
     def elsewhere(self, *not_these):
         """A session to be talking with that the turn is not about: one with a name of its own, on another machine."""
-        return next(s for s in self.by_id.values() if s.machine and s not in not_these
-                    and scale.base_name(s.name, s.machine) not in self.described["shared_names"])
+        own = [s for s in self.by_id.values() if s not in not_these
+               and scale.base_name(s.name, s.machine) not in self.described["shared_names"]]
+        return next((s for s in own if s.machine), own[0])
 
 
 @pytest.fixture
@@ -298,7 +301,7 @@ def test_a_machine_answer_left_open_by_one_turn_does_not_answer_another(rig):
 BY_CODE = ("clear_name", "clear_machine_name", "ambiguous_name", "ambiguous_none")
 
 
-@pytest.mark.parametrize("size", ["5x20", "10x30", "frozen-5x20", "frozen-10x30"])
+@pytest.mark.parametrize("size", ["1x4", "5x20", "10x30", "frozen-1x4", "frozen-5x20", "frozen-10x30"])
 def test_every_turn_code_alone_decides_comes_out_by_rule(d, node, monkeypatch, size):  # noqa: F811
     """Named, machine-named, one name on several machines, and nothing matches: the labelled outcome on every path (with
     and without a model step), whatever session the brain names (none, the bare name, a same-named session on another
@@ -316,6 +319,10 @@ def test_every_turn_code_alone_decides_comes_out_by_rule(d, node, monkeypatch, s
             want = None
         if t.get("this_mac_holds"):  # labelled "ask"; the daemon's rule is this machine's own session (turns.py says so)
             want = rig.named(t["text"].split()[1], here)
+        # A description nobody fits, on a fleet small enough for the model to see every session: the model is asked
+        # once ("the frontend one" may be a session no word of which says frontend), and its "unclear" is asked by
+        # code. A name nobody has is asked with no model at every size.
+        described = len(rig.by_id) <= scale.CANDIDATES_MAX and t["kind"] == "ambiguous_none" and " working on " in t["text"]
         other = rig.elsewhere(want)
         word = t["text"].split()[1]
         twins = [s.name for s in rig.by_id.values() if scale.base_name(s.name, s.machine) == word and s is not want]
@@ -324,10 +331,13 @@ def test_every_turn_code_alone_decides_comes_out_by_rule(d, node, monkeypatch, s
                 for brain in [None, word, other.name, *twins[:2]] if not fast else [None, word]:
                     got = rig.turn(t["text"], brain=brain, fast=fast, talking_with=talking_with)
                     assert got["to"] is want, (t["id"], t["text"], brain, fast, talking_with, got["to"] and got["to"].name)
-                    assert got["model"] == ([] if t["id"] not in alike else [[s.name for s in heard[0]]]), (t["id"], brain)
+                    if described:
+                        assert len(got["model"]) <= 1, (t["id"], brain)
+                    else:
+                        assert got["model"] == ([] if t["id"] not in alike else [[s.name for s in heard[0]]]), (t["id"], brain)
                     assert want is not None or got["ask"], (t["id"], got)  # asked in the daemon's own words
                     checked += 1
-    assert checked >= 32 * 12  # 32 turns a size, on twelve or more paths each
+    assert checked >= 8 * sum(t["kind"] in BY_CODE for t in rig.turns)  # each turn on eight or more paths
     # The frozen 10x30 has one pair the daemon hears alike (two names a letter apart, on one machine): asked, by rule.
     assert alike == (["clear_name-07"] if size == "frozen-10x30" else [])
 
@@ -379,8 +389,8 @@ def test_list_sessions_rows_are_slim_for_sessions_out_of_focus(rig):
     asyncio.run(d.list_sessions(p))
     rows = p.results[0]["sessions"]
     assert len(rows) == 20 and all("latest" not in r and "clocks" not in r for r in rows)
-    assert all({"name", "machine", "working"} <= set(r) for r in rows)
-    assert len(json.dumps(p.results[0])) < 3200  # about 1,100 tokens; whole rows were about twice that
+    assert all({"name", "machine", "where_it_stands"} <= set(r) <= {"name", "machine", "where_it_stands", "working"} for r in rows)
+    assert len(json.dumps(p.results[0])) < 2400  # about 900 tokens; whole rows were about three times that
     p = Params()
     asyncio.run(d.list_sessions(p))
     assert "latest" in p.results[0]["sessions"][0]  # the active session, in focus: the whole row
@@ -445,7 +455,7 @@ def _a_call(d, monkeypatch, rig, turns: int = 30) -> list[int]:  # noqa: F811
     return [s[0] for s in sizes if s]
 
 
-def test_the_brains_input_at_5x20_is_within_a_tenth_of_1x4(d, node, monkeypatch):  # noqa: F811
+def test_the_brains_input_at_5x20_is_within_a_twentieth_of_1x4(d, node, monkeypatch):  # noqa: F811
     """The paid rows: 31,253 tokens a turn at 5x20 against 25,941 at 1x4 (+20%), and a first step that carried 2,300
     tokens the cache had not seen against 113. Three things grew with the fleet: the opening listed every session
     (15,700 characters against 950), the block had a line for every session named lately so it changed on 49 of 59
@@ -457,8 +467,8 @@ def test_the_brains_input_at_5x20_is_within_a_tenth_of_1x4(d, node, monkeypatch)
     assert len(small) == len(big) == 30
     print(f"brain input, first step, tokens at 2.6 characters: 1x4 median {statistics.median(small)}, first {small[0]}, "
           f"last {small[-1]}; 5x20 median {statistics.median(big)}, first {big[0]}, last {big[-1]}")
-    assert statistics.median(big) <= 1.10 * statistics.median(small)
-    assert big[0] <= 1.10 * small[0] and big[-1] <= 1.10 * small[-1]  # at the call's start and after thirty turns
+    assert statistics.median(big) <= 1.05 * statistics.median(small)  # measured: 3.5% under
+    assert big[0] <= 1.05 * small[0] and big[-1] <= 1.05 * small[-1]  # at the call's start and after thirty turns
 
 
 def test_the_block_of_a_big_fleet_does_not_change_when_a_session_is_only_named(rig):
@@ -492,3 +502,109 @@ def test_the_opening_of_a_big_fleet_counts_the_other_sessions_and_the_machines_l
     assert "99 other sessions are on the voice" in opening and len(opening) < 1500
     assert d._machines_line() is None and "avi-box (Linux, 20 ms)" in d._needs_now()
     assert "only when it tells two sessions apart" in scale.RULES and "no look-up first" in scale.RULES  # said once
+
+
+# ---------- a small fleet is told what it is told with the rules off ----------
+
+def test_up_to_twelve_sessions_the_brain_is_told_exactly_what_it_is_told_with_the_rules_off(d, node, monkeypatch):  # noqa: F811
+    """The fleet benchmark at four sessions with the rules on: words for a session nobody has were sent 9 of 21 (asked
+    20 of 21 before, and with the rules off). The big fleet's guidance had moved into every call's instructions."""
+    rig = Rig(d, node, monkeypatch, "2x6")
+    assert len(rig.by_id) == scale.SMALL_FLEET == 12 and not scale.big(12) and scale.big(13)
+
+    def told() -> str:
+        d.state = d.State()
+        p = Params(machine="avi-box")
+        asyncio.run(d.list_sessions(p))
+        front = d.BrainFront(d._opening_context())
+        return "\n".join([d._brain_context(), json.dumps(d._opening_context()), json.dumps(p.results[0], sort_keys=True),
+                          front.brain.instructions])
+
+    on = told()
+    monkeypatch.setenv("POINTE_FLEET", "off")
+    assert told() == on and scale.RULES not in on
+    monkeypatch.setenv("POINTE_FLEET", "on")
+    add(d, "one-more", "extra-" + _names(40)[-1], "/work/one-more")  # the thirteenth: the big fleet's form
+    big = told()
+    assert scale.RULES in big and "The other sessions, by machine:" in big and '"more": 0' in big
+
+
+def test_a_call_that_began_small_and_grew_is_told_how_to_send_in_the_block(d, node, monkeypatch):  # noqa: F811
+    rig = Rig(d, node, monkeypatch, "5x20")
+    assert rig.d.state.fleet_rules_told is False  # no brain of this call has the guidance in its instructions
+    assert "no look-up first" in d._needs_now()
+    d.BrainFront(d._opening_context())
+    assert d.state.fleet_rules_told is True and "no look-up first" not in d._needs_now()
+
+
+def test_a_name_nobody_has_is_asked_by_code_on_four_sessions_too(d, node, monkeypatch):  # noqa: F811
+    """1x4, rules on, ambiguous_none-00, -02, -04, -06 (r1 orders 32, 37, 47, 54; r2 orders 2, 11; r3 order 9): "There's
+    no session called drizzle, so the coverage check went to harbor instead." The classifier said unclear and the
+    request went to the session talked with."""
+    rig = Rig(d, node, monkeypatch, "1x4")
+    other = next(s for s in rig.by_id.values() if s.name != "shop")
+    for text in ("Tell drizzle to check the code coverage.", "Tell nimbus to count the failing tests."):
+        for brain in (None, other.name):
+            got = rig.turn(text, brain=brain, talking_with=other.id)
+            assert got["to"] is None and got["model"] == [] and got["ask"] == "I found no session like that. Which session is it?"
+    # -01, -05 (r1 orders 1, 17): a description nobody fits. The model sees all four; its "unclear" is asked, not sent.
+    got = rig.turn("Ask the session working on the passport scanner to say which function is the longest.", talking_with=other.id)
+    assert got["to"] is None and len(got["model"]) == 1 and got["ask"]
+    got = rig.turn("And bump the minor version too.", talking_with=other.id)  # words for nobody else: as before
+    assert got["to"] is other
+
+
+def test_a_description_two_sessions_share_is_asked_with_their_two_names(rig):
+    """5x20, ambiguous_description-03 (r2 order 39): asked "I found no session like that", with two sessions on it."""
+    turn = next(t for t in rig.turns if t["kind"] == "ambiguous_description")
+    a, b = (rig.by_id[i] for i in turn["expect"]["fits"])
+    got = rig.turn(turn["text"], talking_with=rig.elsewhere(a, b).id)
+    assert got["to"] is None and a.name in got["ask"].lower() and b.name in got["ask"].lower() and "found no" not in got["ask"]
+
+
+def test_the_same_task_for_another_session_some_turns_later_is_not_a_correction(rig, monkeypatch):
+    """5x20, clear_name-04 (r2 order 42): "Tell outpost to write a changelog entry for today's change." Five turns
+    before, the same task had gone to tide; tide was told "Drop my last request", as after "I meant outpost"."""
+    d = rig.d
+    first, second = [s for s in rig.by_id.values() if not s.machine and s.name != "shop"][:2]
+    withdrawn: list[str] = []
+
+    async def withdraw(session, message, since):
+        withdrawn.append(session.name)
+    monkeypatch.setattr(d, "_withdraw", withdraw)
+
+    def say(text: str, send: bool = True) -> None:
+        open_gates(d, monkeypatch, text)
+        d.state.recent_said.append((time.time(), text))
+        if send:
+            asyncio.run(d.send_to_claude_code(Params(message="Write a changelog entry for today's change.")))
+        time.sleep(0.12)
+
+    for between in (True, False):
+        d.state = d.State()
+        d.state.conn = fake_conn()
+        rig.sent.clear(), withdrawn.clear()
+        say(f"Tell {first.name} to write a changelog entry for today's change.")
+        if between:
+            say("What is blocked on me?", send=False)
+        say(f"Tell {second.name} to write a changelog entry for today's change.")
+        assert [name for name, _ in rig.sent] == [first.name, second.name]
+        assert withdrawn == ([] if between else [first.name])  # right after it, it is still "I meant the other one"
+
+
+def test_sends_join_the_block_four_at_a_time_and_a_report_leaves_it_at_once(rig):
+    d = rig.d
+    sessions = list(rig.by_id.values())[40:50]
+
+    def send(s) -> str:
+        d.state.unconfirmed[s.id] = ["Run the tests."]
+        s.last_delegation_at = time.time()
+        return d._needs_now()
+
+    first = send(sessions[0])
+    assert f"- {sessions[0].name} (" in first
+    assert send(sessions[1]) == send(sessions[2]) == send(sessions[3]) == first  # three sends: the same block
+    fifth = send(sessions[4])
+    assert fifth != first and all(f"{s.name}" in fifth for s in sessions[:5])
+    d.state.unconfirmed.pop(sessions[0].id)  # it reported
+    assert f"- {sessions[0].name} (" not in d._needs_now() and sessions[4].name in d._needs_now()

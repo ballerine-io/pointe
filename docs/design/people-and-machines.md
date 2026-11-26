@@ -207,9 +207,10 @@ not by its own work.
 **The budget.** "What needs me" is at most 1,800 tokens at any size, counted as characters over 2.6: the brain's
 vendor counted this block at 2.82 to 3.1 characters a token in the fleet benchmark, so 2.6 keeps its own count under
 the budget with 8% to spare. The budget is a ceiling: a fleet where little needs the user gets a few hundred tokens.
-Twelve sessions or fewer: a line each, as before. More: a full line for the active session and for each session in
+Twelve sessions or fewer (`scale.SMALL_FLEET`): the brain is told exactly what it is told with the rules off, in the
+block, the opening, its instructions and `list_sessions`. More: a full line for the active session and for each session in
 focus that needs the user; a short line for each of the four sessions last sent to that have not reported, and the
-names of the others; one line per machine for the rest ("avi-box (Linux, 23 ms): 18 more, 15 working, none need
+names of the others, added four sends at a time; one line per machine for the rest ("avi-box (Linux, 23 ms): 18 more, 15 working, none need
 you"); and "And 4 more need you: a, b, c, d" for sessions that wait on the user and found no place in focus.
 
 The block is appended to the brain's history each time it changes, so its size and how often it changes are what the
@@ -217,7 +218,7 @@ brain reads on every later step. A session that is only named or talked with has
 of 59 turns of the benchmark). A machine's latency is told again only when it moved a lot. What never changes is said
 once, in the brain's instructions (`scale.RULES`), and the per-machine "Machines:" line is left out on a big fleet. The
 opening of a call counts the other sessions and does not list them. `tests/test_fleet_dataset_routing.py` holds the
-brain's assembled input at 5 machines of 20 within a tenth of one machine of 4 over a scripted call.
+brain's assembled input at 5 machines of 20 within a twentieth of one machine of 4 over a scripted call.
 
 **Routing.** With more than eight sessions the classifier sees eight at most: the thread, the active session, the
 best matches of the request's words against each session's name, goal, title, keywords and file names, then the
@@ -225,7 +226,7 @@ sessions in focus. No match and no thread: Pointe asks. A tie of more than eight
 on it) is narrowed the same way. The same name on several machines is a tie unless the words name the machine; a
 session of the user's own on this machine keeps the plain name.
 
-Three rules decide without a model. A machine said with the name is that machine's session, whatever session the
+Three rules decide without a model, at every fleet size. A machine said with the name is that machine's session, whatever session the
 brain named ("tell shop on avi-box" never goes to this machine's shop). One name on several machines with no machine
 said is asked, also on the send that takes no model step. Words for a session by a description ("tell the session
 working on the coupon ledger to", "ask whoever has ledger.py to") or by a name no session has are never sent to the
