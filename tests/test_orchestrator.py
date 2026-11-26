@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -152,7 +153,13 @@ def client_for(d):
     return TestClient(d.app, base_url="http://127.0.0.1:7860", cookies={"pointe_local": d.PAGE_KEY})
 
 
-def add(d, sid: str, name: str, cwd: str = "/tmp", **fields) -> Session:
+# A session's folder is read for its code's names (relay.code_names): /tmp on a shared Mac holds other checkouts, whose
+# names (hash_file) turned "the notes file" into a misheard-name note. An empty folder of the tests' own instead.
+EMPTY_CWD = os.path.join(tempfile.mkdtemp(), "tmp")  # named tmp, as /tmp was: routing reads a folder's name for words
+os.makedirs(EMPTY_CWD)
+
+
+def add(d, sid: str, name: str, cwd: str = EMPTY_CWD, **fields) -> Session:
     s = Session(id=sid, name=name, cwd=cwd, pid=os.getpid(), transcript=fields.pop("transcript", "/tmp/none.jsonl"),
                 **fields)
     d.REGISTRY.add(s)
@@ -3766,7 +3773,7 @@ def test_a_judgment_question_goes_to_a_locked_down_copy_and_comes_back_in_the_fe
         assert flag in args
     assert args[args.index("--setting-sources") + 1] == "" and args[args.index("--permission-mode") + 1] == "dontAsk"
     assert args[args.index("--model") + 1] == "claude-opus-5-5"  # the live session's model: its cache is warm
-    assert kwargs["cwd"] == "/tmp" and not any(k.startswith("CLAUDE_CODE_") or k == "CLAUDECODE" for k in kwargs["env"])
+    assert kwargs["cwd"] == EMPTY_CWD and not any(k.startswith("CLAUDE_CODE_") or k == "CLAUDECODE" for k in kwargs["env"])
     assert injected and "rollback plan" in injected[0][0] and injected[0][1] is True
 
 
