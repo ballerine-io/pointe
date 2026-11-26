@@ -92,6 +92,8 @@ def refusal(session: str, machine: str, owner: str, turned_down: dict, clock=tim
         return f"Not sent. {owner or 'Its owner'} keeps {session} private now."
     if why == "prompt":
         return f"Not sent. {session} waits on a permission prompt on {machine}. It takes a request once that is answered."
+    if why == "agent":  # an agent framework's session (harnesses/agent.py): its own fixed words, never the agent's
+        return str(turned_down.get("line") or f"Not sent. {session} did not take it.")
     if why == "consent":
         return (f"Not sent. {machine} takes no message that says somebody approved something: an approval comes "
                 f"from the person who gives it.")

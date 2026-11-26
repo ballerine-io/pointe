@@ -199,6 +199,8 @@ def _voice_checks(daemon):
         or (guards.start_intent(p) and guards.asks_first(p)),
         "join-session": guards.attach_intent,
         "night-shift": lambda p: nightshift.shift_intent(p) is not None or nightshift.stop_intent(p),
+        # "talk to hermes" is a switch; "give hermes's answer to openclaw" a relay, sent only on a spoken yes (agent_relay.py)
+        "agents": lambda p: guards.switch_intent(p) or __import__("agent_relay").asks_relay(p),
     }
 
 

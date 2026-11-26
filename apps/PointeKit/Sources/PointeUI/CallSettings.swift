@@ -15,6 +15,7 @@ struct CallSettingsModel: Equatable, Sendable {
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
     var machines = false
+    var agents = false  // the Mac runs agents (POINTE_AGENTS=on): Settings → Agents
     var meetingOn = false
     var meetingEnded = false
     var challengeOn = false
@@ -43,6 +44,7 @@ struct CallSettingsModel: Equatable, Sendable {
         polish = status?.polish ?? false
         whisper = status?.whisper.map { $0.on }
         machines = status?.machines != nil
+        agents = status?.agents != nil
         meetingOn = status?.meeting?.isOn == true
         meetingEnded = status?.meeting?.isEnded == true
         challengeOn = status?.challenge?.on == true
@@ -62,7 +64,7 @@ struct CallSettingsModel: Equatable, Sendable {
 /// A sheet of its own, opened from Settings once Settings has closed (one sheet at a time).
 enum CallSettingsLink: Equatable {
     case sessions, machines, meetingStart, meetingEnd, briefing, briefingSettings, meetingSettings, alerts, dictionary,
-         voiceLock, conflicts, show, about, phone, nightShift, approvals
+         voiceLock, conflicts, show, about, phone, nightShift, approvals, agents
 }
 
 /// What the rows do. Not compared: the closures are new on every render of the call and change nothing that shows.
@@ -207,6 +209,7 @@ struct CallSettingsSheet: View, Equatable {
                 KickerSection("Call") {
                     row("Sessions and mode", "rectangle.stack", .sessions)
                     if model.machines { row(MachinesCopy.title, "desktopcomputer", .machines).accessibilityIdentifier("machinesItem") }
+                    if model.agents { row(AgentsCopy.title, "person.crop.circle.badge.checkmark", .agents).accessibilityIdentifier("agentsItem") }
                     #if os(macOS)  // the Mac is the side that shows the code a phone pairs with
                     if !model.demo { row(PhoneCopy.title, "iphone", .phone).accessibilityIdentifier("phoneItem") }
                     #endif

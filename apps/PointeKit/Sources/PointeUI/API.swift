@@ -90,6 +90,8 @@ struct API {
         /// What the people invited to this machine may do, on a machine with people (People.swift).
         @Tolerant var people_settings: PeopleSettings?
         @Tolerant var disclosure: Disclosure? // once after a machine is added: where your voice sends its transcripts, until dismissed
+        @Tolerant var agents: AgentsFlag?     // the Mac runs agents (Agents.swift); nil from a Mac without them or with them off
+        @Tolerant var agent_disclosure: AgentDisclosure?  // once after an agent is added: which services hear it, until OK
         var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
         var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
         #if os(macOS)

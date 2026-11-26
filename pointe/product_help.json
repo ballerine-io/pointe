@@ -1239,6 +1239,36 @@
    ]
   },
   {
+   "id": "agents",
+   "title": "Talk to an agent: OpenClaw, Hermes, or another agent",
+   "ask": [
+    "agents",
+    "add an agent",
+    "connect an agent",
+    "openclaw",
+    "hermes",
+    "a2a agent",
+    "talk to my agent",
+    "pointe agent add",
+    "להוסיף סוכן",
+    "לחבר סוכן"
+   ],
+   "how": "Connect an agent built on an agent framework: choose its kind (OpenClaw, Hermes Agent, any A2A or OpenAI-compatible agent), give it a name, its address and its token, then Connect. Or run pointe agent add with the kind and the address. Then say talk to it by name, or ask it to do something; its replies come in when it is done. Passing one agent's reply to another always asks you first.",
+   "iphone": [
+    "Settings (••• at the top) → Agents"
+   ],
+   "page": [
+    "Settings → Agents"
+   ],
+   "mac": [
+    "Settings (••• at the top, or ⌘,) → Agents"
+   ],
+   "voice": [
+    "talk to hermes",
+    "give hermes's answer to openclaw"
+   ]
+  },
+  {
    "id": "machine-add",
    "title": "Add a machine somebody invited you to",
    "ask": [
@@ -1607,6 +1637,7 @@
     "Dictionary": [],
     "Sessions and mode": [],
     "Machines": [],
+    "Agents": [],
     "Phone": [],
     "Start a meeting": [],
     "The meeting that ended": [],
@@ -1703,6 +1734,7 @@
     "Dictionary": [],
     "Sessions and mode": [],
     "Machines": [],
+    "Agents": [],
     "Start a meeting": [],
     "The meeting that ended": [],
     "Briefing": [],
@@ -1787,6 +1819,13 @@
      "Copy command",
      "Invite a machine",
      "Cancel the code"
+    ],
+    "Agents": [
+     "Connect an agent",
+     "Name",
+     "Address",
+     "Token or key",
+     "Agent (optional)"
     ],
     "Phone": [
      "Check",

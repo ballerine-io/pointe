@@ -13,7 +13,7 @@ sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 import local  # noqa: E402
 
 COMMANDS = ["start", "attach", "open", "talk", "doctor", "status", "log", "context", "stop", "restart", "uninstall",
-            "hub", "people", "share", "machine", "machines", "key", "setup", "join", "leave", "local", "apps"]
+            "hub", "people", "share", "machine", "machines", "agent", "agents", "key", "setup", "join", "leave", "local", "apps"]
 
 
 @pytest.fixture

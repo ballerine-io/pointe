@@ -63,6 +63,7 @@ struct CallView: View {
     @State private var disclosures = DisclosureGate()  // the one-time line after a machine is added, until its OK
     /// A machine invite that opened the app (pointe://machine?…): Add a machine opens on it, and sends nothing by itself.
     private var incoming: Binding<String?>
+    @State private var showAgents = false      // Settings → Agents (Agents.swift)
     @State private var showPeople = false      // `-sheet people`: the People sheet by itself, for screenshots and UI tests
     @State private var showAddMachine = false  // `-sheet addMachine`, likewise
     @State private var machinesNext = false    // a machine was added from a link: the Machines list opens once that sheet has closed
@@ -113,6 +114,7 @@ struct CallView: View {
         case "dictionary": _showDictionary = State(initialValue: true)
         case "machines": _showMachines = State(initialValue: true)
         case "people": _showPeople = State(initialValue: true)
+        case "agents": _showAgents = State(initialValue: true)
         case "addMachine": _showAddMachine = State(initialValue: true)
         case "conflictSettings": _showConflictSettings = State(initialValue: true)
         case "showSettings": _showSettings = State(initialValue: true)
@@ -686,6 +688,7 @@ struct CallView: View {
         case .about: showAbout = true
         case .phone: showPhone = true
         case .nightShift: showNightShift = true
+        case .agents: showAgents = true
         }
     }
 
@@ -1594,6 +1597,9 @@ struct CallView: View {
         .sheet(isPresented: $showPeople) {
             PeopleSheet(status: status, actions: peopleActions).presentationDetents([.large]).sheetSurface()
         }
+        .sheet(isPresented: $showAgents) {
+            AgentsSheet(actions: agentsActions, elsewhere: status?.agent_disclosure).presentationDetents([.large]).sheetSurface()
+        }
         // Added from the page or a terminal: the same one line, here, when the Machines sheet is not the one showing it.
         .alert(disclosures.pending(status).map { PeopleCopy.added($0.machine, owner: MachineView(status).info($0.machine)?.owner) } ?? "",
                isPresented: Binding(get: { disclosures.pending(status) != nil && !showMachines && !machinesNext && incoming.wrappedValue == nil && !showAddMachine },
@@ -1625,6 +1631,15 @@ struct CallView: View {
     }
 
     private func machineAdded(_ machine: API.MachineAdded) { disclosures.machineAdded(machine) }
+
+    private var agentsActions: AgentsActions {
+        if demo != nil { return Demo.agentsActions(ownerCheck: ownerCheck) }
+        let api = call.api
+        return AgentsActions(ownerCheck: ownerCheck, load: { try await api.agents() },
+                             add: { try await api.addAgent(kind: $0, name: $1, url: $2, secret: $3, agent: $4) },
+                             remove: { try await api.removeAgent($0) },
+                             seen: { name in try? await api.agentSeen(name) })
+    }
 
     private func disclosureOK(_ d: API.Disclosure) {
         let machine = disclosures.dismiss(d)

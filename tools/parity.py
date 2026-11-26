@@ -253,6 +253,15 @@ GROUPS: list[tuple[str, list[Feature]]] = [
         F("machines.disclosure", "Once after a machine is added: which services your voice sends its transcripts to, until OK",
           web=['id="mach-disclosure"', r"PEOPLE_COPY\.disclosure\("],
           swift=[r"struct DisclosureCard\b", r"PeopleCopy\.disclosure\(", ident("disclosureOK")]),
+        F("agents.list", "Agents built on agent frameworks on this voice: kind, address, whether each answers",
+          web=['id="agents-list"', r"fetch\('/voice/agents'\)"], swift=[r"struct AgentsSheet\b", r'"voice/agents"', ident("agentsItem")]),
+        F("agents.add", "Connect an agent: OpenClaw, Hermes, any A2A or OpenAI-compatible agent; its credential goes to the Keychain",
+          web=['id="agent-add"', r"function addAgent\("], swift=[r"struct AddAgentSheet\b", ident("agentConnect")]),
+        F("agents.remove", "Remove an agent and its saved credential, after a confirm",
+          web=[r"function removeAgent\(", r"'/voice/agents/' \+ encodeURIComponent"],
+          swift=[ident("agentRemoveConfirm"), r"func removeAgent\("]),
+        F("agents.disclosure", "Once after an agent is added: which services hear what it says, until OK",
+          web=['id="agent-disclosure"', "/voice/agents/seen"], swift=[ident("agentDisclosureOK"), r'"voice/agents/seen"']),
         F("machines.owner", "Whose a machine and a session is, shown only where it is not yours",
           web=[r"PEOPLE_COPY\.whose\(x\.owner\)", r"PEOPLE_COPY\.whose\(m\.owner\)"],
           swift=[r"func ownerTag\(_ s: API\.Session\)", r"func ownerTag\(machine name: String\)", r"machines\.ownerTag\("]),
@@ -514,6 +523,10 @@ SETUP_ONLY = "not a feature row: the terminal setup and uninstall, run once"
 LINUX_BRANCHES: dict[str, Branch] = {
     "keys.py:on_a_mac": B("path", "`pointe key` asks in the terminal with hidden typing and saves the key in the login "
                           "keyring (Secret Service), not the Keychain", "keys.status"),
+    "agents.py:_ask_secret": B("path", "`pointe agent add` asks for the agent's credential in the terminal with hidden typing, "
+                               "not in a Mac dialog", "agents.add"),
+    "agents.py:delete_secret": B("path", "removing an agent deletes its credential from the Secret Service (secret-tool), not the "
+                                 "Keychain", "agents.remove"),
     "vendors.py:from_store": B("path", "keys are read from the Secret Service (secret-tool), not the Keychain", "keys.status"),
     "vendors.py:_stored": B("path", "only Pointe's own key names are read: the pre-release names are a Mac Keychain history",
                             "keys.status"),

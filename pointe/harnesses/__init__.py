@@ -81,6 +81,16 @@ def _load() -> None:
     register(ClaudeCode())
     register(OpenCode())
     register(Codex())
+    import agents
+
+    if agents.enabled():  # agent frameworks, behind POINTE_AGENTS=on (docs/design/agents.md)
+        from .a2a import A2A
+        from .hermes import Hermes
+        from .openai_chat import OpenAIChat
+        from .openclaw import OpenClaw
+
+        for harness in (OpenClaw(), Hermes(), A2A(), OpenAIChat()):
+            register(harness)
 
 
 __all__ = ["FINISHED_MARK", "HOST", "Harness", "StartError", "finished_tag", "get", "labels", "names", "of", "register", "set_remote"]

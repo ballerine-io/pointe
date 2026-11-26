@@ -347,6 +347,13 @@
                      font: 600 13.5px var(--font); cursor: pointer; }
   #mach-add button:disabled { opacity: .4; cursor: default; }
   #mach-name-f { display: flex; align-items: center; gap: 10px; }
+  #agent-add { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
+  #agent-add label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+  #agent-add input, #agent-add select { background: var(--raised); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 8px 10px; font: inherit; }
+  #agent-add button.go { border: 0; border-radius: 12px; padding: 0 16px; min-height: 40px; background: var(--primary); color: var(--on-primary); cursor: pointer; }
+  #agent-add button:disabled { opacity: .4; cursor: default; }
+  #agent-adding { font-size: 13px; color: var(--muted); } #agent-adding:empty, #agents-done:empty, #agents-err:empty { display: none; }
+  .settings #agent-disclosure { padding: 12px 14px; } .settings #agent-disclosure:empty { display: none; }
   #mach-adding, #mach-adderr { font-size: 13px; } #mach-adding { color: var(--muted); } #mach-adderr { color: var(--accent); }
   #mach-adding:empty, #mach-adderr:empty { display: none; }
   .settings #mach-disclosure { padding: 12px 14px; } .settings #mach-disclosure:empty { display: none; }
@@ -1317,6 +1324,7 @@
       <nav class="snav" id="set-nav" aria-label="Settings sections">
         <button type="button" data-section="voicelock" onclick="settingsJump('voicelock')">Voice lock</button>
         <button type="button" data-section="machines" onclick="settingsJump('machines')">Machines</button>
+        <button type="button" data-section="agents" onclick="settingsJump('agents')">Agents</button>
         <button type="button" data-section="phone" onclick="settingsJump('phone')">Phone</button>
         <button type="button" data-section="g-dictionary" onclick="settingsJump('g-dictionary')">Dictionary</button>
         <button type="button" data-section="g-briefings" onclick="settingsJump('g-briefings')">Briefings</button>
@@ -1438,6 +1446,28 @@
           <div class="note foot" id="people-can-help" hidden></div>
           <div class="note foot">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
             transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
+        </section>
+        <section id="agents" class="group" aria-labelledby="agents-h" hidden>
+          <h3 id="agents-h">Agents</h3>
+          <div class="card">
+            <ul class="mlist" id="agents-list"></ul>
+            <div class="note" id="agents-none" hidden>No agents yet. Connect OpenClaw, Hermes, or any agent that speaks A2A or the OpenAI chat API.</div>
+            <div class="ok" id="agents-done" role="status"></div>
+            <div class="err" id="agents-err" role="alert"></div>
+            <form id="agent-add" onsubmit="addAgent(event)">
+              <div class="field"><label for="agent-kind">Kind</label><select id="agent-kind" onchange="agentKindPicked()"></select></div>
+              <label><span>Name</span><input id="agent-name" dir="auto" autocomplete="off" maxlength="30"></label>
+              <label><span>Address</span><input id="agent-url" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="127.0.0.1:18789"></label>
+              <label><span>Token or key</span><input id="agent-secret" type="password" dir="ltr" autocomplete="off"></label>
+              <label id="agent-id-f"><span>Agent (optional)</span><input id="agent-id" dir="ltr" autocomplete="off" placeholder="main"></label>
+              <div class="row"><button class="go" id="agent-addbtn">Connect an agent</button></div>
+              <div id="agent-adding" role="status"></div>
+            </form>
+            <div id="agent-disclosure"></div>
+          </div>
+          <div class="note foot">Talk to an agent like a session: "talk to hermes", or "ask openclaw to …". Its replies come in when
+            it is done, and wait in "what needs me" if you are busy. OpenClaw: the gateway token. Hermes: the API server key. The
+            credential goes to this Mac's Keychain and is never shown again.</div>
         </section>
         <section id="phone" class="group" aria-labelledby="ph-h">
           <h3 id="ph-h">Phone</h3>
@@ -2162,6 +2192,7 @@
     showMachines(s, mv);
     showPeople(s);
     showDisclosure(s);
+    showAgents(s);
     showPhones(s);
     syncSettingsNav();
     document.body.classList.toggle('nosessions', false);
@@ -4542,6 +4573,94 @@
     for (const id of SETTINGS_SECTIONS) if (!$(id).hidden && (cur === null || $(id).offsetTop <= top)) cur = id;
     if (cur) settingsMark(cur);
   });
+  // Settings → Agents (docs/design/agents.md): agents built on agent frameworks, shown while the Mac runs them
+  // (POINTE_AGENTS=on). Connect sends the credential once; the Mac checks it and keeps it in its Keychain.
+  let agentsPage = null, agentsShown = '', agentRemoving = null, agentAdding = false, agentSeen = new Set();
+  async function loadAgents() {
+    try { const r = await fetch('/voice/agents'); agentsPage = r.ok ? await r.json() : null; } catch (e) { agentsPage = null; }
+  }
+  function agentFacts(a) {
+    const state = a.state === 'online' ? 'answers' : a.state === 'offline' ? (a.why ? `offline: ${a.why}` : 'offline') : 'not checked yet';
+    return [a.title, a.url, state, a.approvals ? 'approvals come to you' : ''].filter(Boolean).join(' · ');
+  }
+  function showAgents(s) {
+    const on = !!s.agents && canInvite && !remotePage;
+    $('agents').hidden = !on;
+    if (!on) return;
+    const count = s.agents.count || 0;
+    if (!agentsPage || (agentsPage.agents || []).length !== count) { if (!showAgents.loading) { showAgents.loading = true; loadAgents().then(() => { showAgents.loading = false; agentsShown = ''; showAgents(status); }); } }
+    const page = agentsPage || {agents: [], kinds: []};
+    if (!$('agent-kind').options.length && page.kinds.length) {
+      for (const k of page.kinds) $('agent-kind').append(new Option(k.title, k.kind));
+      agentKindPicked();
+    }
+    const sig = JSON.stringify([page.agents, agentRemoving && Date.now() < agentRemoving.until ? agentRemoving.name : '']);
+    if (sig !== agentsShown) {
+      agentsShown = sig;
+      $('agents-none').hidden = page.agents.length > 0;
+      $('agents-list').replaceChildren(...page.agents.map(a => {
+        const li = el('li'), away = a.state === 'offline';
+        li.append(el('span', 'mn', a.name), el('span', 'mmeta' + (away ? ' away' : ''), agentFacts(a)));
+        const sure = agentRemoving && agentRemoving.name === a.name && Date.now() < agentRemoving.until;
+        const b = el('button', sure ? 'sure' : '', sure ? `Remove ${a.name}?` : 'Remove');
+        b.id = 'agent-remove-' + a.name; b.title = 'Remove it from your voice and delete its saved credential';
+        b.onclick = () => removeAgent(a.name);
+        li.append(b);
+        return li;
+      }));
+    }
+    const d = s.agent_disclosure && !agentSeen.has(s.agent_disclosure.agent) ? s.agent_disclosure : null;
+    if (!d) $('agent-disclosure').replaceChildren();
+    else if (!$('agent-disclosure').firstChild) {
+      const card = el('div', 'ask'), answer = el('div', 'answer one'), ok = el('button', 'allow', 'OK');
+      ok.type = 'button'; ok.id = 'agent-disclosure-ok';
+      ok.onclick = () => { agentSeen.add(d.agent); $('agent-disclosure').replaceChildren(); postSafe('/voice/agents/seen', {name: d.agent}).then(refresh); };
+      answer.append(ok);
+      card.append(el('div', 'what', `${d.agent} is in your voice.`), el('div', 'need', d.line || ''), answer);
+      $('agent-disclosure').replaceChildren(card);
+    }
+    $('agent-addbtn').disabled = agentAdding;
+    text('agent-adding', agentAdding ? 'Checking the agent…' : '');
+  }
+  function agentKindPicked() {
+    const kind = $('agent-kind').value, name = $('agent-name');
+    if (!name.value || (agentsPage && agentsPage.kinds.some(k => k.kind === name.value))) name.value = kind;
+    $('agent-id-f').hidden = !(kind === 'openclaw' || kind === 'openai');
+    $('agent-id').placeholder = kind === 'openclaw' ? 'main' : 'model';
+  }
+  async function addAgent(ev) {
+    if (ev) ev.preventDefault();
+    if (agentAdding) return;
+    const body = {kind: $('agent-kind').value, name: $('agent-name').value.trim(), url: $('agent-url').value.trim(),
+                  secret: $('agent-secret').value, agent: $('agent-id').value.trim()};
+    if (!body.name || !body.url || !body.secret) { $('agents-err').textContent = 'A name, an address and a token are needed.'; return; }
+    agentAdding = true; $('agents-err').textContent = ''; $('agents-done').textContent = ''; showAgents(status);
+    let r = null, said = '';
+    try {
+      r = await fetch('/voice/agents', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+      if (!r.ok) said = await refusal(r);
+    } catch (e) { said = 'The Mac did not answer.'; }
+    agentAdding = false;
+    if (!r || !r.ok) { $('agents-err').textContent = said === 'forbidden' ? "Only the Mac's own page or the app can do this." : said || 'Not added.'; showAgents(status); return; }
+    $('agent-secret').value = '';
+    const made = await r.json().catch(() => ({}));
+    $('agents-done').textContent = `${made.name} is in your voice.`;
+    agentsPage = null; agentsShown = '';
+    refresh();
+  }
+  async function removeAgent(name) {
+    if (!agentRemoving || agentRemoving.name !== name || Date.now() > agentRemoving.until) {
+      agentRemoving = {name, until: Date.now() + 5000}; agentsShown = ''; showAgents(status); return;
+    }
+    agentRemoving = null;
+    let r = null;
+    try { r = await fetch('/voice/agents/' + encodeURIComponent(name), {method: 'DELETE'}); } catch (e) { r = null; }
+    if (!r || !r.ok) $('agents-err').textContent = r ? await refusal(r) : 'The Mac did not answer.';
+    else $('agents-done').textContent = `${name} is no longer in your voice.`;
+    agentsPage = null; agentsShown = '';
+    refresh();
+  }
+
   // Settings → Machines: the paired machines, a one-time code to pair another, and Revoke in two clicks.
   let machinesShown = '', revoking = null, invite = null;  // invite: {code, link, until}, counted down here between polls
   let canInvite = true;  // false over the TLS listener: the Mac would make a code this page is never shown

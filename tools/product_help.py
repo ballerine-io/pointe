@@ -647,6 +647,15 @@ TOPICS = (
           "Sessions on your other Macs and Linux machines join through a small Pointe there: invite the machine and run "
           "pointe node join with the code.",
           iphone=(("menu", "Machines"),), page=(("settings", "Machines", "Invite a machine"),)),
+    Topic("agents", "Talk to an agent: OpenClaw, Hermes, or another agent",
+          ("agents", "add an agent", "connect an agent", "openclaw", "hermes", "a2a agent", "talk to my agent",
+           "pointe agent add", "להוסיף סוכן", "לחבר סוכן"),
+          "Connect an agent built on an agent framework: choose its kind (OpenClaw, Hermes Agent, any A2A or "
+          "OpenAI-compatible agent), give it a name, its address and its token, then Connect. Or run pointe agent add "
+          "with the kind and the address. Then say talk to it by name, or ask it to do something; its replies come in "
+          "when it is done. Passing one agent's reply to another always asks you first.",
+          iphone=(("menu", "Agents"),), page=(("settings", "Agents"),),
+          voice=("talk to hermes", "give hermes's answer to openclaw")),
     Topic("machine-add", "Add a machine somebody invited you to",
           ("add a machine", "add the machine", "add someone's machine", "machine invite", "invited me to a machine",
            "shared machine", "scan the machine code", "pointe machine add", "להוסיף מחשב", "להוסיף מכונה"),
