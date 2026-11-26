@@ -10,7 +10,9 @@ a redial 2, 4, 8, 16 s apart, a new call each time, a typed line sent once with 
 
 The root is the checkout whose daemon is measured (default: this one): pass a checkout of an older version to measure
 it with the same phone and the same network. Prints one JSON line of measurements. tests/test_bad_network.py runs the
-scenarios against this checkout and holds them to bounds.
+scenarios against this checkout and holds them to bounds. "page" and "app" are what those clients hear of the voice as
+it arrived (tests/playout_sim.py); POINTE_NET_BEFORE=1 measures 0.10.0: the voice paced as pipecat paces it, one chunk
+ahead (phone.SEND_LEAD_SECS), heard by the page and the apps as they were.
 """
 
 import asyncio
@@ -58,6 +60,9 @@ SCENARIOS = {
     "t-outage": Scenario("slow", reply_secs=6.0, lines_at=[2.0, 6.0, 16.0], events=[(4.0, "outage=7")], secs=26.0),
     "t-switch": Scenario("slow", reply_secs=6.0, lines_at=[2.0, 13.0], events=[(4.0, "switch")], secs=21.0),
     "t-capped": Scenario("capped", reply_secs=8.0, lines_at=[2.0, 12.0], secs=22.0),
+    "t-lead": Scenario("lan", reply_secs=6.0, lines_at=[2.0], secs=10.0),
+    "t-relay": Scenario("relay", reply_secs=8.0, lines_at=[2.0, 14.0], secs=24.0),
+    "relay": Scenario("relay", reply_secs=10.0, lines=5, every=16.0, secs=82.0),
 }
 
 
@@ -83,6 +88,7 @@ class Phone:
         self.heard_at = 0.0
         self.answered = 0
         self.player = Player()
+        self.arrivals: list[float] = []  # when each chunk of the bot's voice came in
         self.offline_since: float | None = None
         self.offline_secs = 0.0
         self.ended_with: str | None = None
@@ -159,6 +165,7 @@ class Phone:
                     pcm = adpcm_decode(message) if self.down_codec == "adpcm" else message
                     secs = len(pcm) / 2 / DOWN_RATE
                     self.down_secs += secs
+                    self.arrivals.append(self.heard_at)
                     self.player.arrive(secs)
                     continue
                 m = json.loads(message)
@@ -428,6 +435,9 @@ async def bench(d, name: str, kind: str) -> dict:
 
     scenario = SCENARIOS[name]
     port = PORT_BASE
+    before = os.environ.get("POINTE_NET_BEFORE") == "1"
+    if before:
+        d.phone.SEND_LEAD_SECS = 0.04  # pipecat's own pacing: one 40 ms chunk ahead
     d.state.conn = None
     bot = Bot(d, scenario.reply_secs)
     d.run_call = bot.run_call
@@ -480,6 +490,7 @@ async def bench(d, name: str, kind: str) -> dict:
             late.append(round(max(heard) - (began + scenario.reply_secs), 2))
     if phone.offline_since is not None:
         phone.offline_secs += time.monotonic() - phone.offline_since
+    heard = _heard(phone.arrivals, bot.replies, scenario.reply_secs, before)
     return {
         "scenario": name, "phone": kind, "profile": scenario.profile, "secs": round(elapsed, 1),
         "calls": bot.calls, "call_drops": max(0, bot.calls - 1) + (1 if phone.ended_with else 0),
@@ -493,7 +504,26 @@ async def bench(d, name: str, kind: str) -> dict:
         "typed_ack_secs": [a.get("ack_secs") for a in sorted(acks, key=lambda a: a["n"])],
         "typed_tries": [a.get("tries") for a in sorted(acks, key=lambda a: a["n"])], "replies": len(bot.replies),
         "segments_lost": shaper.lost,
+        "lead_secs": getattr(d.phone, "SEND_LEAD_SECS", 0.0), **heard,
     }
+
+
+def _heard(arrivals: list[float], replies: list[float], reply_secs: float, before: bool) -> dict:
+    """What the page and the apps hear of the voice as it arrived (tests/playout_sim.py), and how far ahead of its
+    playing the first reply came in at most: the cushion the transport's pacing gives a client."""
+    from playout_sim import CHUNK as SIM_CHUNK, hear
+
+    if not arrivals or not replies:
+        return {}
+    arrived = [(at, max(i for i, began in enumerate(replies) if began <= at)) for at in arrivals if at >= replies[0]]
+    talk = [(began, reply_secs) for began in replies]
+    first = [at for at, reply in arrived if reply == 0]
+    ahead = max((k + 1) * SIM_CHUNK - (at - first[0]) for k, at in enumerate(first)) if first else 0.0
+    out = {"ahead_max_secs": round(ahead, 2)}
+    for client in ("page", "app"):
+        r = hear(client, talk, arrived, before)
+        out[client] = {"gaps_per_min": r.gaps_per_min, "gap_ms_per_min": r.gap_ms_per_min, "first_sound_ms": r.first_sound_ms}
+    return out
 
 
 async def _nothing(*_a, **_k):

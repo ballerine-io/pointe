@@ -41,6 +41,8 @@ class Profile:
 PROFILES = {
     "clean": Profile(),
     "lan": Profile(latency_ms=10, jitter_ms=5),
+    # a VPN through a relay: about 140 ms round trip at best, 20 to 80 ms of jitter, a segment lost now and then
+    "relay": Profile(latency_ms=70, jitter_ms=80, loss=0.005),
     "slow": Profile(latency_ms=150, jitter_ms=40, loss=0.01),
     "far": Profile(latency_ms=300, jitter_ms=120, loss=0.02),
     "bad": Profile(latency_ms=600, jitter_ms=200, loss=0.03, down_kbps=400, up_kbps=200),

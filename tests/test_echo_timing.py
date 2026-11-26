@@ -71,8 +71,9 @@ def test_a_quick_answer_said_after_the_bot_stopped_stays_the_users(clock):
     g.bot_stopped()
     stop = clock[0]
     clock[0] = stop + 3.2  # Soniox's final comes late
-    assert g.user_part("Yes.", spoken=(stop + 0.6, stop + 0.9)) == "Yes."
-    assert g.user_part("No.", spoken=(stop + 0.6, stop + 0.9)) == "No."
+    heard_end = stop + echo.PLAYBACK_LAG_SECS  # the voice is sent ahead of its playing (phone.SEND_LEAD_SECS)
+    assert g.user_part("Yes.", spoken=(heard_end + 0.1, heard_end + 0.4)) == "Yes."
+    assert g.user_part("No.", spoken=(heard_end + 0.1, heard_end + 0.4)) == "No."
 
 
 def test_a_new_sentence_after_the_bot_stopped_stays_whole(clock):

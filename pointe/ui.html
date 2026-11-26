@@ -2747,14 +2747,23 @@
         this.pos -= x.length; return true;
       }
     }
+    // From dry (a reply's start, or a gap), the voice waits until HOLD seconds are in hand or it has waited that long:
+    // tests/playout_sim.py's page listener, which tests/test_playout_gaps.py holds to it.
     class Player extends AudioWorkletProcessor {
-      constructor() { super(); this.q = []; this.head = null; this.at = 0;
-        this.port.onmessage = e => { if (e.data === 'flush') { this.q = []; this.head = null; } else this.q.push(e.data); }; }
+      constructor() { super(); this.q = []; this.head = null; this.at = 0; this.queued = 0; this.waited = 0;
+        this.hold = 0.3 * sampleRate;  // HOLD: the apps' JitterBuffer.startTarget
+        this.port.onmessage = e => { if (e.data === 'flush') { this.q = []; this.head = null; this.queued = 0; this.waited = 0; }
+                                     else { this.q.push(e.data); this.queued += e.data.length; } }; }
       process(_, outputs) {
         const out = outputs[0][0];
+        if (!this.head && (!this.q.length || (this.waited >= 0 && this.queued < this.hold && this.waited < this.hold))) {
+          this.waited = this.q.length ? this.waited + out.length : 0;
+          out.fill(0); return true;
+        }
+        this.waited = -1;  // playing
         for (let i = 0; i < out.length; i++) {
           if (!this.head) { this.head = this.q.shift() || null; this.at = 0; }
-          out[i] = this.head ? this.head[this.at++] : 0;
+          if (this.head) { out[i] = this.head[this.at++]; this.queued--; } else { out[i] = 0; this.waited = 0; }
           if (this.head && this.at >= this.head.length) this.head = null;
         }
         return true;

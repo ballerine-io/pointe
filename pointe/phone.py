@@ -47,6 +47,7 @@ Version 5 keeps a call through a dropped link (calllink.py), and makes the audio
   further behind (Heartbeat.lagging).
 """
 
+import asyncio
 import hmac
 import json
 import secrets
@@ -84,6 +85,31 @@ CAUGHT_UP_SECS = 1.0
 DRY_SECS = 0.5
 ADPCM = "adpcm"
 PCM16 = "pcm16"
+# The bot's voice goes out this far ahead of the speed it plays at (send_ahead). Pipecat's websocket transport paces it
+# at exactly that speed (its "/ 2" halves bytes, not time): a client then holds only what its own buffer waited for, and
+# on a VPN path each late chunk (a lost segment waits a retransmission timeout, 200 ms and more) breaks the voice between
+# words. Half a second covers one retransmission on a relayed path. The voice stops playing this much after the daemon
+# stops sending it (echo.PLAYBACK_LAG_SECS), and a barge-in drops it on the client.
+SEND_LEAD_SECS = 0.5
+
+
+def next_send_at(clock: float, now: float, chunk_secs: float, lead: float = SEND_LEAD_SECS) -> float:
+    """When the transport may send the chunk after the one it sent at `now`: a chunk's time on, on a clock that runs at
+    the voice's speed and up to `lead` seconds ahead of `now`. After a pause or a barge-in (pipecat zeroes its clock)
+    the next reply starts with the whole lead again."""
+    return max(clock, now - lead) + chunk_secs
+
+
+def send_ahead(output) -> None:
+    """Pace this pipecat FastAPIWebsocketOutputTransport by next_send_at instead of its own clock. It sleeps in
+    _write_audio_sleep after each chunk, until _next_send_time; tests/test_bad_network.py measures what a client gets."""
+    async def write_audio_sleep() -> None:
+        now = time.monotonic()
+        chunk = output.audio_chunk_size / (2 * output._params.audio_out_channels * output.sample_rate)
+        output._next_send_time = next_send_at(output._next_send_time, now, chunk, SEND_LEAD_SECS)
+        await asyncio.sleep(max(0.0, output._next_send_time - now))
+
+    output._write_audio_sleep = write_audio_sleep
 
 
 def adpcm_encode(pcm: bytes, state: tuple[int, int] | None) -> tuple[bytes, tuple[int, int]]:
@@ -159,10 +185,10 @@ class Heartbeat:
 
     def lagging(self) -> bool:
         """New bot audio would only add to a queue the client cannot drain: drop it. That is a link behind by more than
-        SHED_SECS over its best round trip while the client has almost nothing left to play. Neither alone: the
-        daemon sends a reply's audio at twice its pace, so on a path between one and two times the voice's rate the
-        pings fall behind while the client still has seconds to play; and a lossy path stalls for a second or two
-        and then catches up. A client that does not say what it holds (before protocol 5) counts as holding nothing."""
+        SHED_SECS over its best round trip while the client has almost nothing left to play. Neither alone: pings
+        wait behind the reply's audio, so on a path barely faster than the voice they fall behind while the client
+        still has its lead (SEND_LEAD_SECS) to play; and a lossy path stalls for a second or two and then catches up.
+        A client that does not say what it holds (before protocol 5) counts as holding nothing."""
         queue = self.behind() - self.best_rtt
         if self.shedding:
             self.shedding = queue > CAUGHT_UP_SECS

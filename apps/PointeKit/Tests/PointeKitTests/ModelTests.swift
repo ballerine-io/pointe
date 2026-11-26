@@ -127,15 +127,15 @@ import Testing
 @Suite struct JitterBufferTests {
     @Test func theFirstAudioWaitsForTheTargetThenPlaysStraightOn() {
         var b = JitterBuffer()
-        let r1 = b.arrived(0.04, at: 0)
-        #expect(!r1)
-        let r2 = b.arrived(0.04, at: 0.02)
-        #expect(!r2)
-        let r3 = b.arrived(0.04, at: 0.04)
-        #expect(r3)  // 120 ms in hand, the target is 100
-        #expect(b.ahead(at: 0.04) == 0.12)
-        let r4 = b.arrived(0.04, at: 0.06)
-        #expect(r4)  // playing: straight on
+        for k in 0..<7 {  // the Mac's lead comes in a burst: 280 ms, short of the 300 ms target
+            let r = b.arrived(0.04, at: Double(k) * 0.01)
+            #expect(!r)
+        }
+        let r8 = b.arrived(0.04, at: 0.07)
+        #expect(r8)  // 320 ms in hand
+        #expect(abs(b.ahead(at: 0.07) - 0.32) < 1e-9)
+        let r9 = b.arrived(0.04, at: 0.08)
+        #expect(r9)  // playing: straight on
         #expect(b.underruns == 0)
     }
 
@@ -143,26 +143,26 @@ import Testing
         var b = JitterBuffer()
         let r5 = b.arrived(0.04, at: 10)
         #expect(!r5)
-        #expect(b.due() == 10.1)
-        let r6 = b.tick(at: 10.05)
+        #expect(b.due() == 10.3)
+        let r6 = b.tick(at: 10.2)
         #expect(!r6)
-        let r7 = b.tick(at: 10.1)
+        let r7 = b.tick(at: 10.3)
         #expect(r7)
         #expect(b.due() == nil)
     }
 
     @Test func runningDryMidReplyIsAnUnderrunAndTheNextWaitIsLonger() {
         var b = JitterBuffer()
-        _ = b.arrived(0.2, at: 0)  // plays until 0.2
-        let held = b.arrived(0.04, at: 0.5)  // dry since 0.2: 300 ms of silence in the middle of the reply
+        _ = b.arrived(0.4, at: 0)  // plays until 0.4
+        let held = b.arrived(0.04, at: 0.7)  // dry since 0.4: 300 ms of silence in the middle of the reply
         #expect(!held)
         #expect(b.underruns == 1)
         #expect(abs(b.gapSecs - 0.3) < 1e-9)
         #expect(b.target > JitterBuffer.startTarget)
         for k in 1...10 {  // one bad path after another: the wait grows to its ceiling and no further
             let t = Double(k) * 100
-            _ = b.arrived(0.5, at: t)  // a new reply, enough in hand to start at once
-            _ = b.arrived(0.04, at: t + 0.8)  // dry since t + 0.5
+            _ = b.arrived(1.0, at: t)  // a new reply, enough in hand to start at once
+            _ = b.arrived(0.04, at: t + 1.3)  // dry since t + 1
         }
         #expect(b.underruns == 11)
         #expect(b.target == JitterBuffer.maxTarget)
@@ -170,10 +170,10 @@ import Testing
 
     @Test func aPauseBetweenRepliesIsNoUnderrunAndCalmBringsTheWaitDown() {
         var b = JitterBuffer()
-        _ = b.arrived(0.2, at: 0)
-        _ = b.arrived(0.2, at: 0.5)  // underrun: the target goes up
+        _ = b.arrived(0.4, at: 0)
+        _ = b.arrived(0.4, at: 0.6)  // underrun: the target goes up
         let raised = b.target
-        _ = b.tick(at: 1)
+        _ = b.tick(at: 2)
         let r9 = b.arrived(0.04, at: 30)
         #expect(!r9)  // a new reply, long after: no underrun, and calm: down a step
         #expect(b.underruns == 1)
@@ -187,6 +187,57 @@ import Testing
         #expect(b.ahead(at: 0.1) == 0)
         _ = b.arrived(0.04, at: 0.3)
         #expect(b.underruns == 0)
+    }
+
+    /// The voice on a relayed VPN path (tests/netshaper.py's "relay": 70 ms, up to 80 ms of jitter, a segment in 200
+    /// lost for a 300 ms retransmission), on a fake clock: the Mac's half-second lead (phone.SEND_LEAD_SECS) against
+    /// pipecat's own pacing, one chunk ahead. tests/test_playout_gaps.py measures the same with the page.
+    @Test func withTheMacsLeadTheVoiceAlmostNeverBreaksOnAJitteryLossyPath() {
+        let before = Self.gaps(lead: 0.04), after = Self.gaps(lead: 0.5)
+        #expect(after.perMinute <= 0.5, "\(after)")
+        #expect(after.msPerMinute <= 60, "\(after)")
+        #expect(before.perMinute >= 2 * max(after.perMinute, 0.25), "before \(before), after \(after)")
+    }
+
+    /// Gaps heard per minute of speech: silence inside a reply, the speaker given what JitterBuffer releases.
+    static func gaps(lead: TimeInterval) -> (perMinute: Double, msPerMinute: Double) {
+        var seed: UInt64 = 7
+        func random() -> Double {  // a fixed sequence: the same path every run
+            seed = seed &* 6364136223846793005 &+ 1442695040888963407
+            return Double(seed >> 11) / Double(1 << 53)
+        }
+        let chunk = 0.04
+        var buffer = JitterBuffer(), held = 0, speakerUntil = 0.0, replyEnd: Double?, gaps = 0, gapSecs = 0.0
+        var last = 0.0, speech = 0.0, start = 1.0
+        func play(_ now: Double) {
+            for _ in 0..<held {
+                let at = max(now, speakerUntil)
+                if let end = replyEnd, at > end + 1e-9 { gaps += 1; gapSecs += at - end }
+                speakerUntil = at + chunk
+                replyEnd = speakerUntil
+            }
+            held = 0
+        }
+        for _ in 0..<40 {
+            let secs = (2 + 12 * random()).rounded() , count = Int(secs / chunk)
+            replyEnd = nil
+            var clock = 0.0, awake = start
+            for k in 0..<count {
+                let sent = max(start + Double(k + 1) * chunk / 4, awake)  // the voice service makes it 4x as fast
+                clock = max(clock, sent - lead) + chunk  // phone.next_send_at
+                awake = max(sent, clock)
+                var due = sent + 0.07 + 0.08 * random()
+                if random() < 0.005 { due += 0.3 }
+                last = max(last, due)
+                while let tick = buffer.due(), tick <= last, buffer.tick(at: tick) { play(tick) }
+                held += 1
+                if buffer.arrived(chunk, at: last) { play(last) }
+            }
+            if let tick = buffer.due(), buffer.tick(at: tick) { play(tick) }
+            speech += secs
+            start += secs + 4 + 6 * random()
+        }
+        return (Double(gaps) * 60 / speech, gapSecs * 1000 * 60 / speech)
     }
 }
 

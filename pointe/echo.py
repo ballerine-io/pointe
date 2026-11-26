@@ -19,7 +19,9 @@ AUDIO_TAIL_SECS = 1.0  # words said up to this long after the bot stopped can ho
 BEFORE_BOT_SECS = 0.3  # words begun this long before the bot's voice cannot be its echo
 BEFORE_BOT_WORDS = 4  # and only a short answer: a long one may run on into the bot's voice and carry its words
 BOT_SENTENCE_WORDS = 4  # whole sentences of the bot's at the start of the user's transcript are taken off from this many words
-PLAYBACK_LAG_SECS = 0.3  # the speakers play the bot's last word up to this long after it stopped sending audio
+# The speakers play the bot's last word up to this long after it stopped sending audio: 0.3 s of the path and the
+# speakers, and the voice is sent phone.SEND_LEAD_SECS ahead of its playing (tests/test_playout_gaps.py checks the sum).
+PLAYBACK_LAG_SECS = 0.8
 REPLY_GAP_SECS = 1.0  # the voice stopping for less than this is one reply going on, not a new one
 CHARS_PER_SEC = 15.5  # the bot's pace over whole turns (rig, 2026-11): where in its text it was at a given moment
 INTERRUPT_WORDS = {"stop", "wait", "hold", "no", "enough", "quiet", "pause", "hey",

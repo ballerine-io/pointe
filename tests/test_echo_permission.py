@@ -17,6 +17,7 @@ sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(_
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_orchestrator import _consent_setup, d, verdicts  # noqa: E402,F401
 
+import echo  # noqa: E402
 from echo import AudioClock, EchoGuard  # noqa: E402
 from pipecat.frames.frames import TranscriptionFrame  # noqa: E402
 from pipecat.processors.frame_processor import FrameDirection  # noqa: E402
@@ -128,9 +129,10 @@ def test_a_yes_said_after_the_read_out_still_approves(d, e, monkeypatch):
                                                                                          " Say yes to allow it, or no."])
     guard.bot_stopped()
     now = time.time()
-    guard.stopped_at = now - 3.2
-    guard._played[-1] = [now - 7.0, now - 3.2]
-    timed_final(d, ears, "Yes.", (now - 2.5, now - 2.2))  # the user's, 0.7 s after the bot stopped
+    stopped = now - 3.2 - echo.PLAYBACK_LAG_SECS
+    guard.stopped_at = stopped
+    guard._played[-1] = [stopped - 3.8, stopped]
+    timed_final(d, ears, "Yes.", (now - 2.5, now - 2.2))  # the user's, 0.7 s after the bot's voice stopped playing
     assert [v["behavior"] for v in verdicts(posts)] == ["allow"]
 
 

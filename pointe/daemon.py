@@ -12126,6 +12126,7 @@ async def socket_call(websocket: WebSocket, who: str) -> None:
     transport = FastAPIWebsocketTransport(link, FastAPIWebsocketParams(
         audio_in_enabled=True, audio_out_enabled=True, audio_in_sample_rate=phone.IN_RATE,
         audio_out_sample_rate=phone.OUT_RATE, serializer=serializer))
+    phone.send_ahead(transport.output())
     logger.info(f"{who} connected")
     state.heartbeat_info = heartbeat
 

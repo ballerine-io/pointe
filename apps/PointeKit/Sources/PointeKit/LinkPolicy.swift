@@ -24,12 +24,15 @@ public struct Redial: Equatable, Sendable {
 /// When the bot's voice plays. What arrives while the speaker is dry waits until `target` seconds are in hand (or it
 /// has waited that long), then plays straight on: a path that delivers in bursts plays smoothly. A reply that runs dry
 /// in its middle is an underrun, and the next starts with more in hand; a quiet spell brings the target back down.
-/// Nothing is dropped here: the Mac sends a reply at twice its pace, so audio far ahead is the reply, not a backlog
-/// (the Mac drops what would play late, phone.Heartbeat.lagging). Times are the caller's clock, in seconds.
+/// Nothing is dropped here: the Mac sends the first half second of a reply at once and the rest at the voice's pace
+/// (phone.SEND_LEAD_SECS), so the start target fills in a fraction of its length, and it drops what would play late
+/// itself (phone.Heartbeat.lagging). tests/playout_sim.py mirrors this. Times are the caller's clock, in seconds.
 public struct JitterBuffer: Equatable, Sendable {
-    public static let minTarget: TimeInterval = 0.06
-    public static let maxTarget: TimeInterval = 0.4
-    public static let startTarget: TimeInterval = 0.1
+    /// 300 ms covers a lost segment's retransmission on a relayed VPN path at the start of a reply, before the Mac's
+    /// lead is in (tests/test_playout_gaps.py).
+    public static let minTarget: TimeInterval = 0.2
+    public static let maxTarget: TimeInterval = 0.6
+    public static let startTarget: TimeInterval = 0.3
     /// Dry for longer than this, the next audio is a new reply, not the same one late.
     public static let sameReply: TimeInterval = 1.0
     /// No underrun for this long: the target comes down a step.

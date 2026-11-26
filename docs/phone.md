@@ -154,8 +154,12 @@ as lost words. Since 1.26 the phone, the page and the Mac app handle that:
 - **Nothing falls minutes behind.** Each side measures what is still on the way: the Mac drops new bot audio while the
   phone is far behind and has nothing left to play, and the phone drops new microphone audio once more than 1.5 seconds
   of it are on the way. You may hear a gap; you do not hear a reply minutes late.
-- **The voice plays smoothly.** The app holds the first 60 to 400 ms of each reply before playing, more after a gap on
-  that path and less once it is calm, and plays it off the main thread, so a busy screen never stutters it.
+- **The voice plays smoothly.** Since 0.10.1 the Mac sends the first half second of each reply at once and the rest at
+  the speed it plays, so the phone, the Mac app and the page each hold half a second of it while it plays: a late or
+  resent packet on a VPN path no longer breaks the voice between words. A client waits for 300 ms of a reply before
+  playing it (the apps up to 600 ms after a gap on that path, down to 200 ms once it is calm), and the apps play it off
+  the main thread, so a busy screen never stutters it. Before 0.10.1 the voice left the Mac at the speed it plays, the
+  apps held 100 ms and the page nothing, and on a relayed VPN path it broke several times a minute.
 - **A typed line shows at once**, marked Sending, then Sent. The apps send it again with the same id if the Mac did not
   answer (the Mac takes it once), and keep it with Retry if it still was not taken; the page puts it back in its box
   with the reason.
@@ -177,6 +181,16 @@ Mac, a stand-in voice, the app in the Simulator with a synthetic microphone), tw
 | | your words reaching the Mac (stand-in phone) | 24.5 s behind | 0.2 s |
 | 400 ms, 2% loss, 80/60 kbit/s | the reply heard (stand-in phone) | 8 of 20 s, 10 s late | 19.1 of 20 s, 2.7 to 3.7 s late |
 | clean | everything | the same | the same |
+
+The voice's gaps on a relayed VPN path, 0.10.0 against 0.10.1: `tests/net_bench.py relay` (the daemon's own transport
+through `tests/netshaper.py`'s `relay` profile: 70 ms one way, up to 80 ms of jitter, one segment in 200 lost; 50 s of
+speech), then `tests/test_playout_gaps.py` (the same path on a fake clock, about 27 minutes of speech):
+
+| Per minute of speech | 0.10.0 | 0.10.1 |
+|---|---|---|
+| the page: gaps, and silence inside replies | 13.2 / 16.8 gaps, 1458 / 1223 ms | 0 / 0 gaps, 0 / 0 ms |
+| the apps: gaps, and silence inside replies | 3.6 / 1.7 gaps, 443 / 247 ms | 0 / 0.25 gaps, 0 / 14 ms |
+| first sound after the reply begins: page, apps | 126 / 123 ms, 364 / 399 ms | 269 / 217 ms, 252 / 189 ms |
 
 A row marked "stand-in phone" is `tests/net_bench.py`, the others the app in the Simulator. The app's main thread was
 never late by more than 130 ms in any run of 1.26 (70 ms with nothing else running on the Mac). Not measured: a real
