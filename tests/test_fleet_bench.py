@@ -12,7 +12,7 @@ sys.path.insert(0, str(ROOT / "bench" / "fleet"))
 import report  # noqa: E402
 import score  # noqa: E402
 
-FLEET = {"sessions": [{"id": "a", "name": "tide", "machine": "studio"}, {"id": "b", "name": "quarry", "machine": "studio"},
+FLEET = {"sessions": [{"id": "a", "name": "pinwheel", "machine": "studio"}, {"id": "b", "name": "gable", "machine": "studio"},
                       {"id": "c", "name": "shop", "machine": "studio"}, {"id": "d", "name": "shop", "machine": "avi-box"}]}
 
 
@@ -25,7 +25,7 @@ def turn(kind: str, expect: dict, landed=(), said=(), **more) -> dict:
 def rows() -> list[dict]:
     send = {"action": "send", "session": "a"}
     return [
-        turn("clear_name", send, ["a"], ["Sent to tide."], first_token_secs=1.0, brain_input_tokens=1000, needs_tokens=500),
+        turn("clear_name", send, ["a"], ["Sent to pinwheel."], first_token_secs=1.0, brain_input_tokens=1000, needs_tokens=500),
         turn("clear_name", send, ["b"], ["Sent."], first_token_secs=2.0, brain_input_tokens=2000, needs_tokens=700),  # wrong session
         turn("clear_name", send, ["a", "b"], ["Sent."], first_token_secs=3.0, brain_input_tokens=3000, needs_tokens=900),  # right and wrong: wrong
         turn("clear_description", send, [], ["Which session do you mean?"], first_token_secs=4.0),  # asked instead
@@ -34,7 +34,7 @@ def rows() -> list[dict]:
         turn("ambiguous_name", {"action": "ask", "fits": ["c", "d"]}, ["c"], ["Sent to shop."]),  # sent
         turn("ambiguous_none", {"action": "ask", "fits": []}, [], ["There is no such session."]),  # neither
         {**turn("ambiguous_none", {"action": "ask", "fits": []}), "error": "the line could not be typed"},  # crashed
-        turn("needs_me", {"action": "answer", "sessions": ["a", "b"]}, [], ["Tide needs an answer. Shop is fine."]),
+        turn("needs_me", {"action": "answer", "sessions": ["a", "b"]}, [], ["Pinwheel needs an answer. Shop is fine."]),
     ]
 
 
@@ -53,7 +53,7 @@ def test_counts_and_intervals_are_exact():
     assert (a["asked"]["k"], a["sent"]["k"], a["neither"]["k"], a["crashed"], a["asked"]["n"]) == (1, 1, 1, 1, 3)  # crashed: counted apart, not in n
     assert s["first_token"]["n"] == 4 and s["first_token"]["median"] == 2.0 and s["first_token"]["p90"] == 4.0  # the loaded row is not timed
     assert s["needs_tokens"]["max"] == 900 and s["needs_tokens"]["median"] == 700 and s["brain_input"]["median"] == 2000
-    assert s["needs_me_named"] == {"turns": 1, "expected": 2, "named": 1, "turns_naming_others": 1}  # tide named, quarry not; shop is another
+    assert s["needs_me_named"] == {"turns": 1, "expected": 2, "named": 1, "turns_naming_others": 1}  # pinwheel named, gable not; shop is another
 
 
 def test_wilson_and_quantiles():
@@ -89,13 +89,15 @@ def _results(tmp_path: Path, dataset_sha: str = "abc") -> Path:
     run = tmp_path / "results" / "fleet-1-turns-5x20-fleet-on-r1"
     run.mkdir(parents=True)
     (run / "manifest.json").write_text(json.dumps({"run": run.name, "what": "turns", "size": "5x20", "arm": "fleet-on", "models": "real",
-                                                   "limit": 0, "dataset_sha256": dataset_sha}))
+                                                   "limit": 0, "dataset_sha256": dataset_sha,
+                                                   "started": "2026-11-26T10:00:00", "pointe": {"commit": "c1", "pointe_tree": "aaaaaaaaaaaabbbb"}}))
     crash = {"kind": "crash", "run": run.name, "arm": "fleet-on", "size": "5x20", "error": "TimeoutError: the voice stopped answering"}
     (run / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in [*rows(), crash]))
     smoke = tmp_path / "results" / "fleet-0-turns-5x20-fleet-on-r1"
     smoke.mkdir()
     (smoke / "manifest.json").write_text(json.dumps({"run": smoke.name, "what": "turns", "size": "5x20", "arm": "fleet-on",
-                                                     "models": "real", "limit": 6, "dataset_sha256": dataset_sha}))
+                                                     "models": "real", "limit": 6, "dataset_sha256": dataset_sha,
+                                                     "started": "2026-11-26T09:00:00", "pointe": {"commit": "c1", "pointe_tree": "aaaaaaaaaaaabbbb"}}))
     (smoke / "rows.jsonl").write_text(json.dumps(rows()[0]) + "\n")
     (tmp_path / "results" / "ledger.jsonl").write_text(json.dumps({"launch": run.name, "what": "turns", "usd": 1.25, "calls": 40}) + "\n")
     (tmp_path / "FROZEN.json").write_text(json.dumps({"dataset_sha256": "abc", "dataset_version": "fleet-test", "frozen_at": "then"}))
@@ -107,10 +109,11 @@ def test_the_report_is_written_from_the_rows_with_failures_and_exclusions_said(t
     text = report.write(at / "results", at / "RESULTS.md", at / "FROZEN.json", "abc", {"5x20": FLEET})
     assert (at / "RESULTS.md").read_text() == text
     assert "| wrong session on clear turns | at most 5% | 2 of 5 (12% to 77%) | **FAIL** |" in text
-    assert "1 runs of the turn list: 9 turns driven, 1 crashed, 0 not run (their run stopped first); no 1x4 run of this arm" in text
+    assert "1 runs of the turn list: 9 turns driven, 1 crashed, 0 not run (their run stopped first); no 1x4 run of this arm on this build" in text
+    assert "### 5x20, the fleet build, POINTE_FLEET=on, build `aaaaaaaaaa`" in text
     assert "a smoke run of 6 turns | 1 |" in text and "TimeoutError: the voice stopped answering" in text
     assert "| all 1 paid launches | | 40 | 1.2500 |" in text
-    assert "**Not run:** the turn list at 1x4, main before the fleet work" in text
+    assert "**Not run on the newest build (`aaaaaaaaaa`):** the turn list at 1x4, main before the fleet work" in text
 
 
 def test_the_report_refuses_when_the_dataset_is_not_the_frozen_one(tmp_path):

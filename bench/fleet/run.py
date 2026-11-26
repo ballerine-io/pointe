@@ -256,6 +256,7 @@ class Launch:
         notes = NOTES / arm / size if models == "real" else None
         self.fleet = sim.FleetSim(self.described, self.root / "f", models, env, notes, checkout)
         self.watch: Watch | None = None
+        self.renamed_turns: set[str] = set()
         self.rows: list[dict] = []
         self.manifest = {"run": self.id, "what": what, "size": size, "arm": arm, "models": models,
                          "pointe": commit_of(checkout), "harness_commit": commit_of(ROOT)["commit"],
@@ -342,6 +343,7 @@ def turn_row(run: Launch, n: int, turn: dict, seed: int) -> dict:
     seen = {"deliveries": [], "calls": [], "said": []}
     row = {"kind": "turn", "run": run.id, "arm": run.arm, "size": run.size, "seed": seed, "order": n, "turn": turn["id"],
            "turn_kind": turn["kind"], "text": turn["text"], "expect": turn["expect"], "this_mac_holds": turn.get("this_mac_holds"),
+           "renamed_at_join": turn["id"] in run.renamed_turns,
            "load_start": os.getloadavg()[0], "error": None}
     w.poll()
     t0 = time.time()
@@ -387,7 +389,8 @@ def turn_row(run: Launch, n: int, turn: dict, seed: int) -> dict:
         brain_input_first_step=first["input_tokens"] if first else None,
         needs_tokens=w.needs.get(first["needs_sha"]) if first and first["needs_sha"] else None,
         needs_chars=first["needs_chars"] if first else None,
-        other_steps=sum(not s["own"] for s in steps),
+        other_steps=sum(not s["own"] for s in steps), brain_steps=len(owned),
+        list_sessions_calls=sum(s["tools"].count("list_sessions") for s in steps),
         reader_calls=sum(c["choice"] == reader for c in texts), checker_calls=sum(c["choice"] != reader for c in texts),
         text_callers=sorted({c.get("caller", "") for c in texts}),
         load_end=os.getloadavg()[0])
@@ -400,14 +403,19 @@ def turn_row(run: Launch, n: int, turn: dict, seed: int) -> dict:
 
 
 def daemon_fleet(fleet: sim.FleetSim) -> dict:
-    """The arm as the daemon itself states it (/voice/context, `fleet`): whether the fleet rules are on, and its own
-    estimate of the "what needs me" block. None on a build that has no such switch."""
+    """The arm as the daemon itself states it (/voice/context, `fleet`): whether the fleet rules are on, its own
+    estimate of the "what needs me" block, how it routed last (the candidates and how; not recorded by the daemon
+    when a plain session name routed the request), and where the brain's context goes by kind. None on a build that
+    has no such switch."""
     try:
-        view = (fleet.voice.call("/voice/context", timeout=10)[1] or {}).get("fleet")
+        context = fleet.voice.call("/voice/context", timeout=10)[1] or {}
     except (OSError, AttributeError):
-        view = None
-    view = view if isinstance(view, dict) else {}
-    return {"fleet_on": view.get("on"), "fleet_tokens_by_daemon": view.get("tokens"), "fleet_stats": view.get("stats")}
+        context = {}
+    context = context if isinstance(context, dict) else {}
+    view = context.get("fleet") if isinstance(context.get("fleet"), dict) else {}
+    return {"fleet_on": view.get("on"), "fleet_tokens_by_daemon": view.get("tokens"), "fleet_budget": view.get("budget"),
+            "fleet_tiers": view.get("tiers"), "fleet_route": view.get("route"), "fleet_stats": view.get("stats"),
+            "context_breakdown": context.get("breakdown"), "context_tokens": context.get("tokens")}
 
 
 def cmd_turns(a) -> None:
@@ -422,6 +430,15 @@ def cmd_turns(a) -> None:
         try:
             run.up()
             run.manifest["reader_model"] = _role(run.manifest["setup_line"], "reader")
+            # A session the voice did not take under its dataset name (its own naming rules renamed it at join): the
+            # turns that expect or name it are marked, and the report scores them as a group of their own.
+            names, by_id = run.manifest["names"], {s["id"]: s for s in fleet["sessions"]}
+            renamed = {sid for sid, s in by_id.items() if not (names.get(sid) == s["name"] or
+                       (s["shared_name"] and str(names.get(sid, "")).startswith(s["name"] + " ")))}
+            run.manifest["renamed_at_join"] = {by_id[sid]["name"] + " on " + by_id[sid]["machine"]: names.get(sid) for sid in sorted(renamed)}
+            run.renamed_turns = {t["id"] for t in all_turns
+                                 if ({t["expect"].get("session"), *t["expect"].get("fits", [])} & renamed)
+                                 or (t["kind"] in ("needs_me", "on_machine") and set(t["expect"]["sessions"]) & renamed)}
             for n, turn in enumerate(order):
                 if run.models == "real" and run.run_spend() >= headroom:
                     error = f"stopped after {done} turns: this launch reached its spend limit of ${headroom:.2f}"

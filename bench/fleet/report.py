@@ -93,29 +93,50 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
            "`bench/fleet/results/`; intervals are 95% (Wilson for counts, a bootstrap over turns for medians and p90).", "",
            f"Dataset `{frozen.get('dataset_version')}`, frozen {frozen.get('frozen_at')}, sha256 `{dataset_sha[:16]}`. "
            "60 turns a size; expected outcomes labelled by rule from the fleet's description (`bench/fleet/turns.py`).", ""]
+    def build(r: dict) -> str:
+        p = r["manifest"].get("pointe") or {}
+        return (trees.get(p.get("commit"), p.get("pointe_tree")) or "unknown")[:10]
+
+    # One section a build: both arms of a comparison ran the same pointe/ folder. Builds in the order they were run.
+    order: list[str] = []
+    for r in sorted(used, key=lambda r: r["manifest"]["started"]):
+        if r["manifest"]["what"] in ("turns", "burst") and build(r) not in order:
+            order.append(build(r))
     by: dict[tuple[str, str], list[dict]] = {}
+    held_apart: list[dict] = []  # turns about a session the voice renamed at join: a group of their own
     for r in used:
-        by.setdefault((r["manifest"]["arm"], r["manifest"]["size"]), []).append(r)
+        apart = [x for x in r["rows"] if x.get("renamed_at_join")]
+        held_apart += apart
+        r = {**r, "rows": [x for x in r["rows"] if not x.get("renamed_at_join")]}
+        tag = build(r) if r["manifest"]["what"] in ("turns", "burst") else "any"
+        by.setdefault((f"{r['manifest']['arm']}@{tag}", r["manifest"]["size"]), []).append(r)
 
     def rows_of(arm: str, size: str, what: str) -> list[dict]:
         return [row for r in by.get((arm, size), []) if r["manifest"]["what"] == what for row in r["rows"]]
 
+    def words(arm_at: str) -> str:
+        arm, tag = arm_at.split("@")
+        return ARM_WORDS[arm] + (f", build `{tag}`" if tag != "any" else "")
+
+    arms_at = [f"{arm}@{tag}" for tag in order for arm in ARMS]
+
     out += ["## Bars", ""]
     measured_any = False
-    for arm in ARMS:
+    for arm in arms_at:
+        plain = arm.split("@")[0] + "@any"  # reader counts are made with stubbed models, on the newest build only
         base_rows = [x for x in rows_of(arm, "1x4", "turns") if x["kind"] == "turn"]
         base = score.summarize(base_rows, fleets.get("1x4")) if base_rows else None
         for size in SIZES:
             turn_rows = [x for x in rows_of(arm, size, "turns") if x["kind"] == "turn"]
-            bursts, readers = score.burst(rows_of(arm, size, "burst")), score.readers(rows_of(arm, size, "readers"))
-            if not turn_rows and not bursts and readers["share"] is None:
+            bursts, readers = score.burst(rows_of(arm, size, "burst")), score.readers(rows_of(plain, size, "readers"))
+            if not turn_rows and not bursts:
                 continue
             measured_any = True
             at = score.summarize(turn_rows, fleets.get(size))
             n_runs = len([r for r in by.get((arm, size), []) if r["manifest"]["what"] == "turns"])
-            out += [f"### {size}, {ARM_WORDS[arm]}", "",
+            out += [f"### {size}, {words(arm)}", "",
                     f"{n_runs} runs of the turn list: {at['driven']} turns driven, {at['crashed']} crashed, {at['not_run']} not run (their run stopped first)"
-                    + ("; no 1x4 run of this arm, so nothing to compare with" if size != "1x4" and base is None else "") + ".", "",
+                    + ("; no 1x4 run of this arm on this build, so nothing to compare with" if size != "1x4" and base is None else "") + ".", "",
                     "| Bar | The plan's bar | Measured | |", "|---|---|---|---|"]
             for b in score.bars(at, base, size, bursts, readers):
                 out.append(f"| {b['bar']} | {b['limit']} | {b['measured']}{'; ' + b['note'] if b['note'] else ''} | **{b['verdict']}** |")
@@ -126,8 +147,7 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     want = {"fleet-on": True, "fleet-off": False, "baseline": None}
     checked = [x for r in used for x in r["rows"] if x["kind"] in ("turn", "burst", "readers") and not x.get("error")]
     off_arm = [x for x in checked if x.get("fleet_on") is not want[x["arm"]]]
-    builds = sorted({(r["manifest"]["arm"], trees.get(r["manifest"]["pointe"]["commit"], r["manifest"]["pointe"].get("pointe_tree") or "unknown")[:12])
-                     for r in used if "pointe" in r["manifest"]})
+    builds = sorted({(r["manifest"]["arm"], build(r)) for r in used if r["manifest"]["what"] in ("turns", "burst")})
     out += ["## The arms, as the daemon states them", "",
             f"{len(checked) - len(off_arm)} of {len(checked)} rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's"
             + (f"; **{len(off_arm)} do not**" if off_arm else "") + ". The `pointe/` folder each arm ran (its git tree): " + ", ".join(f"{a} `{c}`" for a, c in builds) + ".", ""]
@@ -135,7 +155,11 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
             "| Arm | Size | Run | Clear: right | Clear: wrong session | Clear: asked instead | Clear: nothing | Ambiguous: asked | "
             "Ambiguous: sent | Ambiguous: neither | Driven / crashed / not run | Needs tokens, median / max | Brain input per turn, median | "
             "First token, median / p90 | First send, median | Reader / checker / brain calls in the run |", "|" + "---|" * 16]
-    for (arm, size), group in sorted(by.items(), key=lambda kv: (ARMS.index(kv[0][0]), SIZES.index(kv[0][1]) if kv[0][1] in SIZES else 9)):
+    def key_order(kv):
+        (arm, size), _ = kv
+        return (arms_at.index(arm) if arm in arms_at else 99, SIZES.index(size) if size in SIZES else 9)
+
+    for (arm, size), group in sorted(by.items(), key=key_order):
         turn_runs = [r for r in group if r["manifest"]["what"] == "turns"]
         sets = [(r["manifest"]["run"], [x for x in r["rows"] if x["kind"] == "turn"], model_calls(r.get("calls") or [])) for r in turn_runs]
         if len(sets) > 1:
@@ -143,7 +167,7 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         for name, rows, made in sets:
             s = score.summarize(rows, fleets.get(size))
             c, a = s["clear"], s["ambiguous"]
-            out.append(f"| {arm} | {size} | {name} | {_pct(c['right'])} | {_pct(c['wrong'])} | {_pct(c['asked'])} | {_pct(c['nothing'])} | "
+            out.append(f"| {words(arm)} | {size} | {name} | {_pct(c['right'])} | {_pct(c['wrong'])} | {_pct(c['asked'])} | {_pct(c['nothing'])} | "
                        f"{_pct(a['asked'])} | {_pct(a['sent'])} | {_pct(a['neither'])} | {s['driven']} / {s['crashed']} / {s['not_run']} | "
                        f"{_span(s['needs_tokens'], 'median')} / {_num(s['needs_tokens']['max'])} | {_span(s['brain_input'], 'median')} | "
                        f"{_span(s['first_token'], 'median', ' s', 2)} / {_span(s['first_token'], 'p90', ' s', 2)} | "
@@ -155,27 +179,45 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
 
     out += ["## By kind of turn (all runs of a size and arm together)", "",
             "| Arm | Size | Kind | n | Outcomes |", "|---|---|---|---|---|"]
-    for (arm, size), group in sorted(by.items(), key=lambda kv: (ARMS.index(kv[0][0]), kv[0][1])):
+    for (arm, size), group in sorted(by.items(), key=key_order):
         rows = [x for r in group if r["manifest"]["what"] == "turns" for x in r["rows"] if x["kind"] == "turn"]
         if not rows:
             continue
+        arm = words(arm)
         s = score.summarize(rows, fleets.get(size))
         for kind, counts in s["by_kind"].items():
             out.append(f"| {arm} | {size} | {kind} | {counts['n']} | " + ", ".join(f"{k} {v}" for k, v in counts.items() if k != "n") + " |")
         held = [x for x in rows if x["turn_kind"] == "ambiguous_name"]
-        for flag, words in ((True, "this Mac has a session of the name"), (False, "only other machines have one")):
+        for flag, held_by in ((True, "this Mac has a session of the name"), (False, "only other machines have one")):
             part = [x for x in held if x.get("this_mac_holds") is flag]
             if part:
                 tally: dict[str, int] = {}
                 for x in part:
                     tally[score.outcome(x)] = tally.get(score.outcome(x), 0) + 1
-                out.append(f"| {arm} | {size} | ambiguous_name, {words} | {len(part)} | " + ", ".join(f"{k} {v}" for k, v in sorted(tally.items())) + " |")
+                out.append(f"| {arm} | {size} | ambiguous_name, {held_by} | {len(part)} | " + ", ".join(f"{k} {v}" for k, v in sorted(tally.items())) + " |")
         for kind in score.QUESTIONS:
             q = s.get(f"{kind}_named")
             if q and q["turns"]:
                 out.append(f"| {arm} | {size} | {kind}: expected sessions named in the reply | {q['turns']} | "
                            f"{q['named']} of {q['expected']} names; {q['turns_naming_others']} replies name a session not expected |")
     out.append("")
+
+    out += ["## Turns about a session the voice renamed when it joined", ""]
+    if held_apart:
+        tally: dict[tuple, dict[str, int]] = {}
+        for x in held_apart:
+            if x["kind"] == "turn":
+                cell = tally.setdefault((x["arm"], x["size"], x["turn_kind"]), {})
+                cell[score.outcome(x)] = cell.get(score.outcome(x), 0) + 1
+        out += ["The voice's own naming rules refused some dataset names at join and gave those sessions a name of its own "
+                "(\"session 1a2b3c\"; each run's manifest lists them under `renamed_at_join`). A turn that expects, fits or "
+                "lists such a session has a label the fleet no longer matches: those turns are in no rate above, and are here.", "",
+                "| Arm | Size | Kind | Outcomes |", "|---|---|---|---|"]
+        for (arm, size, kind), cell in sorted(tally.items()):
+            out.append(f"| {arm} | {size} | {kind} | " + ", ".join(f"{k} {v}" for k, v in sorted(cell.items())) + " |")
+        out.append("")
+    else:
+        out += ["None in the runs counted.", ""]
 
     bursts = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "burst"]
     out += ["## 30 sessions end their turn within a minute", ""]
@@ -226,11 +268,11 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
 
     out += ["## Not counted above", ""]
     if left:
-        out += ["| Run | Why | Rows |", "|---|---|---|"]
+        out += ["| Run | Build | Why | Rows |", "|---|---|---|---|"]
         for r in left:
             m = r["manifest"]
             why = r.get("not_counted") or ("stubbed models (a dry run)" if m["models"] == "stub" else f"a smoke run of {m.get('limit')} turns")
-            out.append(f"| {m['run']} | {why} | {len(r['rows'])} |")
+            out.append(f"| {m['run']} | `{build(r)}` | {why} | {len(r['rows'])} |")
         out.append("")
     else:
         out += ["Nothing: every run folder is counted.", ""]
@@ -239,8 +281,9 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         out += ["Runs that ended early (the turns they drove are counted; the turns they did not reach are \"not run\", in no rate):", ""]
         out += [f"- {run}: {why}" for run, why in crashes] + [""]
 
+    newest = order[-1] if order else "any"
     missing = [f"{size}, {ARM_WORDS[arm]}" for arm in ARMS for size in SIZES
-               if not [r for r in by.get((arm, size), []) if r["manifest"]["what"] == "turns"]]
+               if not [r for r in by.get((f"{arm}@{newest}", size), []) if r["manifest"]["what"] == "turns"]]
     out += ["## What this does not show", "",
             "- **Typed text, not speech.** Every turn is a line typed into the call. No recognizer, no voice, no turn-taking, "
             "no misheard names. The call has no ears and is in reading mode: replies are shown, not spoken, and the brain is told so.",
@@ -267,7 +310,7 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
             "part of its own order: not the same turns as a whole run. The run list above has each stop; a stopped run "
             "that was made again whole is listed as superseded and not counted."]
     if missing:
-        out.append("- **Not run:** the turn list at " + "; ".join(missing) + ".")
+        out.append(f"- **Not run on the newest build (`{newest}`):** the turn list at " + "; ".join(missing) + ".")
     if not bursts:
         out.append("- **Not run:** 30 sessions ending their turn within a minute (a paid run), at any size or arm.")
     return "\n".join(out) + "\n"

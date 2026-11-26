@@ -31,7 +31,10 @@ def name_collisions() -> list:
     for name in NAMES:
         got = subprocess.run(["grep", "-rliw", "--include=*.py", "--include=*.sh", "--include=*.json", name,
                               str(ROOT / "tests"), str(ROOT / "bench")], capture_output=True, text=True)
+        # bench/fleet is another benchmark's own generator, dataset and rows: its invented session names are data it
+        # is scored on, not code or tests that Pointe is built or tuned against, so a shared word there leaks nothing.
         files = [l for l in got.stdout.splitlines() if "/bench/conversational/" not in l and "/bench/results/" not in l
+                 and "/bench/fleet/" not in l
                  and not Path(l).name.startswith("test_conversational_")]  # the benchmarks' own tests
         if files:
             hits.append(f"{name}: {len(files)} files")
