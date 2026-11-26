@@ -76,9 +76,7 @@ final class AddMachineModel {
             let called = name.trimmingCharacters(in: .whitespaces)
             added = try await actions.add(invite.line, needsName && !called.isEmpty ? called : nil)
         } catch {
-            // 409 is also "already in your voice" and "this is your own machine": a name is asked for only when the
-            // sentence is about the name.
-            if case API.Failure.status(409, let detail) = error, detail.localizedCaseInsensitiveContains("name") {
+            if case API.Failure.status(409, let detail) = error, !detail.hasPrefix("HTTP ") {  // 409: only a name problem
                 needsName = true
                 if name.isEmpty { name = invite.name ?? "" }
             }

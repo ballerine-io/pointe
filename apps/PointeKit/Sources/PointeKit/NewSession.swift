@@ -25,13 +25,39 @@ public enum NewSession {
             public let here: Bool?
             public let available: Bool
             public let why: String?
+            /// Whose machine it is, on one somebody invited this voice to; nil on your own.
+            public var owner: String? = nil
             public var id: String { name }
 
-            public init(name: String, here: Bool? = nil, available: Bool = true, why: String? = nil) {
+            public init(name: String, here: Bool? = nil, available: Bool = true, why: String? = nil, owner: String? = nil) {
                 self.name = name
                 self.here = here
                 self.available = available
                 self.why = why
+                self.owner = owner
+            }
+        }
+
+        /// With `?machine=avi-box`: the machine the folders and agents are of, how its new sessions start (its owner's
+        /// setting, "skip" or "ask"), and the account they run as.
+        public struct Target: Decodable, Equatable, Sendable {
+            public let name: String
+            public var owner: String? = nil
+            public var permissions: String? = nil
+            public var account: String? = nil
+
+            public init(name: String, owner: String? = nil, permissions: String? = nil, account: String? = nil) {
+                self.name = name
+                self.owner = owner
+                self.permissions = permissions
+                self.account = account
+            }
+
+            /// How that machine starts the sessions people ask it for, as the voice says it (machines.start_default_line).
+            public var startsLine: String {
+                guard permissions == "skip" else { return "\(name) starts sessions that ask before actions." }
+                let account = (account ?? "").isEmpty ? "" : " as \(account ?? "")"
+                return "\(name) starts sessions that skip permission prompts: it can edit files and run commands\(account) without asking."
             }
         }
 
@@ -50,12 +76,21 @@ public enum NewSession {
         public let harnesses: [Agent]
         public let machines: [Machine]
         public let folders: [Folder]
+        /// Set when these are another machine's folders and agents; nil for this Mac's own.
+        public var machine: Target? = nil
 
-        public init(harnesses: [Agent], machines: [Machine], folders: [Folder]) {
+        public init(harnesses: [Agent], machines: [Machine], folders: [Folder], machine: Target? = nil) {
             self.harnesses = harnesses
             self.machines = machines
             self.folders = folders
+            self.machine = machine
         }
+
+        /// The machine these options are of: the one asked for, else this Mac.
+        public var of: String? { machine?.name ?? machines.first { $0.here == true }?.name }
+
+        /// Picking this machine needs its own folders and agents: they are not the ones shown now.
+        public func needsLoad(for name: String?) -> Bool { name != nil && name != of }
 
         /// The machine row shows only once there is a choice.
         public var showsMachines: Bool { machines.count > 1 }
@@ -76,6 +111,14 @@ public enum NewSession {
             harness = options.harnesses.first(where: \.available)?.name
             machine = options.machines.first { $0.available && $0.here == true }?.name ?? options.machines.first(where: \.available)?.name
             folder = options.folders.first?.path
+        }
+
+        /// Another machine's options arrived: the machine stays, the name and the prompt stay, and the agent and the
+        /// folder are kept only when that machine has them too.
+        public mutating func adopt(_ options: Options, machine: String?) {
+            self.machine = machine
+            if !options.harnesses.contains(where: { $0.name == harness && $0.available }) { harness = options.harnesses.first(where: \.available)?.name }
+            if !options.folders.contains(where: { $0.path == folder }) { folder = options.folders.first?.path }
         }
 
         /// Start is offered only for an agent that can start, a machine that can take it, and a folder from the list.
@@ -108,8 +151,13 @@ public enum NewSession {
         public let state: String?      // starting, waiting, failed
         public let detail: String?     // why it failed
         public let notice: String?     // the risk line, the first time a start skips permission prompts (SKIP_NOTICE)
+        public var machine: String? = nil  // the machine it starts on, when that is not this Mac
+        public var by: String? = nil       // on the machine: the person who asked for it
 
-        public init(id: String, name: String, harness: String? = nil, label: String? = nil, folder: String? = nil, state: String? = nil, detail: String? = nil, notice: String? = nil) {
+        public init(id: String, name: String, harness: String? = nil, label: String? = nil, folder: String? = nil, state: String? = nil, detail: String? = nil, notice: String? = nil,
+                    machine: String? = nil, by: String? = nil) {
+            self.machine = machine
+            self.by = by
             self.id = id
             self.name = name
             self.harness = harness
@@ -131,10 +179,12 @@ public enum NewSession {
     public struct Pending: Decodable, Equatable, Identifiable, Sendable {
         public let id: String
         public let line: String
+        public var machine: String? = nil  // the machine a yes would start it on, when that is not this Mac
 
-        public init(id: String, line: String) {
+        public init(id: String, line: String, machine: String? = nil) {
             self.id = id
             self.line = line
+            self.machine = machine
         }
     }
 }

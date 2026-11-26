@@ -114,9 +114,10 @@ struct SessionChips: View {
                     let on = !orchestrating && s.name == active
                     let machine = machines.of(s)
                     let watching = machines.watchOnly(s)  // nothing may be sent there: it is not a session to focus on
+                    let calm = watching || machines.waitsFor(s) != nil  // its prompt is somebody else's to answer now
                     Button { if !on && !watching { focus(s.name) } } label: {
                         HStack(spacing: 7) {
-                            Circle().fill(dot(s, watching: watching)).frame(width: 7, height: 7)
+                            Circle().fill(dot(s, watching: calm)).frame(width: 7, height: 7)
                             Text(machines.short(s)).lineLimit(1).truncationMode(.middle).frame(maxWidth: 220)  // a branch-long name keeps both ends, and the next chip stays in reach
                             HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
                             if s.isPrivate { Image(systemName: "lock.fill").font(.brand(.caption2)).foregroundStyle(Brand.muted).accessibilityHidden(true) }
@@ -127,6 +128,8 @@ struct SessionChips: View {
                                 Text(by).font(.brand(.caption2)).foregroundStyle(Brand.muted)
                             } else if watching {
                                 Text(PeopleCopy.watchOnly).font(.brand(.caption2)).foregroundStyle(Brand.muted)
+                            } else if let waits = machines.waitsFor(s) {
+                                Text(PeopleCopy.askedFirst(waits.name, left: nil)).font(.brand(.caption2)).foregroundStyle(Brand.muted)
                             } else if s.waiting || s.needs != nil {
                                 Text(s.waiting ? "approve" : "needs you").font(.brand(.caption2, .semibold)).foregroundStyle(Brand.accent)
                             }
@@ -154,7 +157,7 @@ struct SessionChips: View {
                         }
                         Button("Disconnect from the voice", systemImage: "xmark.circle", role: .destructive) { leaving = s.name }
                     }
-                    .accessibilityLabel("\(s.name)\(machines.mixed ? ", on \(machine)" : "")\(machines.spoken(s)), \(state(s, watching: watching))\(on ? ", focused" : "")")
+                    .accessibilityLabel("\(s.name)\(machines.mixed ? ", on \(machine)" : "")\(machines.spoken(s)), \(state(s, watching: calm))\(on ? ", focused" : "")")
                     .accessibilityHint(on || watching ? "" : "Focus on this session")
                   }
                 }
@@ -347,7 +350,7 @@ struct SessionsSheet: View {
                                 gone(name, notice, remove: machines.removable(name) != nil)
                             }
                             rows(group.sessions)
-                            if name == machines.here { startingRows }  // a start always runs on this Mac
+                            startingRows(on: name)
                         } header: {
                             Group {
                                 HStack(spacing: 6) {  // a small dot: filled while the machine is online, a ring while it is not
@@ -368,7 +371,7 @@ struct SessionsSheet: View {
                             Text("No sessions yet. Join one: /pointe:voice in Claude Code, or pointe join opencode in its folder.".unbrokenCommands).foregroundStyle(Brand.muted)
                         }
                         rows(status?.sessions ?? [])
-                        startingRows
+                        startingRows(on: nil)
                     }
                 }
                 recentAndContext
@@ -376,8 +379,11 @@ struct SessionsSheet: View {
     }
 
     /// Sessions Pointe is starting, or that did not start: under the sessions, with no actions.
-    private var startingRows: some View {
-        ForEach(status?.starting ?? []) { StartingRow(row: $0) }
+    /// Under the machine each starts on: this Mac's when the row names none. With one machine, all of them.
+    private func startingRows(on machine: String?) -> some View {
+        ForEach((status?.starting ?? []).filter { row in
+            machine == nil || ((row.machine ?? "").isEmpty ? machines.here : row.machine) == machine
+        }) { StartingRow(row: $0) }
     }
 
     @ViewBuilder
@@ -425,7 +431,7 @@ struct SessionsSheet: View {
 
     private func name(_ s: API.Session) -> some View {
         HStack {
-            Circle().fill(dot(s, watching: machines.watchOnly(s))).frame(width: 9, height: 9)
+            Circle().fill(dot(s, watching: machines.watchOnly(s) || machines.waitsFor(s) != nil)).frame(width: 9, height: 9)
             Text(machines.short(s)).foregroundStyle(.primary).lineLimit(typeSize.isAccessibilitySize ? 3 : 1).truncationMode(.middle).help(s.name)
             HarnessMark(harness: s.harness, tone: TonesCopy.label(s))
             if s.isPrivate {
@@ -476,6 +482,10 @@ struct SessionsSheet: View {
                 .font(.brand(.caption)).foregroundStyle(Brand.muted)
         } else if status?.mode == "session" && s.name == status?.active {
             Text("focused").font(.brand(.caption, .semibold)).foregroundStyle(Brand.accent)
+        } else if let waits = machines.waitsFor(s) {
+            Text(PeopleCopy.askedFirst(waits.name, left: nil)).font(.brand(.caption)).foregroundStyle(Brand.muted)
+        } else if let done = machines.resolvedLine(s) {
+            Text(done).font(.brand(.caption)).foregroundStyle(Brand.muted)
         } else if let by = machines.usedBy(s) {
             Text(by).font(.brand(.caption)).foregroundStyle(Brand.muted).accessibilityIdentifier("sessionBy.\(s.name)")
         } else if machines.watchOnly(s) {
@@ -611,7 +621,7 @@ struct MachineView: Equatable {
     /// The sessions that wait for you (a request, or a question): the call screen's "· 2 need you", the widget's count.
     /// A session this person may only watch never waits for them.
     func needingYou(_ filter: String? = nil) -> Int {
-        shown(filter).filter { ($0.waiting || $0.needs != nil) && !$0.isOffline && !watchOnly($0) }.count
+        shown(filter).filter { ($0.waiting || $0.needs != nil) && !$0.isOffline && !watchOnly($0) && waitsFor($0) == nil }.count
     }
     func shown(_ filter: String?) -> [API.Session] {
         guard let f = valid(filter) else { return sessions }

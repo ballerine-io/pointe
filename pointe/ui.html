@@ -332,6 +332,10 @@
                   box-shadow: inset 0 0 0 1px var(--line-strong); font: 600 12px var(--font); cursor: pointer; }
   .mnote button.sure { background: var(--danger); color: #fff; box-shadow: none; }
   #disclosure { padding: 0 var(--gutter); } #disclosure:empty { display: none; }
+  .ask .need.asked { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ask.done { border-color: var(--line); padding: 10px 16px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+  .ask.done .what { font-size: 13px; } .ask.done .need { margin-top: 0; }
+  #new-there { color: var(--muted); font-size: 12.5px; line-height: 1.45; } #new-there:empty { display: none; }
   .ask .answer.one button { flex: 0 0 auto; min-width: 96px; }
   #mach-add { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; }
   #mach-add label { font-size: 13px; color: var(--muted); }
@@ -1424,6 +1428,14 @@
             <div class="err" id="people-err" role="alert"></div>
           </div>
           <div class="note foot" id="people-trust" hidden></div>
+          <h3 id="people-can-h" hidden></h3>
+          <div class="card" id="people-can" hidden>
+            <label class="tick"><input type="checkbox" id="people-approve" onchange="setPeopleSetting({approve: this.checked ? 'anyone' : 'off'})"> <span id="people-approve-l"></span></label>
+            <label class="tick"><input type="checkbox" id="people-start" onchange="setPeopleSetting({start: this.checked ? 'on' : 'off'})"> <span id="people-start-l"></span></label>
+            <div class="field"><label for="people-ask" id="people-ask-l"></label><select id="people-ask" onchange="setPeopleSetting({sessions_ask: this.value})"><option value="default"></option><option value="ask"></option></select></div>
+            <div class="err" id="people-can-err" role="alert"></div>
+          </div>
+          <div class="note foot" id="people-can-help" hidden></div>
           <div class="note foot">Sessions on your other Macs and Linux machines join this voice through a small Pointe there. Their
             transcripts, with credentials masked, come to this Mac and go to the same services as this Mac's own.</div>
         </section>
@@ -1657,7 +1669,8 @@
     <h2 id="new-h"><span id="new-title"></span><button class="x" onclick="closeSheet('newsheet')" aria-label="Close">×</button></h2>
     <div class="lede" id="new-lede"></div>
     <label class="field"><span id="new-agent-l"></span><select id="new-agent" onchange="newSessionSync()"></select></label>
-    <label class="field" id="new-machine-f"><span id="new-machine-l"></span><select id="new-machine" onchange="newSessionSync()"></select></label>
+    <label class="field" id="new-machine-f"><span id="new-machine-l"></span><select id="new-machine" onchange="newMachinePicked()"></select></label>
+    <div id="new-there" role="status"></div>
     <label class="field"><span id="new-folder-l"></span><select id="new-folder" onchange="newSessionSync()"></select><span class="path" id="new-path"></span></label>
     <label class="field"><span id="new-name-l"></span><input id="new-name" maxlength="40" dir="auto" autocomplete="off"></label>
     <label class="field"><span id="new-prompt-l"></span><textarea id="new-prompt" dir="auto" maxlength="4000"></textarea></label>
@@ -1909,7 +1922,7 @@
   }
   // Attention first: waiting for an approval, then a question for the user, then working, then idle.
   const urgency = x => x.waiting ? 0 : x.needs ? 1 : x.working ? 2 : 3;
-  const needsYou = x => x.waiting || x.needs;
+  const needsYou = x => (x.waiting && x.can_answer !== false) || x.needs;  // can_answer false: somebody else is asked first (a machine with people)
   const MODE_HELP = {
     orchestrator: 'Keeps track of every session. Say a name to talk to one; ask “status” for all of them.',
     session: 'Everything you say goes to one session. Click another to focus on it.',
@@ -2008,12 +2021,14 @@
     agentOf = x => (HARNESSES[x.harness || 'claude-code'] || {name: x.harness}).name;
     const waiting = s.sessions.filter(x => x.waiting && x.request_id && (x.capabilities || {}).approvals !== false && grantOf(s, x) !== 'watch').sort((a, b) => (a.online === false) - (b.online === false) || (b.name === s.active) - (a.name === s.active));
     const first = waiting[0];
-    const key = first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on)
-                        + (first.online === false) + machineView(s).mixed : '';
+    const answered = s.sessions.filter(answeredNow);  // a person answered a request: one line says who, for a moment
+    const key = (first ? first.request_id + waiting.length + ((s.voice_lock || {}).unsure_streak >= 3) + !!(s.drive && s.drive.on)
+                         + (first.online === false) + machineView(s).mixed + (first.can_answer === false) + ((first.asked || {}).name || '') : '')
+                + answered.map(x => `|${x.name}|${x.resolved_by.name}|${x.resolved_by.verdict}|${x.resolved_by.at}`).join('');
     if (armed.id === undefined) armed = {id: first ? first.request_id : null, until: 0};
     if (key !== attentionShown) {
       attentionShown = key;
-      $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []));
+      $('attention').replaceChildren(...(first ? [approvalCard(first, s, waiting.length - 1)] : []), ...answered.map(x => answeredLine(x, s)));
     }
     const blocked = s.sessions.filter(needsYou);
     if (!meetOn) document.title = (blocked.length ? `(${blocked.length}) ` : '') + 'Pointe';
@@ -2034,7 +2049,8 @@
     }
     const asking = confirming && Date.now() < confirming.until ? confirming.name : '';
     // A session I own on this machine, while the machine has people (or the session is already private): Private applies.
-    const canShare = x => !x.owner && mv.of(x) === mv.here && (Array.isArray(s.people) || !!x.private);
+    for (const x of s.sessions) if (x.machine && x.private === undefined && sharedThere.get(x.name)) x.private = true;  // the status does not say it yet
+    const canShare = x => mayShare(s, mv, x);
     const row = x => {
       const pinned = focused && x.name === s.active, away = x.online === false;
       const watch = grantOf(s, x) === 'watch';  // a machine I may only watch: nothing on its rows sends
@@ -2067,7 +2083,7 @@
                      x.by && x.by.name ? PEOPLE_COPY.using(x.by.name) : ''].filter(Boolean).map(f => ', ' + f).join('');
       if (watch) {  // read, not pressed: the machine refuses a send from this voice
         b.append(el('span', 'st' + (x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
-        ownerMarks(b, x);
+        ownerMarks(b, x, mv.of(x) === mv.here);
         nm.setAttribute('aria-label', `${x.name}, ${agentOf(x)}, ${state}${facts}`);
         if (x.by && x.by.name) b.append(byLine(x));
         b.title = `${x.name}: ${PEOPLE_COPY.watchTitle}`;
@@ -2086,7 +2102,7 @@
         else if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); disconnect(x.name); }
       };
       b.append(el('span', 'st' + (hot ? ' wait' : x.working && !away ? ' working' : '')), nm, harnessMark(x), tools);
-      ownerMarks(b, x);
+      ownerMarks(b, x, mv.of(x) === mv.here);
       if (hot) b.append(el('span', 'why', x.waiting ? (x.request || 'an approval').split('\n').slice(0, 2).join(' ') : x.needs));
       if (x.by && x.by.name) b.append(byLine(x));
       b.title = x.name + (away ? `: offline since ${sinceText(mv.info(mv.of(x)).since)}; sends are refused`
@@ -2304,9 +2320,11 @@
     const failed = x.state === 'failed', c = NEW_SESSION_COPY;
     const b = el('div', 's starting' + (failed ? ' failed' : ''));
     b.append(el('span', 'st' + (failed ? ' wait' : ' working')), el('span', 'nm', x.name), harnessMark(x), el('span', 'tag', failed ? c.failed : c.starting));
+    const where = [x.machine, x.by ? PEOPLE_COPY.startedBy(x.by) : ''].filter(Boolean).join(' · ');  // on another machine; asked for by a person
+    if (where) { const marks = el('span', 'marks'), agent = b.querySelector('.hmark'); agent.replaceWith(marks); marks.append(agent, el('span', 'own', where)); }
     if (failed && x.detail) b.append(el('span', 'why', x.detail));
     else if (!failed && x.notice) b.append(el('span', 'why', x.notice));  // the risk, the first time a start skips prompts
-    b.title = `${x.label} in ${x.folder}` + (failed ? `: ${x.detail}` : '');
+    b.title = `${x.label} in ${x.folder}` + (x.machine ? ` on ${x.machine}` : '') + (failed ? `: ${x.detail}` : '');
     return b;
   }
   // What the voice read back and waits on: a yes by voice, or a tap here. The line is the Mac's own, word for word.
@@ -2339,18 +2357,35 @@
                                ['new-start', c.start]]) text(id, words);
     $('new-name').placeholder = c.namePlaceholder; $('new-prompt').placeholder = c.promptPlaceholder;
     $('new-name').value = ''; $('new-prompt').value = ''; $('new-err').textContent = ''; $('new-note').textContent = '';
-    $('new-start').disabled = true;
+    $('new-start').disabled = true; $('new-there').textContent = '';
     openSheet('newsheet', 'new-agent');
     newOptions = await fetch('/voice/new-session').then(r => r.ok ? r.json() : null).catch(() => null);
+    newSessionFill(true);
+    if (!newOptions) $('new-err').textContent = 'Pointe on this Mac does not offer this yet: update it.';
+    newSessionSync();
+  }
+  function newSessionFill(machines) {
     const o = newOptions || {harnesses: [], machines: [], folders: []};
     const fill = (id, items, make) => $(id).replaceChildren(...items.map(make));
     const option = (value, label, off, why) => { const e = el('option', '', label + (off ? ' (not available)' : '')); e.value = value; e.disabled = !!off; if (why) e.title = why; return e; };
     fill('new-agent', o.harnesses, h => option(h.name, h.title, !h.available, h.why));
-    fill('new-machine', o.machines, m => option(m.name, m.name + (m.here ? ' (this Mac)' : ''), !m.available, m.why));
+    if (machines) fill('new-machine', o.machines, m => option(m.name, m.name + (m.here ? ' (this Mac)' : m.owner ? ` · ${PEOPLE_COPY.whose(m.owner)}` : ''), !m.available, m.why));
     fill('new-folder', o.folders, f => option(f.path, f.name));
     $('new-machine-f').hidden = o.machines.length < 2;
     const firstOk = o.harnesses.find(h => h.available); if (firstOk) $('new-agent').value = firstOk.name;
-    if (!newOptions) $('new-err').textContent = 'Pointe on this Mac does not offer this yet: update it.';
+  }
+  // Another machine picked: its own folders and agents, whose it is, and how its new sessions start (its owner's setting).
+  async function newMachinePicked() {
+    const name = $('new-machine').value, picked = ((newOptions || {}).machines || []).find(m => m.name === name) || {};
+    $('new-err').textContent = ''; $('new-there').textContent = ''; $('new-start').disabled = true;
+    let said = '';
+    const r = await fetch('/voice/new-session' + (picked.here ? '' : '?machine=' + encodeURIComponent(name))).catch(() => null);
+    const got = r && r.ok ? await r.json().catch(() => null) : null;
+    if (!got) said = (r && (await r.json().catch(() => ({}))).detail) || 'Not loaded: the Mac did not answer.';
+    if ($('new-machine').value !== name) return;  // another machine was picked meanwhile
+    newOptions = got ? {...got, machines: got.machines || newOptions.machines} : {...newOptions, harnesses: [], folders: [], machine: null, refused: true};
+    newSessionFill(false);
+    $('new-err').textContent = said;
     newSessionSync();
   }
   function newSessionSync() {
@@ -2358,9 +2393,12 @@
     const folder = o.folders.find(f => f.path === $('new-folder').value);
     const agent = o.harnesses.find(h => h.name === $('new-agent').value);
     text('new-path', folder ? folder.path : '');
-    const notes = [...o.harnesses.filter(h => !h.available && h.why).map(h => h.why), ...(o.machines.some(m => !m.available) ? [o.machines.find(m => !m.available).why] : [])];
-    if (!o.folders.length && newOptions) notes.unshift(c.noFolders);
-    if (agent && agent.name === 'claude-code') notes.unshift(agent.note || c.claudeNote);  // Linux: tmux, said by the Mac side
+    const there = o.machine;  // a machine somebody invited this voice to
+    // why another machine is not offered: not said while a session is about to start on one that is (its option keeps the reason)
+    const notes = [...o.harnesses.filter(h => !h.available && h.why).map(h => h.why), ...(!there && o.machines.some(m => !m.available) ? [o.machines.find(m => !m.available).why] : [])];
+    if (!o.folders.length && newOptions && !there && !o.refused) notes.unshift(c.noFolders);
+    if (agent && agent.name === 'claude-code' && (agent.note || !there) && !o.refused) notes.unshift(agent.note || c.claudeNote);  // Linux: tmux, said by the Mac side
+    text('new-there', there ? PEOPLE_COPY.startsThere(there.name, there.owner, there.permissions, there.account) : '');
     text('new-note', notes.join(' '));
     $('new-start').disabled = !(folder && agent && agent.available);
   }
@@ -2700,6 +2738,15 @@
     if (x.request_truncated) b.append(el('div', 'need cut', 'Cut short: not all of what runs is here. Approve it in its terminal, or deny it here.'));
     if (x.online === false) {  // its machine dropped: the prompt went back to that terminal, and an answer would be stale
       b.append(el('div', 'need offline', 'offline: answer it in its terminal'));
+      if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
+      return b;
+    }
+    if (x.asked && x.asked.name) {  // a machine with people: the session's owner is asked first, until then
+      const asked = el('div', 'need asked', askedText(x.asked)); asked.id = 'ask-asked'; asked.setAttribute('role', 'status');
+      asked.dataset.name = x.asked.name; asked.dataset.until = x.asked.until;
+      b.append(asked);
+    }
+    if (x.can_answer === false) {  // not this voice's to answer yet: no buttons. They come when the status says so
       if (more > 0) b.append(el('div', 'more', `${more} more waiting`));
       return b;
     }
@@ -3237,7 +3284,7 @@
     try {
       const r = await fetch('/voice/approve', {method: 'POST', headers: {'content-type': 'application/json'},
                                                body: JSON.stringify({session: x.name, request_id: x.request_id, decision})});
-      if (!r.ok) why = 'Not answered: ' + ((await r.json().catch(() => ({}))).detail || `the Mac said ${r.status}`) + '.';
+      if (!r.ok) why = ('Not answered: ' + ((await r.json().catch(() => ({}))).detail || `the Mac said ${r.status}`)).replace(/[.!?]?$/, m => m || '.');  // the Mac's sentence, with its own full stop
     } catch (e) { why = 'Not sent: the Mac did not answer. Check the connection, then tap again.'; }
     if (button.parentNode) delete button.parentNode.dataset.answering;
     if (why) {
@@ -3566,7 +3613,7 @@
     text('row-cut', sure ? ROW_COPY.sure : ROW_COPY.cut);
     $('row-cut').classList.toggle('sure', sure);
     const s = status, x = s && s.sessions.find(y => y.name === rowSheetName), mv = machineView(s);
-    const share = !!x && !x.owner && mv.of(x) === mv.here && (Array.isArray(s.people) || !!x.private);
+    const share = !!x && mayShare(s, mv, x);
     $('row-private').hidden = !share;
     if (share) { text('row-private', x.private ? PEOPLE_COPY.makeShared : PEOPLE_COPY.makePrivate); $('row-private').title = shareTitle(x); }
   }
@@ -4610,6 +4657,9 @@
     removeMachineTitle: 'Take it off your voice: its sessions leave, and you need a new invite to come back',
     removePersonTitle: 'Remove their key: their voice loses this machine, and they need a new invite to come back',
     notShared: 'The Mac did not change it.',
+    canDo: 'What people can do', approveRequests: 'Approve requests', startSessions: 'Start sessions', sessionsTheyStart: 'Sessions they start',
+    followDefault: 'Follow my default', alwaysAsk: 'Always ask first',
+    canDoHelp: 'On: a person who can talk may answer a request once its session\'s owner had the first chance, and start a session in a folder you work in. Each answer is recorded with their name.',
   };
   const PEOPLE_SAYS = {
     whose: name => `${name}'s`,
@@ -4625,6 +4675,14 @@
       : `Your voice sends the transcripts of the sessions on ${machine} to no outside service.`)
       + ` ${owner || 'Its owner'} sees this list next to your name.`,
     trust: account => `People you invite can make these agents run commands as ${account || 'your account on this machine'}. Keep a session to yourself with Private.`,
+    askedFirst: (name, secs) => secs > 0 ? `${name} is asked first · ${secs} s` : `${name} is asked first`,
+    resolved: (name, verdict) => verdict === 'allow' ? `${name} approved it` : verdict === 'deny' ? `${name} denied it` : `${name} answered it`,
+    startedBy: name => `started by ${name}`,
+    recordWho: (person, link) => link ? `${person}, from ${link}` : person,
+    // whose machine a new session would start on, and how it starts sessions there: machines.start_default_line's words
+    startsThere: (machine, owner, permissions, account) => (owner ? `${machine} is ${owner}'s machine. ` : '') + (permissions === 'skip'
+      ? `${machine} starts sessions that skip permission prompts: it can edit files and run commands${account ? ' as ' + account : ''} without asking.`
+      : `${machine} starts sessions that ask before actions.`),
     grantTitle: (name, grant) => grant === 'watch' ? `${name} can only watch. Click to let them talk to the sessions.`
       : `${name} can talk to the sessions. Click to make it watch only.`,
   };
@@ -4635,18 +4693,44 @@
     try { return String(JSON.parse(said).detail || said); } catch (e) { return said; }
   }
 
+  // A request somebody else is asked first for: who, and the seconds left on this side's clock. Counted down here between polls.
+  const askedText = a => PEOPLE_COPY.askedFirst(a.name, Math.max(0, Math.ceil(a.until - Date.now() / 1000)));
+  setInterval(() => { const a = $('ask-asked'); if (a) text('ask-asked', askedText({name: a.dataset.name, until: +a.dataset.until})); }, 1000);
+  // Who answered a request, for ANSWERED_MS from when this page first saw it (the status keeps it for 30 s).
+  const ANSWERED_MS = 8000, answeredSeen = new Map();
+  function answeredNow(x) {
+    const r = x.resolved_by;
+    if (!r || !r.name) return false;
+    const key = `${x.name}|${r.at}`;
+    if (!answeredSeen.has(key)) { answeredSeen.set(key, Date.now()); setTimeout(() => { render(); if (answeredSeen.size > 50) answeredSeen.clear(); }, ANSWERED_MS + 50); }
+    return Date.now() - answeredSeen.get(key) < ANSWERED_MS;
+  }
+  function answeredLine(x, s) {
+    const b = el('div', 'ask done'); b.setAttribute('role', 'status');
+    b.append(el('div', 'what', whoLabel(x, machineView(s))), el('div', 'need', PEOPLE_COPY.resolved(x.resolved_by.name, x.resolved_by.verdict)));
+    return b;
+  }
   // A session's marks after its name: the agent, then whose it is and a lock, each only when it applies.
   function lockMark() {
     const lock = el('span', 'lock'); lock.append($('lock-t').content.cloneNode(true));
     lock.setAttribute('role', 'img'); lock.setAttribute('aria-label', PEOPLE_COPY.privateMark); lock.title = PEOPLE_COPY.privateMark;
     return lock;
   }
-  function ownerMarks(row, x) {
-    if (!x.owner && !x.private) return;  // the row stays as it always was
+  function ownerMarks(row, x, here) {
+    // On the machine itself a person's session says who started it; on a voice, somebody else's says whose it is.
+    const whose = here && x.started_by ? PEOPLE_COPY.startedBy(x.started_by) : x.owner ? PEOPLE_COPY.whose(x.owner) : '';
+    if (!whose && !x.private) return;  // the row stays as it always was
     const agent = row.querySelector('.hmark'), marks = el('span', 'marks');
     agent.replaceWith(marks); marks.append(agent);
-    if (x.owner) marks.append(el('span', 'own', PEOPLE_COPY.whose(x.owner)));
+    if (whose) marks.append(el('span', 'own', whose));
     if (x.private) marks.append(lockMark());
+  }
+  // Private applies to a session of this machine while it has people (or the session is private already), and to a
+  // session this person started on a machine they were invited to.
+  const sharedThere = new Map();  // name -> true: a session there this page marked private. The status has no `private` for those
+  function mayShare(s, mv, x) {
+    if (mv.of(x) === mv.here) return Array.isArray(s.people) || !!x.private;
+    return !x.owner && !!x.started_by && mv.info(mv.of(x)).grant === 'send';
   }
   function byLine(x) {
     const by = el('span', 'by', PEOPLE_COPY.using(x.by.name));
@@ -4659,6 +4743,7 @@
     want('private ' + name, s => { const x = s.sessions.find(y => y.name === name); if (x) { if (on) x.private = true; else delete x.private; } },
       fetch('/voice/share', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({session: name, private: on})}).then(async r => {
         if (!r.ok) $('renameproblem').textContent = await refusal(r) || PEOPLE_COPY.notShared;  // the Mac's sentence, in plain text
+        else if (on) sharedThere.set(name, true); else sharedThere.delete(name);
         refresh(); return r.ok;
       }));
   }
@@ -4668,8 +4753,11 @@
   const inviteLine = typed => (typed.match(/pointe:\/\/machine\?[^\s'"]+/) || [typed.trim()])[0];  // the line alone, out of a pasted command
   for (const [id, words] of [['mach-line-l', PEOPLE_COPY.addLabel], ['mach-addbtn', PEOPLE_COPY.add], ['mach-name-l', PEOPLE_COPY.callIt],
                              ['people-h', PEOPLE_COPY.people], ['people-name-l', PEOPLE_COPY.name], ['people-make', PEOPLE_COPY.make],
-                             ['people-formcancel', PEOPLE_COPY.cancel], ['people-invitebtn', PEOPLE_COPY.invite], ['people-cancel', PEOPLE_COPY.cancelInvite]])
+                             ['people-formcancel', PEOPLE_COPY.cancel], ['people-invitebtn', PEOPLE_COPY.invite], ['people-cancel', PEOPLE_COPY.cancelInvite],
+                             ['people-can-h', PEOPLE_COPY.canDo], ['people-approve-l', PEOPLE_COPY.approveRequests], ['people-start-l', PEOPLE_COPY.startSessions],
+                             ['people-ask-l', PEOPLE_COPY.sessionsTheyStart], ['people-can-help', PEOPLE_COPY.canDoHelp]])
     $(id).textContent = words;
+  $('people-ask').options[0].textContent = PEOPLE_COPY.followDefault; $('people-ask').options[1].textContent = PEOPLE_COPY.alwaysAsk;
   for (const b of $('people-grant').querySelectorAll('button')) b.textContent = PEOPLE_COPY[b.dataset.grant];
   $('people-grant').setAttribute('aria-label', PEOPLE_COPY.can);
   function showAdd() {
@@ -4779,6 +4867,12 @@
     $('people-list').hidden = !people.length;
     $('people-h').hidden = $('people-trust').hidden = !some;
     text('people-trust', PEOPLE_COPY.trust(s.account || ''));
+    const can = s.people_settings;  // only on a machine with people
+    $('people-can-h').hidden = $('people-can').hidden = $('people-can-help').hidden = !can;
+    if (can) {
+      for (const [id, on] of [['people-approve', can.approve !== 'off'], ['people-start', can.start !== 'off']]) if ($(id).checked !== on) $(id).checked = on;
+      if (document.activeElement !== $('people-ask')) $('people-ask').value = can.sessions_ask === 'ask' ? 'ask' : 'default';
+    }
     showPersonInvite();
   }
   function showPersonInvite() {
@@ -4856,6 +4950,10 @@
       showPersonInvite();
     }
   }, 1000);
+  function setPeopleSetting(change) {  // one set for everybody on the machine; the two times stay with `pointe people`
+    want('people settings', s => { if (s.people_settings) Object.assign(s.people_settings, change); },
+      hubPost('/voice/people/settings', change, 'people-can-err').then(now => { refresh(); return !!now; }));
+  }
   function setGrant(name, grant) {
     want('grant ' + name, s => { const p = (s.people || []).find(q => q.name === name); if (p) p.grant = grant; },
       hubPost('/voice/people/grant', {name, grant}, 'people-err').then(r => { refresh(); return !!r; }));

@@ -96,7 +96,7 @@ public final class MacSession: CallShell {
     public var waiting: [Waiting] {
         let machines = MachineView(status)
         return (status?.sessions ?? []).compactMap { s in
-            guard s.waiting, s.canApprove, !machines.watchOnly(s), let id = s.request_id else { return nil }
+            guard s.waiting, s.canApprove, !machines.watchOnly(s), machines.waitsFor(s) == nil, let id = s.request_id else { return nil }
             return Waiting(id: id, label: machines.label(s))
         }
     }

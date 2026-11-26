@@ -114,6 +114,19 @@ extension API {
         }
     }
 
+    /// What the people invited to this machine may do: one set for everybody (`people.json`, "settings").
+    struct PeopleSettings: Decodable, Equatable {
+        var approve: String? = nil        // "anyone" or "off"
+        var start: String? = nil          // "on" or "off"
+        var sessions_ask: String? = nil   // "default" or "ask"
+        var owner_first_secs: Double? = nil
+        var people_hold_secs: Double? = nil
+
+        var mayApprove: Bool { approve != "off" }
+        var mayStart: Bool { start != "off" }
+        var alwaysAsk: Bool { sessions_ask == "ask" }
+    }
+
     /// Shown once after a machine is added: the services this voice sends that machine's transcripts to.
     struct Disclosure: Decodable, Equatable {
         let machine: String
@@ -173,6 +186,15 @@ extension API {
 
     func removePerson(_ name: String) async throws { _ = try await people("voice/people/remove", ["name": name]) }
 
+    func peopleSettings() async throws -> PeopleSettings {
+        try JSONDecoder().decode(PeopleSettings.self, from: try await people("voice/people/settings"))
+    }
+
+    /// One or more of approve, start and sessions_ask; the answer is the settings now.
+    func setPeopleSettings(_ changes: [String: String]) async throws -> PeopleSettings {
+        try JSONDecoder().decode(PeopleSettings.self, from: try await people("voice/people/settings", changes))
+    }
+
     /// Private keeps a session of this machine to its owner; shared shows it to the people invited again.
     func share(_ session: String, private isPrivate: Bool) async throws {
         _ = try await people("voice/share", ["session": session, "private": isPrivate])
@@ -216,6 +238,34 @@ enum PeopleCopy {
     }
     static let noAnswer = "The Mac is not answering."
     static let tooOld = "This Mac's Pointe cannot do this yet: update it."
+
+    static let askedFirst = "is asked first"
+    static let approvedIt = "approved it"
+    static let deniedIt = "denied it"
+    static let answeredIt = "answered it"
+    static let canDo = "What people can do"
+    static let approveRequests = "Approve requests"
+    static let startSessions = "Start sessions"
+    static let sessionsTheyStart = "Sessions they start"
+    static let followDefault = "Follow my default"
+    static let alwaysAsk = "Always ask first"
+    static let startedBy = "started by"
+    static let loadingMachine = "Asking that machine for its folders…"
+    static let settingsReason = "Change what people can do on this machine"
+    static let canDoHelp = "On: a person who can talk may answer a request once its session's owner had the first chance, and start a session in a folder you work in. Each answer is recorded with their name."
+
+    /// "Avi is asked first · 14 s"; without the time once it ran out, or when the Mac did not say it.
+    static func askedFirst(_ name: String, left: Int?) -> String {
+        "\(shown(name)) \(askedFirst)" + (left.map { $0 > 0 ? " · \($0) s" : "" } ?? "")
+    }
+
+    /// "Dana approved it", "Avi denied it"; "Dana answered it" when the Mac only said who.
+    static func resolved(_ r: API.ResolvedBy) -> String {
+        "\(shown(r.name)) \(r.verdict == "allow" ? approvedIt : r.verdict == "deny" ? deniedIt : answeredIt)"
+    }
+
+    /// "started by Dana"
+    static func startedBy(_ name: String) -> String { "\(startedBy) \(shown(name))" }
 
     static let inviteReason = "Invite a person to this machine"
     static let addReason = "Add a machine to your voice"
@@ -329,8 +379,11 @@ extension MachineView {
     var hasOwners: Bool { sessions.contains { !$0.isMine } }
 
     /// "Avi's" on a session that is not this person's; nil on their own.
+    /// A session a person started from their voice says so: "started by Dana".
     func ownerTag(_ s: API.Session) -> String? {
-        s.isMine ? nil : PeopleCopy.owned(s.owner ?? "")
+        guard !s.isMine else { return nil }
+        if let by = s.started_by, !by.isEmpty { return PeopleCopy.startedBy(by) }
+        return PeopleCopy.owned(s.owner ?? "")
     }
 
     /// "Avi's" on a machine this person was invited to; nil on their own.
@@ -355,9 +408,49 @@ extension MachineView {
 
     /// Private or Shared with people is offered on a session this person owns, on this machine, once the machine has
     /// people. The value is what a tap asks for: true makes it private.
+    /// Also on a session this person started on a machine somebody invited them to: its owner still sees it.
     func privacyOffer(_ s: API.Session, people: [API.Person]?) -> Bool? {
-        guard people != nil, s.isMine, of(s) == here || here.isEmpty, !s.isOffline else { return nil }
+        guard s.isMine, !s.isOffline else { return nil }
+        let m = of(s)
+        let onMine = (m == here || here.isEmpty) && people != nil
+        let startedThere = m != here && ownerTag(machine: m) != nil && (s.started_by ?? "").isEmpty == false && !watchOnly(s)
+        guard onMine || startedThere else { return nil }
         return !s.isPrivate
+    }
+
+    // MARK: who answers a prompt (phase 3)
+
+    /// Somebody else is asked first for this session's request and this side waits: who, and the seconds left. Nil
+    /// when this side may answer now.
+    func waitsFor(_ s: API.Session, now: Date = Date()) -> (name: String, left: Int?)? {
+        guard s.waiting, let asked = s.asked, !asked.name.isEmpty, s.can_answer != true else { return nil }
+        return (asked.name, asked.until.map { max(0, Int(($0 - now.timeIntervalSince1970).rounded(.up))) })
+    }
+
+    /// The line over the answer while the owner-first time runs: also on the machine itself, where its owner may
+    /// answer at once.
+    func askedLine(_ s: API.Session, now: Date = Date()) -> String? {
+        guard s.waiting, let asked = s.asked, !asked.name.isEmpty else { return nil }
+        let left = asked.until.map { max(0, Int(($0 - now.timeIntervalSince1970).rounded(.up))) }
+        return PeopleCopy.askedFirst(asked.name, left: left)
+    }
+
+    /// Approve and Deny are offered: never for a session this person only watches, and not before the prompt opens
+    /// to them.
+    func mayAnswer(_ s: API.Session) -> Bool {
+        s.waiting && s.canApprove && !s.isOffline && !watchOnly(s) && waitsFor(s) == nil
+    }
+
+    /// "Dana approved it", for half a minute after a person answered.
+    func resolvedLine(_ s: API.Session) -> String? {
+        guard !s.waiting, let r = s.resolved_by, !r.name.isEmpty else { return nil }
+        return PeopleCopy.resolved(r)
+    }
+
+    /// The newest answer a person gave, with its session: the one line where the card was.
+    var lastResolved: (session: API.Session, line: String)? {
+        sessions.compactMap { s in resolvedLine(s).map { (s, $0, s.resolved_by?.at ?? 0) } }
+            .max { $0.2 < $1.2 }.map { ($0.0, $0.1) }
     }
 
     /// A machine this voice was invited to that has something to say and is gone: "avi-box removed you". Its section
@@ -374,9 +467,11 @@ extension MachineView {
     /// What VoiceOver says of a session beyond its name and state: whose it is, who uses it, that it is private.
     func spoken(_ s: API.Session) -> String {
         var parts: [String] = []
-        if let owner = ownerTag(s) { parts.append("\(owner) session") }
+        if let owner = ownerTag(s) { parts.append(owner.hasPrefix(PeopleCopy.startedBy) ? owner : "\(owner) session") }
         if watchOnly(s) { parts.append(PeopleCopy.watchOnly) }
         if let by = usedBy(s) { parts.append(by) }
+        if let waits = waitsFor(s) { parts.append(PeopleCopy.askedFirst(waits.name, left: nil)) }
+        if let done = resolvedLine(s) { parts.append(done) }
         if s.isPrivate { parts.append(PeopleCopy.privateMark) }
         return parts.map { ", \($0)" }.joined()
     }

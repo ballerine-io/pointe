@@ -269,10 +269,18 @@ GROUPS: list[tuple[str, list[Feature]]] = [
           swift=[r'"voice/people/remove"', r"PeopleCopy\.removeAsk"]),
         F("sessions.private", "Private: keep a session of this machine to yourself, or share it with people again",
           web=['id="row-private"', "/voice/share"], swift=[r'"voice/share"', r"PeopleCopy\.makePrivate : PeopleCopy\.makeShared"]),
+        F("people.settings", "What people can do on this machine: approve requests, start sessions, how their sessions start",
+          web=['id="people-can"', "/voice/people/settings"], swift=[r'"voice/people/settings"', r"PeopleCopy\.canDo\b"]),
+        F("sessions.new.there", "Start a session on a machine somebody invited you to: its folders, whose it is, how it starts sessions",
+          web=[r"/voice/new-session' \+ \(picked\.here", r"PEOPLE_COPY\.startsThere\("],
+          swift=[r'URLQueryItem\(name: "machine"', r"PeopleCopy\.owned\(target\.owner"]),
     ]),
     ("Approvals and alerts", [
         F("approve.card", "A permission request as a card with the exact request, Deny and Approve",
           web=['id="attention"', "/voice/approve"], swift=[r"struct (?:RequestCard|ApprovalCard)\b", r'"voice/approve"']),
+        F("approve.asked", "A request somebody else is asked first for: who and how long, Approve only once it is yours, and "
+          "who answered", web=[r"PEOPLE_COPY\.askedFirst\(", r"x\.can_answer === false", r"PEOPLE_COPY\.resolved\("],
+          swift=[r"PeopleCopy\.askedFirst\(", r"can_answer", r"PeopleCopy\.resolved\("]),
         F("approve.voice", "Any request can be approved by a spoken yes: read out short or word for word; the card says "
           "which (a secret is never said: tap)", web=["voice_can_approve"], swift=[r"voice_can_approve"]),
         F("approve.owner", "Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac",

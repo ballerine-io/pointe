@@ -85,6 +85,8 @@ enum AlertPlan {
         guard let said = a.title, !said.isEmpty, let body = a.body, !body.isEmpty else { return nil }
         let s = a.session.flatMap { name in machines.sessions.first { $0.name == name } }
         if let s, machines.watchOnly(s), a.kind == "permission" { return nil }
+        // Somebody else is asked first: nothing here until the prompt opens to this person.
+        if let s, machines.waitsFor(s) != nil, a.kind == "permission" { return nil }
         let title = s.map { AlertCopy.title(said, for: $0, machines: machines) } ?? said
         if s?.isOffline == true {
             return AlertNote(id: a.id, title: title, body: body, category: openCategory, kind: a.kind ?? "", session: a.session, requestId: nil)

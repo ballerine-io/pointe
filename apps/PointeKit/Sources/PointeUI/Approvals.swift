@@ -15,6 +15,8 @@ extension API {
         var cut: Bool? = nil
         var lock: String? = nil     // the voice lock's level when it was answered
         var score: Double? = nil    // a spoken answer's score; nil: a tap, or a voice the lock did not score
+        var person: String? = nil   // a person invited to this machine gave the answer; absent on the owner's own
+        var link: String? = nil     // and the address their voice is linked from
 
         var id: String { "\(at) \(session) \(request_id)" }
     }
@@ -64,6 +66,12 @@ enum ApprovalsCopy {
     /// "Approved by voice", "Denied by a tap": the head of a row, and with the rest what VoiceOver reads.
     static func head(_ a: API.Approval) -> String { "\(decision(a)) \(by(a))" }
 
+    /// "Dana, from 100.64.0.7": who answered, when a person invited to this machine did.
+    static func person(_ a: API.Approval) -> String? {
+        guard let person = a.person, !person.isEmpty else { return nil }
+        return PeopleCopy.shown(person) + (a.link.flatMap { $0.isEmpty ? nil : ", from \($0)" } ?? "")
+    }
+
     /// "20 Nov, 09:14": the Mac's own clock, as it wrote it.
     static func when(_ at: String) -> String {
         let parts = at.split(separator: " ")
@@ -75,7 +83,7 @@ enum ApprovalsCopy {
     }
 
     static func spoken(_ a: API.Approval) -> String {
-        [head(a), a.machine.map { "\(a.session) on \($0)" } ?? a.session, when(a.at), a.request, lock(a)].compactMap { $0 }.joined(separator: ", ")
+        [head(a), person(a), a.machine.map { "\(a.session) on \($0)" } ?? a.session, when(a.at), a.request, lock(a)].compactMap { $0 }.joined(separator: ", ")
     }
 }
 
@@ -121,6 +129,10 @@ struct ApprovalsSheet: View {
                 Text(ApprovalsCopy.when(a.at)).font(.brand(.caption)).foregroundStyle(Brand.muted)
             }
             Text(a.machine.map { "\(a.session) · \($0)" } ?? a.session).font(.brand(.caption)).foregroundStyle(Brand.muted)
+            if let who = ApprovalsCopy.person(a) {
+                Label(who, systemImage: "person").font(.brand(.caption, .semibold)).foregroundStyle(Brand.text)
+                    .accessibilityIdentifier("approvalPerson.\(a.request_id)")
+            }
             Text(a.request).font(.system(.footnote, design: .monospaced)).foregroundStyle(Brand.text)
                 .textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
                 .padding(8).background(Brand.raised2, in: RoundedRectangle(cornerRadius: 8))  // on a Brand.cell row: raised is the cell's own colour in dark

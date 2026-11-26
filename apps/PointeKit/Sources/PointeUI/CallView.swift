@@ -99,6 +99,7 @@ struct CallView: View {
         _editing = State(initialValue: demo?.screen == .edit ? demo?.status.talk?.last(where: \.mine) : nil)
         _typing = State(initialValue: demo?.screen == .typing)
         _showMeetingStart = State(initialValue: demo?.screen == .meetingStart)
+        _showNewSession = State(initialValue: demo?.screen == .peopleStart)
         _showNightShift = State(initialValue: demo?.screen == .nightShiftStart || demo?.screen == .nightShiftLedger)
         #if DEBUG
         // `-demo call -sheet voiceLock`: a sheet open at launch, for screenshots and UI tests.
@@ -171,7 +172,7 @@ struct CallView: View {
             .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) { callSettingsSheet }
             .task { await growDemoTalk() }
             .sheet(isPresented: $showNewSession) {  // straight to the sheet, for a menu or a key (the Mac's New Session)
-                NewSessionSheet(actions: starter).sheetSurface()
+                NewSessionSheet(actions: starter, machine: demo?.screen == .peopleStart ? "avi-box" : nil).sheetSurface()
             }
             .sheet(isPresented: $showAddSessions) {  // the Mac's Add Sessions menu item
                 AddSessionsSheet(actions: adder).sheetSurface()
@@ -660,7 +661,7 @@ struct CallView: View {
         case .phone: if demo == nil { showPhone = true }
         case .nightShift: showNightShift = true
         case .approve, .deny:  // the first card's buttons, from the Call menu: Approve asks for the owner as its button does
-            guard let request = waiting.first, !request.isOffline, !driving else { return }
+            guard let request = waiting.first, machines.mayAnswer(request), !driving else { return }
             Task { if let why = await answer(request, command == .approve) { problem = why } }
         }
     }
@@ -731,12 +732,19 @@ struct CallView: View {
                 DriveRequestCard(session: request, status: status, more: waiting.count - 1)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             } else if let request = waiting.first {
-                RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
+                RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, turn: machines, answer: answer)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 if voiceUnsure { unsureNote }
                 if waiting.count > 1 {
                     Text("\(waiting.count - 1) more waiting").font(.brand(.caption)).foregroundStyle(Brand.muted)
                 }
+            } else if let done = machines.lastResolved {
+                // Somebody else answered it: one quiet line where the card was, for as long as the Mac says so.
+                Label("\(machines.label(done.session)): \(done.line)", systemImage: done.session.resolved_by?.verdict == "deny" ? "xmark.circle" : "checkmark.circle")
+                    .font(.brand(.footnote)).foregroundStyle(Brand.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 6)
+                    .transition(.opacity)
+                    .accessibilityIdentifier("requestResolved")
             }
             if let w = status?.whisper, w.on, w.held == nil, !driving {
                 WhisperCard(status: w, suggestPushToTalk: whisperFollow.suggestsPushToTalk(w) && !call.talk.ptt,
@@ -818,8 +826,11 @@ struct CallView: View {
     private var waiting: [API.Session] {
         // never one this person may only watch: its prompt is its owner's to answer
         (status?.sessions.filter { $0.waiting && $0.canApprove && !machines.watchOnly($0) && !demoAnswered.contains($0.request_id ?? "") } ?? []).enumerated()
-            .sorted { ($0.element.isOffline ? 1 : 0, $0.offset) < ($1.element.isOffline ? 1 : 0, $1.offset) }.map(\.element)
+            .sorted { (rank($0.element), $0.offset) < (rank($1.element), $1.offset) }.map(\.element)
     }
+
+    /// One this person may answer now, then one somebody else is asked first for, then one whose machine is offline.
+    private func rank(_ s: API.Session) -> Int { s.isOffline ? 2 : machines.waitsFor(s) != nil ? 1 : 0 }
 
     private var machines: MachineView { MachineView(status) }
 
@@ -981,7 +992,7 @@ struct CallView: View {
                 }
                 conflictCard(inMeeting: true)
                 if let request = waiting.first {
-                    RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, answer: answer)
+                    RequestCard(session: request, who: machines.label(request), showAgent: (status?.sessions ?? []).mixesAgents, turn: machines, answer: answer)
                     if voiceUnsure { unsureNote }
                 }
             } bar: {
@@ -1421,16 +1432,16 @@ struct CallView: View {
 
     private var starter: NewSessionActions { NewSessionActions(ownerCheck: ownerCheck, options: startOptions, start: startSession) }
 
-    private func startOptions() async throws -> NewSession.Options {
-        if demo != nil, let options = Demo.startOptions { return options }
-        return try await call.api.startOptions()
+    private func startOptions(_ machine: String?) async throws -> NewSession.Options {
+        if demo != nil, let options = Demo.startOptions(machine: machine, status: status) { return options }
+        return try await call.api.startOptions(machine: machine)
     }
 
     /// The sheet's Start, after its Face ID. The demo plays along on its own status.
     private func startSession(_ draft: NewSession.Draft) async throws {
         if demo != nil {
             let folder = Demo.startOptions?.folders.first { $0.path == draft.folder }?.name ?? "shop"
-            demoStarted(draft.body["name"] ?? folder, harness: draft.harness)
+            demoStarted(draft.body["name"] ?? folder, harness: draft.harness, machine: draft.machine)
             return
         }
         try await call.api.newSession(draft.body)
@@ -1484,22 +1495,23 @@ struct CallView: View {
     }
 
     /// The demo's start: a row under the sessions, then the session itself, as a Mac would show it.
-    private func demoStarted(_ name: String, harness: String?) {
+    private func demoStarted(_ name: String, harness: String?, machine: String? = nil) {
         let label = Demo.startOptions?.harnesses.first { $0.name == harness }?.title
-        let row = NewSession.Starting(id: "demo-\(name)", name: name, harness: harness, label: label, state: "starting")
+        let there = machine.flatMap { $0 == machines.here ? nil : $0 }
+        let row = NewSession.Starting(id: "demo-\(name)", name: name, harness: harness, label: label, state: "starting", machine: there)
         status?.starting = (status?.starting ?? []) + [row]
         Task {
             try? await Task.sleep(for: .seconds(2))
             status?.starting?.removeAll { $0.id == row.id }
             status?.sessions.append(API.Session(name: name, working: false, waiting: false, request: nil, request_id: nil,
-                                                voice_can_approve: nil, needs: nil, harness: harness, capabilities: nil))
+                                                voice_can_approve: nil, needs: nil, harness: harness, capabilities: nil, machine: there, online: true))
         }
     }
 
     // MARK: night shift (NightShift.swift)
 
     private var nightShift: NightShiftActions {
-        NightShiftActions(ownerCheck: ownerCheck, load: loadShift, startOptions: startOptions, start: startShift, stop: stopShift)
+        NightShiftActions(ownerCheck: ownerCheck, load: loadShift, startOptions: { try await startOptions(nil) }, start: startShift, stop: stopShift)
     }
 
     private func loadShift(_ id: String?) async throws -> NightShift.Options {
@@ -1626,7 +1638,8 @@ struct CallView: View {
         return PeopleActions(ownerCheck: ownerCheck, load: { try await api.people() },
                              invite: { try await api.invitePerson(name: $0, grant: $1) },
                              state: { try await api.personInviteState() }, cancel: { try await api.cancelPersonInvite() },
-                             grant: { try await api.setGrant($0, $1) }, remove: { try await api.removePerson($0) })
+                             grant: { try await api.setGrant($0, $1) }, remove: { try await api.removePerson($0) },
+                             settings: { try await api.peopleSettings() }, setSettings: { try await api.setPeopleSettings($0) })
     }
 
     /// A session's Private, or Shared with people. The lock shows at the tap; the Mac's next status confirms it.
@@ -1996,6 +2009,9 @@ struct RequestCard: View {
     /// "shop · devbox" when its machine needs saying.
     var who: String? = nil
     var showAgent = false
+    /// Who answers it (a machine with people): while somebody else is asked first the card says who and for how long,
+    /// and offers no answer.
+    var turn: MachineView? = nil
     /// Nil when it was sent (or the owner check was cancelled); otherwise why not, shown under the buttons.
     let answer: (API.Session, Bool) async -> String?
     @State private var busy = false
@@ -2030,7 +2046,21 @@ struct RequestCard: View {
                 Label(MachinesCopy.offlineCard, systemImage: "bolt.horizontal.circle")
                     .font(.brand(.subheadline)).foregroundStyle(Brand.muted)
                     .accessibilityIdentifier("requestOffline")
+            } else if let turn, turn.waitsFor(session) != nil {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Label(turn.askedLine(session, now: context.date) ?? "", systemImage: "hourglass")
+                        .font(.brand(.subheadline).monospacedDigit()).foregroundStyle(Brand.muted)
+                }
+                .accessibilityIdentifier("requestAskedFirst")
             } else {
+                if let turn {  // on the machine itself: its owner may answer at once, and sees who is asked
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        if let line = turn.askedLine(session, now: context.date) {
+                            Text(line).font(.brand(.caption).monospacedDigit()).foregroundStyle(Brand.muted)
+                                .accessibilityIdentifier("requestAskedFirst")
+                        }
+                    }
+                }
                 Text(session.voice_can_approve == true ? "Say yes or no, or \(Surface.tap)." : "Has a secret, never said aloud: check it, then \(Surface.tap).")
                     .font(.brand(.caption)).foregroundStyle(Brand.muted)
                 ViewThatFits(in: .horizontal) {  // side by side while both words fit whole, else one over the other

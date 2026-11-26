@@ -437,11 +437,11 @@ final class PeopleTests: XCTestCase {
         XCTAssertEqual(done.code, "")
     }
 
-    func testANameIsNotAskedForTheOther409s() async {
+    func testANameIsNotAskedForARefusalThatIsNotAboutTheName() async {
         for said in ["This is your own machine: its sessions are already in your voice.",
                      "avi-box is already in your voice. To add it again, remove it first: pointe machine remove avi-box"] {
             let calls = Calls()
-            let model = adder(calls) { _ in throw API.Failure.status(409, said) }
+            let model = adder(calls) { _ in throw API.Failure.status(400, said) }  // machines.py: 409 is only a name problem
             await model.pasted(line)
             XCTAssertFalse(model.needsName, said)
             XCTAssertEqual(model.problem?.lowercased().hasPrefix(said.prefix(20).lowercased()), true, "the Mac's sentence, kept")

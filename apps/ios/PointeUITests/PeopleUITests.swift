@@ -210,6 +210,60 @@ final class PeopleUITests: XCTestCase {
         XCTAssertTrue(any("peopleDone").exists)
     }
 
+    // MARK: phase 3: who answers a prompt, a session on somebody's machine, what people can do
+
+    func testWhileAviIsAskedFirstTheCardCountsDownAndOffersNoAnswer() throws {
+        launch("peopleAsked")
+        XCTAssertTrue(label("tide on avi-box needs approval").waitForExistence(timeout: 15))
+        let asked = any("requestAskedFirst")
+        XCTAssertTrue(asked.waitForExistence(timeout: 5))
+        XCTAssertTrue(asked.label.range(of: #"^Avi is asked first( · \d+ s)?$"#, options: .regularExpression) != nil, asked.label)
+        XCTAssertFalse(app.buttons["Approve"].exists, "no answer before it opens")
+        XCTAssertFalse(app.buttons["Deny"].exists)
+        shot("people-asked-first")
+        let first = asked.label
+        sleep(3)
+        XCTAssertNotEqual(first, any("requestAskedFirst").label, "it counts down")
+    }
+
+    func testOnceThePromptOpensApproveAndDenyAreThere() throws {
+        launch("peopleOpen")
+        XCTAssertTrue(label("tide on avi-box needs approval").waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["Approve"].exists && app.buttons["Deny"].exists)
+        XCTAssertFalse(any("requestAskedFirst").exists)
+        shot("people-prompt-open")
+    }
+
+    func testAnsweredBySomebodyElseIsOneLine() throws {
+        launch("peopleResolved")
+        let done = any("requestResolved")
+        XCTAssertTrue(done.waitForExistence(timeout: 15))
+        XCTAssertTrue(done.label.contains("Dana approved it"), done.label)
+        XCTAssertFalse(app.buttons["Approve"].exists)
+        shot("people-resolved")
+    }
+
+    func testNewSessionOnAvisMachineShowsItsFoldersWhoseItIsAndHowItStarts() throws {
+        launch("peopleStart")
+        let note = any("newSessionMachineNote")
+        XCTAssertTrue(note.waitForExistence(timeout: 15), "avi-box is picked and its own list came")
+        XCTAssertTrue(note.label.contains("avi-box is Avi's machine. avi-box starts sessions that skip permission prompts"), note.label)
+        XCTAssertTrue(any("newSessionMachine.avi-box").label.contains("avi-box · Avi's"))
+        if !any("newSessionFolder.tide").exists { app.swipeUp() }
+        XCTAssertTrue(any("newSessionFolder.tide").exists, "that machine's folders")
+        XCTAssertFalse(any("newSessionFolder.lantern").exists, "not this Mac's")
+        shot("people-new-session")
+    }
+
+    func testPeopleHasWhatPeopleCanDo() throws {
+        launch("people", sheet: "people")
+        XCTAssertTrue(any("person.dana").waitForExistence(timeout: 15))
+        for _ in 0..<3 where !any("peopleTheirSessions").exists { app.swipeUp() }
+        XCTAssertTrue(any("peopleCanApprove").exists && any("peopleCanStart").exists && any("peopleTheirSessions").exists)
+        XCTAssertTrue(label("What people can do").exists || label("WHAT PEOPLE CAN DO").exists)
+        shot("people-settings")
+    }
+
     // MARK: the disclosure, from the status
 
     func testAMachineAddedElsewhereSaysOnceWhereItsTranscriptsGo() throws {

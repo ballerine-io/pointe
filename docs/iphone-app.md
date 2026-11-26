@@ -111,6 +111,15 @@ several machines ([design/people-and-machines.md](design/people-and-machines.md)
   The Sessions sheet has a Mine chip once some session is not yours.
 - **Private**: hold a session of your own on a machine that has people, then Private. The people invited to that
   machine no longer see it. Shared with people puts it back.
+- **A request on somebody else's machine**: its owner is asked first. The card says who, with the seconds left ("Avi is
+  asked first · 14 s"), and has no Approve or Deny until the request opens to you. Then it is a card like your own, and
+  an alert like your own. When somebody else answers, one line says who ("Dana approved it"). On your own machine the
+  card and the approvals record name the person who answered.
+- **New session on somebody's machine**: when its owner allows it, the machine is in the New session sheet. Choose it
+  and the sheet shows that machine's folders, whose machine it is, and whether its sessions ask before actions. The
+  session shows "started by" your name on their screens. You can keep it Private; the machine's owner still sees it.
+- **What people can do** (in People, on the machine's own Pointe): Approve requests, Start sessions, and whether the
+  sessions they start always ask first. Each change asks for Face ID.
 - A machine that removed you stays in the list as "avi-box removed you", with Remove.
 
 A `pointe://machine` link that opens the app from outside opens Add a machine with the line in it. Nothing is sent

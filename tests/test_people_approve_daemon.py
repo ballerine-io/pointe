@@ -25,13 +25,6 @@ from test_orchestrator import add, client_for, d, fake_conn  # noqa: E402,F401
 from test_people_approve import Sock  # noqa: E402
 from test_people_voice import AVI_BOX, avi, on_avi_box  # noqa: E402,F401  (avi: a fixture)
 
-@pytest.fixture(autouse=True)
-def people_may(monkeypatch):
-    """These tests are of a machine whose owner turned approving and starting on. Both are off as released, until the
-    page and the apps have their screens (test_released_off_until_the_owner_turns_each_on)."""
-    monkeypatch.setitem(guests.DEFAULTS, "approve", "anyone")
-    monkeypatch.setitem(guests.DEFAULTS, "start", "on")
-
 
 def dana_on(d, grant="send", call_up=True) -> guests.Link:
     """Dana, invited to this machine, with her voice linked."""

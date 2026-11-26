@@ -169,9 +169,8 @@ What holds, in code with tests (`tests/test_people_approve.py`, `tests/test_peop
   seconds (`pointe people hold <seconds>`, 10 to 280), and a later answer is refused
   (`test_held_for_people_only_it_is_at_the_terminal_at_the_bound_and_every_voice_is_told`,
   `test_held_for_people_only_an_answer_before_the_bound_wins_and_one_after_it_is_stale`).
-- **Off until the owner turns it on**: `pointe people approvals on` (`approve: "anyone"`; `off` again turns it off).
-  Off, a prompt is offered to the machine owner's own voice and terminal only. It is released off until the page
-  and the apps show who is asked first; after that it will be on by default, as the owner decided.
+- **The owner can turn it off**: `pointe people approvals off` (`approve: "off"`). Then a prompt is offered to the
+  machine owner's own voice and terminal only, as before.
 
 Not checked: the voice lock. It binds a spoken yes to the owner's voice on the owner's own Pointe. A person's spoken
 yes is checked by their own Pointe, with their own lock setting; the machine sees only that their voice read out the
@@ -204,8 +203,7 @@ What holds, in code with tests:
   session on the machine, always. Its first prompt is delivered as that person's request, under every rule of a send.
 - **Private.** A person may keep a session they started private: then they and the machine's owner see it. They
   cannot change who sees anybody else's session (`test_a_person_keeps_their_own_session_private_and_never_somebody_elses`).
-- **Off until the owner turns it on**: `pointe people starts on` (`starts off` again turns it off). Released off
-  until the page and the apps can start a session on a machine; after that it will be on by default.
+- **The owner can turn it off**: `pointe people starts off`.
 
 ### Starting a session
 

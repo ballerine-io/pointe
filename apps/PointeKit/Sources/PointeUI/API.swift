@@ -87,6 +87,8 @@ struct API {
         @Tolerant var can_invite: Bool?
         /// The OS account the requests of invited people run as, on a machine with people.
         @Tolerant var account: String?
+        /// What the people invited to this machine may do, on a machine with people (People.swift).
+        @Tolerant var people_settings: PeopleSettings?
         @Tolerant var disclosure: Disclosure? // once after a machine is added: where your voice sends its transcripts, until dismissed
         var night_shift: NightShift.Summary?    // the running or the last night shift; nil when there was none, or from an older Mac
         var shift_pending: NightShift.Pending?  // a night shift's read-back that waits for a yes or a tap; nil when none
@@ -115,6 +117,8 @@ struct API {
         @Tolerant var grant: String? = nil
         /// The machine removed this voice: it stays listed, offline, until the person removes it here.
         @Tolerant var removed: Bool? = nil
+        /// This voice may ask to start a session there now: online, the send grant, and the machine starts sessions.
+        @Tolerant var can_start: Bool? = nil
 
         var isHere: Bool { here == true }
         /// Invited to watch only: the machine refuses this voice's requests, so nothing here offers to send one.
@@ -503,6 +507,15 @@ struct API {
         @Tolerant var `private`: Bool? = nil
         /// Set while the session works on another person's request.
         @Tolerant var by: By? = nil
+        /// Who is asked first for its request, and until when (epoch seconds), while the owner-first time runs.
+        @Tolerant var asked: Asked? = nil
+        /// This side may answer its request now. False on a voice while `asked` is there; nil on a session nobody but
+        /// its machine's owner answers, and from an older Mac.
+        @Tolerant var can_answer: Bool? = nil
+        /// Who answered its request, for half a minute after a person did.
+        @Tolerant var resolved_by: ResolvedBy? = nil
+        /// The person who started it from their voice.
+        @Tolerant var started_by: String? = nil
         var id: String { name }
         var isMine: Bool { (owner ?? "").isEmpty }
         var isPrivate: Bool { `private` == true }
@@ -534,6 +547,18 @@ struct API {
             since = try? c.decode(Double.self, forKey: .since)
             sinceText = since == nil ? try? c.decode(String.self, forKey: .since) : nil
         }
+    }
+
+    struct Asked: Decodable, Equatable {
+        let name: String
+        var until: Double? = nil
+    }
+
+    /// `verdict` ("allow" or "deny") is absent when this voice only learned who from a refused answer of its own.
+    struct ResolvedBy: Decodable, Equatable {
+        let name: String
+        var verdict: String? = nil
+        var at: Double? = nil
     }
 
     struct Capabilities: Decodable, Equatable {
@@ -644,8 +669,12 @@ struct API {
     // MARK: new session (NewSession.swift)
 
     /// What a new session may start as: the agents, the machines and the folders. The folders come from here only.
-    func startOptions() async throws -> NewSession.Options {
-        try JSONDecoder().decode(NewSession.Options.self, from: try await checked(request("voice/new-session")))
+    /// With `machine`: that machine's own agents and folders, how its sessions start, and whose it is. It asks the
+    /// machine, so it may take a while; 409, 403 and 502 carry one sentence.
+    func startOptions(machine: String? = nil) async throws -> NewSession.Options {
+        var r = request("voice/new-session", query: machine.map { [URLQueryItem(name: "machine", value: $0)] } ?? [])
+        if machine != nil { r.timeoutInterval = 20 }
+        return try JSONDecoder().decode(NewSession.Options.self, from: try await checked(r))
     }
 
     /// The sheet's Start (`NewSession.Draft.body`), or a tap on a read-back: `confirm` or `cancel` with its id. A refusal

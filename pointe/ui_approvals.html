@@ -53,7 +53,8 @@
     const head = el('div', 'ap-head');
     head.append(el('span', 'ap-mark'), el('span', 'ap-what', `${a.decision === 'allow' ? c.allow : c.deny} ${c[a.by] || c.other}`), el('span', 'ap-when', approvalWhen(a.at)));
     head.firstChild.setAttribute('aria-hidden', 'true');
-    row.append(head, el('div', 'ap-who', a.machine ? `${a.session} · ${a.machine}` : a.session), el('pre', 'ap-req', a.request));
+    const where = a.machine ? `${a.session} · ${a.machine}` : a.session;  // an answer a person gave on this machine names them
+    row.append(head, el('div', 'ap-who', a.person ? `${where} · ${PEOPLE_COPY.recordWho(a.person, a.link)}` : where), el('pre', 'ap-req', a.request));
     if (a.cut) row.append(el('div', 'ap-cut', c.cut));
     const lock = approvalLock(a);
     if (lock) row.append(el('div', 'ap-lock', lock));

@@ -70,9 +70,7 @@ START_WAIT_SECS = 150.0  # a start's adapter (45 s) and the wait for a session t
 ANSWERED_KEPT = 64  # the last requests answered here, so a late verdict hears who answered
 RESOLVED_SHOWN_SECS = 30.0  # `resolved_by` stays in the status this long
 SETTINGS = {"approve": ("anyone", "off"), "start": ("on", "off"), "sessions_ask": ("default", "ask")}
-# Approving and starting are off until the page and the apps have their screens for them (who is asked first, a
-# machine in New session): the owner turns each on with `pointe people approvals on` and `pointe people starts on`.
-DEFAULTS = {"approve": "off", "start": "off", "sessions_ask": "default", "owner_first_secs": OWNER_FIRST_SECS,
+DEFAULTS = {"approve": "anyone", "start": "on", "sessions_ask": "default", "owner_first_secs": OWNER_FIRST_SECS,
             "people_hold_secs": PEOPLE_HOLD_SECS}
 SECONDS = {"owner_first_secs": (0.0, OWNER_FIRST_MAX_SECS), "people_hold_secs": PEOPLE_HOLD_RANGE}
 SETTING_PROBLEM = ("People's approvals are anyone or off, starts are on or off, their sessions follow default or ask, "

@@ -294,8 +294,7 @@ If you may send, you may also answer a session's permission prompt there.
   will run.
 - Everybody is told who answered, and the machine keeps a record with your name.
 
-This is off until the machine's owner turns it on: `pointe people approvals on` (and `off` again). It will be on by
-default once the page and the apps show who is asked first. They change the 20 seconds with
+The machine's owner can turn this off: `pointe people approvals off`. They change the 20 seconds with
 `pointe people window <seconds>`.
 
 When the machine's owner is not on a call, a prompt waits 45 seconds for you. Then it goes to its terminal, and
@@ -314,8 +313,8 @@ sheet with the machine picked.
 - The session is yours. You are asked first for its prompts. You can keep it private with
   `pointe share <session> --private`: then you and the machine's owner see it.
 
-This is off until the machine's owner turns it on with `pointe people starts on` (and `starts off` again). The
-owner can also make these sessions always ask before actions with `pointe people sessions ask`.
+The machine's owner can turn this off with `pointe people starts off`, or make these sessions always ask before
+actions with `pointe people sessions ask`.
 
 ### What the owner sees
 

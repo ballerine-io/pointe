@@ -87,6 +87,7 @@ SCREENS = {  # -demo <screen>: an identifier that screen shows
     "startPending": "startConfirm", "hold": "statusLine", "rtl": "conversation", "longRequest": "requestCommand", "many": "sessionsColumn",
     "machinesSessions": "sessionsColumn", "empty": "statusLine", "noSessions": "statusLine",
     "people": "sessionsColumn", "peopleWatch": "sessionsColumn", "peopleRemoved": "sessionsColumn", "peopleAdded": "sessionsColumn",
+    "peopleAsked": "requestAskedFirst", "peopleOpen": "requestApprove", "peopleResolved": "requestResolved", "peopleStart": "newSessionStart",
 }
 
 
@@ -413,7 +414,8 @@ def main() -> int:
         app = start("-demo", screen)
         try:
             check(f"the {screen} screen draws", app.wait(ident), ident)
-            if screen in ("meeting", "whisper", "conflict", "rtl", "many", "people", "peopleWatch", "peopleRemoved", "peopleAdded"):
+            if screen in ("meeting", "whisper", "conflict", "rtl", "many", "people", "peopleWatch", "peopleRemoved", "peopleAdded",
+                          "peopleAsked", "peopleOpen", "peopleResolved", "peopleStart"):
                 app.shot(screen, "dark")
         finally:
             app.quit()

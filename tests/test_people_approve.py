@@ -31,13 +31,6 @@ READABLE = ("Bash", {"command": "git status", "description": "Show status"})
 UNREADABLE = ("WebFetch", {"url": "https://example.com/x", "prompt": "read it"})
 OLD_FEATURES = ["attach", "held", "people"]  # a voice from phases 1 and 2
 
-@pytest.fixture(autouse=True)
-def people_may(monkeypatch):
-    """These tests are of a machine whose owner turned approving and starting on. Both are off as released, until the
-    page and the apps have their screens (test_released_off_until_the_owner_turns_each_on)."""
-    monkeypatch.setitem(guests.DEFAULTS, "approve", "anyone")
-    monkeypatch.setitem(guests.DEFAULTS, "start", "on")
-
 
 @pytest.fixture
 def box(world):  # noqa: F811

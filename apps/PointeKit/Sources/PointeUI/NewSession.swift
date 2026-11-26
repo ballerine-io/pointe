@@ -1,10 +1,76 @@
+import Observation
 import SwiftUI
 
 /// What the New session sheet asks of the call: Face ID as for Approve, what the Mac offers, and the start itself.
 struct NewSessionActions {
     let ownerCheck: (String) async -> Bool
-    let options: () async throws -> NewSession.Options
+    /// This Mac's agents and folders (nil), or those of a machine somebody invited this voice to, by its name.
+    let options: (String?) async throws -> NewSession.Options
     let start: (NewSession.Draft) async throws -> Void
+}
+
+/// What the sheet holds. Picking a machine somebody invited this voice to loads that machine's own agents and folders:
+/// a session starts there only in a folder its owner works in. A machine that refuses, or does not answer, says so in
+/// one sentence and the choice goes back to where it was.
+@MainActor @Observable
+final class NewSessionModel {
+    private(set) var options: NewSession.Options?
+    var draft = NewSession.Draft()
+    private(set) var problem: String?
+    private(set) var busy = false
+    /// The machine whose folders are being fetched: its row shows it, and Start waits.
+    private(set) var loading: String?
+
+    private let actions: NewSessionActions
+
+    init(actions: NewSessionActions) { self.actions = actions }
+
+    var canStart: Bool { !busy && loading == nil && options.map(draft.canStart) == true }
+
+    /// "avi-box is Avi's machine." and how it starts sessions, under the machine picked; nil on this Mac.
+    var machineNote: String? {
+        guard let target = options?.machine, target.name == draft.machine else { return nil }
+        let whose = (target.owner ?? "").isEmpty ? "" : "\(target.name) is \(PeopleCopy.owned(target.owner ?? "")) machine. "
+        return whose + target.startsLine
+    }
+
+    func load() async {
+        do {
+            let fresh = try await actions.options(nil)
+            options = fresh
+            draft = NewSession.Draft(fresh)
+        } catch { problem = NewSessionSheet.refusal(error) }
+    }
+
+    func pick(machine name: String) async {
+        guard let options, loading == nil, !busy, name != draft.machine,
+              options.machines.contains(where: { $0.name == name && $0.available }) else { return }
+        guard options.needsLoad(for: name) else { draft.machine = name; return }
+        let here = options.machines.first { $0.here == true }?.name
+        loading = name
+        problem = nil
+        defer { loading = nil }
+        do {
+            let fresh = try await actions.options(name == here ? nil : name)
+            self.options = fresh
+            draft.adopt(fresh, machine: name)
+        } catch { problem = NewSessionSheet.refusal(error) }
+    }
+
+    /// True once it started: the sheet closes.
+    func start() async -> Bool {
+        guard canStart else { return false }
+        busy = true
+        defer { busy = false }
+        guard await actions.ownerCheck(NewSessionSheet.faceIDReason) else { return false }
+        do {
+            try await actions.start(draft)
+            return true
+        } catch {
+            problem = NewSessionSheet.refusal(error)
+            return false
+        }
+    }
 }
 
 /// Start a coding agent in a folder you already work in. Everything offered comes from the Mac; Start asks for Face ID,
@@ -12,21 +78,26 @@ struct NewSessionActions {
 struct NewSessionSheet: View {
     static let faceIDReason = "Start a new session"
 
-    let actions: NewSessionActions
+    @State private var model: NewSessionModel
     @Environment(\.dismiss) private var dismiss
-    @State private var options: NewSession.Options?
-    @State private var draft = NewSession.Draft()
-    @State private var problem: String?
-    @State private var busy = false
+
+    /// The machine to open on (a demo's New session on avi-box); nil: this Mac.
+    private let machine: String?
+
+    init(actions: NewSessionActions, machine: String? = nil) {
+        _model = State(initialValue: NewSessionModel(actions: actions))
+        self.machine = machine
+    }
 
     var body: some View {
+        @Bindable var model = model
         NavigationStack {
             BrandForm {
                 Section {} header: {  // a header keeps the form's text inset: a zero-inset row clipped the first letters
                     Text(NewSessionCopy.lede).brandFootnote().accessibilityIdentifier("newSessionLede")
                 }
-                if let options { fields(options) }
-                if let problem {
+                if let options = model.options { fields(options, $model.draft) }
+                if let problem = model.problem {
                     Section { Text(problem).foregroundStyle(Brand.accent).accessibilityIdentifier("newSessionProblem") }
                 }
             }
@@ -36,37 +107,41 @@ struct NewSessionSheet: View {
                     Button(NewSessionCopy.cancel) { dismiss() }.accessibilityIdentifier("newSessionCancel")
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(NewSessionCopy.start) { Task { await start() } }
-                        .disabled(busy || options.map(draft.canStart) != true)
+                    Button(NewSessionCopy.start) { Task { if await model.start() { dismiss() } } }
+                        .disabled(!model.canStart)
                         .accessibilityIdentifier("newSessionStart")
                 }
             }
             .task {
-                do {
-                    let fresh = try await actions.options()
-                    options = fresh
-                    draft = NewSession.Draft(fresh)
-                } catch { problem = Self.refusal(error) }
+                await model.load()
+                if let machine { await model.pick(machine: machine) }
             }
         }
     }
 
     @ViewBuilder
-    private func fields(_ options: NewSession.Options) -> some View {
+    private func fields(_ options: NewSession.Options, _ draft: Binding<NewSession.Draft>) -> some View {
+        let picked = draft.wrappedValue
         KickerSection(NewSessionCopy.agent) {
             ForEach(options.harnesses) { agent in
-                choice(agent.title, detail: agent.available ? nil : agent.why, on: draft.harness == agent.name, available: agent.available,
-                       id: "newSessionAgent.\(agent.name)") { draft.harness = agent.name }
+                choice(agent.title, detail: agent.available ? nil : agent.why, on: picked.harness == agent.name, available: agent.available,
+                       id: "newSessionAgent.\(agent.name)") { draft.wrappedValue.harness = agent.name }
             }
-            if draft.harness == "claude-code" {
+            if picked.harness == "claude-code" {
                 Text(NewSessionCopy.claudeNote).brandFootnote().accessibilityIdentifier("newSessionClaudeNote")
             }
         }
         if options.showsMachines {
             KickerSection(NewSessionCopy.machine) {
                 ForEach(options.machines) { machine in
-                    choice(machine.name, detail: machine.available ? nil : machine.why, on: draft.machine == machine.name, available: machine.available,
-                           id: "newSessionMachine.\(machine.name)") { draft.machine = machine.name }
+                    choice(machine.owner.flatMap { $0.isEmpty ? nil : "\(machine.name) · \(PeopleCopy.owned($0))" } ?? machine.name,
+                           detail: model.loading == machine.name ? PeopleCopy.loadingMachine : machine.available ? nil : machine.why,
+                           on: picked.machine == machine.name, available: machine.available,
+                           id: "newSessionMachine.\(machine.name)") { Task { await model.pick(machine: machine.name) } }
+                }
+                if let note = model.machineNote {
+                    Text(note).brandFootnote().fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("newSessionMachineNote")
                 }
             }
         }
@@ -75,16 +150,16 @@ struct NewSessionSheet: View {
                 Text(NewSessionCopy.noFolders).foregroundStyle(Brand.muted).accessibilityIdentifier("newSessionNoFolders")
             }
             ForEach(options.folders) { folder in
-                choice(folder.name, detail: folder.path, on: draft.folder == folder.path, id: "newSessionFolder.\(folder.name)") { draft.folder = folder.path }
+                choice(folder.name, detail: folder.path, on: picked.folder == folder.path, id: "newSessionFolder.\(folder.name)") { draft.wrappedValue.folder = folder.path }
             }
         }
         KickerSection(NewSessionCopy.name) {
-            TextField(NewSessionCopy.namePlaceholder, text: $draft.name)
+            TextField(NewSessionCopy.namePlaceholder, text: draft.name)
                 .plainEntry()
                 .accessibilityIdentifier("newSessionName")
         }
         KickerSection(NewSessionCopy.prompt) {
-            TextField(NewSessionCopy.promptPlaceholder, text: $draft.prompt, axis: .vertical).lineLimit(3...8)
+            TextField(NewSessionCopy.promptPlaceholder, text: draft.prompt, axis: .vertical).lineLimit(3...8)
                 .accessibilityIdentifier("newSessionPrompt")
         }
     }
@@ -110,19 +185,8 @@ struct NewSessionSheet: View {
         .accessibilityIdentifier(id)
     }
 
-    private func start() async {
-        guard let options, draft.canStart(options) else { return }
-        busy = true
-        defer { busy = false }
-        guard await actions.ownerCheck(Self.faceIDReason) else { return }
-        do {
-            try await actions.start(draft)
-            dismiss()
-        } catch { problem = Self.refusal(error) }
-    }
-
     /// A refusal in the Mac's own words; a Mac that is away, or too old to start sessions, each get a line.
-    static func refusal(_ error: Error) -> String {
+    nonisolated static func refusal(_ error: Error) -> String {
         guard case API.Failure.status(let code, let detail) = error else { return "The Mac did not answer." }
         if detail.hasPrefix("HTTP ") { return code == 404 ? "Pointe on the Mac does not start sessions yet: update it." : "The Mac did not do it." }
         return detail
@@ -139,6 +203,9 @@ struct StartingRow: View {
                 Circle().stroke(Brand.dim).frame(width: 9, height: 9)  // a ring: not a session yet
                 Text(row.name)
                 Text(row.agent).font(.brand(.caption2, .semibold)).foregroundStyle(Brand.muted)
+                if let by = row.by, !by.isEmpty {  // on the machine: a person asked for it
+                    Text(PeopleCopy.startedBy(by)).font(.brand(.caption2)).foregroundStyle(Brand.muted)
+                }
                 Spacer()
                 Text(row.tag).font(.brand(.caption, row.failed ? .semibold : .regular)).foregroundStyle(row.failed ? Brand.accent : Brand.muted)
             }

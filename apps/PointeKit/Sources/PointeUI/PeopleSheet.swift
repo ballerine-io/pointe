@@ -12,6 +12,9 @@ struct PeopleActions {
     let cancel: () async throws -> Void
     let grant: (String, String) async throws -> Void
     let remove: (String) async throws -> Void
+    /// What people may do on this machine, and a change to it (approve, start, sessions_ask): the settings now.
+    var settings: () async throws -> API.PeopleSettings = { throw API.Failure.status(404, "HTTP 404") }
+    var setSettings: ([String: String]) async throws -> API.PeopleSettings = { _ in throw API.Failure.status(404, "HTTP 404") }
 }
 
 /// Settings → Machines → People (docs/design/people-and-machines.md): who is invited to this machine, what each may do,
@@ -28,6 +31,8 @@ final class PeopleModel {
     private(set) var problem: String?
     private(set) var done: String?
     private(set) var busy = false
+    /// What people can do here; nil until the Mac said (an older Mac never does, and the group stays away).
+    private(set) var settings: API.PeopleSettings?
 
     private let actions: PeopleActions
 
@@ -37,6 +42,32 @@ final class PeopleModel {
 
     func load() async {
         do { people = try await actions.load(); loaded = true } catch { if !loaded { problem = PeopleCopy.refusal(error) } }
+    }
+
+    func loadSettings() async { if let fresh = try? await actions.settings() { settings = fresh } }
+
+    /// The status carries them on a machine with people: a change made on the page shows here.
+    func follow(settings live: API.PeopleSettings?) { if let live { settings = live } }
+
+    /// One of approve ("anyone", "off"), start ("on", "off") and sessions_ask ("default", "ask"). An owner's change:
+    /// Face ID first. The switch moves at the tap and goes back when the Mac refuses.
+    func set(_ key: String, _ value: String) async {
+        guard var wanted = settings else { return }
+        let before = wanted
+        switch key {
+        case "approve": wanted.approve = value
+        case "start": wanted.start = value
+        case "sessions_ask": wanted.sessions_ask = value
+        default: return
+        }
+        guard wanted != before else { return }
+        problem = nil; done = nil
+        guard await actions.ownerCheck(PeopleCopy.settingsReason) else { return }
+        settings = wanted
+        do { settings = try await actions.setSettings([key: value]) } catch {
+            settings = before
+            problem = PeopleCopy.refusal(error)
+        }
     }
 
     /// The status carries who is linked and each grant, on every poll: the rows follow it. A name the list does not have
@@ -151,6 +182,7 @@ struct PeopleSheet: View {
                     Group { Text(PeopleCopy.trust(account: status?.account)).accessibilityIdentifier("peopleTrust") }.brandFootnote()
                 }
                 Section { inviteSection }
+                if let settings = model.settings { canDo(settings) }
             }
             .scrollContentBackground(.hidden)
             .sheetTitle(PeopleCopy.people)
@@ -162,6 +194,8 @@ struct PeopleSheet: View {
                 Button("Cancel", role: .cancel) {}
             }
             .task { await model.load() }
+            .task { await model.loadSettings() }
+            .onChange(of: status?.people_settings) { _, live in model.follow(settings: live) }
             .task(id: status?.people) { await model.follow(status?.people) }
             .task(id: model.invite?.code) {  // while the line shows: closes by itself when they pair
                 while model.invite != nil, !Task.isCancelled {
@@ -169,6 +203,32 @@ struct PeopleSheet: View {
                     if await model.poll() { break }
                 }
             }
+        }
+    }
+
+    /// What people can do: one set for everybody invited to this machine.
+    @ViewBuilder
+    private func canDo(_ settings: API.PeopleSettings) -> some View {
+        Section {
+            Toggle(isOn: Binding(get: { settings.mayApprove }, set: { on in Task { await model.set("approve", on ? "anyone" : "off") } })) {
+                Label(PeopleCopy.approveRequests, systemImage: "checkmark.shield")
+            }
+            .accessibilityIdentifier("peopleCanApprove")
+            Toggle(isOn: Binding(get: { settings.mayStart }, set: { on in Task { await model.set("start", on ? "on" : "off") } })) {
+                Label(PeopleCopy.startSessions, systemImage: "plus.rectangle.on.rectangle")
+            }
+            .accessibilityIdentifier("peopleCanStart")
+            if settings.mayStart {
+                Picker(selection: Binding(get: { settings.alwaysAsk ? "ask" : "default" },
+                                          set: { value in Task { await model.set("sessions_ask", value) } })) {
+                    Text(PeopleCopy.followDefault).tag("default")
+                    Text(PeopleCopy.alwaysAsk).tag("ask")
+                } label: { Label(PeopleCopy.sessionsTheyStart, systemImage: "lock.open") }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("peopleTheirSessions")
+            }
+        } header: { Text(PeopleCopy.canDo).brandKicker() } footer: {
+            Group { Text(PeopleCopy.canDoHelp) }.brandFootnote()
         }
     }
 

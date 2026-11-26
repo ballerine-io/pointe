@@ -145,7 +145,9 @@ struct DriveRequestCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Label { Text("\(MachineView(status).label(session)) needs approval") } icon: { Image(systemName: "hand.raised.fill").foregroundStyle(Brand.accent) }
                 .font(.brand(.headline))
-            Text(session.isOffline ? MachinesCopy.offlineCard : DriveCopy.hint(for: session, status: status)).font(.brand(.title3, .semibold))
+            Text(session.isOffline ? MachinesCopy.offlineCard
+                 : MachineView(status).waitsFor(session).map { PeopleCopy.askedFirst($0.name, left: nil) } ?? DriveCopy.hint(for: session, status: status))
+                .font(.brand(.title3, .semibold))
                 .accessibilityIdentifier("driveHint")
             if more > 0 { Text("\(more) more waiting").font(.brand(.caption)).foregroundStyle(Brand.muted) }
         }

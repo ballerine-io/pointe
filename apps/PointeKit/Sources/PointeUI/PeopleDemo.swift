@@ -9,19 +9,26 @@ extension Demo {
     /// the one-time line after avi-box was added.
     static func peopleJSON(_ screen: Screen, now: Double = Date().timeIntervalSince1970) -> String {
         let watch = screen == .peopleWatch, removed = screen == .peopleRemoved
+        // A prompt on Avi's tide: Avi is asked first (`peopleAsked`), it opened to this voice (`peopleOpen`), or Dana
+        // answered it (`peopleResolved`). `peopleStart`: the New session sheet on avi-box.
+        let asked = screen == .peopleAsked, open = screen == .peopleOpen, resolved = screen == .peopleResolved
+        let prompt = watch || asked || open
+        let turn = asked ? #", "asked": {"name": "avi", "until": \#(now + 14)}, "can_answer": false"#
+            : open ? #", "can_answer": true, "voice_can_approve": true"#
+            : resolved ? #", "resolved_by": {"name": "dana", "verdict": "allow", "at": \#(now - 3)}"# : ""
         let caps = #"{"approvals": true, "side_questions": false}"#
         let request = #"Bash: Run the tests\n{\"command\": \"uv run pytest -q\"}"#
         let theirs = removed ? "" : """
         ,
-         {"name": "tide", "working": true, "waiting": \(watch), "needs": null, "machine": "avi-box", "online": true, "owner": "avi",
-          "capabilities": \(caps), "request": \(watch ? "\"\(request)\"" : "null"), "request_id": \(watch ? "\"r-avi-1\"" : "null"),
-          "by": {"name": "dana", "since": \(now - 120)}},
+         {"name": "tide", "working": true, "waiting": \(prompt), "needs": null, "machine": "avi-box", "online": true, "owner": "avi",
+          "capabilities": \(caps), "request": \(prompt ? "\"\(request)\"" : "null"), "request_id": \(prompt ? "\"r-avi-1\"" : "null"),
+          "by": {"name": "dana", "since": \(now - 120)}\(turn)},
          {"name": "shop on avi-box", "working": false, "waiting": false, "needs": null, "machine": "avi-box", "online": true,
           "owner": "avi", "capabilities": \(caps)}
         """
         let aviBox = removed
             ? #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": false, "since": \#(now - 900), "sessions": 0, "need": 0, "owner": "avi", "grant": "send", "notice": "avi-box removed you", "removed": true}"#
-            : #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": true, "sessions": 2, "need": 0, "rtt_ms": 31, "key_fp": "7c1e22b04d9a6f13", "owner": "avi", "grant": "\#(watch ? "watch" : "send")"}"#
+            : #"{"id": "m7c1e22", "name": "avi-box", "here": false, "os": "linux", "online": true, "sessions": 2, "need": 0, "rtt_ms": 31, "key_fp": "7c1e22b04d9a6f13", "owner": "avi", "grant": "\#(watch ? "watch" : "send")", "can_start": \#(!watch)}"#
         let disclosure = screen == .peopleAdded ? #""disclosure": {"machine": "avi-box", "vendors": ["Deepgram", "Gemini"]},"# : ""
         return """
         {"active": "shop", "connected": true, "mode": "orchestrator", "polish": false, "hearing": "",
@@ -33,6 +40,7 @@ extension Demo {
          "people": [{"name": "dana", "grant": "send", "online": true, "since": null, "vendors": ["Deepgram", "Gemini"]},
                     {"name": "omer", "grant": "watch", "online": false, "since": \(now - 3600), "vendors": ["Soniox", "Gemini"]}],
          "account": "sam", "can_invite": true,
+         "people_settings": {"approve": "anyone", "start": "on", "sessions_ask": "default", "owner_first_secs": 20.0, "people_hold_secs": 45.0},
          \(disclosure)
          "invite": null,
          "talk": [{"id": 1, "who": "user", "text": "what's going on everywhere", "typed": false, "corrected": false},
@@ -48,6 +56,26 @@ extension Demo {
             p.vendors = p.vendors ?? vendors[p.name] ?? ["Deepgram", "Gemini"]
             return p
         }
+    }
+
+    /// New session in a demo with somebody's machine: this Mac's own list, or avi-box's as it lists it for Avi, with
+    /// how its sessions start. Without such a machine, the list every other demo has.
+    static func startOptions(machine: String?, status: API.Status?) -> NewSession.Options? {
+        guard let base = startOptions else { return nil }
+        let theirs = (status?.machines ?? []).filter { !$0.isHere && !($0.owner ?? "").isEmpty }
+        guard !theirs.isEmpty else { return base }
+        let machines = [NewSession.Options.Machine(name: "studio", here: true)] + theirs.map { m in
+            NewSession.Options.Machine(name: m.name, here: false, available: m.can_start == true,
+                                       why: m.can_start == true ? nil : "\(PeopleCopy.shown(m.owner ?? "")) lets you watch \(m.name), not start sessions there.",
+                                       owner: m.owner)
+        }
+        guard let machine, let m = theirs.first(where: { $0.name == machine }) else {
+            return NewSession.Options(harnesses: base.harnesses, machines: machines, folders: base.folders)
+        }
+        return NewSession.Options(
+            harnesses: [.init(name: "claude-code", title: "Claude Code"), .init(name: "codex", title: "Codex")], machines: machines,
+            folders: [.init(path: "/home/avi/work/shop", name: "shop"), .init(path: "/home/avi/work/tide", name: "tide")],
+            machine: .init(name: m.name, owner: m.owner, permissions: "skip", account: "avi"))
     }
 
     static let personInviteLink = "pointe://machine?v=1&host=demo.invalid&port=7443&fp=\(String(repeating: "0", count: 64))&code=K7PQ-2MXD&name=studio"
@@ -100,7 +128,16 @@ extension Demo {
             grant: { name, grant in
                 if let i = status.wrappedValue?.people?.firstIndex(where: { $0.name == name }) { status.wrappedValue?.people?[i].grant = grant }
             },
-            remove: { name in status.wrappedValue?.people?.removeAll { $0.name == name } })
+            remove: { name in status.wrappedValue?.people?.removeAll { $0.name == name } },
+            settings: { status.wrappedValue?.people_settings ?? API.PeopleSettings(approve: "anyone", start: "on", sessions_ask: "default") },
+            setSettings: { changes in
+                var now = status.wrappedValue?.people_settings ?? API.PeopleSettings()
+                if let v = changes["approve"] { now.approve = v }
+                if let v = changes["start"] { now.start = v }
+                if let v = changes["sessions_ask"] { now.sessions_ask = v }
+                status.wrappedValue?.people_settings = now
+                return now
+            })
     }
 }
 
