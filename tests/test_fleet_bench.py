@@ -134,3 +134,10 @@ def test_the_dataset_on_disk_is_the_generators_and_the_frozen_one():
         assert len(listed) >= 60 and sum(k in turns.AMBIGUOUS for k in kinds) == 14
         ids = {s["id"] for s in fleet["sessions"]}
         assert all(t["expect"].get("session", next(iter(ids))) in ids for t in listed)
+
+
+def test_a_turn_whose_brain_never_answered_is_crashed_not_asked():
+    lost = turn("clear_name", {"action": "send", "session": "a"}, [], ["I lost my connection to the model for a moment. Say that again?"],
+                steps=[{"own": True, "error": "APIConnectionError"}, {"own": True, "error": "APIConnectionError"}])
+    assert score.outcome(lost) == "crashed"
+    assert score.outcome({**lost, "steps": [{"own": True, "error": "TimeoutError"}, {"own": True, "error": None}]}) == "asked"

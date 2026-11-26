@@ -85,7 +85,9 @@ def usd(call: dict) -> tuple[float, str]:
         # the daemon keeps the whole prompt and its cached part: the rest is priced as written to the cache, the
         # dearer of the two it can be
         return ((u.get("context", 0) - cached) * p["cache_write"] + cached * p["cache_read"] + u.get("reply", 0) * p["out"]) * m, "vendor counts"
-    # failed, cancelled or not counted: the request's characters over 3 as input at full price, and a reply allowance
+    if call.get("error") in PRICES["errors_never_sent"]:
+        return 0.0, "never reached the vendor"
+    # cancelled, timed out or not counted: the request's characters over 3 as input at full price, and a reply allowance
     out = (call.get("reply_chars", 0) / 3 + (PRICES["thinking_allowance_tokens"] if call.get("thinking") else 0)) if not call.get("error") else 0
     return (call.get("sent_chars", 0) / 3 * p["in"] + out * p["out"]) * m, "estimate from characters"
 
@@ -397,7 +399,7 @@ def daemon_fleet(fleet: sim.FleetSim) -> dict:
 
 def cmd_turns(a) -> None:
     fleet, all_turns = dataset.load(a.size) if a.size in dataset.SIZES else (gen.fleet(a.size), dataset.turns(gen.fleet(a.size)))
-    for r in range(1, a.runs + 1):
+    for r in range(a.first_run, a.first_run + a.runs):
         seed = a.seed + r
         order = random.Random(seed).sample(all_turns, len(all_turns))[: a.limit or None]
         run = launch("turns", a, f"-r{r}")
@@ -570,6 +572,7 @@ if __name__ == "__main__":
     ap.add_argument("--checkout", help="the Pointe checkout of the baseline arm")
     ap.add_argument("--models", choices=["real", "stub"], default=None)
     ap.add_argument("--runs", type=int, default=1)
+    ap.add_argument("--first-run", type=int, default=1, help="the number of the first run (its seed is --seed + it)")
     ap.add_argument("--seed", type=int, default=gen.SEED)
     ap.add_argument("--limit", type=int, default=0, help="only the first N turns of the shuffled order (a smoke run)")
     ap.add_argument("--budget-usd", type=float, default=15.0)

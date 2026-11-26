@@ -16,7 +16,8 @@ Outcomes are by rule:
   an ambiguous turn asked: nothing delivered and a question mark in the reply; sent: anything delivered; neither.
   a question turn   sent: anything delivered (a question is not a request); otherwise the expected sessions the reply
                     names, and the other sessions it names.
-A turn with `error` is "crashed" and stays in every denominator it belongs to; nothing is dropped here.
+A turn with `error`, or one whose own brain steps all failed with nothing sent, is "crashed" and stays in every
+denominator it belongs to; nothing is dropped here.
 """
 
 import math
@@ -71,9 +72,17 @@ def names(text: str, name: str) -> bool:
     return re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text, re.I) is not None
 
 
+def no_brain(row: dict) -> bool:
+    """The turn's own brain steps were tried and none completed (the vendor could not be reached, or timed out), and
+    nothing was sent: what was shown is the daemon's "say that again?", not an answer. Counted as crashed, never as
+    asked."""
+    own = [s for s in row.get("steps") or [] if s.get("own")]
+    return bool(own) and all(s.get("error") for s in own) and not row.get("deliveries")
+
+
 def outcome(row: dict) -> str:
     """What a turn row counts as (see the module's first lines)."""
-    if row.get("error"):
+    if row.get("error") or no_brain(row):
         return "crashed"
     kind, landed = row["turn_kind"], [d["session"] for d in row.get("deliveries") or []]
     if kind in CLEAR:

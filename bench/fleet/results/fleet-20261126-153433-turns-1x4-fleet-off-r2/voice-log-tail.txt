@@ -1,0 +1,165 @@
+:05.671 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:05.671 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask the session working on the loyalty watchdog to sort the imports.'
+2026-11-26 15:37:07.051 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:08.418 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:08.419 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:08.419 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:08.420 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:12.940 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:12.941 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask whoever has tenant_digest.py to summarize what changed since yesterday.'
+2026-11-26 15:37:14.308 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:15.727 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:15.727 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:15.728 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:15.728 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:20.248 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:20.248 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell meteor to add type hints to the public functions.'
+2026-11-26 15:37:21.589 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:22.984 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:22.985 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:22.985 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:22.986 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:27.532 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:27.532 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell the session working on the inventory sampler to run the linter and fix what it reports.'
+2026-11-26 15:37:28.925 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:30.291 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:30.291 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:30.291 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:30.292 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:34.819 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:34.819 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask beacon to sort the imports.'
+2026-11-26 15:37:36.038 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:37.318 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:37.318 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:37.319 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:37.319 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:41.872 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:41.873 | INFO     | daemon:_on_user_utterance:6068 - user said: 'What is running on studio?'
+2026-11-26 15:37:43.137 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:44.445 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:44.446 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:44.446 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:44.446 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:48.970 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:48.970 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell finch to add a docstring to the main function.'
+2026-11-26 15:37:50.137 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:51.445 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:51.445 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:51.445 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:51.446 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:37:55.970 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:37:55.970 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask whoever has tenant_digest.py to rename the helper to something clearer.'
+2026-11-26 15:37:57.373 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:58.652 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:37:58.652 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:37:58.652 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:37:58.653 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:03.186 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:03.186 | INFO     | daemon:_on_user_utterance:6068 - user said: 'List the sessions on studio.'
+2026-11-26 15:38:04.680 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:06.037 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:06.037 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:06.037 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:06.038 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:10.569 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:10.569 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask the session working on the passport scanner to say which function is the longest.'
+2026-11-26 15:38:11.933 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:13.199 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:13.200 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:13.200 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:13.200 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:17.731 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:17.731 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell the session working on the inventory sampler to add a docstring to the main function.'
+2026-11-26 15:38:19.137 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:20.566 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:20.567 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:20.567 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:20.567 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:25.096 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:25.096 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell the session working on the inventory sampler to add a unit test for the empty input case.'
+2026-11-26 15:38:26.347 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:27.655 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:27.655 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:27.656 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:27.656 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:32.180 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:32.180 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask beacon to look for a flaky test and say which one.'
+2026-11-26 15:38:33.590 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:34.863 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:34.863 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:34.863 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:34.863 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:39.399 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:39.400 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask harbor to show the size of the largest file.'
+2026-11-26 15:38:40.666 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:42.068 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:42.068 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:42.069 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:42.069 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:46.597 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:46.598 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Tell finch to check that the README matches the code.'
+2026-11-26 15:38:47.885 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:49.135 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:49.135 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:49.135 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:49.136 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:38:53.687 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:38:53.688 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask beacon to list the open TODO comments.'
+2026-11-26 15:38:54.932 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:56.300 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:38:56.300 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:38:56.300 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:38:56.301 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:00.831 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:39:00.832 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Which sessions are waiting for me?'
+2026-11-26 15:39:02.187 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:03.635 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:03.635 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:39:03.635 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:39:03.636 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:08.152 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:39:08.152 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask the session working on the loyalty watchdog to add type hints to the public functions.'
+2026-11-26 15:39:09.411 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:10.840 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:10.840 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:39:10.840 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:39:10.841 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:15.392 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:39:15.392 | INFO     | daemon:_on_user_utterance:6068 - user said: 'Ask beacon to say which function is the longest.'
+2026-11-26 15:39:16.821 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:17.086 | INFO     | daemon:_hold_one:9798 - permission meteor/9ad58049 handed back to the terminal
+2026-11-26 15:39:18.029 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:18.030 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:39:18.030 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:39:18.031 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:19.092 | INFO     | daemon:feed:3276 - feed: '[meteor: permission request] Bash: List changed files\n{"command": "git status --short", "description": "List changed files"}'
+2026-11-26 15:39:22.552 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:39:22.552 | INFO     | daemon:_on_user_utterance:6068 - user said: "Tell the session working on the inventory sampler to write a changelog entry for today's change."
+2026-11-26 15:39:23.880 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:25.162 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:25.163 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:39:25.163 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:39:25.163 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:29.680 | INFO     | daemon:_journal_bot_turn:2827 - bot said: ''
+2026-11-26 15:39:29.680 | INFO     | daemon:_on_user_utterance:6068 - user said: 'What do I have on studio?'
+2026-11-26 15:39:31.058 | WARNING  | brain:race:1045 - brain anthropic:claude-sonnet-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:32.465 | WARNING  | brain:race:1045 - brain anthropic:claude-haiku-5-5 failed: APIConnectionError: Connection error.
+2026-11-26 15:39:32.465 | ERROR    | brain:_run:733 - brain failed: APIConnectionError: Connection error.
+2026-11-26 15:39:32.465 | INFO     | daemon:_speak:2059 - speak: 'I lost my connection to the model for a moment. Say that again?'
+2026-11-26 15:39:32.466 | INFO     | daemon:process_frame:12335 - muted: shown, not spoken (63 chars)
+2026-11-26 15:39:37.027 | INFO     | calllink:_end:187 - call link ends: the page closed the link (1000)
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.workers.runner:cancel:356 - WorkerRunner 'runner-da25bc55': cancelling (reason=None)
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.pipeline.worker:_handle_worker_cancel:1522 - Worker 'voice': received cancel
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.pipeline.worker:_cancel:1188 - Cancelling pipeline worker voice
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:4b726291-e39e-4dbe-960f-fadf19f2229c': received cancel
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:96e1a48c-42c4-49fd-a68f-8bcf52d447c6': received cancel
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:956e7361-d357-4203-8bbd-5949866a57c1': received cancel
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.workers.base_worker:_handle_worker_cancel:1366 - Worker 'session:d447c8ee-e734-458d-bd40-bdd6d4ebe07f': received cancel
+2026-11-26 15:39:37.028 | DEBUG    | pipecat.pipeline.worker:_wait_for_pipeline_end:1364 - voice: Closing. Waiting for CancelFrame#0(reason: runner exiting) to reach the end of the pipeline...
+2026-11-26 15:39:37.029 | INFO     | daemon:_hold_one:9798 - permission meteor/09477ce9 handed back to the terminal
+2026-11-26 15:39:37.030 | INFO     | daemon:process_frame:5304 - ptt: 0 bytes of microphone audio passed, 0 held back
+2026-11-26 15:39:37.030 | DEBUG    | pipecat.pipeline.worker:wait_for_cancel:1355 - voice: CancelFrame#0(reason: runner exiting) reached the end of the pipeline.
+2026-11-26 15:39:37.031 | DEBUG    | pipecat.utils.base_object:cleanup:179 - voice: waiting on event handlers to finish ['on_pipeline_finished']...
+2026-11-26 15:39:37.031 | DEBUG    | pipecat.pipeline.worker:run:927 - Pipeline worker voice is finishing...
+2026-11-26 15:39:37.031 | DEBUG    | pipecat.pipeline.worker:run:932 - Pipeline worker voice has finished
+2026-11-26 15:39:37.031 | DEBUG    | pipecat.workers.runner:run:316 - WorkerRunner 'runner-da25bc55': finished running

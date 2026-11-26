@@ -1,0 +1,185 @@
+{
+ "run": "fleet-20261126-150917-turns-1x4-fleet-on-r2",
+ "what": "turns",
+ "size": "1x4",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "318cfbeb326205f3aa8de6d488e2d6537fd5d2bb",
+  "dirty_pointe": false
+ },
+ "harness_commit": "318cfbeb326205f3aa8de6d488e2d6537fd5d2bb",
+ "fleet_sha256": "f9280647a063e18d1344d6885ad90a39e04f996652b81c09517eb1b35c48cedf",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-26T15:09:17+0200",
+ "load_start": 9.197265625,
+ "machine": "arm64, 18 cores",
+ "seed": 20261128,
+ "order": [
+  "clear_description-07",
+  "clear_name-07",
+  "ambiguous_none-02",
+  "on_machine-02",
+  "needs_me-01",
+  "clear_name-06",
+  "clear_name-00",
+  "ambiguous_description-00",
+  "clear_description-03",
+  "clear_description-02",
+  "clear_description-01",
+  "ambiguous_none-04",
+  "ambiguous_none-00",
+  "clear_name-03",
+  "clear_name-14",
+  "clear_description-00",
+  "on_machine-00",
+  "ambiguous_description-01",
+  "clear_description-09",
+  "clear_name-12",
+  "clear_description-08",
+  "clear_name-17",
+  "on_machine-01",
+  "clear_name-02",
+  "clear_description-11",
+  "on_machine-04",
+  "ambiguous_none-01",
+  "clear_description-04",
+  "clear_description-10",
+  "clear_name-13",
+  "clear_name-19",
+  "clear_name-10",
+  "clear_name-05",
+  "needs_me-03",
+  "ambiguous_description-05",
+  "clear_name-21",
+  "clear_description-06",
+  "on_machine-05",
+  "ambiguous_description-04",
+  "ambiguous_description-03",
+  "ambiguous_none-06",
+  "needs_me-05",
+  "clear_name-04",
+  "clear_description-05",
+  "needs_me-04",
+  "needs_me-00",
+  "clear_name-20",
+  "ambiguous_description-06",
+  "clear_name-15",
+  "ambiguous_none-05",
+  "on_machine-03",
+  "clear_name-09",
+  "clear_name-11",
+  "ambiguous_none-03",
+  "clear_name-08",
+  "ambiguous_description-02",
+  "clear_name-01",
+  "clear_name-18",
+  "needs_me-02",
+  "clear_name-16"
+ ],
+ "limit": 0,
+ "notes_restored": {
+  "with_notes": 4,
+  "sessions": 4
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 129.8,
+   "cpu_secs": 1.09
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 40.7,
+   "cpu_secs": 4.41
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 1.0,
+  "nodes_up_secs": 0.0,
+  "seed_secs": 0.7,
+  "sessions_joined_secs": 0.0
+ },
+ "sessions_with_notes": 4,
+ "names": {
+  "4b726291-e39e-4dbe-960f-fadf19f2229c": "beacon",
+  "96e1a48c-42c4-49fd-a68f-8bcf52d447c6": "meteor",
+  "956e7361-d357-4203-8bbd-5949866a57c1": "harbor",
+  "d447c8ee-e734-458d-bd40-bdd6d4ebe07f": "finch"
+ },
+ "notes_sha256": "1d7fec23d546c95e6a002016d4ac97afdb43526ffa9dfc9e9c114625e72dfb27",
+ "setup_calls": {
+  "reader": 0,
+  "brain": 1
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='gemini', mouth='gemini:gemini-3.8-flash-lite-tts', notes=['Use headphones: on speakers Pointe can hear itself.'])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 192.3,
+   "cpu_secs": 2.29
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 40.8,
+   "cpu_secs": 4.52
+  },
+  "threads": 7
+ },
+ "reader_model": "anthropic:claude-sonnet-5-5",
+ "ended": "2026-11-26T15:16:12+0200",
+ "load_end": 5.95654296875,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 202.6,
+   "cpu_secs": 8.27
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 40.9,
+   "cpu_secs": 9.93
+  },
+  "threads": 7
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.450497,
+  "by": {
+   "anthropic:claude-sonnet-5-5 brain (vendor counts)": {
+    "calls": 80,
+    "usd": 0.430724,
+    "tokens_in": 1865645,
+    "tokens_out": 6620
+   },
+   "gemini:gemini-3.5-flash-lite ask (vendor counts)": {
+    "calls": 13,
+    "usd": 0.004,
+    "tokens_in": 13229,
+    "tokens_out": 13
+   },
+   "gemini:gemini-3.5-flash-lite _classify_target (vendor counts)": {
+    "calls": 10,
+    "usd": 0.001939,
+    "tokens_in": 6381,
+    "tokens_out": 10
+   },
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 1,
+    "usd": 0.006034,
+    "tokens_in": 1127,
+    "tokens_out": 378
+   },
+   "anthropic:claude-sonnet-5-5 _send_now (vendor counts)": {
+    "calls": 2,
+    "usd": 0.0078,
+    "tokens_in": 325,
+    "tokens_out": 715
+   }
+  }
+ }
+}

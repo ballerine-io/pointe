@@ -1,0 +1,18 @@
+{
+ "goal": "Make the tenant digest safe to run twice with the same input (idempotent).",
+ "state": "Claude has read the tenant digest script but has not made changes yet. It is waiting on the owner's choice about the old column.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now",
+  "How to make the digest idempotent has not been designed or implemented yet"
+ ],
+ "waiting_on_user": "Decide whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner chooses keep-for-one-release or drop-now, then Claude starts making the digest idempotent.",
+ "people_and_names": [
+  "beacon",
+  "tenant digest"
+ ]
+}
