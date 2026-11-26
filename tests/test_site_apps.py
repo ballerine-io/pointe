@@ -155,3 +155,19 @@ def test_the_generator_runs_on_the_python_macos_ships():
     got = subprocess.run([str(SYSTEM_PYTHON), "-I", str(ROOT / "tools" / "apps_status.py"), "--check"], cwd=ROOT,
                          capture_output=True, text=True, timeout=60)
     assert got.returncode == 0, got.stderr[-400:]
+
+
+def test_the_app_store_link_leads_and_testflight_stays_as_the_early_channel():
+    data = copy.deepcopy(OPEN)
+    data["iphone"]["app_store_url"] = "https://apps.apple.com/app/id1"
+    out = apps_status.render(data)
+    assert 'href="https://apps.apple.com/app/id1">Get it on the App Store</a>' in out
+    assert 'href="https://testflight.apple.com/join/EXAMPLE1">TestFlight</a>' in out
+    assert "Join the iPhone beta" not in out
+
+
+def test_an_app_store_link_must_be_https():
+    data = copy.deepcopy(OPEN)
+    data["iphone"]["app_store_url"] = "http://apps.apple.com/app/id1"
+    with pytest.raises(ValueError):
+        apps_status.render(data)

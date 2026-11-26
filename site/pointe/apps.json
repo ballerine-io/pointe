@@ -9,7 +9,8 @@
  },
  "iphone": {
   "status": "open",
-  "testflight_url": "https://testflight.apple.com/join/gkRJccpc"
+  "testflight_url": "https://testflight.apple.com/join/gkRJccpc",
+  "app_store_url": "https://apps.apple.com/app/id6838678047"
  },
  "slack_url": "https://join.slack.com/t/ballerine-oss/shared_invite/zt-4i21px44h-8NJ_ILwisOX~WoRY5xHhVg"
 }

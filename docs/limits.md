@@ -20,7 +20,7 @@ What does not work yet, and what was not measured. Each feature page lists its o
   call, typed words, its microphone's audio reaching Pointe, a request and a brain dump were run against a real daemon
   on one MacBook Pro; AirPods, device changes, the Touch ID sheet and a spoken sentence heard through it in this
   version were not.
-- **The iPhone app is in a [TestFlight beta](https://testflight.apple.com/join/gkRJccpc)**, not the App Store yet. You can also build it from source
+- **The iPhone app is on the [App Store](https://apps.apple.com/app/id6838678047)** (beta builds on [TestFlight](https://testflight.apple.com/join/gkRJccpc)). You can also build it from source
   (`pointe apps ios`, [how](iphone-app.md#getting-the-app)); with a free Apple Account such a build opens for 7 days. It was tested on a real iPhone over Twingate, and in the simulator. Without it, the
   page works in a phone browser. Talk to Pointe (the Control, the Action button, the widget) ran in the simulator against
   a stand-in Mac, Control Center and the Home Screen widget included; the Action button and a real microphone are still

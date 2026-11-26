@@ -10,7 +10,7 @@
 <p align="center">
   <a href="https://eng.ballerine.com/pointe/"><b>Website</b></a> ·
   <a href="https://eng.ballerine.com/pointe/#install"><b>Download for Mac</b></a> ·
-  <a href="https://testflight.apple.com/join/gkRJccpc"><b>iPhone beta (TestFlight)</b></a> ·
+  <a href="https://apps.apple.com/app/id6838678047"><b>iPhone app (App Store)</b></a> ·
   <a href="https://eng.ballerine.com/pointe/docs/"><b>Docs</b></a> ·
   <a href="https://join.slack.com/t/ballerine-oss/shared_invite/zt-4i21px44h-8NJ_ILwisOX~WoRY5xHhVg"><b>Slack</b></a>
 </p>
@@ -44,8 +44,8 @@ Beta, for macOS, and for Linux as a hub ([Linux](docs/linux.md)). Setup takes ab
    [Releases](https://github.com/ballerine-io/pointe/releases/latest) or the
    [website](https://eng.ballerine.com/pointe/#install), drag it to Applications, and open it. The app installs the
    rest, puts your model key in the Keychain and starts your first call.
-2. **iPhone** (optional). Join the [TestFlight beta](https://testflight.apple.com/join/gkRJccpc), or [build the app from source](docs/iphone-app.md#getting-the-app)
-   with `pointe apps ios`.
+2. **iPhone** (optional). Get [Pointe: Voice Coding](https://apps.apple.com/app/id6838678047) on the App Store, or try the next version early on
+   [TestFlight](https://testflight.apple.com/join/gkRJccpc).
 3. **Other ways.**
    - Claude Code plugin: run the command below, then `/pointe:setup` in a new session
      ([details](docs/install.md#claude-code)).

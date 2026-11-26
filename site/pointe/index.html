@@ -512,7 +512,7 @@
       <div id="apps" class="apps block">
         <!-- apps:begin (tools/apps_status.py writes this from site/pointe/apps.json; edit it there) -->
         <div class="app-card" data-app="mac" data-status="open"><p class="kicker">Mac</p><h3 class="h3">Download for Mac (.dmg)</h3><p class="body">Drag to Applications, open, and Pointe sets itself up.</p><p class="app-cta"><a class="btn btn--primary" href="https://github.com/ballerine-io/pointe/releases/latest/download/Pointe.dmg">Download for Mac (.dmg)</a></p><p class="small app-meta">Pointe 0.8.7 · macOS 15+ · 4.6 MB</p></div>
-        <div class="app-card" data-app="iphone" data-status="open"><p class="kicker">iPhone</p><h3 class="h3">iPhone beta on TestFlight</h3><p class="body">The same call in your pocket. Pair it with one QR code on the Mac.</p><p class="app-cta"><a class="btn btn--primary" href="https://testflight.apple.com/join/gkRJccpc">Join the iPhone beta</a></p></div>
+        <div class="app-card" data-app="iphone" data-status="open"><p class="kicker">iPhone</p><h3 class="h3">Pointe: Voice Coding on the App Store</h3><p class="body">The same call in your pocket. Pair it with one QR code on the Mac.</p><p class="app-cta"><a class="btn btn--primary" href="https://apps.apple.com/app/id6838678047">Get it on the App Store</a></p><p class="small app-meta">Or try the next version early on <a class="link" href="https://testflight.apple.com/join/gkRJccpc">TestFlight</a></p></div>
         <!-- apps:end -->
       </div>
       <div class="head-stack block">
@@ -610,7 +610,7 @@
             <tr><th scope="row">Approving by voice</th><td>Rules in code with tests. Every request by voice, read in full first; one with a secret in it needs a tap</td><td>Reads requests aloud; allows or denies when you say so, or accepts the ones that follow if you tell it to</td><td>Voice "follows the same permissions as the tasks it directs"; no spoken approval described</td><td>No</td></tr>
             <tr><th scope="row">Server and account</th><td>None. A daemon on your Mac</td><td>A relay syncs your devices, end-to-end encrypted. You can host it yourself</td><td>Runs inside Codex, under its sign-in</td><td>Claude.ai sign-in. Audio goes to Anthropic</td></tr>
             <tr><th scope="row">Cost of voice</th><td>Your vendor keys, about $1 a busy hour, or local models</td><td>Free 20 minutes every 30 days, then a subscription, or your own ElevenLabs agent</td><td>In the desktop app, a paid ChatGPT plan</td><td>Not counted toward usage limits</td></tr>
-            <tr><th scope="row">Runs on</th><td>macOS, in Chrome or the Mac app. iPhone app in TestFlight beta</td><td>App Store, Google Play, web, Windows, Linux</td><td>Codex CLI 0.156.0 or newer, ChatGPT desktop app</td><td>macOS, Linux, Windows; 20 dictation languages</td></tr>
+            <tr><th scope="row">Runs on</th><td>macOS, in Chrome or the Mac app. iPhone app on the App Store</td><td>App Store, Google Play, web, Windows, Linux</td><td>Codex CLI 0.156.0 or newer, ChatGPT desktop app</td><td>macOS, Linux, Windows; 20 dictation languages</td></tr>
             <tr><th scope="row">Where it is ahead of Pointe</th><td>n/a</td><td>Store apps, more platforms, more agents, and many more users: about 24,700 GitHub stars</td><td>Nothing to install, no keys</td><td>Nothing to install, no keys, more platforms</td></tr>
           </tbody>
         </table>
@@ -624,7 +624,7 @@
       <h2 id="h-limits" class="h2">What it does not do.</h2>
       <ul class="rows rows--cols block">
         <li><b>The Mac is the hub.</b> Other Macs and Linux hosts join as nodes, with no audio. No Windows.</li>
-        <li><b>Beta apps.</b> The iPhone app is a TestFlight beta. Without the apps, the page works, in a phone browser too. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#getting-the-app">phone.md</a></li>
+        <li><b>Beta apps.</b> The iPhone app is on the App Store, and both apps are beta. Without the apps, the page works, in a phone browser too. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone.md#getting-the-app">phone.md</a></li>
         <li><b>Synthetic evidence.</b> The benchmarks and voice-lock thresholds use synthetic voices.</li>
         <li><b>The voice lock is not authentication.</b> A recording of your voice can pass it.</li>
         <li><b>Echo.</b> On laptop speakers only Soniox ears have the echo guard; otherwise, use headphones.</li>

@@ -6,8 +6,7 @@ package. It needs a paired route to your Mac: [Connect your phone](phone.md) say
 
 ## Getting the app
 
-**Join the public beta on [TestFlight](https://testflight.apple.com/join/gkRJccpc)**: install TestFlight, then open the link on
-your iPhone. The app is not in the App Store yet. Or you
+**Get [Pointe: Voice Coding](https://apps.apple.com/app/id6838678047) on the App Store**, or try the next version early on [TestFlight](https://testflight.apple.com/join/gkRJccpc). Or you
 build it on your own Mac with Xcode, from the plugin you installed. In Claude Code, `/pointe:setup apps` does it for you. In a terminal, one command does the
 build, the signing and the install, and tells you what to do when something is missing:
 

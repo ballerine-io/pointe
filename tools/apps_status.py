@@ -66,9 +66,23 @@ def render(data: dict) -> str:
         card("mac", "Mac", "Download for Mac (.dmg)", "Drag to Applications, open, and Pointe sets itself up.",
              *state(data, "mac", "download_url"), "Download for Mac (.dmg)", "Download for Mac (.dmg) (coming soon)", notify,
              mac_line(data)),
-        card("iphone", "iPhone", "iPhone beta on TestFlight", "The same call in your pocket. Pair it with one QR code on the Mac.",
-             *state(data, "iphone", "testflight_url"), "Join the iPhone beta", "Join the iPhone beta (opens soon)", notify),
+        iphone_card(data, notify),
     ])
+
+
+def iphone_card(data: dict, notify: str) -> str:
+    """The App Store once its link is set (TestFlight stays as the beta channel below it), else the TestFlight beta."""
+    line = "The same call in your pocket. Pair it with one QR code on the Mac."
+    store = data["iphone"].get("app_store_url", "")
+    if store:
+        if not store.startswith("https://"):
+            raise ValueError("apps.json: iphone's app_store_url must be an https address")
+        beta = data["iphone"].get("testflight_url", "")
+        meta = f'Or try the next version early on <a class="link" href="{html.escape(beta)}">TestFlight</a>' if beta else ""
+        return card("iphone", "iPhone", "Pointe: Voice Coding on the App Store", line, True, store, "Get it on the App Store",
+                    "", notify, meta)
+    return card("iphone", "iPhone", "iPhone beta on TestFlight", line, *state(data, "iphone", "testflight_url"),
+                "Join the iPhone beta", "Join the iPhone beta (opens soon)", notify)
 
 
 def mac_line(data: dict) -> str:
