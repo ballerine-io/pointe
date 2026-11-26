@@ -3611,10 +3611,18 @@ async def _nudger() -> None:
                 # waits; "read it" or a yes brings the request again before anything is approved.
                 logger.info(f"nudging about {session.name}: a short reminder of its request")
                 name = _spoken_names(session.name)
-                await _say_fixed(f"{name} עדיין מחכה לכן או לא."  # a yes brings the request again first
+                # The reminder asks for the answer to the request read in full: when it is the only one waiting and
+                # nothing else was said since its read-out, a yes after the reminder approves it (tester round 6, 6 of 6
+                # re-read). Otherwise a yes brings the request again first.
+                alone = not any(s.permission_id for s in REGISTRY.sessions.values() if s is not session)
+                keep = alone and session.permission_delivered_at != float("inf")
+                if keep:
+                    session.permission_delivered_at = time.time()
+                await _say_fixed(f"{name} עדיין מחכה לכן או לא."
                                  if re.search(r"[\u0590-\u05ff]", state.last_utterance or "") else
                                  f"{name}'s still waiting on your yes or no.")
-                session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id  # a yes re-reads it
+                if not keep:
+                    session.permission_delivered_at, state.sidetracked = float("inf"), session.permission_id
                 continue
             logger.info(f"nudging about {session.name}: reading its permission out again")
             await _read_out(session)  # a model's reminder invites a yes that could not count

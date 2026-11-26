@@ -75,7 +75,11 @@ With the default brain, a permission prompt is approved only when all of these h
   words read, or a command of more than 64 characters: about five seconds aloud) is first sent back to the session once
   for plain commands, which are easier to follow by ear, at most twice in ten minutes; after that it is read word for
   word. A read-out is read once: its reminder is one line ("billing's still waiting on your yes
-  or no"), and "read it", or a yes, brings the request again before anything is approved. Drive mode does not read one out: it waits until you stop.
+  or no"), and "read it" brings the request again. A yes after the reminder approves the request when it is the only
+  one waiting, it was read in full, and nothing but the reminder was said since its read-out (the owner's rule: a plain
+  yes after a full read-out approves what was read, without friction); "Approved." confirms it. In any other case
+  (another request waiting, anything else said since, a read-out the user cut) a yes brings the request again before
+  anything is approved. Drive mode does not read one out: it waits until you stop.
 - A command that only looks is said as that: "look around, read only: pwd, ls, git status, grep and find", and "also
   in /tmp" when it looks outside the project or at a hidden or secret-looking file (`readout.looking`); a project next
   to this one is said by its name ("also in tariff-api, next to the project") and "/" as "the whole disk". A session
