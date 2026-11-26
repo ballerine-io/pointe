@@ -174,3 +174,22 @@ def test_a_relay_never_goes_as_an_ordinary_send(world, monkeypatch):
     carried = asyncio.run(d._send("Check this: revenue grew twelve percent while churn stayed flat across every region"))
     assert "relay_reply" in carried["error"], "an agent's words pasted into a send are a relay"
     assert d._relay_refusal("Check the budget for next quarter", openclaw) is None
+
+
+def test_an_agents_finished_turn_answers_the_question_that_started_it(world, monkeypatch):
+    """Live run: "ask openclaw what the capital of Portugal is" was answered ("Lisbon"), but the reader listed no order as
+    confirmed, so the next call greeted with "Still waiting on openclaw's answer". An agent's turn is the answer to the
+    request that started it: nothing is still out once it ends and no other turn of it runs."""
+    from brief import FINAL_MARK
+
+    async def read(system, prompt, thinking=None):
+        return {"status": "done", "urgency": "normal", "say": "Lisbon.", "line": "Lisbon.", "speak": True, "waiting": False,
+                "orders_confirmed": []} if "ended its turn" in system else {}
+
+    monkeypatch.setattr(world.d, "_read_model", read)
+    openclaw = _add(world, "openclaw", "openclaw")
+    world.d.state.unconfirmed[openclaw.id] = ["What is the capital of Portugal? One sentence?"]
+    world.d.state.last_delegation_at = __import__("time").time()
+    asyncio.run(world.d._digest_turn(openclaw, f"[openclaw finished its turn] {FINAL_MARK}Lisbon."))
+    assert not world.d.state.unconfirmed.get(openclaw.id)
+    assert "Still waiting" not in (world.d.fixed_greeting() or "")

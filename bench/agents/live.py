@@ -288,6 +288,9 @@ def main() -> None:
         log = (voice.state.parent / "studio.log")
         if log.exists():
             shutil.copy(log, out / "daemon.log")
+            text = log.read_text(errors="replace")
+            results["brain_failures"] = text.count("brain failed")  # a step that raised: the voice said a fallback line
+            results["unexpected_exceptions"] = text.count("unexpected exception")
         for sid in ("agent-openclaw", "agent-hermes"):
             src = voice.state / "harness" / "agents" / f"{sid}.jsonl"
             if src.exists():

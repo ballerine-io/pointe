@@ -3612,6 +3612,8 @@ async def _digest_turn(session: Session, text: str) -> dict:
         kept = [q for q in session.open_questions if q not in settled]
         session.open_questions = (kept + [str(q) for q in report.get("questions") or [] if str(q) not in kept])[-8:]
         session.deadlines = [str(q) for q in report.get("deadlines") or []][:6]
+    if getattr(harnesses.of(session), "framework", False) and not (session.harness_data or {}).get("pending"):
+        state.unconfirmed.pop(session.id, None)  # an agent's turn is the answer to the request that started it
     session.urgency = "high" if report.get("urgency") == "high" else "normal"
     typed = str(report.get("typed_approval_needed") or "")
     if re.search(r"merg|post|publish|delet|drop|force", typed, re.I):
