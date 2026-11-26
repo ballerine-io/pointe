@@ -673,7 +673,7 @@ The Mac with the call (the hub) keeps every rule above for them.</p>
   accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and <code>pointe hub invite</code> say how many came and from which addresses.
-  <code>/voice/node/pair</code> and <code>/voice/phone/pair</code> take no secret, so they answer 403 before reading a byte of the body
+  <code>/voice/node/pair</code>, <code>/voice/host/pair</code> (a person's voice) and <code>/voice/phone/pair</code> take no secret, so they answer 403 before reading a byte of the body
   when no code is out, and read at most 4 kB of it when one is (413 past that). No invite, an expired one and a wrong
   code get the same 403 text; only the owner is told why an invite ended. A caller can still tell that a code is live
   from a refused oversized body (413) or the rate limit (429), which answer only then; that gives no code.
@@ -945,9 +945,15 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 <li>
 <p>Show while it says (<code>/voice/artifact</code>), once <code>show.on_phone</code> is on;</p>
 </li>
-<li>machines: <code>/voice/hub/invite</code>, <code>/voice/hub/nodes</code>, <code>/voice/hub/revoke</code>, and <code>/voice/machines/add</code> (adds a machine
+<li>
+<p>machines: <code>/voice/hub/invite</code>, <code>/voice/hub/nodes</code>, <code>/voice/hub/revoke</code>, and <code>/voice/machines/add</code> (adds a machine
   somebody invited this person to, from its owner's one-time line: the daemon then connects out to that machine,
-  and only to the certificate the line names).</li>
+  and only to the certificate the line names);</p>
+</li>
+<li>
+<p>the people invited to this machine: <code>/voice/people</code>, <code>/voice/people/invite</code>, <code>/voice/people/grant</code>,
+  <code>/voice/people/remove</code>, and <code>/voice/share</code> (keep a session private, or share it again).</p>
+</li>
 </ul>
 <p>Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
 uses.</p>

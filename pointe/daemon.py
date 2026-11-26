@@ -55,6 +55,7 @@ import latency
 import mac
 import newsession
 import nightshift
+import guests
 import hub_nodes
 import machines
 import phone_pairing
@@ -8929,6 +8930,37 @@ hub_nodes.install(app, HUB)  # wraps the lifespan just set
 DIALER = machines.install(app, HUB)  # the machines somebody invited this voice to: added, then dialed
 
 
+def _people_event(line: str) -> None:
+    """One journal line about the people on this machine (guests.py): a link, a pairing, a send, a refusal, a share
+    change or a removal, each with the person's name."""
+    logger.info(f"people: {line}")
+
+
+def _person_sent(session: Session, by: str, text: str, at: float) -> None:
+    """A person sent this to a session of this machine, through their own voice. The owner's voice keeps it as that
+    person's request: in the routing panel, and in the brain's context when a call is up, never as the owner's own."""
+    state.dispatches.append({"at": time.strftime("%H:%M:%S", time.localtime(at)), "said": f"{by}, through their voice",
+                             "message": text, "to": [session.name], "how": f"sent by {by}"})
+    del state.dispatches[:-20]
+    if state.conn is not None:
+        asyncio.create_task(state.conn.injector.inject(
+            f"[{by}, a person invited to this machine, asked {session.name} this through their own voice. It is {by}'s "
+            f"request, not the user's: never report it as the user's own. Keep this in mind, say nothing] "
+            f"{text[:MAX_FEED_CHARS]}", False))
+
+
+def _owner_ask(session: Session) -> float | None:
+    """Since when the session works on the owner's own request from this call, or None."""
+    ask = state.watch.asks.get(session.id)
+    return ask.since if ask is not None else None
+
+
+# The people invited to this machine: their keys, links and what each may see and do (guests.py).
+PEOPLE = guests.HostSide(STATE_DIR, REGISTRY, host_id=lambda: HUB.nodes.hub_id, record=_people_event,
+                         on_sent=_person_sent, working=lambda s: _working(s), owner_ask=_owner_ask)
+guests.install(app, PEOPLE)
+
+
 async def _end_phone_call(ids: set[str] | None) -> None:
     """Unpair on the page: that phone's call ends now, not when it next reconnects with the revoked key. Another
     phone's call stays up. None: every phone."""
@@ -10546,6 +10578,7 @@ async def _status(request: Request) -> dict:
             "invite": _invite(request),
             "can_invite": _can_invite(request),
             "invite_ended": _invite_ended(request),
+            **PEOPLE.status(_shows_invite(request)),  # `people`, `people_invite`: absent on a machine with no people
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
@@ -10564,7 +10597,8 @@ async def _status(request: Request) -> dict:
                                    _sentence(terminal_wait(s)).capitalize() if terminal_wait(s) else None),
                           "blocked_on": "held message" if message_held(s) and terminal_wait(s) else
                                         s.blocked_on if terminal_wait(s) else None,
-                          "mode": "channel" if s.channel_url else "inbox"} for s in REGISTRY.sessions.values()]}
+                          "mode": "channel" if s.channel_url else "inbox",
+                          **PEOPLE.session_status(s)} for s in REGISTRY.sessions.values()]}
 
 
 def _alert_name(s: Session) -> str:

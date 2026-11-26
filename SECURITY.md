@@ -445,7 +445,7 @@ The Mac with the call (the hub) keeps every rule above for them.
   accepted only while it is outstanding. Each address may try 5 codes at once, then about one a minute, checked before
   the code is compared, so one address cannot try enough to cancel the invite. After 20 wrong codes from all addresses
   together it is cancelled, and the page, the app and `pointe hub invite` say how many came and from which addresses.
-  `/voice/node/pair` and `/voice/phone/pair` take no secret, so they answer 403 before reading a byte of the body
+  `/voice/node/pair`, `/voice/host/pair` (a person's voice) and `/voice/phone/pair` take no secret, so they answer 403 before reading a byte of the body
   when no code is out, and read at most 4 kB of it when one is (413 past that). No invite, an expired one and a wrong
   code get the same 403 text; only the owner is told why an invite ended. A caller can still tell that a code is live
   from a refused oversized body (413) or the rate limit (429), which answer only then; that gives no code.
@@ -647,7 +647,9 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
   - Show while it says (`/voice/artifact`), once `show.on_phone` is on;
   - machines: `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke`, and `/voice/machines/add` (adds a machine
     somebody invited this person to, from its owner's one-time line: the daemon then connects out to that machine,
-    and only to the certificate the line names).
+    and only to the certificate the line names);
+  - the people invited to this machine: `/voice/people`, `/voice/people/invite`, `/voice/people/grant`,
+    `/voice/people/remove`, and `/voice/share` (keep a session private, or share it again).
 
   Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
   uses.

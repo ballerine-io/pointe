@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|node|machine|key|setup|join|leave|local|apps|restart|stop|update|uninstall [args]
+# One command for everything. Usage: pointe start|attach|open|talk|doctor|status|log|context|pair|hub|people|share|node|machine|key|setup|join|leave|local|apps|restart|stop|update|uninstall [args]
 set -euo pipefail
 export ORT_DISABLE_TELEMETRY="${ORT_DISABLE_TELEMETRY:-1}"  # onnxruntime phones Microsoft on import: no_telemetry.py
 BIN="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
@@ -24,6 +24,8 @@ usage() {
     hub)       echo "pointe hub invite [--name NAME] | nodes | revoke NAME: the machines that join this one." ;;
     machine)   echo "pointe machine add '<line>' [--name NAME] | list | remove NAME: the machines in your voice; add takes the line a machine's owner gave you." ;;
     machines)  echo "pointe machines: the machines in your voice, and whose each one is." ;;
+    people)    echo "pointe people | people invite NAME [--watch] | people grant NAME send|watch | people remove NAME: the people invited to this machine's sessions." ;;
+    share)     echo "pointe share SESSION [--private | --shared]: keep a session to yourself, or share it with the people on this machine again." ;;
     key)       echo "pointe key <vendor> [--no-restart] | key check <vendor>: save a key in the Keychain, checked first." ;;
     setup)     echo "pointe setup [<id> | codex | opencode]: in a terminal, the guided first setup (one question, your key, your first call); <id> chooses a setup; codex and opencode set those up for the voice. Without a terminal, or once set up, it lists the setups." ;;
     join)      echo "pointe join <agent>: add an OpenCode or Codex session to the voice." ;;
@@ -61,6 +63,7 @@ case "$cmd" in
   hub)     cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
   machine) cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/machines.py "$@" ;;  # a machine somebody invited you to: add, list, remove
   machines) exec "$0" machine list ;;
+  people|share) cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/guests.py "$cmd" "$@" ;;  # people on this machine: invite, grant, remove; share a session or keep it private
   key)     cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/keys.py "$@" ;;
   setup)   case "${1:-}" in  # which vendors Pointe uses (setups.py); the two local setups download their models first
              voice-local) exec "$0" local voice ;;
@@ -106,7 +109,7 @@ Sessions     pointe join <agent>    add an OpenCode or Codex session (Claude Cod
              pointe open            open the page
              pointe restart         start Pointe again, on new keys or a new setup
              pointe stop            end the call and stop Pointe
-More         pair · apps · local · hub · node · machine · talk · log · context · status · version · update · uninstall
+More         pair · apps · local · hub · people · share · node · machine · talk · log · context · status · version · update · uninstall
 In Claude Code: /pointe:setup, /pointe:voice, /pointe:stop
 HELP
            exit 0 ;;

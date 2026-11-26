@@ -935,11 +935,12 @@ def loopback_sockets(port: int) -> list[socket.socket]:
 
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/skip", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/add-sessions", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/held", "/voice/reading", "/voice/read", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/machines/add"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/skip", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/add-sessions", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/held", "/voice/reading", "/voice/read", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/machines/add", "/voice/people", "/voice/people/invite", "/voice/people/grant", "/voice/people/remove", "/voice/share"}  # all the phone app needs; nothing else takes its key
 # A node's own routes, and the phone app's pairing: each authenticates in its handler (an HMAC over the hub's nonce; a
 # one-time code), so no page, phone or daemon secret is asked for. On loopback they still need local headers, and a page
 # never reaches them.
-_NODE_PATHS = {"/voice/node": "websocket", "/voice/node/pair": "http", "/voice/phone/pair": "http"}
+_NODE_PATHS = {"/voice/node": "websocket", "/voice/node/pair": "http", "/voice/phone/pair": "http",
+               "/voice/host": "websocket", "/voice/host/pair": "http"}  # a person's voice, on a machine it was invited to
 _NEEDS_KEY = "Open this page with bin/voice-open, or run /pointe:voice in a Claude Code session (pointe join for other agents). It carries the key this address needs."
 _NO_FRAMING = (b"content-security-policy", b"frame-ancestors 'self'")
 NO_KEY = {"error": "This call does not carry the key of the Pointe running on this machine: it comes from another "
@@ -1236,3 +1237,22 @@ def relays_approval(message: str, pending: str) -> bool:
             if re.search(rf"(?<!\w)(?:{he})(?!\w)", text):
                 return True
     return False
+
+
+_SAID_YES = (r"(?:(?:said|says|told me)\s+(?:yes|ok(?:ay)?|sure|fine|go ahead|to go ahead|it(?:'s| is) (?:ok(?:ay)?|fine))|"
+             r"confirmed|confirms|agreed|agrees|approved|approves|okayed|signed off|allowed|allows|"
+             r"gave (?:the |his |her |their )?(?:ok(?:ay)?|go[- ]ahead|green light|yes))")
+
+
+def claims_consent(message: str, names=(), pending: str = "") -> bool:
+    """Does a send from a person on this machine vouch for somebody's yes ("Avi said yes", "the owner agreed")? The
+    machine refuses such a send (guests.py): a yes is given by the one who gives it, to a request read to them, never
+    passed on. `names`: the machine's owner and the people on it. `pending`: the approval the session accepts only
+    typed in its terminal, when it waits for one; then every relayed approval counts, as for the owner's own voice."""
+    if pending and relays_approval(message, pending):
+        return True
+    text = _lower(message)
+    if _CONSENT_CLAIM.search(text):
+        return True
+    who = "|".join(re.escape(_lower(n)) for n in names if n and n.strip())
+    return bool(who and re.search(rf"(?<!\w)(?:{who})\s+(?:has |have |already |just )*{_SAID_YES}(?!\w)", text))

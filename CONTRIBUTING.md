@@ -82,6 +82,7 @@ update it here.
 | `pointe/vendors.py`, `pointe/setups.py`, `pointe/keys.py` | Each vendor, its key, the order roles pick them in; the six setups; `pointe key` |
 | `pointe/pair.py`, `pointe/phone_pairing.py`, `pointe/remote.py`, `pointe/phone.py`, `pointe/calllink.py` | The phone listener, pairing, the phone's call and its wire format, and the link that keeps a call through a dropped connection |
 | `pointe/node.py`, `pointe/nodelink.py`, `pointe/hub_nodes.py` | Other machines: the node, the link, and the hub's side of it ([docs/multi-machine.md](docs/multi-machine.md)) |
+| `pointe/guests.py` | The people invited to a machine: their keys, their links, and what the machine lets each see and send ([docs/design/people-and-machines.md](docs/design/people-and-machines.md)) |
 | The other `pointe/*.py` | One module per feature: `pointe/meeting.py`, `pointe/nightshift.py`, `pointe/briefing.py`, `pointe/drive.py`, `pointe/whisper.py`, `pointe/ptt.py`, `pointe/speaker.py` (the voice lock), `pointe/vocabulary.py`, and the rest |
 | `pointe/ui.html` | The page: one file, no build step (`pointe/ui_*.html` are parts the daemon puts in it) |
 | `apps/PointeKit` | The Swift package both apps share: `PointeKit` (wire format, loopback client), `PointeUI` (every screen), `PointeMacKit` (the Mac's own parts). Unit tests in `Tests/` |

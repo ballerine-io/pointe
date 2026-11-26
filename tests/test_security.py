@@ -505,7 +505,11 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
     # and, since 1.24.0, mute (once reading mode: the button, a line marked read) and the held news badge's Tell me: none approves anything
     # and skip (docs/features/skip.md): it stops the line being said, and approves nothing
     # and adding a machine somebody invited this person to (docs/design/people-and-machines.md): the app's Add a machine
+    # and the people invited to this machine (docs/design/people-and-machines.md): the app's People list, Invite a
+    # person, their grant, Remove, and a session kept private; each is the owner's own change, none approves anything
     assert _PHONE_PATHS - before == {"/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/machines/add",
+                                     "/voice/people", "/voice/people/invite", "/voice/people/grant",
+                                     "/voice/people/remove", "/voice/share",
                                      "/voice/new-session",
 "/voice/night-shift", "/voice/add-sessions", "/voice/reading", "/voice/read",
                                      "/voice/skip", "/voice/held"}

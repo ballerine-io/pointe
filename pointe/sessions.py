@@ -14,6 +14,7 @@ import secrets
 import subprocess
 import time
 import uuid
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from datetime import datetime
 from difflib import SequenceMatcher
@@ -31,6 +32,21 @@ from guards import _NO, _WEAK_YES, _YES, strip_tasks
 Feed = Callable[["Session", str, bool], Awaitable[None]]
 
 VOICE_PREFIX = "[Voice request from the user, relayed by their voice assistant"
+# A person the owner invited to this machine, while the machine delivers their send (guests.py): the tag names them,
+# so the agent never takes their words for the owner's. "" is the owner, whose tag is VOICE_PREFIX, unchanged.
+SENDER: ContextVar[str] = ContextVar("pointe_sender", default="")
+_PERSON_RELAY = re.compile(r"\[Voice request from [^\[\]\n]{1,60}, a person invited to this machine, relayed by ")
+
+
+def person_prefix(name: str) -> str:
+    return f"[Voice request from {name}, a person invited to this machine, relayed by {name}'s voice assistant"
+
+
+def from_a_voice(text: str) -> bool:
+    """The line is a relay from a voice, the owner's or a person's: not something typed in the session's terminal."""
+    return VOICE_PREFIX in text or bool(_PERSON_RELAY.search(text))
+
+
 LIVENESS_SECS = 5
 
 
@@ -658,7 +674,8 @@ def voice_message(text: str) -> str:
     short = "?" in text and len(text) <= 300 and not _DETAIL_ASKED.search(text)
     hint = ("; the answer is read aloud: one or two short sentences, the answer first, not where you read it, and a "
             "caveat only if it changes the answer") if short else ""
-    return f"{VOICE_PREFIX} #{secrets.token_hex(2)}{hint}] {text}"
+    who = SENDER.get()
+    return f"{person_prefix(who) if who else VOICE_PREFIX} #{secrets.token_hex(2)}{hint}] {text}"
 
 
 RECEIPT_SECS = 1.5  # Claude Code answers a held or refused message in about 0.2 s; an accepted one gets no answer
@@ -974,9 +991,9 @@ async def _follow_one(session: Session, feed: Feed, on_turn_end: Callable[[], No
                 if typed:
                     session.idle_since, session.needs = None, None
                     session.turn.reset()  # a new turn begins
-                    if VOICE_PREFIX not in typed:  # a relay can answer one question of several: they last until the next report
+                    if not from_a_voice(typed):  # a relay can answer one question of several: they last until the next report
                         session.open_questions, session.typed_approval = [], ""
-                if typed and VOICE_PREFIX not in typed:
+                if typed and not from_a_voice(typed):
                     await feed(session, f"[the user typed this straight to {who}, which already has it: nothing to send] {typed}", False)
                 continue
             for block in content if isinstance(content, list) else []:
