@@ -568,6 +568,31 @@ _LOOK_SILENT = {"echo", "true", "test", "["}  # they read nothing: not worth a w
 _LOOK_QUIET = re.compile(r"\s*(?:[12]?>|&>)\s*/dev/null|\s*2>&1")
 _SENSITIVE = re.compile(r"secret|credential|passw|token|\.pem$|\.key$|id_rsa|id_ed25519|\.env|keychain|\.aws|\.ssh|\.netrc", re.I)
 _LOOK_MAX_PROGRAMS, _LOOK_MAX_PLACES = 8, 3
+_LITERAL_DOLLAR = "\ue000"  # a "$" the shell does not expand (single-quoted), while the variable checks run
+
+
+def _single_quoted_dollars(command: str) -> str:
+    """The command with each "$" inside single quotes, where the shell expands nothing, marked as literal. Quotes are
+    followed as the shell does: a ' inside double quotes is a character there, and $'...' is C quoting, not this."""
+    out, quote, i = [], None, 0
+    while i < len(command):
+        c = command[i]
+        if c == "\\" and quote != "'":
+            out.append(command[i:i + 2])
+            i += 2
+            continue
+        if quote is None:
+            if c == "'":
+                quote = "C" if i and command[i - 1] == "$" else "'"
+            elif c == '"':
+                quote = '"'
+        elif c == ("'" if quote in ("'", "C") else '"'):
+            quote = None
+        elif quote == "'" and c == "$":
+            c = _LITERAL_DOLLAR
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | None:
@@ -586,6 +611,9 @@ def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | N
     if "\n" in command or "$(" in command or "`" in command or "<(" in command or ">(" in command or "<<" in command:
         return None
     command = _LOOK_QUIET.sub(" ", command)
+    # Inside single quotes the shell expands nothing: "grep 'total$'" is a pattern's end anchor, not a variable. $'...'
+    # (C quoting) is not single quoting, and still refuses below.
+    command = _single_quoted_dollars(command)
     if re.search(r"\$(?!\?|PWD\b|\{PWD\})", command):
         return None
     lexer = shlex.shlex(command, posix=True, punctuation_chars="|&;<>()")
@@ -599,6 +627,7 @@ def looking(command: str, cwd: str | None, run_in: str | None = None) -> str | N
     places: list[str] = []
 
     def note_place(path: str) -> None:
+        path = path.replace(_LITERAL_DOLLAR, "$")
         if path not in places:
             places.append(path)
 

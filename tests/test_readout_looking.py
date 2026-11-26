@@ -88,3 +88,20 @@ def test_the_folder_above_the_project_is_said_as_that(cwd):
     assert said("find .. -maxdepth 3 -iname 'logo*.svg' | head", cwd) == \
         "look around, read only: find and head, also in the folder above the project"
     assert said("find ../.. -name x | head", cwd).endswith(os.path.dirname(os.path.dirname(os.path.realpath(cwd))))
+
+
+def test_a_dollar_inside_single_quotes_is_a_pattern_not_a_variable(cwd):
+    """lat-04 at bc4c05b0: "git ls-files | grep -i -E 'hero|\\.png$|\\.webp$'" was read word for word, symbol by
+    symbol ("pipe, backslash, dot, png, dollar sign..."), because the regex's end anchor looked like a variable. The
+    shell does not expand anything inside single quotes."""
+    assert said("git ls-files | grep -i -E 'hero|\\.png$|\\.webp$'", cwd) == "look around, read only: git ls-files and grep"
+    assert readout.looking("grep -rn 'total$' src | head", cwd) == "look around, read only: grep and head"
+
+
+@pytest.mark.parametrize("command", [
+    "grep x \"$HOME/.netrc\"", "grep 'x' $HOME/.netrc", "cat $'\\x2fetc'/passwd", "grep \"a'$HOME'b\" x",
+    "grep 'x' '/etc/'$USER", "cat '$PWD'/../../.ssh/id_rsa | head",
+])
+def test_a_variable_outside_single_quotes_still_reads_word_for_word(cwd, command):
+    out = readout.looking(command, cwd)
+    assert out is None or "id_rsa" in out
