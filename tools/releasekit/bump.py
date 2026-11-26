@@ -140,4 +140,9 @@ def bump(tree: Path, version: str, summary: str, date: str | None = None, last_t
     sh(["uv", "lock", "--offline"], cwd=tree)
     sh(["python3", "apps/macos/tools/make_project.py"], cwd=tree)
     sh(["python3", "tools/site_version.py"], cwd=tree)
+    # The benchmark pages say which version is current and that it was not measured (tests/test_bench_publish.py): 0.10.0's
+    # version commit left them at 0.9.0 and turned test red.
+    measured = sorted(p for p in (tree / "bench" / "results").glob("20??-??-??-v*") if (p / "manifest.json").exists())
+    if measured and (tree / "bench" / "publish.py").exists():
+        sh(["uv", "run", "--locked", "python", "-I", "bench/publish.py", str(measured[-1].relative_to(tree))], cwd=tree, timeout=600)
     return {"ios_build": ios_build, "mac_build": mac_build, "date": date}

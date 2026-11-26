@@ -153,11 +153,11 @@ def version_commit(ctx: Ctx) -> str:
     changed = sorted(f for f in sh(["git", "diff", "--name-only", "HEAD"], cwd=ctx.tree).stdout.split() if f)  # porcelain's columns break under strip()
     expected = {".claude-plugin/plugin.json", "pyproject.toml", "uv.lock", "CHANGELOG.md", "apps/ios/Pointe.xcodeproj/project.pbxproj",
                 "apps/macos/tools/make_project.py", "apps/macos/PointeMac.xcodeproj/project.pbxproj"}
-    stray = [f for f in changed if f not in expected and not f.startswith("site/")]
+    stray = [f for f in changed if f not in expected and not f.startswith(("site/", "docs/benchmarks/"))]
     if stray:
         raise Fail(f"the version bump changed files it should not: {stray}")
     checks = ["tests/test_version.py", "tests/test_site.py", "tests/test_site_apps.py"]
-    checks += ["tests/test_skew.py"] if (ctx.tree / "tests" / "test_skew.py").exists() else []
+    checks += [t for t in ("tests/test_skew.py", "tests/test_bench_publish.py", "tests/test_docs_site.py") if (ctx.tree / t).exists()]
     out = sh(preflight.PYTEST[:6] + ["-q", *checks, "-p", "no:cacheprovider"], cwd=ctx.tree, check=False, timeout=900)
     if out.returncode != 0:
         raise Fail(f"the version tests fail on the bump: {out.stdout.strip()[-500:]}")
