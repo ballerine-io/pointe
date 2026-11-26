@@ -280,6 +280,8 @@ def test_a_pasted_line_adds_the_machine_and_says_once_where_its_transcripts_go()
         out["working"] = [await page.eval(f"{TEXT}('mach-adding')"), await page.eval("document.getElementById('mach-addbtn').disabled")]
         assert await until(page, "document.querySelectorAll('#mach-list li').length === 2")
         out["sent"] = posts(stub, "/voice/machines/add")
+        # The row is drawn at once from the add's answer; its session count comes with the next status poll.
+        assert await until(page, "document.getElementById('mach-list').textContent.includes('2 sessions')")
         out["machines"] = await page.eval(MACHINES)
         out["field"] = [await page.eval("document.getElementById('mach-line').value"), await page.eval(f"{TEXT}('mach-adding')"), await page.eval(f"{TEXT}('mach-adderr')")]
         assert await until(page, "document.querySelector('#mach-disclosure .ask')")
