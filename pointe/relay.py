@@ -68,6 +68,25 @@ def keep_lines(message: str, said: str) -> str:
     return flat[:at] + said.strip() + flat[at + len(flat_said):]
 
 
+_CODE_PLACE = re.compile(r"\b(?:above|below|before|after|in|inside|into|to|from|of|on)\s+(?:the\s+)?([a-z]{3,})\s+([a-z]{3,})\b",
+                         re.I)
+
+
+def _near_names(message: str, known: set[str]) -> list[tuple[str, str]]:
+    """("group rows", "dedupe_rows"): two words in a code place ("above the group rows") that are no name in the code,
+    when exactly one name there ends with the second word. rec-03 in tester round 6: "dedupe rows" heard in babble."""
+    names = {k.lower() for k in known if "_" in k}
+    found = []
+    for m in _CODE_PLACE.finditer(message):
+        first, last = m.group(1).lower(), m.group(2).lower()
+        if f"{first}_{last}" in names or f"{first}{last}" in {k.lower() for k in known}:
+            continue
+        ends = sorted(n for n in names if n.endswith(f"_{last}") and not n.startswith(f"{first}_"))
+        if len(ends) == 1:
+            found.append((f"{m.group(1)} {m.group(2)}", ends[0]))
+    return found
+
+
 def as_heard(message: str, said: str, known: set[str] = frozenset()) -> str:
     """The message with each code name the brain built from the user's words marked with those words as heard, and,
     when the user named something, what the recognizer heard and how to read a homophone hint. The name stays: it may
@@ -93,7 +112,9 @@ def as_heard(message: str, said: str, known: set[str] = frozenset()) -> str:
     for name in list(marked):  # a quoted name gets its words after the closing quote
         message = message.replace(f'"{name}"', f'"{name}" (heard as "{" ".join(_split(name))}")', 1)
     hints = homophone_hints(said)
-    if not (marked or hints or _NAMING_CUE.search(said)):
+    naming = _NAMING_CUE.search(said) or re.search(r"\b(?:renam\w*|call (?:it|that)|name (?:it|that))\b", said, re.I)
+    near = [] if naming else _near_names(message, known)  # "rename it to compute tax" names a new one
+    if not (marked or hints or near or _NAMING_CUE.search(said)):
         return message
     note = f'\n\n(Said by voice. The speech recognizer heard: "{said.strip()}". A name in it may be misheard: a name ' \
            f'that should already exist means the closest one in the code.'
@@ -102,6 +123,9 @@ def as_heard(message: str, said: str, known: set[str] = frozenset()) -> str:
         named = sorted(k for k in known if meant in _split(k))
         if named:
             note += f" This session's names with it: {', '.join(named[:3])}."
+    for heard, name in near:
+        note += f' "{heard}" is not a name in this code; {name} is the closest: if that is what was meant, use it, ' \
+                f'and if unsure, ask.'
     return message + note + ")"
 
 
