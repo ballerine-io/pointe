@@ -68,8 +68,8 @@ def judge_one_openai(client, model: str, text: str) -> tuple[dict, dict]:
     return got, usage
 
 
-def judge_one(client, text: str) -> tuple[dict, dict]:
-    resp = client.messages.create(model=MODEL, max_tokens=3000, system=RUBRIC, output_config={"effort": "low"},
+def judge_one(client, model: str, text: str) -> tuple[dict, dict]:
+    resp = client.messages.create(model=model, max_tokens=3000, system=RUBRIC, output_config={"effort": "low"},
                                   messages=[{"role": "user", "content": text}])
     out = "".join(b.text for b in resp.content if b.type == "text")
     m = re.search(r"\{.*\}", out, re.S)
@@ -84,14 +84,16 @@ def judge_one(client, text: str) -> tuple[dict, dict]:
     return got, usage
 
 
-def main(run_ids: list, arms: str, judge: str = "anthropic:" + MODEL) -> int:
+def main(run_ids: list, arms: str, judge: str | None = None) -> int:
+    """`judge`: vendor:model; None is DLG_JUDGE_MODEL's (or Fable). The model asked is the one the file is named and
+    the calls are priced by."""
     from core import ledger
     from run import key, load_rows
-    vendor, model = judge.split(":", 1)
+    vendor, model = (judge or f"anthropic:{MODEL}").split(":", 1)
     if vendor == "anthropic":
         import anthropic
         client = anthropic.Anthropic(api_key=key("ANTHROPIC_API_KEY", "anthropic-api-key"), max_retries=3)
-        one = judge_one
+        one = lambda c, text: judge_one(c, model, text)  # noqa: E731
     elif vendor == "openai":
         import openai
         client = openai.OpenAI(api_key=key("OPENAI_API_KEY", "openai-api-key"), max_retries=3)

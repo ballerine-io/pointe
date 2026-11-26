@@ -218,7 +218,8 @@ def main(argv: list) -> int:
     p.add_argument("--suite", default=None, help="another dialogues file in the same format (a tester's own dialogues)")
     p.add_argument("--commit", default=None, help="the Pointe commit to run (default HEAD, which must be clean)")
     p.add_argument("--turns", action="store_true")
-    p.add_argument("--judge", default="anthropic:claude-fable-5-1", help="judge: vendor:model (anthropic or openai)")
+    p.add_argument("--judge", default=None, help="judge: vendor:model (anthropic or openai); default DLG_JUDGE_MODEL, "
+                   "else claude-fable-5-1")
     args = p.parse_args(argv)
     if args.command == "corpus":
         return corpus_cmd(args)
