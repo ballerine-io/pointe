@@ -48,6 +48,11 @@ def xcode_account() -> Probe:
         return sum(count(y) for y in x.values()) if isinstance(x, dict) else len(x) if isinstance(x, list) else 0
 
     n = count(lists) if lists is not None else 0
+    if n == 0:
+        # Xcode 27 ("Apple Accounts") keeps the account where this key no longer shows it: an empty list proves nothing.
+        # The export and the upload are the real test; they stop with Xcode's own words when the account is missing.
+        return Probe("xcode-account", True, "Xcode's account is not readable from its settings here: the export itself will tell",
+                     "The owner: Xcode, Settings, Apple Accounts, sign in with team " + TEAM + "'s account. Then: tools/release resume")
     return Probe("xcode-account", n > 0, f"Xcode has {n} Apple Account(s)",
                  "The owner: Xcode, Settings, Accounts, +, Apple Account, sign in with the account of team "
                  f"{TEAM} (Account Holder or Admin, for the Developer ID export). Then: tools/release resume")
