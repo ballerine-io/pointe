@@ -11,7 +11,7 @@ What may come next in Pointe, and how you can move it. Also on the site: https:/
 - **No dates.** Pointe is community-supported, on a best-effort basis ([Support](README.md#support)).
 - **Build one.** Items open to contributors say *good first issue* or *help wanted*. Start with [CONTRIBUTING.md](CONTRIBUTING.md), and comment on the issue before you start something large.
 
-Votes as of 2026-11-21.
+Votes as of 2026-11-26.
 
 ## Now
 
