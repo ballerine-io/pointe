@@ -1,12 +1,12 @@
 """The setups a person chooses from: which keys each needs, what each key does there, what it measured, what it costs
-and where your words go. One source: tools/setups.py writes docs/setups.md and the tables in README.md and
+and where your words go. One source: tools/write_setups.py writes docs/setups.md and the tables in README.md and
 /pointe:setup from it; the doctor, the page and the Mac app read it (the Mac app's copy is held to it by
 tests/test_setups.py). Every number names the file and row it comes from; nothing here is measured anew.
 
     pointe setup              the table, and the setup in use
     pointe setup <id>         use that setup from now on: exactly its vendors (config.json "setup")
 
-Standard library only: tools/setups.py imports it without the project's packages.
+Standard library only: tools/write_setups.py imports it without the project's packages.
 """
 
 import json
@@ -235,7 +235,7 @@ def main(argv: list[str]) -> int:
 
 def _missing_keys(s: Setup) -> list[str]:
     """The setup's keys that are neither in the environment nor in the Keychain. Empty when this cannot be told (run
-    without the project's packages, as tools/setups.py does)."""
+    without the project's packages, as tools/write_setups.py does)."""
     try:
         import vendors
     except ImportError:

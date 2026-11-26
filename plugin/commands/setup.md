@@ -39,7 +39,7 @@ with these options in this order: "Yes, Free start (recommended)", "Show me the 
 
 <details><summary>The six setups: only when they ask</summary>
 
-<!-- setups: written by tools/setups.py from setups.py -->
+<!-- setups: written by tools/write_setups.py from setups.py -->
 | Setup (`pointe setup <id>`) | Keys | Measured | A busy hour | Best for |
 |---|---|---|---|---|
 | Free start (`free`) | Gemini | 28 of 35 audio checks on a paid key; a free-tier key ran out of quota in the run (3 of 19); replies took 4.0 to 4.5 s | $0 until the free quota ends; about $0.70 to $0.95 with billing on | trying Pointe at no cost |

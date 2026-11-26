@@ -155,10 +155,10 @@ def test_no_setup_is_called_best_and_the_brain_tie_is_said():
 
 
 def test_the_written_tables_are_current():
-    spec = importlib.util.spec_from_file_location("setups_tool", ROOT / "tools" / "setups.py")
+    spec = importlib.util.spec_from_file_location("setups_tool", ROOT / "tools" / "write_setups.py")
     tool = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tool)
-    assert tool.main(["--check"]) == 0, "run python3 tools/setups.py"
+    assert tool.main(["--check"]) == 0, "run python3 tools/write_setups.py"
     for path in ("plugin/commands/setup.md",):
         assert setups.table(full=False) in (ROOT / path).read_text()
 
@@ -284,3 +284,10 @@ def test_the_env_setting_guards_the_same_way(state, monkeypatch):
     monkeypatch.setenv("CLAUDE_VOICE_OPENAI_URL", "https://example-resource.openai.azure.com/openai/v1/")
     with pytest.raises(SystemExit):
         setups.choose("openai")
+
+
+def test_no_tool_shares_a_module_name_with_pointe():
+    """tools/ and pointe/ are both put first on sys.path by different tests: a tool named like a Pointe module is
+    imported in its place ("import vendors" with tools/ first took tools/write_setups.py and failed on setups.WHY_KEYS)."""
+    tools = {p.stem for p in (ROOT / "tools").glob("*.py")}
+    assert not tools & {p.stem for p in (ROOT / "pointe").glob("*.py")}

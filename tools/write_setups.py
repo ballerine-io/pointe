@@ -1,7 +1,7 @@
 """Write the setups table from setups.py: docs/setups.md whole, and the short table in /pointe:setup.
 
-    python3 tools/setups.py           write them
-    python3 tools/setups.py --check   exit 1 if any is not what this would write (tests/test_setups.py runs it)
+    python3 tools/write_setups.py           write them
+    python3 tools/write_setups.py --check   exit 1 if any is not what this would write (tests/test_setups.py runs it)
 
 Standard library only.
 """
@@ -15,7 +15,7 @@ sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 import setups  # noqa: E402
 
 OUT = "docs/setups.md"
-START, END = "<!-- setups: written by tools/setups.py from setups.py -->", "<!-- end setups -->"
+START, END = "<!-- setups: written by tools/write_setups.py from setups.py -->", "<!-- end setups -->"
 BLOCKS = ("plugin/commands/setup.md",)
 
 
@@ -23,7 +23,7 @@ def page() -> str:
     roles = "\n".join(f"- **{role}**: {words}" for role, words in setups.ROLES.items())
     return f"""# Setups: which keys Pointe needs, and for what
 
-Written by `tools/setups.py` from `setups.py`: edit those, not this file.
+Written by `tools/write_setups.py` from `setups.py`: edit those, not this file.
 
 {setups.WHY_KEYS}
 
@@ -76,7 +76,7 @@ def main(argv: list[str]) -> int:
     stale = [p for p, text in wanted.items() if not (ROOT / p).exists() or (ROOT / p).read_text() != text]
     if "--check" in argv:
         if stale:
-            print(f"stale: {', '.join(stale)}: run python3 tools/setups.py", file=sys.stderr)
+            print(f"stale: {', '.join(stale)}: run python3 tools/write_setups.py", file=sys.stderr)
             return 1
         return 0
     for p in stale:
