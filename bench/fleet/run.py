@@ -29,7 +29,8 @@ Rules written before any paid row:
 - Both fleet arms set POINTE_FLEET themselves, and every row carries `fleet_on` as the daemon states it
   (/voice/context): the report counts the rows where that is not the arm's.
 - A run folder with a NOT_COUNTED file (its reason inside) is listed by the report and not counted: for a run the
-  operator stopped. Written when it is stopped, never after its rows were read.
+  operator stopped, a run the network cut (made again with the same seed), and a count the harness itself got
+  wrong (the reason says how the row shows it). Never for what the system under test did.
 """
 
 import argparse
@@ -223,9 +224,21 @@ class Watch:
 
 # ---------- a launch ----------
 
+def setup_line(log: Path) -> str:
+    """The daemon's own line naming the model of each role, from the start of its log."""
+    with log.open(errors="replace") as f:
+        for line in f:
+            if " setup: " in line:
+                return line.split("setup: ", 1)[1].strip()[:300]
+    return ""
+
+
 def commit_of(checkout: Path) -> dict:
     git = lambda *a: subprocess.run(["git", "-C", str(checkout), *a], capture_output=True, text=True).stdout.strip()  # noqa: E731
-    return {"commit": git("rev-parse", "HEAD"), "dirty_pointe": bool(git("status", "--porcelain", "--", "pointe"))}
+    # pointe_tree: the hash of pointe/ itself, the same before and after a rebase of the harness's commits
+    return {"commit": git("rev-parse", "HEAD"), "pointe_tree": git("rev-parse", "HEAD:pointe"),
+            "pointe_commit": git("log", "-1", "--format=%H", "--", "pointe"),
+            "dirty_pointe": bool(git("status", "--porcelain", "--", "pointe"))}
 
 
 class Launch:
@@ -269,7 +282,7 @@ class Launch:
             timing=f.timing, sessions_with_notes=len(noted), names=f.names(),
             notes_sha256=hashlib.sha256(json.dumps(noted, sort_keys=True, ensure_ascii=False).encode()).hexdigest(),
             setup_calls={"reader": sum(c["kind"] == "text" for c in setup), "brain": sum(c["kind"] == "step" for c in setup)},
-            setup_line=next((line.split("setup: ", 1)[1][:300] for line in f.voice.log(400_000).splitlines() if " setup: " in line), ""),
+            setup_line=setup_line(f.voice.state.parent / f"{f.voice.name}.log"),
             footprint_call_up=f.footprint())
         return self
 

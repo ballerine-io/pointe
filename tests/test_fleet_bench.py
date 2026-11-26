@@ -50,7 +50,7 @@ def test_counts_and_intervals_are_exact():
     assert s["clear"]["wrong"]["n"] == 5 and s["clear"]["wrong"]["rate"] == 0.4
     assert (round(s["clear"]["wrong"]["low"], 4), round(s["clear"]["wrong"]["high"], 4)) == (0.1176, 0.7693)  # Wilson, 2 of 5
     a = s["ambiguous"]
-    assert (a["asked"]["k"], a["sent"]["k"], a["neither"]["k"], a["crashed"], a["asked"]["n"]) == (1, 1, 1, 1, 4)  # the crashed row stays in n
+    assert (a["asked"]["k"], a["sent"]["k"], a["neither"]["k"], a["crashed"], a["asked"]["n"]) == (1, 1, 1, 1, 3)  # crashed: counted apart, not in n
     assert s["first_token"]["n"] == 4 and s["first_token"]["median"] == 2.0 and s["first_token"]["p90"] == 4.0  # the loaded row is not timed
     assert s["needs_tokens"]["max"] == 900 and s["needs_tokens"]["median"] == 700 and s["brain_input"]["median"] == 2000
     assert s["needs_me_named"] == {"turns": 1, "expected": 2, "named": 1, "turns_naming_others": 1}  # tide named, quarry not; shop is another
@@ -75,10 +75,10 @@ def test_the_bars_say_fail_plainly_and_scale_the_ask_bar():
     verdicts = {name: b["verdict"] for (name, _), b in bars.items() if name != "wrong session on clear turns"}
     assert verdicts == {'tokens of "what needs me"': "pass", "brain input tokens per turn": "pass",  # 2000 against 1900: +5%
                         "first token, median": "pass", "first token, p90": "FAIL",  # 2.0 against 1.9; 4.0 against 1.9
-                        "asked first on ambiguous turns": "FAIL",  # 1 of 4, the bar scaled to 3 of 4
+                        "asked first on ambiguous turns": "FAIL",  # 1 of 3 driven, the bar scaled to 3 of 3
                         "reader calls an hour with 80% of sessions quiet": "pass",
                         "30 sessions finish within a minute": "FAIL"}  # 5 spoken lines
-    assert bars[("asked first on ambiguous turns", "at least 3 of 4 (10 of 14, scaled to n)")]["measured"].startswith("1 of 4")
+    assert bars[("asked first on ambiguous turns", "at least 3 of 3 (10 of 14, scaled to n)")]["measured"].startswith("1 of 3")
     assert bars[("wrong session on clear turns", "not above the 1x4 rate")]["verdict"] == "FAIL"  # 2 of 5 against 0 of 1
     assert bars[("wrong session on clear turns", "at most 5%")]["verdict"] == "FAIL"
     nothing = score.bars(score.summarize([], FLEET), None, "10x30", [], {"share": None})
@@ -107,7 +107,7 @@ def test_the_report_is_written_from_the_rows_with_failures_and_exclusions_said(t
     text = report.write(at / "results", at / "RESULTS.md", at / "FROZEN.json", "abc", {"5x20": FLEET})
     assert (at / "RESULTS.md").read_text() == text
     assert "| wrong session on clear turns | at most 5% | 2 of 5 (12% to 77%) | **FAIL** |" in text
-    assert "1 runs of the turn list, 10 turn rows, 1 crashed; no 1x4 run of this arm" in text
+    assert "1 runs of the turn list: 9 turns driven, 1 crashed, 0 not run (their run stopped first); no 1x4 run of this arm" in text
     assert "a smoke run of 6 turns | 1 |" in text and "TimeoutError: the voice stopped answering" in text
     assert "| all 1 paid launches | | 40 | 1.2500 |" in text
     assert "**Not run:** the turn list at 1x4, main before the fleet work" in text
@@ -141,3 +141,14 @@ def test_a_turn_whose_brain_never_answered_is_crashed_not_asked():
                 steps=[{"own": True, "error": "APIConnectionError"}, {"own": True, "error": "APIConnectionError"}])
     assert score.outcome(lost) == "crashed"
     assert score.outcome({**lost, "steps": [{"own": True, "error": "TimeoutError"}, {"own": True, "error": None}]}) == "asked"
+
+
+def test_a_turn_its_run_never_reached_is_not_run_not_crashed_and_in_no_rate():
+    unreached = {"kind": "turn", "run": "r1", "arm": "fleet-off", "size": "5x20", "turn": "clear_name-05", "turn_kind": "clear_name",
+                 "expect": {"action": "send", "session": "a"},
+                 "error": "not run: stopped after 41 turns: this launch reached its spend limit of $2.00"}
+    assert score.outcome(unreached) == "not_run"
+    s = score.summarize([*rows(), unreached, {**unreached, "turn_kind": "ambiguous_name"}], FLEET)
+    assert (s["turns"], s["driven"], s["crashed"], s["not_run"]) == (12, 9, 1, 2)
+    assert s["clear"]["wrong"]["n"] == 5 and s["ambiguous"]["asked"]["n"] == 3  # as without the two rows
+    assert s["clear"]["crashed"] == 0 and s["ambiguous"]["crashed"] == 1  # a real crash keeps its count

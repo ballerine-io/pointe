@@ -16,8 +16,10 @@ Outcomes are by rule:
   an ambiguous turn asked: nothing delivered and a question mark in the reply; sent: anything delivered; neither.
   a question turn   sent: anything delivered (a question is not a request); otherwise the expected sessions the reply
                     names, and the other sessions it names.
-A turn with `error`, or one whose own brain steps all failed with nothing sent, is "crashed" and stays in every
-denominator it belongs to; nothing is dropped here.
+A turn that was typed and could not be driven (`error`), or whose own brain steps all failed with nothing sent, is
+"crashed". A turn its run never reached (`error` starting "not run:") is "not_run": it is not a crash and not an
+outcome. Neither has an outcome, so rates are over the driven turns, and both counts are given beside them; no row is
+dropped from the files.
 """
 
 import math
@@ -82,6 +84,8 @@ def no_brain(row: dict) -> bool:
 
 def outcome(row: dict) -> str:
     """What a turn row counts as (see the module's first lines)."""
+    if str(row.get("error") or "").startswith("not run:"):
+        return "not_run"  # the run stopped before this turn (its launch's spend limit, or a crash): never typed
     if row.get("error") or no_brain(row):
         return "crashed"
     kind, landed = row["turn_kind"], [d["session"] for d in row.get("deliveries") or []]
@@ -128,27 +132,31 @@ def summarize(rows: list[dict], fleet: dict | None = None) -> dict:
     """The counts and spreads of one set of rows (one run, or the runs of one size and arm together)."""
     turns = [r for r in rows if r["kind"] == "turn"]
     results = [(r, outcome(r)) for r in turns]
-    clear = [(r, o) for r, o in results if r["turn_kind"] in CLEAR]
-    ambiguous = [(r, o) for r, o in results if r["turn_kind"] in AMBIGUOUS]
-    questions = [(r, o) for r, o in results if r["turn_kind"] in QUESTIONS]
     count = lambda pairs, what: sum(o == what for _, o in pairs)  # noqa: E731
+    crashed = {kinds: count([(r, o) for r, o in results if r["turn_kind"] in kinds], "crashed") for kinds in (CLEAR, AMBIGUOUS, QUESTIONS)}
+    undriven = ("crashed", "not_run")
+    # Rates are over the turns that were driven. A crashed turn (never reached, or no brain answered) has no outcome:
+    # counted in a denominator it would lower the wrong-session rate. Its count is beside every rate instead.
+    clear = [(r, o) for r, o in results if r["turn_kind"] in CLEAR and o not in undriven]
+    ambiguous = [(r, o) for r, o in results if r["turn_kind"] in AMBIGUOUS and o not in undriven]
+    questions = [(r, o) for r, o in results if r["turn_kind"] in QUESTIONS and o not in undriven]
     by_kind = {}
     for kind in (*CLEAR, *AMBIGUOUS, *QUESTIONS):
         pairs = [(r, o) for r, o in results if r["turn_kind"] == kind]
         if pairs:
             by_kind[kind] = {what: count(pairs, what) for what in sorted({o for _, o in pairs})} | {"n": len(pairs)}
-    ok = [r for r, o in results if o != "crashed"]
+    ok = [r for r, o in results if o not in undriven]
     quiet = [r for r in ok if timed(r)]
     out = {
-        "turns": len(turns), "crashed": count(results, "crashed"),
+        "turns": len(turns), "driven": len(ok), "crashed": count(results, "crashed"), "not_run": count(results, "not_run"),
         "untimed_for_load": len(ok) - len(quiet),
         "clear": {"right": _rate(count(clear, "right"), len(clear)), "wrong": _rate(count(clear, "wrong"), len(clear)),
                   "asked": _rate(count(clear, "asked"), len(clear)), "nothing": _rate(count(clear, "nothing"), len(clear)),
-                  "crashed": count(clear, "crashed")},
+                  "crashed": crashed[CLEAR]},
         "ambiguous": {"asked": _rate(count(ambiguous, "asked"), len(ambiguous)),
                       "sent": _rate(count(ambiguous, "sent"), len(ambiguous)),
-                      "neither": _rate(count(ambiguous, "neither"), len(ambiguous)), "crashed": count(ambiguous, "crashed")},
-        "questions": {"sent": _rate(count(questions, "sent"), len(questions)), "crashed": count(questions, "crashed")},
+                      "neither": _rate(count(ambiguous, "neither"), len(ambiguous)), "crashed": crashed[AMBIGUOUS]},
+        "questions": {"sent": _rate(count(questions, "sent"), len(questions)), "crashed": crashed[QUESTIONS]},
         "by_kind": by_kind,
         "needs_tokens": _spread([r["needs_tokens"] for r in ok if r.get("needs_tokens") is not None]),
         "needs_tokens_missing": sum(r.get("needs_tokens") is None for r in ok),

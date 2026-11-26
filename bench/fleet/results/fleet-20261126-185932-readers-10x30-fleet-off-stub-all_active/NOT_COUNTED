@@ -1,0 +1,1 @@
+The harness counted zero reader calls: it looked for the reader's model name in the end of the daemon's log, where a fleet this size no longer has it. The row's own `callers` and calls.jsonl show the calls. Counted again in a new run.

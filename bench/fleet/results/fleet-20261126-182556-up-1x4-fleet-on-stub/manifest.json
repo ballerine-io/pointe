@@ -1,0 +1,90 @@
+{
+ "run": "fleet-20261126-182556-up-1x4-fleet-on-stub",
+ "what": "up",
+ "size": "1x4",
+ "arm": "fleet-on",
+ "models": "stub",
+ "pointe": {
+  "commit": "389fd625d0b389b7e82613d5e38c1f74bda4ac07",
+  "dirty_pointe": false
+ },
+ "harness_commit": "389fd625d0b389b7e82613d5e38c1f74bda4ac07",
+ "fleet_sha256": "f9280647a063e18d1344d6885ad90a39e04f996652b81c09517eb1b35c48cedf",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-26T18:25:56+0200",
+ "load_start": 6.42138671875,
+ "machine": "arm64, 18 cores",
+ "notes_restored": {
+  "with_notes": 0,
+  "sessions": 4
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 92.7,
+   "cpu_secs": 0.39
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 34.8,
+   "cpu_secs": 0.08
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 0.9,
+  "nodes_up_secs": 0.0,
+  "seed_secs": 0.4,
+  "sessions_joined_secs": 0.0
+ },
+ "sessions_with_notes": 4,
+ "names": {
+  "4b726291-e39e-4dbe-960f-fadf19f2229c": "beacon",
+  "96e1a48c-42c4-49fd-a68f-8bcf52d447c6": "meteor",
+  "956e7361-d357-4203-8bbd-5949866a57c1": "harbor",
+  "d447c8ee-e734-458d-bd40-bdd6d4ebe07f": "finch"
+ },
+ "notes_sha256": "8cc8d7a56e976d0f464720e41403247a6b9dfeddb34e807fa4612d8c717e756d",
+ "setup_calls": {
+  "reader": 4,
+  "brain": 1
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='soniox', mouth='elevenlabs:eleven_v4_turbo', notes=[])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 101.0,
+   "cpu_secs": 0.5
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 37.0,
+   "cpu_secs": 0.16
+  },
+  "threads": 7
+ },
+ "up_secs": 11.1,
+ "ended": "2026-11-26T18:27:07+0200",
+ "load_end": 6.83984375,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 45.2,
+   "cpu_secs": 0.75
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 23.6,
+   "cpu_secs": 0.19
+  },
+  "threads": 7
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.0,
+  "by": {}
+ }
+}
