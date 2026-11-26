@@ -28,7 +28,7 @@ final class NewSessionUITests: XCTestCase {
         // longer than an identifier query takes (128 characters): matched by its label
         let lede = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Starts a coding agent in a folder you already work in.")).firstMatch
         XCTAssertTrue(lede.waitForExistence(timeout: 5))
-        XCTAssertTrue(lede.label.hasSuffix("asks before it acts, as every session does."), lede.label)
+        XCTAssertTrue(lede.label.hasSuffix("Whether Claude Code asks before it acts is a setting: Permissions for new sessions."), lede.label)
         let claude = any("newSessionAgent.claude-code"), codex = any("newSessionAgent.codex")
         XCTAssertTrue(claude.waitForExistence(timeout: 5), "the agents the Mac offers")
         XCTAssertTrue(claude.isSelected, "the first agent that can start is picked")
