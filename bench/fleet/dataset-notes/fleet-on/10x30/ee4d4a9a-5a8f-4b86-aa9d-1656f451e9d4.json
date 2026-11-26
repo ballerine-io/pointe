@@ -1,0 +1,17 @@
+{
+ "goal": "Make the wishlist indexer safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the indexer file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the indexer should avoid duplicate work on a second run is not yet decided or recorded.",
+  "Whether the existing tests pass and whether a double-run test is needed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the wishlist indexer to be idempotent and runs its tests.",
+ "people_and_names": [
+  "wishlist indexer"
+ ]
+}

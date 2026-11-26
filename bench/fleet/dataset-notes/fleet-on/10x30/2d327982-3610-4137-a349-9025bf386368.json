@@ -1,0 +1,18 @@
+{
+ "goal": "Split the ticket ledger into a reader and a writer with a clear interface, starting with the ticket ledger module.",
+ "state": "Done: Claude Code reports the split is made in the ticket ledger module and all 14 tests pass. Nothing is pending.",
+ "decisions": [
+  "Owner decided to split the ticket ledger into a reader and a writer with a clear interface, starting with ticket_ledger.py."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change and decides whether to continue the split beyond the first module.",
+ "people_and_names": [
+  "ticket ledger",
+  "ticket_ledger.py",
+  "14 tests"
+ ]
+}

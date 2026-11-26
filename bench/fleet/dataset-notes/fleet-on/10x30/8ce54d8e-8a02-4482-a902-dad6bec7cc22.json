@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the shipment cache's cold start time by half.",
+ "state": "Just started. Claude has read the shipment cache module and is about to change it and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the shipment cache module (shipment_cache.py); target is halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet).",
+  "Which part of the cache causes the slow cold start."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the shipment cache and run its tests.",
+ "people_and_names": [
+  "shipment_cache.py",
+  "shipment cache"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Make the billing dashboard idempotent so running it twice with the same input is safe.",
+ "state": "Just started: Claude has read the billing dashboard script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner asked to start with the billing dashboard script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What currently makes a second run with the same input unsafe is not yet identified.",
+  "Whether the dashboard's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the billing dashboard for idempotency and runs its tests.",
+ "people_and_names": [
+  "billing dashboard"
+ ]
+}

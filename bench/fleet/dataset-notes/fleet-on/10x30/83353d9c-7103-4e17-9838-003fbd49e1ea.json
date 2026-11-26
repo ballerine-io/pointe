@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the tariff sampler, covered by tests.",
+ "state": "Claude Code reports the retry-with-backoff change in the tariff sampler is done and all 14 tests pass. This is Claude's own report; the owner has not confirmed it.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and the tests, or confirm the work is accepted.",
+ "people_and_names": [
+  "tariff sampler",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "goal": "Add structured logging to the roster scheduler and remove the print calls, starting with the main scheduler module.",
+ "state": "Claude Code reports the change is done in the scheduler module and all 14 tests pass. This is Claude's own report; nothing independent confirms it.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm no print calls remain elsewhere in the roster scheduler, since the owner said to start with this one file.",
+ "people_and_names": [
+  "estuary",
+  "roster scheduler",
+  "14 tests"
+ ]
+}

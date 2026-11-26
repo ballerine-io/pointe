@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the audit queue to the new schema without downtime.",
+ "state": "Claude Code reports the audit queue change in audit_queue.py is done and all 14 tests pass. Nothing in the record shows it deployed or tested for downtime behavior.",
+ "decisions": [
+  "Owner asked to start the migration with audit_queue.py; constraint: no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration has been verified as zero-downtime; the record only shows unit tests passing.",
+  "Whether the change has been deployed; not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Verify the zero-downtime requirement (rollout plan or check against a live-like setup) before deploying.",
+ "people_and_names": [
+  "audit_queue.py",
+  "audit queue",
+  "new schema"
+ ]
+}

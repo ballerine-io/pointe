@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the tariff importer to the new schema without downtime.",
+ "state": "Claude Code reports the change to the tariff importer is done and all 14 tests pass. Zero-downtime behavior and a live deployment are not confirmed in the record.",
+ "decisions": [
+  "Owner directed starting the migration with the tariff importer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the no-downtime requirement was verified is not stated; only the 14 tests are reported.",
+  "Deployment status is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the no-downtime requirement was checked and whether the change has been deployed.",
+ "people_and_names": [
+  "tariff importer",
+  "new schema",
+  "14 tests"
+ ]
+}

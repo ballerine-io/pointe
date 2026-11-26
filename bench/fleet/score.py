@@ -215,7 +215,7 @@ def bars(at: dict, base: dict | None, size: str, bursts: list[dict], reader: dic
             "not measured" if mine is None else f"median {mine:,}", None if mine is None else True)
     else:
         bar("brain input tokens per turn", f"within {BARS['brain_input_within']:.0%} of 1x4",
-            "not measured" if None in (mine, ref) else f"median {mine:,} against {ref:,} ({mine / ref - 1:+.0%})",
+            "not measured" if None in (mine, ref) else f"median {mine:,} against {ref:,} ({mine / ref - 1:+.1%})",
             None if None in (mine, ref) else mine <= ref * (1 + BARS["brain_input_within"]))
     for q, label in ((0.5, "median"), (0.9, "p90")):
         mine = at["first_token"]["median" if q == 0.5 else "p90"]

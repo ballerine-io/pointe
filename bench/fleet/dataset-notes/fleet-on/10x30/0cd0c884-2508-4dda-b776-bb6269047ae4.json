@@ -1,0 +1,14 @@
+{
+ "goal": "Add structured logging to the roster resolver and remove its print calls.",
+ "state": "Claude Code reports the roster resolver change is done, with all 14 tests passing. This comes from Claude Code's own report, not independently confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "roster resolver"
+ ]
+}

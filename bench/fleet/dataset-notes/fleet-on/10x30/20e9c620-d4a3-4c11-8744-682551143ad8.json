@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the billing batcher and remove its print calls.",
+ "state": "Just started: Claude Code has read the billing batcher file and has not made any changes yet. It is paused on a question to the owner.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now (unanswered)",
+  "Structured logging not yet added; print calls not yet removed"
+ ],
+ "waiting_on_user": "Decide whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Answer the column question so Claude Code can begin adding structured logging to the billing batcher.",
+ "people_and_names": [
+  "billing batcher",
+  "billing_batcher.py"
+ ]
+}

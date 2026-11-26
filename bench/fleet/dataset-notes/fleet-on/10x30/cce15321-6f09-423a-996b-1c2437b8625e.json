@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the tenant webhook and remove the print calls.",
+ "state": "Done per Claude Code: the change is made in the tenant webhook module and all 14 tests pass. Nothing was reported as untested or undeployed, but deployment was not mentioned.",
+ "decisions": [
+  "Owner directed starting with tenant_webhook.py for the structured logging change and removal of print calls."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "tenant webhook",
+  "tenant_webhook.py",
+  "14 tests"
+ ]
+}

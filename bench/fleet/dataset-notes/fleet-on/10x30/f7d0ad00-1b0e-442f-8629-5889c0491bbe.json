@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the quota cache drops records under load and fix it.",
+ "state": "Claude Code reports the fix is made in the quota cache and all 14 tests pass. No load test or deployment is mentioned in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records is not described in the record",
+  "Whether the fix holds under real load is not stated as tested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and what the change does, and whether it was tested under load.",
+ "people_and_names": [
+  "quota cache",
+  "14 tests"
+ ]
+}

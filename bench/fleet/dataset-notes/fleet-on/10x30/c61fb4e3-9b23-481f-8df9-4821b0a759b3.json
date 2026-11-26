@@ -1,0 +1,20 @@
+{
+ "goal": "Make the coupon archive safe to run twice with the same input (idempotent), starting with the coupon archive script.",
+ "state": "Claude has read the coupon archive script but has not made changes. It is blocked on a choice between targeting the v2 interface or keeping v1.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Which interface to target: v2 or v1?",
+  "How to make a repeated run with the same input produce no duplicate effects (not yet designed)"
+ ],
+ "waiting_on_user": "Choose whether Claude should write the idempotent coupon archive against the v2 interface or keep v1.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's choice of v2 or v1, then start making the coupon archive script idempotent.",
+ "people_and_names": [
+  "quince",
+  "coupon archive",
+  "v1",
+  "v2"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Split the payroll validator into a separate reader and writer with a clear interface between them.",
+ "state": "Just started: Claude has read the payroll validator file and is about to make the change and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to split the payroll validator into a reader and a writer with a clear interface, starting with the main validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the split in the payroll validator and runs its tests.",
+ "people_and_names": [
+  "payroll validator"
+ ]
+}

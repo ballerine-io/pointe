@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the profile resolver drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the profile resolver, with all 14 tests passing. The root cause and load behavior were not described in the record, and no load test is mentioned.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The root cause of the dropped records was not stated in the record.",
+  "Whether the fix was checked under real load is not stated; only the 14 tests are reported passing."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load.",
+ "people_and_names": [
+  "profile resolver"
+ ]
+}

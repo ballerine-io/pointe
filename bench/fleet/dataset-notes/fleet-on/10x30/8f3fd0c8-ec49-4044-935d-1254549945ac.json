@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the signup dashboard drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the signup dashboard code and all 14 tests pass. Load behavior was not reported as verified beyond the tests.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record.",
+  "Not stated whether the fix was tested under actual load or deployed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load before treating it as finished.",
+ "people_and_names": [
+  "signup dashboard"
+ ]
+}

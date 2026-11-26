@@ -1,0 +1,20 @@
+{
+ "goal": "Add retries with backoff to the coupon batcher and cover them with tests.",
+ "state": "Just started: Claude has read the coupon batcher source and is about to modify it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner asked to add retries with backoff to the coupon batcher and cover them with tests, starting with the coupon batcher module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Retry parameters not specified: max attempts, base delay, backoff factor, jitter.",
+  "Which errors should trigger a retry is not yet defined.",
+  "Tests for the retry behavior not yet written."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retry with backoff in the coupon batcher, then write and run tests covering it.",
+ "people_and_names": [
+  "coupon batcher"
+ ]
+}

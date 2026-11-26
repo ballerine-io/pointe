@@ -1,0 +1,15 @@
+{
+ "goal": "Make the receipt resolver safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the receipt resolver is done and all 14 tests pass. This is Claude's report; the record shows no independent check or deployment.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "zephyr",
+  "receipt resolver"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Add structured logging to the payroll resolver and remove its print calls.",
+ "state": "In progress, just started. Claude has read the payroll resolver file and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner directed starting with the payroll resolver module, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the payroll resolver tests pass after the change.",
+  "Whether other modules also contain print calls (owner only named the resolver to start)."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the payroll resolver with structured logging, then run its tests.",
+ "people_and_names": [
+  "payroll resolver"
+ ]
+}

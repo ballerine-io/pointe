@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the delivery parser and remove its print calls.",
+ "state": "Just started. Claude Code has read the delivery parser file and is about to make the logging changes and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner directed: add structured logging to the delivery parser and remove the print calls, starting with the delivery parser file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the delivery parser's tests pass after the change.",
+  "Whether other files besides the delivery parser also need logging added or print calls removed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code replaces the print calls with structured logging in the delivery parser, then runs its tests.",
+ "people_and_names": [
+  "barley (session name)",
+  "delivery parser"
+ ]
+}

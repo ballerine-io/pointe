@@ -1,0 +1,18 @@
+{
+ "goal": "Split the dispatch batcher into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the dispatch batcher module and all 14 tests pass. The owner has not yet confirmed or reviewed the result.",
+ "decisions": [
+  "Owner directed that the work start with dispatch_batcher.py, splitting it into a reader and a writer with a clear interface."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the reader/writer interface and confirm it meets the owner's expectations, or move on to any remaining pieces.",
+ "people_and_names": [
+  "dispatch batcher",
+  "dispatch_batcher.py",
+  "14 tests"
+ ]
+}

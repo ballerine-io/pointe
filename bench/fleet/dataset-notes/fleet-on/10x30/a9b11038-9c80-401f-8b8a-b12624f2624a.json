@@ -1,0 +1,19 @@
+{
+ "goal": "Add retries with backoff to the billing digest and cover them with tests.",
+ "state": "Just started: Claude has read the billing digest module and is about to make the retry change and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner asked to start with the billing digest module, adding retries with backoff and tests."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Retry parameters (max attempts, delay, backoff factor, which errors to retry) not yet specified.",
+  "Tests not yet written or run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude implements retries with backoff in the billing digest, adds tests, and runs them.",
+ "people_and_names": [
+  "billing digest"
+ ]
+}

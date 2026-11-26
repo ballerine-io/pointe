@@ -1,0 +1,18 @@
+{
+ "goal": "Migrate the refund webhook to the new schema without downtime.",
+ "state": "Claude Code reports the refund webhook change is done and all 14 tests pass. Deployment and zero-downtime behavior were not mentioned or verified in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the change has been deployed is not stated.",
+  "Zero-downtime behavior during the migration was not reported as tested."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the change will be rolled out without downtime, and whether it has been deployed.",
+ "people_and_names": [
+  "refund webhook",
+  "kebab session"
+ ]
+}

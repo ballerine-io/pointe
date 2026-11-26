@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the survey watchdog and cover them with tests.",
+ "state": "Just started: Claude has read the survey watchdog module and is about to modify it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Backoff parameters (attempt count, delays, jitter) not yet specified or chosen",
+  "Which failures should trigger a retry is not yet defined"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the survey watchdog, then add tests and run them.",
+ "people_and_names": [
+  "survey watchdog",
+  "survey_watchdog.py"
+ ]
+}

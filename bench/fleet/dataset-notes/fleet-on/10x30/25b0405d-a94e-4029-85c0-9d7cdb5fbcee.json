@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the receipt queue's cold start time by half.",
+ "state": "Just started: Claude Code has read the receipt queue module and says its next step is to change it and run its tests. No changes, measurements, or test results yet.",
+ "decisions": [
+  "Owner directed starting with the receipt queue module to halve cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Current cold start time (no baseline measured yet)",
+  "What is causing the slow cold start",
+  "How the halved target will be verified"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then change the receipt queue and run its tests.",
+ "people_and_names": [
+  "receipt queue"
+ ]
+}

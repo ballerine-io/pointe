@@ -1,0 +1,20 @@
+{
+ "goal": "Add retries with backoff to the payroll notifier and cover them with tests.",
+ "state": "Claude has read the payroll notifier source and has not made any changes yet. It is blocked on a question about lock versus retry.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry: Claude says a lock is simpler and a retry is faster, and asked which to use. The owner's request already names retries with backoff, so this may already be settled.",
+  "Retry behavior is not yet defined: attempt count, backoff schedule, and which errors to retry.",
+  "Tests for the retry behavior are not yet written."
+ ],
+ "waiting_on_user": "Confirm whether to go with retries with backoff, as the original request says, or a lock instead.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm retries with backoff, then have Claude implement them in the payroll notifier and write the tests.",
+ "people_and_names": [
+  "payroll notifier",
+  "Claude Code",
+  "ladle (session name)"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Split the refund scheduler into a reader and a writer with a clear interface, starting with the main scheduler module.",
+ "state": "Claude Code reports the split is done in the scheduler module and all 14 tests pass. This is Claude Code's own report; nothing in the record shows the owner has reviewed it.",
+ "decisions": [
+  "Owner asked to split the refund scheduler into a reader and a writer with a clear interface, starting with the scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change, then decides whether to continue the split beyond the first module.",
+ "people_and_names": [
+  "refund scheduler",
+  "reader",
+  "writer",
+  "14 tests"
+ ]
+}

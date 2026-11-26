@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the catalog throttle to the new schema without downtime.",
+ "state": "Just started: Claude Code has read the catalog throttle file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime and should start with the catalog throttle file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the throttle change passes its tests",
+  "How the zero-downtime rollout will be done is not yet defined"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the catalog throttle change and run its tests.",
+ "people_and_names": [
+  "cello",
+  "catalog throttle"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the audit webhook's cold start time by half.",
+ "state": "Just started. Claude has read the audit webhook module and is about to make changes and run its tests. No changes or results reported yet.",
+ "decisions": [
+  "Owner directed starting with the audit webhook module; target is a 50% reduction in cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start baseline is, and how it will be measured.",
+  "Which changes will actually reduce cold start time."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time, then make changes to the audit webhook and run its tests.",
+ "people_and_names": [
+  "audit webhook",
+  "iodine"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Make the billing resolver idempotent so running it twice with the same input is safe.",
+ "state": "Claude Code reports the change to the billing resolver is done and all 14 tests pass. Whether the tests cover running twice with the same input is not stated.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests specifically exercise running the resolver twice with identical input is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test covers a double run with the same input, then review the change.",
+ "people_and_names": [
+  "billing resolver",
+  "keystone"
+ ]
+}

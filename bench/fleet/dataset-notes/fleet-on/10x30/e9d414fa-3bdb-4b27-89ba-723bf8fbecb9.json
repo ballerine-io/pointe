@@ -1,0 +1,19 @@
+{
+ "goal": "Add retries with backoff to the consent watchdog and cover them with tests.",
+ "state": "Just started: Claude has read the consent watchdog module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, jitter) are not yet specified or recorded",
+  "Which failures should trigger a retry is not yet recorded",
+  "Tests for the retries have not been written or run"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the consent watchdog, then write and run the tests.",
+ "people_and_names": [
+  "consent watchdog",
+  "ravioli"
+ ]
+}

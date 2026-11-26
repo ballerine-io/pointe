@@ -1,0 +1,20 @@
+{
+ "goal": "Move the delivery dashboard off the deprecated client library.",
+ "state": "Claude Code reports the migration of the dashboard's main file is done and all 14 tests pass. That is Claude's own report; the record shows no independent check.",
+ "decisions": [
+  "Owner asked to start the migration with the main dashboard file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether any other files still use the deprecated client library; the record only covers the first file.",
+  "Whether the tests exercise the new library calls; not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether other parts of the dashboard still use the deprecated library and migrate them if so.",
+ "people_and_names": [
+  "crumpet",
+  "delivery dashboard"
+ ]
+}

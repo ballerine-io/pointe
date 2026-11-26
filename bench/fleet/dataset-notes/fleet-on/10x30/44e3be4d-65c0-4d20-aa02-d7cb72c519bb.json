@@ -1,0 +1,16 @@
+{
+ "goal": "Make the roster archive safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the roster archive is done and all 14 tests pass. No independent verification beyond that report is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm by running the archive twice with the same input and checking the results are identical.",
+ "people_and_names": [
+  "roster_archive",
+  "gong",
+  "14 tests"
+ ]
+}

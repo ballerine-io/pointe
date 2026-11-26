@@ -1,0 +1,20 @@
+{
+ "goal": "Make the loyalty dashboard safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude Code has read the loyalty dashboard script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the loyalty dashboard script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What currently makes a second run with the same input unsafe is not yet identified.",
+  "Whether the dashboard's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the loyalty dashboard to be idempotent, then runs its tests.",
+ "people_and_names": [
+  "loyalty dashboard",
+  "maple"
+ ]
+}

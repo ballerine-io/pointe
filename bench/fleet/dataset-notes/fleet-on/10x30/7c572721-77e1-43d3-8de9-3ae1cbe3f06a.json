@@ -1,0 +1,18 @@
+{
+ "goal": "Make the payroll throttle safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the payroll throttle file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the throttle should detect a repeated input is not yet decided or recorded.",
+  "Whether the throttle's existing tests pass, and whether they cover running twice with the same input."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the payroll throttle so a repeat run with the same input has no extra effect, then run its tests.",
+ "people_and_names": [
+  "payroll throttle",
+  "agate"
+ ]
+}

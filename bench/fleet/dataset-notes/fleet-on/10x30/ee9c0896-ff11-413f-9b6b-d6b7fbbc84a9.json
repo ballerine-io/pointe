@@ -1,0 +1,18 @@
+{
+ "goal": "Make the returns export safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the returns export script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the export should behave on a second run with the same input (skip, overwrite, or dedupe) is not yet specified.",
+  "Whether the existing tests cover a repeat run is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the returns export for idempotency and runs its tests.",
+ "people_and_names": [
+  "returns export",
+  "returns_export.py"
+ ]
+}

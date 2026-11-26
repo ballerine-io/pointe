@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the pricing watchdog, covered by tests.",
+ "state": "Done: the retry-with-backoff change is in the pricing watchdog and all 14 tests pass, per Claude Code's report. No independent verification beyond that is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "pricing watchdog",
+  "14 tests"
+ ]
+}

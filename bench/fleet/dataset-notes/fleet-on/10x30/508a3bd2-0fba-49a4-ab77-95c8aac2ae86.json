@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the billing importer and remove its print calls.",
+ "state": "Just started: Claude Code has read the billing importer file and is about to make the changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with billing_importer.py, add structured logging, and remove the print calls."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging approach or library to use for the structured logging is not stated.",
+  "Whether other files in the billing importer also contain print calls is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the billing importer with structured logging, then run its tests.",
+ "people_and_names": [
+  "billing importer",
+  "billing_importer.py"
+ ]
+}

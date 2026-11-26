@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the dispatch cache and remove the print calls.",
+ "state": "Done per Claude Code: the change is in the dispatch cache module and all 14 tests pass. The owner has not yet confirmed or reviewed it.",
+ "decisions": [
+  "Owner directed starting with the dispatch cache module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner can review the change; no further work is pending.",
+ "people_and_names": [
+  "dispatch cache",
+  "kiln",
+  "14 tests"
+ ]
+}

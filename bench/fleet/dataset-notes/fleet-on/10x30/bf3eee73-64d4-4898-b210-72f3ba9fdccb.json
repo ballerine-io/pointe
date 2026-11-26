@@ -1,0 +1,19 @@
+{
+ "goal": "Make the banner ledger safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the banner ledger is done and all 14 tests pass. The owner has not yet confirmed it, and nothing beyond the reported tests is recorded.",
+ "decisions": [
+  "Owner directed starting with the banner ledger script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "No record of a test running the ledger twice with identical input; only the 14 passing tests are reported."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that running the ledger twice with the same input produces no duplicate entries.",
+ "people_and_names": [
+  "iris",
+  "banner ledger"
+ ]
+}

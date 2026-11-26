@@ -1,0 +1,17 @@
+{
+ "goal": "Make the dispatch sampler safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the sampler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What exactly makes a second run unsafe is not yet identified",
+  "Whether the existing tests cover running twice with the same input"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the dispatch sampler for repeat-run safety, then runs its tests, ideally adding a test that runs it twice with the same input.",
+ "people_and_names": [
+  "dispatch sampler"
+ ]
+}

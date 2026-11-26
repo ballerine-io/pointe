@@ -1,0 +1,18 @@
+{
+ "goal": "Split the billing webhook into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the billing webhook module and all 14 tests pass. Not independently verified beyond Claude Code's own report.",
+ "decisions": [
+  "Owner asked to split the billing webhook into a reader and a writer with a clear interface, starting with the billing webhook module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change and decides whether anything beyond the initial file needs splitting.",
+ "people_and_names": [
+  "juniper",
+  "billing webhook",
+  "14 tests"
+ ]
+}

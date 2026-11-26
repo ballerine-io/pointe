@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the voucher indexer to the new schema without downtime.",
+ "state": "Just started: Claude Code has read the voucher indexer and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner requires the migration to happen without downtime (stated constraint, stays until lifted).",
+  "Owner chose to start with the voucher indexer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the indexer must change is not yet recorded.",
+  "How the no-downtime requirement will be met (migration approach) is not yet decided.",
+  "Test results for the indexer changes are pending."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the indexer changes and run its tests, then review the results against the no-downtime requirement.",
+ "people_and_names": [
+  "voucher indexer",
+  "nettle (session name)"
+ ]
+}

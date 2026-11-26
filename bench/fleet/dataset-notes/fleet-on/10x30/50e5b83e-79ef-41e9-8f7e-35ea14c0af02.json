@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the booking indexer to the new schema without downtime.",
+ "state": "Claude Code reports the booking indexer change is done and all 14 tests pass. Whether it was deployed or tested for zero downtime is not recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Zero-downtime behavior of the migration is not confirmed by the record; only the 14 tests are reported as passing.",
+  "Deployment status is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check how the migration will be rolled out without downtime and whether it has been deployed.",
+ "people_and_names": [
+  "booking indexer",
+  "new schema",
+  "14 tests"
+ ]
+}

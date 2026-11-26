@@ -1,0 +1,17 @@
+{
+ "goal": "Add retries with backoff to the delivery importer and cover them with tests.",
+ "state": "Just started: Claude has read the importer file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Which retry and backoff parameters to use (attempt count, delays) is not specified",
+  "Which tests exist and how retry behavior will be tested is not yet known"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the delivery importer, then write and run tests covering them.",
+ "people_and_names": [
+  "delivery importer"
+ ]
+}

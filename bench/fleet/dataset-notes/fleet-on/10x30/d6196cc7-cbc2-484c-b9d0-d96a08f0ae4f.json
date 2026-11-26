@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the catalog watchdog to the new schema without downtime.",
+ "state": "Just started: Claude Code has read the watchdog's main file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner: the migration must happen without downtime (a standing constraint).",
+  "Owner: start with the catalog watchdog's main file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema changes and how the watchdog must adapt to it.",
+  "How to keep the watchdog running during the migration, so far unspecified.",
+  "Whether its tests pass after the change."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the watchdog for the new schema and runs its tests.",
+ "people_and_names": [
+  "pulley",
+  "catalog watchdog"
+ ]
+}

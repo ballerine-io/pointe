@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the quota indexer and cover them with tests.",
+ "state": "Just started. Claude Code has read the quota indexer module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, which errors to retry) have not been specified or chosen.",
+  "Tests for the retry behavior still need to be written and run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code implements retries with backoff in the quota indexer, then writes and runs tests for them.",
+ "people_and_names": [
+  "quota indexer",
+  "kite"
+ ]
+}

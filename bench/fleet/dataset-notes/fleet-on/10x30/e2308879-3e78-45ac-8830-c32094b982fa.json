@@ -1,0 +1,17 @@
+{
+ "goal": "Make the tenant sampler safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the tenant sampler file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What exactly makes a second run with the same input unsafe is not yet identified.",
+  "Whether the existing tests cover running twice is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the tenant sampler so a repeat run with identical input has no extra effect, then run its tests.",
+ "people_and_names": [
+  "tenant sampler"
+ ]
+}

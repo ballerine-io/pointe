@@ -1,0 +1,20 @@
+{
+ "goal": "Split the wishlist validator into a separate reader and writer with a clear interface.",
+ "state": "Just started: Claude has read the wishlist validator file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the wishlist validator into a reader and a writer with a clear interface, starting with the wishlist validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the validator's tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the split in the wishlist validator and runs its tests.",
+ "people_and_names": [
+  "marmot",
+  "wishlist validator"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Make the catalog archive safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude Code has read the catalog archive script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the archive currently behaves when run twice with the same input is not yet established.",
+  "Whether the existing tests cover a repeat run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the catalog archive so a repeat run with the same input has no extra effect, then run its tests.",
+ "people_and_names": [
+  "bobbin",
+  "catalog_archive.py"
+ ]
+}

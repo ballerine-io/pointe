@@ -1,0 +1,16 @@
+{
+ "goal": "Make the tenant throttle safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the tenant throttle is done and all 14 tests pass. This is Claude's own report; nothing in the record shows independent verification or a deployment.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that running the throttle twice with the same input gives the same result, since the record only shows the 14 tests passing.",
+ "people_and_names": [
+  "rook",
+  "tenant throttle",
+  "14 tests"
+ ]
+}

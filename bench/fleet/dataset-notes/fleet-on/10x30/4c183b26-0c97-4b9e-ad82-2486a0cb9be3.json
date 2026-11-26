@@ -1,0 +1,21 @@
+{
+ "goal": "Add structured logging to the survey ledger and remove its print calls.",
+ "state": "Just started. Claude Code has read the survey ledger module and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner directed starting with the survey ledger module, adding structured logging and removing print calls."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging format or library to use for structured logging is not specified.",
+  "Whether print calls exist outside the survey ledger module is not yet known.",
+  "Tests have not been run yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code replaces the print calls in the survey ledger with structured logging, then runs its tests.",
+ "people_and_names": [
+  "bayou",
+  "survey ledger"
+ ]
+}

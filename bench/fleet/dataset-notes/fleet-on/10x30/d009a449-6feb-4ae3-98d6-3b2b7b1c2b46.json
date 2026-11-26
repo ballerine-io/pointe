@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the pricing queue to the new schema without downtime.",
+ "state": "Just started. Claude Code has read the pricing queue module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime (a standing constraint).",
+  "Owner directed starting with the pricing queue module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the zero-downtime migration will be done is not yet described.",
+  "Test results for the pricing queue are not yet available."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the pricing queue changes and run its tests, then check that the approach keeps the queue running during the migration.",
+ "people_and_names": [
+  "pricing queue",
+  "new schema"
+ ]
+}

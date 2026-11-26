@@ -1,0 +1,18 @@
+{
+ "goal": "Migrate the tariff notifier to the new schema without downtime.",
+ "state": "Claude Code reports the change in the tariff notifier is done and all 14 tests pass. No deployment or downtime check is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration was verified as zero-downtime is not recorded; only the 14 tests are mentioned.",
+  "Whether the change has been deployed is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime requirement was verified and plan the rollout of the change.",
+ "people_and_names": [
+  "tariff notifier",
+  "knoll"
+ ]
+}

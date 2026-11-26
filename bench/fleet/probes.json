@@ -1,0 +1,9 @@
+{
+ "version": "fleet-probes-0.1",
+ "note": "Probes are typed after a run's 60 frozen turns, are not part of the frozen dataset, and are in no bar. Written 2026-11-26, after the first runs were read.",
+ "probes": [
+  {"id": "sent-recall", "text": "What did I send to {name}?",
+   "about": "the session that received the run's first delivery, by the name the voice gives it",
+   "rule": "recalled: the reply has at least one word of five letters or more from that first delivered request (its relay prefix left out), and nothing was sent"}
+ ]
+}

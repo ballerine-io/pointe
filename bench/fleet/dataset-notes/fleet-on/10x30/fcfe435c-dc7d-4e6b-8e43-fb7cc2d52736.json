@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the billing notifier to the new schema without downtime.",
+ "state": "Claude Code reports the billing notifier change is done and all 14 tests pass. Whether the migration was deployed or run without downtime is not recorded.",
+ "decisions": [
+  "Owner directed starting with the billing notifier file, and the migration must be done without downtime (a standing constraint)."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Zero-downtime behavior was not verified in the record; only the 14 tests are reported passing.",
+  "Deployment and rollout of the change are not mentioned."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Verify the zero-downtime requirement and plan the rollout before deploying.",
+ "people_and_names": [
+  "billing notifier",
+  "dana-rig",
+  "14 tests"
+ ]
+}

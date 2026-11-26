@@ -1,0 +1,17 @@
+{
+ "goal": "Split the consent scheduler into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split in the consent scheduler is done and all 14 tests pass. This is Claude's report only; the owner has not confirmed it.",
+ "decisions": [
+  "Owner asked to split the consent scheduler into a reader and a writer with a clear interface, starting with the scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change to confirm the reader/writer interface is what they wanted.",
+ "people_and_names": [
+  "arroyo",
+  "consent scheduler"
+ ]
+}

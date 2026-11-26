@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the roster cache to the new schema without downtime.",
+ "state": "Just started. Claude Code has read the roster cache module and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime, and to start with the roster cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the zero-downtime approach will work are not yet recorded.",
+  "Test results for the roster cache are not yet available."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the roster cache change and run its tests, then review the results for downtime risk.",
+ "people_and_names": [
+  "roster cache",
+  "egret"
+ ]
+}

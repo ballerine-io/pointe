@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the dispatch queue's cold start time by half.",
+ "state": "Just starting. Claude has read the dispatch queue module and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the dispatch queue module to halve cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start baseline is and how it will be measured.",
+  "Which changes will actually reduce cold start time.",
+  "Whether the dispatch queue tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to set a baseline, then make changes in the dispatch queue and run its tests.",
+ "people_and_names": [
+  "dispatch queue",
+  "hyena"
+ ]
+}

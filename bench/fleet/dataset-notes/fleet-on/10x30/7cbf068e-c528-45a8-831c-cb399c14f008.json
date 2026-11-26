@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the wishlist queue's cold start time by half.",
+ "state": "Just started. Claude Code has read the wishlist queue module and is about to change it and run its tests. No changes, measurements, or test results yet.",
+ "decisions": [
+  "Owner directed starting with the wishlist queue module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is; no baseline recorded yet.",
+  "What is causing the slow cold start.",
+  "Whether the wishlist queue tests pass after the change."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the wishlist queue module and run its tests.",
+ "people_and_names": [
+  "wishlist queue",
+  "pavilion"
+ ]
+}

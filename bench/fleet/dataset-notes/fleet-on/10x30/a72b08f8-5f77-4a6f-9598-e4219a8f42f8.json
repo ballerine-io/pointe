@@ -1,0 +1,16 @@
+{
+ "goal": "Make the booking migration safe to run twice with the same input.",
+ "state": "Claude Code reports the change to the booking migration is done and all 14 tests pass. Nothing is reported as blocked or failing.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm idempotency by running the migration twice on the same input and checking that the results match; the record only shows the 14 tests passing.",
+ "people_and_names": [
+  "booking migration",
+  "booking_migration.py",
+  "14 tests"
+ ]
+}

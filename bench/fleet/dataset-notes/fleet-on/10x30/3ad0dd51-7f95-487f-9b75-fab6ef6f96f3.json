@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the returns sampler's cold start time by half.",
+ "state": "Claude reports the change to the returns sampler is done and all 14 tests pass. The record does not show a measured cold start time, so whether it was actually halved is unconfirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually cut by half has not been measured in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after the change to confirm the halving.",
+ "people_and_names": [
+  "radish",
+  "returns sampler"
+ ]
+}

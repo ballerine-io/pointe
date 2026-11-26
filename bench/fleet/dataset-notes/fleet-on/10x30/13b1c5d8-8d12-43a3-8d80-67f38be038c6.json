@@ -1,0 +1,18 @@
+{
+ "goal": "Move the profile queue off the deprecated client library, starting with the profile queue module.",
+ "state": "Claude has read the profile queue module and not yet changed anything on record. Two tests already fail before any change.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether to fix the two pre-existing failing tests in this work or leave them",
+  "Which replacement for the deprecated client library to migrate to is not stated in the record"
+ ],
+ "waiting_on_user": "Decide whether Claude should fix the two tests that were already failing before the change, or leave them alone.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's answer on the two failing tests, then begin the migration of the profile queue module.",
+ "people_and_names": [
+  "jackal",
+  "profile queue"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the returns validator to the new schema without downtime.",
+ "state": "Just started: Claude has read the returns validator file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime, starting with the returns validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the migration will avoid downtime is not yet specified.",
+  "Tests for the returns validator have not been run yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the returns validator for the new schema and run its tests.",
+ "people_and_names": [
+  "returns validator",
+  "yarrow"
+ ]
+}

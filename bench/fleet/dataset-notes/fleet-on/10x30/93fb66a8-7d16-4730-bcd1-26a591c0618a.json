@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the invoice digest's cold start time by half.",
+ "state": "Just started. Claude read the invoice digest script and is about to change it and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner decided to start with the invoice digest script, with the target of halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "What is causing the slow cold start",
+  "Whether the tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time, then make the change to the invoice digest and run its tests.",
+ "people_and_names": [
+  "invoice digest"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Move the tenant resolver off the deprecated client library.",
+ "state": "The change to the tenant resolver is done and all 14 tests pass, according to Claude Code. The owner has not yet confirmed or reviewed it.",
+ "decisions": [
+  "Owner decided to start the migration with the tenant resolver file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other parts of the codebase still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change, then decide whether to migrate the remaining users of the deprecated client library.",
+ "people_and_names": [
+  "horizon",
+  "tenant resolver"
+ ]
+}

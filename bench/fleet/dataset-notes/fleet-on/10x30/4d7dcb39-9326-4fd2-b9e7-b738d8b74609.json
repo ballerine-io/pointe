@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the voucher ledger and remove the print calls, starting with the main ledger module.",
+ "state": "Done: the change is made in the voucher ledger module and all 14 tests pass, per Claude Code's report.",
+ "decisions": [
+  "Owner directed starting with voucher_ledger.py."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "voucher ledger",
+  "voucher_ledger.py",
+  "14 tests"
+ ]
+}

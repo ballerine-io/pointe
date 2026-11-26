@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the invoice migration, covered by tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made in the invoice migration and all 14 tests pass. Not stated whether it has been deployed or run against real data.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether to merge or run the migration.",
+ "people_and_names": [
+  "invoice migration",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the tariff archive and remove the print calls.",
+ "state": "Just started: Claude Code has read the main tariff archive module and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner asked to start with the tariff archive module, adding structured logging and removing print calls."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other modules in the tariff archive also have print calls to convert after the first file.",
+  "Which logging format or library to use has not been stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code replaces the print calls in the tariff archive module with structured logging, then runs its tests.",
+ "people_and_names": [
+  "castle",
+  "tariff archive"
+ ]
+}

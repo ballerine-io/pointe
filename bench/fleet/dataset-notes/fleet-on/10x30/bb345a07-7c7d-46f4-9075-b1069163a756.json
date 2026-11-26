@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the audit ledger's cold start time by half, starting with audit_ledger.py.",
+ "state": "Claude Code reports the change to the audit ledger is done and all 14 tests pass. No measurement of the cold start improvement is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually halved is not stated in the record; no before/after numbers given."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code for before and after cold start measurements to confirm the halving target was met.",
+ "people_and_names": [
+  "audit ledger",
+  "audit_ledger.py",
+  "14 tests"
+ ]
+}

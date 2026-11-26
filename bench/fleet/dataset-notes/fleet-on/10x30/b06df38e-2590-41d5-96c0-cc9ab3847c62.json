@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the shipment validator to the new schema without downtime.",
+ "state": "Just started: Claude Code has read the shipment validator file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime, and to start with the shipment validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the validator differs from it is not yet recorded.",
+  "How the no-downtime requirement will be met (e.g. staged rollout) is not yet specified.",
+  "Test results for the validator changes are pending."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the validator changes for the new schema and run its tests.",
+ "people_and_names": [
+  "shipment validator"
+ ]
+}

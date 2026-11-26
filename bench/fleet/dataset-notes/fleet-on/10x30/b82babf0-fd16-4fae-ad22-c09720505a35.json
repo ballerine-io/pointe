@@ -1,0 +1,17 @@
+{
+ "goal": "Split the warranty parser into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the warranty parser and all 14 tests pass. This is Claude's own report; no independent check is recorded.",
+ "decisions": [
+  "Owner asked to split the warranty parser into a reader and a writer with a clear interface, starting with the main parser module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner may review the resulting reader/writer interface, or move on to the next piece of work.",
+ "people_and_names": [
+  "warranty parser",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the survey notifier and cover them with tests.",
+ "state": "Done: the retry-with-backoff change is in the survey notifier and all 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "survey notifier",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Make the shipment dashboard safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the shipment dashboard is done and all 14 tests pass. This is Claude Code's own report; nothing in the record shows the owner verifying it or testing a double run specifically.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests actually cover running twice with the same input is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test or manual check runs the dashboard twice with identical input and gets the same result.",
+ "people_and_names": [
+  "russet",
+  "shipment dashboard",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Move the dispatch importer off the deprecated client library, starting with dispatch_importer.py.",
+ "state": "Claude Code reports the dispatch importer change is done in dispatch_importer.py and all 14 tests pass. Only Claude Code's report supports this; nothing else was checked or deployed per the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether other files beyond dispatch_importer.py still use the deprecated client library (the owner said to start there)."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether to continue migrating other files off the deprecated library.",
+ "people_and_names": [
+  "dispatch importer",
+  "dispatch_importer.py"
+ ]
+}

@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the loyalty archive off the deprecated client library, starting with the loyalty archive module.",
+ "state": "Just started. Claude Code has read the loyalty archive module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to move the loyalty archive off the deprecated client library, starting with the loyalty archive module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library or API to use is not stated in the record.",
+  "Whether other files beyond the loyalty archive module also use the deprecated library is unknown.",
+  "Test results for the loyalty archive after the change."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the loyalty archive module to the replacement library and runs its tests.",
+ "people_and_names": [
+  "loyalty archive",
+  "deprecated client library"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Split the ticket sampler into a reader and a writer with a clear interface.",
+ "state": "Just started: Claude Code has read the ticket sampler file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the ticket sampler into a reader and a writer with a clear interface, starting with the ticket sampler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the reader/writer split in the ticket sampler and runs its tests.",
+ "people_and_names": [
+  "ticket sampler"
+ ]
+}

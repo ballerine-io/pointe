@@ -1,0 +1,17 @@
+{
+ "goal": "Split the booking archive into a separate reader and writer with a clear interface, starting with the booking archive module.",
+ "state": "Claude Code reports the split is done in the booking archive module and all 14 tests pass. This is Claude Code's own report; nothing in the record shows the owner has reviewed it.",
+ "decisions": [
+  "Owner asked to split the booking archive into a reader and a writer with a clear interface, starting with the booking archive module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the reader/writer split and decides whether to continue beyond the first module.",
+ "people_and_names": [
+  "booking_archive.py",
+  "14 tests"
+ ]
+}

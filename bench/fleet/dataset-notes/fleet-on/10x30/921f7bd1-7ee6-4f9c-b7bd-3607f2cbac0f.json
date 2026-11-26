@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the survey validator to the new schema without downtime.",
+ "state": "Just starting: Claude Code has read the survey validator file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner chose to start the migration with the survey validator file.",
+  "Constraint from owner: the migration must be done without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the validator must change is not yet recorded.",
+  "How the no-downtime requirement will be met (rollout approach) has not been discussed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the validator change and run its tests, then review the results against the no-downtime requirement.",
+ "people_and_names": [
+  "survey validator",
+  "mocha"
+ ]
+}

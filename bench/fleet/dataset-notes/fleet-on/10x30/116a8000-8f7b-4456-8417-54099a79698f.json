@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the loyalty webhook and remove its print calls.",
+ "state": "Just started: Claude has read the loyalty webhook file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner asked to start with the loyalty webhook file, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging approach or library to use is not stated.",
+  "Whether other files also have print calls is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the loyalty webhook to use structured logging, removes the prints, and runs its tests.",
+ "people_and_names": [
+  "rampart",
+  "loyalty webhook"
+ ]
+}

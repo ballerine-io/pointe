@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the quota queue's cold start time by half.",
+ "state": "Just starting. Claude has read the quota queue module and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the quota queue module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "Which parts of the quota queue cause the slow cold start",
+  "How the halving will be measured"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the quota queue and run its tests.",
+ "people_and_names": [
+  "quota queue",
+  "garlic"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Move the warranty cache off the deprecated client library.",
+ "state": "Done for the first file: the change in warranty_cache.py is complete and all 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether other files besides warranty_cache.py still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether any other code still depends on the deprecated client library and migrate it if so.",
+ "people_and_names": [
+  "warranty cache",
+  "warranty_cache.py",
+  "deprecated client library"
+ ]
+}

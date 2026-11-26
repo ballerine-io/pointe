@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the coupon throttle and cover them with tests.",
+ "state": "Done: the retry-with-backoff change is made and all 14 tests pass, per Claude Code's report. Nothing was reported as untested or undeployed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "tamale (session name)",
+  "coupon throttle"
+ ]
+}

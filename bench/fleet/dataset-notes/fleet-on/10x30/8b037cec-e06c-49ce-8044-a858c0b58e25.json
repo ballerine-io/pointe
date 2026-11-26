@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the payroll importer to the new schema without downtime.",
+ "state": "The change to the payroll importer is reported done by Claude Code, and all 14 tests pass. Whether it was deployed or checked for downtime is not stated.",
+ "decisions": [
+  "Owner: migrate the payroll importer to the new schema without downtime, starting with payroll_importer.py. No downtime is a standing constraint."
+ ],
+ "ruled_out": [],
+ "open": [
+  "The record does not show that the no-downtime requirement was verified or that the change was deployed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the no-downtime requirement was handled, and whether the change is ready to deploy.",
+ "people_and_names": [
+  "payroll importer",
+  "payroll_importer.py",
+  "nickel"
+ ]
+}

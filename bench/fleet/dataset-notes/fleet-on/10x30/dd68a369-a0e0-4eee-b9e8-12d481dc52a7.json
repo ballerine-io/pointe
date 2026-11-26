@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the currency scheduler and remove its print calls.",
+ "state": "Done: Claude Code reports the change is made in the currency scheduler and all 14 tests pass. Not independently verified beyond that report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "shuttle",
+  "currency scheduler"
+ ]
+}

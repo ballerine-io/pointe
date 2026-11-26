@@ -1,0 +1,17 @@
+{
+ "goal": "Split the banner scheduler into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the banner scheduler module and all 14 tests pass. The owner has not yet confirmed or reviewed it.",
+ "decisions": [
+  "Owner asked to start the split with the banner scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the reader/writer interface, or moves on to the next piece of the split.",
+ "people_and_names": [
+  "banner scheduler",
+  "14 tests"
+ ]
+}

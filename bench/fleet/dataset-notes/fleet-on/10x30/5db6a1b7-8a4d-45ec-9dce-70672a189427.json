@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the invoice archive to the new schema without downtime.",
+ "state": "Claude Code reports the change to the invoice archive module is done and all 14 tests pass. No evidence in the record of a deployment or an actual zero-downtime migration run.",
+ "decisions": [
+  "Owner directed starting the migration with the invoice archive module.",
+  "Constraint from owner: the migration must happen without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was verified; the record only shows unit tests passing.",
+  "Whether the migration has been run or deployed against the real archive; not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code how the no-downtime requirement was handled and whether the migration has been run or only the code changed.",
+ "people_and_names": [
+  "invoice archive",
+  "invoice_archive.py",
+  "14 tests"
+ ]
+}

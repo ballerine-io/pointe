@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the banner webhook drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the banner webhook and all 14 tests pass. Root cause and load behavior were not described in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Whether the fix was verified under real load is not stated; only the 14 tests are reported passing"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was tested under load.",
+ "people_and_names": [
+  "banner webhook"
+ ]
+}

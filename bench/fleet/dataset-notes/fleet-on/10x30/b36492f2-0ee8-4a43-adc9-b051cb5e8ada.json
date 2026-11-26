@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the dispatch resolver and remove its print calls.",
+ "state": "Just started. Claude has read the dispatch resolver file and is about to make the changes and run its tests. Nothing changed or tested yet.",
+ "decisions": [
+  "Owner decided to start with the dispatch resolver file, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the dispatch resolver tests pass after the change",
+  "Whether other files besides the dispatch resolver also use print calls"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the dispatch resolver to use structured logging, removes the print calls, then runs its tests.",
+ "people_and_names": [
+  "sprocket",
+  "dispatch resolver"
+ ]
+}

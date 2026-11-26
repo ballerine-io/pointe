@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the quota resolver, covered by tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made and all 14 tests pass. No independent verification is recorded beyond Claude's report.",
+ "decisions": [
+  "Owner asked to start with the quota resolver module and add retries with backoff plus tests."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "omer-lab",
+  "quota resolver",
+  "14 tests"
+ ]
+}

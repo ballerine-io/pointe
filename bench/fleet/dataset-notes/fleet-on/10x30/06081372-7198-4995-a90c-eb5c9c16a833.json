@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the voucher export to the new schema without downtime.",
+ "state": "Claude Code reports the voucher export change is done and all 14 tests pass. Zero-downtime behavior and deployment are not mentioned in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration works without downtime was not reported as verified.",
+  "Whether the change has been deployed is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm the no-downtime rollout plan and check whether anything beyond the voucher export needs migrating.",
+ "people_and_names": [
+  "jupiter",
+  "voucher export",
+  "new schema"
+ ]
+}

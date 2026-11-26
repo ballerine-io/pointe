@@ -1,0 +1,20 @@
+{
+ "goal": "Split the roster validator into a separate reader and writer with a clear interface between them.",
+ "state": "Just starting: Claude has read the roster validator and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the roster validator into a reader and a writer with a clear interface, starting with the roster validator module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the interface between reader and writer should look like is not yet defined.",
+  "Whether the existing roster validator tests pass before and after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the split in the roster validator and runs its tests.",
+ "people_and_names": [
+  "outpost",
+  "roster validator"
+ ]
+}

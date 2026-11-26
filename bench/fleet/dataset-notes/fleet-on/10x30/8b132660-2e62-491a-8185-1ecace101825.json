@@ -1,0 +1,18 @@
+{
+ "goal": "Make the quota ledger safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the quota ledger is done and all 14 tests pass. No independent verification is recorded, and it is not stated whether a double-run with the same input was specifically tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Not stated whether the 14 tests include a run-twice-with-same-input case"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test covers running the ledger twice on identical input, then review the change.",
+ "people_and_names": [
+  "okra",
+  "quota ledger",
+  "14 tests"
+ ]
+}

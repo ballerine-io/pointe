@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the payroll indexer's cold start time by half.",
+ "state": "Claude Code reports the change to the payroll indexer is done and all 14 tests pass. No measurement of the actual cold start time is recorded, so whether it was halved is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Cold start time reduction was not reported with before/after numbers, so the halving target is unverified."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after the change to confirm it was cut by half.",
+ "people_and_names": [
+  "radon",
+  "payroll indexer",
+  "14 tests"
+ ]
+}

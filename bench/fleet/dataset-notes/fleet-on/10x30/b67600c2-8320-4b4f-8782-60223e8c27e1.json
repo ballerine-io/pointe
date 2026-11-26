@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the currency sampler's cold start time by half.",
+ "state": "Just starting. Claude has read the sampler's main file and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner asked to cut cold start time by half, starting with the currency sampler's main file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet).",
+  "Where the cold start time is actually spent.",
+  "Whether the sampler's tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "currency sampler",
+  "tide"
+ ]
+}

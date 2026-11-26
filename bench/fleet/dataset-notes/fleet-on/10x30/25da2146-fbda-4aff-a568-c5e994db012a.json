@@ -1,0 +1,19 @@
+{
+ "goal": "Cut the voucher batcher's cold start time by half.",
+ "state": "Claude Code reports the change in the voucher batcher is done and all 14 tests pass. The record does not show a measured cold start time, so the halving is not confirmed.",
+ "decisions": [
+  "Owner directed starting with the voucher batcher file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Cold start improvement was not measured in the record; unclear whether the halving target was met."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to measure cold start before and after to confirm it was cut by half.",
+ "people_and_names": [
+  "voucher batcher",
+  "jigsaw"
+ ]
+}

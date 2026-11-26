@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the survey resolver to the new schema without downtime.",
+ "state": "The change to the survey resolver is done and all 14 tests pass, per Claude Code. Deployment and a downtime check were not mentioned.",
+ "decisions": [
+  "Owner directed starting the migration with the survey resolver module without downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was verified is not recorded; only the unit tests are reported.",
+  "Deployment status of the change is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime requirement will be checked and whether the change is ready to deploy.",
+ "people_and_names": [
+  "treadle",
+  "survey resolver"
+ ]
+}

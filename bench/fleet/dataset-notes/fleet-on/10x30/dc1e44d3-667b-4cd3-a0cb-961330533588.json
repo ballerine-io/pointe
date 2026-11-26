@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the signup notifier's cold start time by half.",
+ "state": "Just started. Claude has read the signup notifier source and is about to change it and run its tests. No changes, measurements or test results yet.",
+ "decisions": [
+  "Owner directed starting with the signup notifier file to halve cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "What is causing the slow cold start",
+  "Whether the tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then change the notifier and run its tests.",
+ "people_and_names": [
+  "signup notifier"
+ ]
+}

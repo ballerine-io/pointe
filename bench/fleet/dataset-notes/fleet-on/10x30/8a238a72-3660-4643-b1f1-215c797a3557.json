@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the consent cache drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the consent cache module and is about to change it and run its tests. No root cause identified yet, no fix made or tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet found",
+  "Fix not yet written or tested",
+  "Not yet verified under load, only the existing tests are planned"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code identifies the cause of the dropped records, makes the change, and runs the consent cache tests.",
+ "people_and_names": [
+  "tapir",
+  "consent cache"
+ ]
+}

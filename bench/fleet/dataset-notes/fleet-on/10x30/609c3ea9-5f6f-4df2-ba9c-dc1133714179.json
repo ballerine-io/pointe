@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the audit parser and remove the existing print calls, starting with the audit parser module.",
+ "state": "Just started. Claude has read the audit parser module but has not made any changes. It is blocked on a choice between the v2 and v1 interface.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Which interface to target: v2 or keep v1",
+  "Which logging approach or library to use for the structured logging (not yet discussed)",
+  "Whether other modules besides the audit parser need the same treatment after the first one"
+ ],
+ "waiting_on_user": "Choose whether Claude should write the structured logging against the v2 interface or keep v1.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner picks v2 or v1, then Claude replaces the print calls in the audit parser with structured logging.",
+ "people_and_names": [
+  "audit parser",
+  "v1 interface",
+  "v2 interface"
+ ]
+}

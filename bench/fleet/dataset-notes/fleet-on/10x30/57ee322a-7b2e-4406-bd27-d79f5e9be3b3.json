@@ -1,0 +1,18 @@
+{
+ "goal": "Make the dispatch archive safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the archive script and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the archive should detect and skip input it has already processed is not yet decided.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the archive to be idempotent, then runs its tests, including a run-twice check.",
+ "people_and_names": [
+  "dispatch archive",
+  "dispatch_archive.py"
+ ]
+}

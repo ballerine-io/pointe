@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the consent batcher to the new schema without downtime.",
+ "state": "Just started. Claude has read the consent batcher file and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner: migrate the consent batcher to the new schema with no downtime, starting with the consent batcher file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the migration will avoid downtime is not yet described.",
+  "Whether the batcher's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the consent batcher for the new schema and runs its tests.",
+ "people_and_names": [
+  "consent batcher"
+ ]
+}

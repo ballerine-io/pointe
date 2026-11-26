@@ -1,0 +1,15 @@
+{
+ "goal": "Move the tenant notifier off the deprecated client library, starting with tenant_notifier.py.",
+ "state": "Claude Code reports the change to the tenant notifier is done and all 14 tests pass. This is Claude's own report; no independent check is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "tenant notifier",
+  "tenant_notifier.py"
+ ]
+}

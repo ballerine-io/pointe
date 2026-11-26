@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the tariff export and remove the print calls.",
+ "state": "Done: the logging change is in the tariff export module and all 14 tests pass. Claude Code reports nothing is waiting on the owner.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "tariff_export.py",
+  "14 tests"
+ ]
+}

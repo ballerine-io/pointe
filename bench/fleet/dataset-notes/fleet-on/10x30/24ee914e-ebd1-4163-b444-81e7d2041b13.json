@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the catalog migration drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the catalog migration code and all 14 tests pass. The root cause and whether load behavior was tested are not stated in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The root cause of the dropped records was not stated in the record.",
+  "It is not stated whether the fix was verified under real load, only that 14 tests pass."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "catalog migration"
+ ]
+}

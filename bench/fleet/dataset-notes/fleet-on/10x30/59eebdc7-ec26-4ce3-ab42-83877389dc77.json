@@ -1,0 +1,17 @@
+{
+ "goal": "Migrate the receipt notifier to the new schema without downtime.",
+ "state": "Claude Code reports the change to the receipt notifier is done and all 14 tests pass. No deployment or downtime check is mentioned in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was verified; the record only shows tests passing, not a rollout or live check",
+  "Whether anything beyond the receipt notifier needs migrating; the owner said to start there"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the change will be rolled out without downtime, and decide whether to continue migrating anything beyond the receipt notifier.",
+ "people_and_names": [
+  "receipt notifier"
+ ]
+}

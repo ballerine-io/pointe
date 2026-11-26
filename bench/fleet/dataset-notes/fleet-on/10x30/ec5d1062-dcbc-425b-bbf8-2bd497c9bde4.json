@@ -1,0 +1,20 @@
+{
+ "goal": "Move the coupon ledger off the deprecated client library, starting with coupon_ledger.py.",
+ "state": "The change to coupon_ledger.py is done and all 14 tests pass, per Claude Code. Nothing is reported as pending.",
+ "decisions": [
+  "Owner decided to start the migration with coupon_ledger.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other files beyond coupon_ledger.py still use the deprecated client library is not recorded."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether other modules still depend on the deprecated client library and continue the migration there if so.",
+ "people_and_names": [
+  "coupon ledger",
+  "coupon_ledger.py",
+  "zipper"
+ ]
+}

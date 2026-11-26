@@ -1,0 +1,19 @@
+{
+ "goal": "Move the ticket scheduler off the deprecated client library, starting with the scheduler module.",
+ "state": "Claude Code reports the scheduler change is done and all 14 tests pass. This is Claude's own report; nothing in the record shows the owner has verified it or that it is deployed.",
+ "decisions": [
+  "Owner decided to start the migration with the ticket scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other parts of the codebase still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether to migrate the remaining modules off the deprecated client library.",
+ "people_and_names": [
+  "manor",
+  "ticket scheduler"
+ ]
+}

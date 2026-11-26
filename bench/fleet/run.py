@@ -257,6 +257,7 @@ class Launch:
         self.fleet = sim.FleetSim(self.described, self.root / "f", models, env, notes, checkout)
         self.watch: Watch | None = None
         self.renamed_turns: set[str] = set()
+        self.near_turns: set[str] = set()
         self.rows: list[dict] = []
         self.manifest = {"run": self.id, "what": what, "size": size, "arm": arm, "models": models,
                          "pointe": commit_of(checkout), "harness_commit": commit_of(ROOT)["commit"],
@@ -343,7 +344,7 @@ def turn_row(run: Launch, n: int, turn: dict, seed: int) -> dict:
     seen = {"deliveries": [], "calls": [], "said": []}
     row = {"kind": "turn", "run": run.id, "arm": run.arm, "size": run.size, "seed": seed, "order": n, "turn": turn["id"],
            "turn_kind": turn["kind"], "text": turn["text"], "expect": turn["expect"], "this_mac_holds": turn.get("this_mac_holds"),
-           "renamed_at_join": turn["id"] in run.renamed_turns,
+           "renamed_at_join": turn["id"] in run.renamed_turns, "near_name": turn["id"] in run.near_turns,
            "load_start": os.getloadavg()[0], "error": None}
     w.poll()
     t0 = time.time()
@@ -436,6 +437,13 @@ def cmd_turns(a) -> None:
             renamed = {sid for sid, s in by_id.items() if not (names.get(sid) == s["name"] or
                        (s["shared_name"] and str(names.get(sid, "")).startswith(s["name"] + " ")))}
             run.manifest["renamed_at_join"] = {by_id[sid]["name"] + " on " + by_id[sid]["machine"]: names.get(sid) for sid in sorted(renamed)}
+            # A turn that says the name of a session one letter from another session's name ("fennel", "funnel"): the
+            # voice's own rules may take one for the other. Marked, and scored with the renamed ones.
+            every = sorted({s["name"] for s in fleet["sessions"]})
+            near = {a for a in every for b in every if a != b and len(a) == len(b) and sum(x != y for x, y in zip(a, b)) == 1}
+            near_ids = {sid for sid, s in by_id.items() if s["name"] in near}
+            run.near_turns = {t["id"] for t in all_turns if t["kind"] in ("clear_name", "clear_machine_name", "ambiguous_name")
+                              and ({t["expect"].get("session"), *t["expect"].get("fits", [])} & near_ids)}
             run.renamed_turns = {t["id"] for t in all_turns
                                  if ({t["expect"].get("session"), *t["expect"].get("fits", [])} & renamed)
                                  or (t["kind"] in ("needs_me", "on_machine") and set(t["expect"]["sessions"]) & renamed)}
@@ -449,6 +457,8 @@ def cmd_turns(a) -> None:
                 print(f"  {n + 1:2}/{len(order)} {turn['id']:26} {score.outcome(row):8} {len(row['deliveries'])} sent, "
                       f"in {row['brain_input_tokens']}, needs {row['needs_tokens']}, first {row['first_token_secs']}, "
                       f"${run.run_spend():.3f}", flush=True)
+            if not error and not a.limit:
+                probe(run)
         except BaseException as e:
             error = f"{type(e).__name__}: {str(e)[:300]}".replace(str(Path.home()), "~")
             if not isinstance(e, Exception):
@@ -461,6 +471,27 @@ def cmd_turns(a) -> None:
                                "turn": turn["id"], "turn_kind": turn["kind"], "text": turn["text"], "expect": turn["expect"],
                                "error": f"not run: {error}"})
             run.close(error)
+
+
+def probe(run: Launch) -> None:
+    """After the frozen turns: does the voice still know what it sent first? Its own file and hash; in no bar."""
+    probes = HERE / "probes.json"
+    spec = json.loads(probes.read_text())["probes"][0]
+    first = next((d for r in run.rows if r["kind"] == "turn" for d in r.get("deliveries") or []), None)
+    if first is None:
+        return
+    name = run.manifest["names"].get(first["session"], "")
+    text = spec["text"].format(name=name)
+    row = turn_row(run, len(run.rows), {"id": spec["id"], "kind": "probe", "text": text, "expect": {"action": "answer", "sessions": [first["session"]]}}, 0)
+    import re
+
+    sent = re.sub(r"^\[[^\]]*\]\s*", "", first["text"])
+    words = {w.lower() for w in re.findall(r"[A-Za-z]{5,}", sent)}
+    said = " ".join(row.get("said") or []).lower()
+    row.update(kind="probe", probe=spec["id"], probes_sha256=hashlib.sha256(probes.read_bytes()).hexdigest(), first_sent=sent[:300],
+               recalled=bool(words) and any(w in said for w in words) and not row["deliveries"])
+    run.write(row)
+    print(f"  probe {spec['id']}: recalled {row['recalled']}: {said[:120]!r}", flush=True)
 
 
 def _role(setup_line: str, role: str) -> str:

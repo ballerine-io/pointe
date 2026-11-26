@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the voucher sampler and cover them with tests.",
+ "state": "Just started. Claude has read the voucher sampler source and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry parameters not specified: max attempts, backoff curve, which errors to retry",
+  "Whether existing tests pass before the change is not yet known"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the voucher sampler, then add tests and run them.",
+ "people_and_names": [
+  "voucher sampler",
+  "kelp"
+ ]
+}

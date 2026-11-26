@@ -1,0 +1,15 @@
+{
+ "goal": "Move the inventory indexer off the deprecated client library, starting with inventory_indexer.py.",
+ "state": "The change to the inventory indexer is done and all 14 tests pass, per Claude Code. Nothing is blocked.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "inventory indexer",
+  "14 tests"
+ ]
+}

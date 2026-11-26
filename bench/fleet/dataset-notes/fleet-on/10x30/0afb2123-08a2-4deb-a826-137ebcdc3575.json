@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the tariff scheduler's cold start time by half.",
+ "state": "Just started. Claude has read the tariff scheduler source and is about to make changes and run its tests. No changes, measurements, or test results yet.",
+ "decisions": [
+  "Owner directed starting with the tariff scheduler file, with a target of halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is; no baseline measured yet.",
+  "Where the cold start time goes; not yet identified.",
+  "Whether the tariff scheduler's tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the tariff scheduler and run its tests.",
+ "people_and_names": [
+  "tariff scheduler"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the ticket migration to the new schema without downtime.",
+ "state": "Just started. Claude Code has read the ticket migration script and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime, starting with the ticket migration script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how zero downtime will be achieved is not yet recorded.",
+  "Test results for the changed migration are not yet available."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the change to the ticket migration and run its tests, then review the results against the no-downtime requirement.",
+ "people_and_names": [
+  "ticket_migration.py"
+ ]
+}

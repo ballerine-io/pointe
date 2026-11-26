@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the delivery webhook drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the delivery webhook code and is about to change it and run its tests. No root cause found yet and no fix made or tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records dropping under load is not yet identified",
+  "Fix not yet written or tested",
+  "Not yet verified under load; only the existing tests are planned"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code identifies the cause of the dropped records in the delivery webhook, applies the fix, and runs its tests.",
+ "people_and_names": [
+  "delivery webhook"
+ ]
+}

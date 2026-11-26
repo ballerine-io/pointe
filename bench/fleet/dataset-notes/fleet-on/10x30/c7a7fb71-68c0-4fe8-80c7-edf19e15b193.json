@@ -1,0 +1,20 @@
+{
+ "goal": "Split the ticket indexer into a separate reader and writer with a clear interface.",
+ "state": "Just started: Claude read the ticket indexer file and is about to make changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the ticket indexer into a reader and a writer with a clear interface, starting with the ticket indexer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing indexer tests pass after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the ticket indexer to separate reader and writer, then runs its tests.",
+ "people_and_names": [
+  "raven",
+  "ticket indexer"
+ ]
+}

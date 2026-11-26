@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the inventory validator's cold start time by half.",
+ "state": "Just started. Claude has read the validator source and is about to change it and run its tests. No changes or measurements are recorded yet.",
+ "decisions": [
+  "Owner directed starting with the inventory validator module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What is the current cold start baseline time?",
+  "Which parts of startup account for most of the time?",
+  "Do the validator's tests pass after the change?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "banjo",
+  "inventory validator"
+ ]
+}

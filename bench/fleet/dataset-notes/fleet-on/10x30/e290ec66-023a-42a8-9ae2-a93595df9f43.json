@@ -1,0 +1,19 @@
+{
+ "goal": "Add retries with backoff to the dispatch migration and cover them with tests.",
+ "state": "Just started: Claude read the dispatch migration file and found two tests already failing before any change. No retry code or new tests are written yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether to fix the two pre-existing failing tests in this work or leave them",
+  "Which two tests fail, and why they fail, is not yet recorded",
+  "Retry and backoff design (attempt count, delays) not yet chosen"
+ ],
+ "waiting_on_user": "Decide whether Claude should fix the two tests that already fail before its change, or leave them alone.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Answer whether to fix or leave the two pre-existing failing tests, then Claude can start adding retries with backoff.",
+ "people_and_names": [
+  "spindle",
+  "dispatch migration"
+ ]
+}

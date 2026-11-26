@@ -1,0 +1,19 @@
+{
+ "goal": "Add structured logging to the wishlist parser and remove its print calls.",
+ "state": "Just started: Claude has read the wishlist parser file and is about to change it and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner chose to start with the wishlist parser file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the parser's tests pass after the change.",
+  "Whether other files besides the wishlist parser also contain print calls."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the wishlist parser with structured logging, then run its tests.",
+ "people_and_names": [
+  "wishlist parser"
+ ]
+}

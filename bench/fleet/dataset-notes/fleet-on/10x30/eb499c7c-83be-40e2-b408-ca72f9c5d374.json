@@ -1,0 +1,21 @@
+{
+ "goal": "Split the refund validator into a reader and a writer with a clear interface.",
+ "state": "Just started: Claude Code has read the refund validator file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the refund validator into a reader and a writer with a clear interface, starting with the refund validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the validator's tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the split and run the refund validator tests.",
+ "people_and_names": [
+  "refund validator",
+  "reader",
+  "writer"
+ ]
+}

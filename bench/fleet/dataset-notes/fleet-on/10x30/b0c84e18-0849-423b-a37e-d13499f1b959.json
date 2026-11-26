@@ -1,0 +1,17 @@
+{
+ "goal": "Add retries with backoff to the consent digest and cover them with tests.",
+ "state": "Just started. Claude has read the consent digest module and is about to make the change and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, which errors to retry) not yet specified or chosen",
+  "Tests for the retry behavior not yet written"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the consent digest, add tests, and run them.",
+ "people_and_names": [
+  "consent digest"
+ ]
+}

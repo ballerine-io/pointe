@@ -1,0 +1,21 @@
+{
+ "goal": "Split the catalog validator into a separate reader and writer with a clear interface between them.",
+ "state": "Just started. Claude Code has read the catalog validator file and is about to make the change and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner decided to split the catalog validator into a reader and a writer with a clear interface, starting with the catalog validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing catalog validator tests pass after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the split in the catalog validator and runs its tests.",
+ "people_and_names": [
+  "catalog validator",
+  "reader",
+  "writer"
+ ]
+}

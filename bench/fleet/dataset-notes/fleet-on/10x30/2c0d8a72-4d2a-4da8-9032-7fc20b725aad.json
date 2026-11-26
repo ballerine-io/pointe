@@ -1,0 +1,15 @@
+{
+ "goal": "Move the signup webhook off the deprecated client library.",
+ "state": "Done: the change is in the signup webhook file and all 14 tests pass, per Claude Code. Nothing was reported as untested or undeployed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "signup webhook",
+  "14 tests"
+ ]
+}

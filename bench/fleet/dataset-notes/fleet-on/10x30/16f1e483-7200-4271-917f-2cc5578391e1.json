@@ -1,0 +1,21 @@
+{
+ "goal": "Move the shipment batcher off the deprecated client library.",
+ "state": "Just started: Claude Code has read the shipment batcher file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the shipment batcher file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which client library replaces the deprecated one is not stated in the record.",
+  "Whether the batcher's tests pass after the change is unknown.",
+  "Other files that use the deprecated library have not been identified."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the shipment batcher to the new client library and runs its tests.",
+ "people_and_names": [
+  "weald",
+  "shipment batcher"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Split the booking batcher into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the booking batcher, with all 14 tests passing. This is Claude Code's report; the owner has not confirmed it.",
+ "decisions": [
+  "Owner asked to split the booking batcher into a reader and a writer with a clear interface, starting with the booking batcher module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the reader/writer split and its interface, then decides whether further work is needed.",
+ "people_and_names": [
+  "booking batcher",
+  "fennel",
+  "14 tests"
+ ]
+}

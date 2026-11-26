@@ -1,0 +1,18 @@
+{
+ "goal": "Make the inventory dashboard safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the inventory dashboard is done and all 14 tests pass. This is Claude's own report; nothing in the record shows the owner has verified it or that it was run twice with the same input.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether running twice with the same input was explicitly tested; only the 14 existing tests are reported passing."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm that a double run with identical input produces the same result, then review and accept the change.",
+ "people_and_names": [
+  "kazoo",
+  "inventory dashboard",
+  "14 tests"
+ ]
+}

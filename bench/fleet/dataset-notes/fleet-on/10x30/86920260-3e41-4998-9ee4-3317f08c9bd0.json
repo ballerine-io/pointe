@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the signup scheduler to the new schema without downtime.",
+ "state": "Just started. Claude has read the scheduler file and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner: migrate the signup scheduler to the new schema with no downtime, starting with the scheduler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the zero-downtime migration will be done is not yet specified.",
+  "Whether the scheduler's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the signup scheduler for the new schema and runs its tests.",
+ "people_and_names": [
+  "quasar",
+  "signup scheduler"
+ ]
+}

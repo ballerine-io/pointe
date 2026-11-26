@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the quota webhook drops records under load and fix it.",
+ "state": "Just started. Claude has read the quota webhook code and is about to make a change and run its tests. No root cause identified yet and nothing fixed or tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified",
+  "Whether the planned change fixes the drops, and whether the tests pass"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the quota webhook and run its tests, confirming the change addresses the dropped records under load.",
+ "people_and_names": [
+  "quota webhook"
+ ]
+}

@@ -105,9 +105,9 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     by: dict[tuple[str, str], list[dict]] = {}
     held_apart: list[dict] = []  # turns about a session the voice renamed at join: a group of their own
     for r in used:
-        apart = [x for x in r["rows"] if x.get("renamed_at_join")]
-        held_apart += apart
-        r = {**r, "rows": [x for x in r["rows"] if not x.get("renamed_at_join")]}
+        apart = [x for x in r["rows"] if x.get("renamed_at_join") or x.get("near_name")]
+        held_apart += [{**x, "build": build(r)} for x in apart]
+        r = {**r, "rows": [x for x in r["rows"] if not (x.get("renamed_at_join") or x.get("near_name"))]}
         tag = build(r) if r["manifest"]["what"] in ("turns", "burst") else "any"
         by.setdefault((f"{r['manifest']['arm']}@{tag}", r["manifest"]["size"]), []).append(r)
         for c in carried:  # an arm whose code path is the same in a later build: its runs stand for that build too
@@ -208,22 +208,35 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
                            f"{q['named']} of {q['expected']} names; {q['turns_naming_others']} replies name a session not expected |")
     out.append("")
 
-    out += ["## Turns about a session the voice renamed when it joined", ""]
+    out += ["## Turns about a session the voice renamed when it joined, or whose name is one letter from another's", ""]
     if held_apart:
         tally: dict[tuple, dict[str, int]] = {}
         for x in held_apart:
             if x["kind"] == "turn":
-                cell = tally.setdefault((x["arm"], x["size"], x["turn_kind"]), {})
+                cell = tally.setdefault((f"{x['arm']}, build `{x['build']}`", x["size"],
+                                         x["turn_kind"] + (", renamed session" if x.get("renamed_at_join") else ", a name one letter from another's")), {})
                 cell[score.outcome(x)] = cell.get(score.outcome(x), 0) + 1
         out += ["The voice's own naming rules refused some dataset names at join and gave those sessions a name of its own "
                 "(\"session 1a2b3c\"; each run's manifest lists them under `renamed_at_join`). A turn that expects, fits or "
-                "lists such a session has a label the fleet no longer matches: those turns are in no rate above, and are here.", "",
+                "lists such a session has a label the fleet no longer matches. A turn that says a name one letter from another "
+                "session's (\"fennel\", \"funnel\") is marked from the first runs that record it. Those turns are in no rate above, and are here.", "",
                 "| Arm | Size | Kind | Outcomes |", "|---|---|---|---|"]
         for (arm, size, kind), cell in sorted(tally.items()):
             out.append(f"| {arm} | {size} | {kind} | " + ", ".join(f"{k} {v}" for k, v in sorted(cell.items())) + " |")
         out.append("")
     else:
         out += ["None in the runs counted.", ""]
+
+    probes = [(r, row) for r in used for row in r["rows"] if row["kind"] == "probe"]
+    if probes:
+        out += ["## Probe: \"What did I send to <session>?\" after the 60 turns", "",
+                "Not part of the frozen dataset and in no bar (`bench/fleet/probes.json`, its hash in each row). Asked about "
+                "the session that got the run's first delivery. Recalled: the reply has a word of five letters or more from "
+                "that request, and nothing was sent.", "", "| Arm | Size | Run | Recalled | The reply |", "|---|---|---|---|---|"]
+        for r, x in probes:
+            said = " ".join(x.get("said") or [])[:160].replace("|", "/")
+            out.append(f"| {r['manifest']['arm']}, build `{build(r)}` | {x['size']} | {x['run']} | {'yes' if x.get('recalled') else 'no'} | {said} |")
+        out.append("")
 
     bursts = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "burst"]
     out += ["## 30 sessions end their turn within a minute", ""]

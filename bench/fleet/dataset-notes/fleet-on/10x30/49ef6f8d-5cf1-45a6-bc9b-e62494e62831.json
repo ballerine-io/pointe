@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the refund resolver and cover them with tests.",
+ "state": "Just started. Claude has read the refund resolver source but has not yet changed it or run any tests.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (max attempts, delays, which errors to retry) have not been specified or chosen.",
+  "Tests for the retry behavior have not been written yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude implements retries with backoff in the refund resolver, then writes and runs tests covering them.",
+ "people_and_names": [
+  "refund resolver",
+  "saturn"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the coupon importer drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the coupon importer and all 14 tests pass. The record doesn't show the root cause or whether it was tested under load.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records is not stated in the record",
+  "Not confirmed whether the fix was tested under real load, only that 14 tests pass"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load.",
+ "people_and_names": [
+  "coupon importer",
+  "14 tests"
+ ]
+}

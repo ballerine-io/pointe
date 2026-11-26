@@ -1,0 +1,17 @@
+{
+ "goal": "Make the roster watchdog safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the roster watchdog is done and all 14 tests pass. Nothing is reported as waiting on the owner.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Claude Code's report is unverified by the owner; the record does not show that a double run with identical input was specifically tested."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test covers running twice with the same input, then review and accept the change.",
+ "people_and_names": [
+  "roster watchdog",
+  "session f7692f"
+ ]
+}

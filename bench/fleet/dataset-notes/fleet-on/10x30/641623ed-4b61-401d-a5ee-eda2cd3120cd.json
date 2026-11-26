@@ -1,0 +1,16 @@
+{
+ "goal": "Cut the billing throttle's cold start time by half.",
+ "state": "Claude reports the change in the billing throttle is done and all 14 tests pass. The record gives no measured cold start time, so the halving is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Cold start improvement was not shown with numbers; whether it reached half is unverified"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after to confirm it was cut by half.",
+ "people_and_names": [
+  "billing throttle"
+ ]
+}

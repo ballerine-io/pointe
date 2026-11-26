@@ -1,0 +1,18 @@
+{
+ "goal": "Split the refund export into a separate reader and writer with a clear interface, starting with refund_export.py.",
+ "state": "Done: the split is made in refund_export.py and all 14 tests pass, per Claude Code's report.",
+ "decisions": [
+  "Owner asked to split the refund export into a reader and a writer with a clear interface, starting with refund_export.py."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "refund_export.py",
+  "refund export",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the catalog queue's cold start time by half.",
+ "state": "Claude has read the catalog queue code and identified two possible fixes, a lock or a retry. No change has been made; it is waiting for the owner to pick one.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry: which fix to use for the cold start time",
+  "No baseline cold start time recorded yet, so the halving target is not yet measurable"
+ ],
+ "waiting_on_user": "Choose between a lock (simpler) and a retry (faster) for the catalog queue fix.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's choice of lock or retry, then implement it and measure cold start time against a baseline.",
+ "people_and_names": [
+  "catalog queue",
+  "catalog_queue.py"
+ ]
+}

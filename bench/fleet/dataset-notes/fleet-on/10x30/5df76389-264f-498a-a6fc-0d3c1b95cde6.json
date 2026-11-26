@@ -1,0 +1,20 @@
+{
+ "goal": "Split the inventory webhook into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude has read the inventory webhook file and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner decided to split the inventory webhook into a reader and a writer with a clear interface, starting with the inventory webhook file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing inventory webhook tests pass after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the reader/writer split in the inventory webhook and runs its tests.",
+ "people_and_names": [
+  "inventory webhook",
+  "meadow"
+ ]
+}

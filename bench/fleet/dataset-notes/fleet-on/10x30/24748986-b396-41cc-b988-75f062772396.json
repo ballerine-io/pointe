@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the tariff parser to the new schema without downtime.",
+ "state": "Just started. Claude has read the parser file and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime and should start with the tariff parser file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the parser differs from it has not been recorded.",
+  "How the no-downtime requirement will be met (rollout approach) has not been decided.",
+  "Whether the parser tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the parser change for the new schema and run its tests.",
+ "people_and_names": [
+  "tariff parser",
+  "checker (session name)"
+ ]
+}

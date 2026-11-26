@@ -132,9 +132,71 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | reader calls an hour with 80% of sessions quiet | at most 30% of all active | 1920 against 9600 (20%); models: stubbed | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | not measured | **not measured** |
 
+### 1x4, the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried)
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 787 (median 664), 179 turns; 1 turns without a count | **pass** |
+| brain input tokens per turn | the reference for the other sizes | median 25,986 | **pass** |
+| first token, median | the reference for the other sizes | 0.843 s | **pass** |
+| first token, p90 | the reference for the other sizes | 1.142 s | **pass** |
+| wrong session on clear turns | the reference for the other sizes | 1 of 102 (0% to 5%) | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 39 of 42 (81% to 98%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 120 against 480 (25%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | not measured | **not measured** |
+
+### 5x20, the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried)
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 4,893 (median 4,860), 180 turns | **FAIL** |
+| brain input tokens per turn | within 10% of 1x4 | median 34,988 against 25,986 (+35%) | **FAIL** |
+| first token, median | at most 150 ms above 1x4 | 1.107 s against 0.843 s (+264 ms) | **FAIL** |
+| first token, p90 | at most 150 ms above 1x4 | 1.639 s against 1.142 s (+497 ms) | **FAIL** |
+| wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 1 of 102 | **pass** |
+| wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 31 of 42 (59% to 85%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 1920 against 9600 (20%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | not measured | **not measured** |
+
+### 1x4, the fleet build, POINTE_FLEET=on, build `0b98c14e3a`
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 840 (median 656), 180 turns | **pass** |
+| brain input tokens per turn | the reference for the other sizes | median 27,185 | **pass** |
+| first token, median | the reference for the other sizes | 0.988 s | **pass** |
+| first token, p90 | the reference for the other sizes | 1.303 s | **pass** |
+| wrong session on clear turns | the reference for the other sizes | 0 of 102 (0% to 4%) | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 30 of 42 (56% to 83%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 120 against 480 (25%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | not measured | **not measured** |
+
+### 5x20, the fleet build, POINTE_FLEET=on, build `0b98c14e3a`
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 1,109 (median 1,043), 180 turns | **pass** |
+| brain input tokens per turn | within 10% of 1x4 | median 29,922 against 27,185 (+10%) | **FAIL** |
+| first token, median | at most 150 ms above 1x4 | 0.933 s against 0.988 s (-55 ms) | **pass** |
+| first token, p90 | at most 150 ms above 1x4 | 1.184 s against 1.303 s (-119 ms) | **pass** |
+| wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 0 of 102 | **FAIL** |
+| wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 35 of 42 (69% to 92%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 1920 against 9600 (20%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | not measured | **not measured** |
+
 ## The arms, as the daemon states them
 
-1450 of 1450 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `502cd35ea5`.
+1810 of 1810 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `502cd35ea5`.
 
 Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0b98c14e3a`, not run again. Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`.
 
@@ -174,6 +236,22 @@ Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | fleet-20261126-201349-turns-5x20-fleet-on-r2 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 11 of 13 (58% to 96%) | 2 of 13 (4% to 42%) | 0 of 13 (0% to 23%) | 57 / 3 / 0 | 1,599 (1,595 to 1,600) / 1,616 | 30,971 (29,128 to 33,121) | 0.94 s (0.90 to 1.00) / 2.62 s (1.18 to 3.69) | 1.58 s (1.33 to 2.34) | 23 / 43 / 90 |
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | fleet-20261126-202417-turns-5x20-fleet-on-r3 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,598 (1,595 to 1,601) / 1,616 | 31,618 (29,252 to 34,081) | 0.87 s (0.80 to 0.91) / 1.30 s (1.09 to 1.93) | 1.46 s (1.21 to 1.90) | 17 / 37 / 88 |
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | all runs | 100 of 100 (96% to 100%) | 0 of 100 (0% to 4%) | 0 of 100 (0% to 4%) | 0 of 100 (0% to 4%) | 35 of 41 (72% to 93%) | 6 of 41 (7% to 28%) | 0 of 41 (0% to 9%) | 177 / 3 / 0 | 1,599 (1,597 to 1,602) / 1,617 | 31,253 (29,564 to 32,382) | 0.89 s (0.88 to 0.92) / 1.30 s (1.15 to 1.81) | 1.38 s (1.30 to 1.83) | 58 / 119 / 261 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | fleet-20261126-212506-turns-1x4-fleet-off-r1 | 24 of 34 (54% to 83%) | 0 of 34 (0% to 10%) | 4 of 34 (5% to 27%) | 6 of 34 (8% to 34%) | 13 of 14 (69% to 99%) | 1 of 14 (1% to 31%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 679 (645 to 696) / 787 | 26,623 (23,635 to 30,725) | 0.85 s (0.71 to 0.92) / 1.20 s (1.06 to 1.22) | 1.72 s (1.00 to 2.44) | 4 / 23 / 74 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | fleet-20261126-213205-turns-1x4-fleet-off-r2 | 23 of 34 (51% to 81%) | 0 of 34 (0% to 10%) | 7 of 34 (10% to 37%) | 4 of 34 (5% to 27%) | 14 of 14 (78% to 100%) | 0 of 14 (0% to 22%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 664 (609 to 683) / 771 | 25,986 (24,671 to 28,776) | 0.82 s (0.75 to 0.88) / 1.14 s (0.97 to 1.20) | 1.27 s (1.23 to 1.54) | 3 / 24 / 82 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | fleet-20261126-213903-turns-1x4-fleet-off-r3 | 24 of 34 (54% to 83%) | 1 of 34 (1% to 15%) | 5 of 34 (6% to 30%) | 4 of 34 (5% to 27%) | 12 of 14 (60% to 96%) | 0 of 14 (0% to 22%) | 2 of 14 (4% to 40%) | 60 / 0 / 0 | 641 (611 to 672) / 768 | 25,304 (23,557 to 27,196) | 0.86 s (0.81 to 0.90) / 1.04 s (0.97 to 1.08) | 1.78 s (1.68 to 2.06) | 4 / 41 / 78 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | all runs | 71 of 102 (60% to 78%) | 1 of 102 (0% to 5%) | 16 of 102 (10% to 24%) | 14 of 102 (8% to 22%) | 39 of 42 (81% to 98%) | 1 of 42 (0% to 12%) | 2 of 42 (1% to 16%) | 180 / 0 / 0 | 664 (641 to 673) / 787 | 25,986 (24,522 to 27,771) | 0.84 s (0.80 to 0.88) / 1.14 s (1.05 to 1.18) | 1.66 s (1.53 to 1.83) | 11 / 88 / 234 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | fleet-20261126-203352-turns-5x20-fleet-off-r1 | 23 of 34 (51% to 81%) | 1 of 34 (1% to 15%) | 9 of 34 (15% to 43%) | 1 of 34 (1% to 15%) | 10 of 14 (45% to 88%) | 4 of 14 (12% to 55%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 4,858 (4,857 to 4,860) / 4,882 | 33,304 (30,510 to 39,638) | 1.34 s (1.24 to 1.48) / 1.76 s (1.68 to 1.98) | 2.06 s (1.83 to 2.36) | 19 / 41 / 102 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | fleet-20261126-204441-turns-5x20-fleet-off-r2 | 23 of 34 (51% to 81%) | 0 of 34 (0% to 10%) | 10 of 34 (17% to 46%) | 1 of 34 (1% to 15%) | 11 of 14 (52% to 92%) | 3 of 14 (8% to 48%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 4,858 (4,849 to 4,858) / 4,879 | 34,317 (30,569 to 37,408) | 1.09 s (1.04 to 1.16) / 1.34 s (1.27 to 1.45) | 2.34 s (1.83 to 2.65) | 21 / 35 / 96 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | fleet-20261126-205432-turns-5x20-fleet-off-r3 | 22 of 34 (48% to 79%) | 0 of 34 (0% to 10%) | 11 of 34 (19% to 49%) | 1 of 34 (1% to 15%) | 10 of 14 (45% to 88%) | 2 of 14 (4% to 40%) | 2 of 14 (4% to 40%) | 60 / 0 / 0 | 4,876 (4,875 to 4,878) / 4,893 | 35,662 (30,301 to 44,492) | 1.05 s (0.98 to 1.09) / 1.31 s (1.14 to 1.64) | 1.45 s (1.34 to 1.92) | 27 / 33 / 92 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | all runs | 68 of 102 (57% to 75%) | 1 of 102 (0% to 5%) | 30 of 102 (21% to 39%) | 3 of 102 (1% to 8%) | 31 of 42 (59% to 85%) | 9 of 42 (12% to 36%) | 2 of 42 (1% to 16%) | 180 / 0 / 0 | 4,860 (4,859 to 4,866) / 4,893 | 34,988 (31,937 to 36,293) | 1.11 s (1.07 to 1.15) / 1.64 s (1.50 to 1.73) | 1.97 s (1.79 to 2.24) | 67 / 109 / 290 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | fleet-20261126-214612-turns-1x4-fleet-on-r1 | 25 of 34 (57% to 85%) | 0 of 34 (0% to 10%) | 6 of 34 (8% to 34%) | 3 of 34 (3% to 23%) | 6 of 14 (21% to 67%) | 7 of 14 (27% to 73%) | 1 of 14 (1% to 31%) | 60 / 0 / 0 | 702 (668 to 732) / 840 | 28,304 (26,636 to 31,308) | 1.00 s (0.97 to 1.05) / 1.34 s (1.29 to 1.63) | 1.89 s (1.50 to 2.39) | 8 / 38 / 81 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | fleet-20261126-215348-turns-1x4-fleet-on-r2 | 23 of 34 (51% to 81%) | 0 of 34 (0% to 10%) | 8 of 34 (12% to 40%) | 3 of 34 (3% to 23%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 665 (610 to 682) / 761 | 27,185 (25,514 to 29,448) | 0.92 s (0.87 to 0.99) / 1.12 s (1.09 to 1.25) | 1.56 s (1.38 to 1.82) | 3 / 26 / 82 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | fleet-20261126-220103-turns-1x4-fleet-on-r3 | 22 of 34 (48% to 79%) | 0 of 34 (0% to 10%) | 8 of 34 (12% to 40%) | 4 of 34 (5% to 27%) | 12 of 14 (60% to 96%) | 1 of 14 (1% to 31%) | 1 of 14 (1% to 31%) | 60 / 0 / 0 | 612 (589 to 656) / 727 | 25,144 (23,022 to 30,214) | 0.99 s (0.96 to 1.07) / 1.26 s (1.17 to 1.55) | 1.64 s (1.53 to 1.86) | 4 / 23 / 84 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | all runs | 70 of 102 (59% to 77%) | 0 of 102 (0% to 4%) | 22 of 102 (15% to 31%) | 10 of 102 (5% to 17%) | 30 of 42 (56% to 83%) | 10 of 42 (13% to 39%) | 2 of 42 (1% to 16%) | 180 / 0 / 0 | 656 (627 to 672) / 840 | 27,185 (26,183 to 29,074) | 0.99 s (0.96 to 1.01) / 1.30 s (1.20 to 1.34) | 1.67 s (1.53 to 1.83) | 15 / 87 / 247 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | fleet-20261126-220833-turns-5x20-fleet-on-r1 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 11 of 14 (52% to 92%) | 3 of 14 (8% to 48%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,044 (1,040 to 1,052) / 1,106 | 28,598 (25,852 to 31,960) | 0.94 s (0.91 to 0.96) / 1.20 s (1.05 to 1.46) | 1.83 s (1.31 to 2.33) | 19 / 40 / 83 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | fleet-20261126-221814-turns-5x20-fleet-on-r2 | 33 of 34 (85% to 99%) | 1 of 34 (1% to 15%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,044 (1,036 to 1,046) / 1,091 | 30,503 (28,237 to 32,940) | 0.99 s (0.95 to 1.07) / 1.30 s (1.11 to 1.42) | 1.77 s (1.59 to 2.40) | 28 / 38 / 84 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | fleet-20261126-222740-turns-5x20-fleet-on-r3 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,037 (1,008 to 1,043) / 1,109 | 30,577 (27,782 to 32,852) | 0.87 s (0.81 to 0.89) / 1.04 s (0.93 to 1.24) | 1.26 s (1.20 to 2.01) | 18 / 38 / 86 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | all runs | 101 of 102 (95% to 100%) | 1 of 102 (0% to 5%) | 0 of 102 (0% to 4%) | 0 of 102 (0% to 4%) | 35 of 42 (69% to 92%) | 7 of 42 (8% to 31%) | 0 of 42 (0% to 8%) | 180 / 0 / 0 | 1,043 (1,039 to 1,045) / 1,109 | 29,922 (28,279 to 31,500) | 0.93 s (0.90 to 0.95) / 1.18 s (1.11 to 1.30) | 1.66 s (1.48 to 1.91) | 65 / 116 / 253 |
 
 Needs tokens: the "what each session needs" block of the turn's first brain step, counted by the brain vendor's own token counter as one message. Brain input: the vendor's count of the whole prompt, summed over the turn's own brain steps. First token and first send: from the typed line; a send's time is exact to 20 ms. Timings leave out rows that began or ended with the load over 20.
 
@@ -261,6 +339,46 @@ Needs tokens: the "what each session needs" block of the turn's first brain step
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | ambiguous_name, only other machines have one | 12 | asked 11, crashed 1 |
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | needs_me: expected sessions named in the reply | 18 | 81 of 108 names; 5 replies name a session not expected |
 | the fleet build, POINTE_FLEET=on, build `05857b19f6` | 5x20 | on_machine: expected sessions named in the reply | 18 | 35 of 360 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | clear_name | 66 | nothing 5, right 61 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | clear_description | 36 | asked 16, nothing 9, right 10, wrong 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | ambiguous_description | 21 | asked 21 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | ambiguous_none | 21 | asked 18, neither 2, sent 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | needs_me: expected sessions named in the reply | 18 | 32 of 36 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 1x4 | on_machine: expected sessions named in the reply | 18 | 57 of 72 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | clear_name | 36 | asked 2, right 34 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | clear_machine_name | 30 | right 30 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | clear_description | 36 | asked 28, nothing 3, right 4, wrong 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | ambiguous_name | 18 | asked 16, neither 1, sent 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | ambiguous_description | 12 | asked 11, sent 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | ambiguous_none | 12 | asked 4, neither 1, sent 7 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | ambiguous_name, this Mac has a session of the name | 6 | asked 5, sent 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | ambiguous_name, only other machines have one | 12 | asked 11, neither 1 |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | needs_me: expected sessions named in the reply | 18 | 83 of 108 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried) | 5x20 | on_machine: expected sessions named in the reply | 18 | 49 of 360 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | clear_name | 66 | asked 1, nothing 6, right 59 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | clear_description | 36 | asked 21, nothing 4, right 11 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | ambiguous_description | 21 | asked 18, neither 2, sent 1 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | ambiguous_none | 21 | asked 12, sent 9 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | needs_me: expected sessions named in the reply | 18 | 33 of 36 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 1x4 | on_machine: expected sessions named in the reply | 18 | 63 of 72 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | clear_name | 36 | right 35, wrong 1 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | clear_machine_name | 30 | right 30 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | clear_description | 36 | right 36 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | ambiguous_name | 18 | asked 12, sent 6 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | ambiguous_description | 12 | asked 11, sent 1 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | ambiguous_none | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | ambiguous_name, this Mac has a session of the name | 6 | sent 6 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | ambiguous_name, only other machines have one | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | needs_me: expected sessions named in the reply | 18 | 94 of 108 names; 4 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `0b98c14e3a` | 5x20 | on_machine: expected sessions named in the reply | 18 | 48 of 360 names; 0 replies name a session not expected |
 
 ## Turns about a session the voice renamed when it joined
 
@@ -336,7 +454,13 @@ Stubbed models, a call held for a minute with nothing typed. Processes: one voic
 | fleet-20261126-212506-turns-1x4-fleet-off-r1 | turns | 101 | 0.3902 |
 | fleet-20261126-213205-turns-1x4-fleet-off-r2 | turns | 109 | 0.4641 |
 | fleet-20261126-213903-turns-1x4-fleet-off-r3 | turns | 123 | 0.4674 |
-| all 33 paid launches | | 3866 | 36.7532 |
+| fleet-20261126-214612-turns-1x4-fleet-on-r1 | turns | 127 | 0.5687 |
+| fleet-20261126-215348-turns-1x4-fleet-on-r2 | turns | 111 | 0.4794 |
+| fleet-20261126-220103-turns-1x4-fleet-on-r3 | turns | 111 | 0.4583 |
+| fleet-20261126-220833-turns-5x20-fleet-on-r1 | turns | 142 | 0.8268 |
+| fleet-20261126-221814-turns-5x20-fleet-on-r2 | turns | 150 | 0.8571 |
+| fleet-20261126-222740-turns-5x20-fleet-on-r3 | turns | 142 | 0.8453 |
+| all 39 paid launches | | 4649 | 40.7888 |
 
 Computed from each call's token counts at list price (`prices.json`), not metered; smoke runs included. Each run's `manifest.json` has the split by model and says which calls were estimated from sizes.
 
@@ -379,5 +503,5 @@ Runs that ended early (the turns they drove are counted; the turns they did not 
 - **The machine was shared** with other work; each row has the load at its start and end.
 - **Two scorer rules were written after the first rows were read**, and say so here: a turn whose brain steps all failed is crashed, not "asked" (the daemon's "say that again?" has a question mark); and rates are over the turns that were driven, with the crashed and not-run counts beside them, because a turn never reached lowered the wrong-session rate when it sat in the denominator.
 - **A run that stopped early drove fewer turns.** Each run types the 60 turns in its own shuffled order (the seed and the order are in its manifest), so a run that stopped at its launch's spend limit covers the first part of its own order: not the same turns as a whole run. The run list above has each stop; a stopped run that was made again whole is listed as superseded and not counted.
-- **Not run on the newest build (`05857b19f6`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work; 10x30, the fleet build, POINTE_FLEET=off; 10x30, the fleet build, POINTE_FLEET=on.
+- **Not run on the newest build (`0b98c14e3a`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work; 10x30, the fleet build, POINTE_FLEET=off; 10x30, the fleet build, POINTE_FLEET=on.
 - **Not run:** 30 sessions ending their turn within a minute (a paid run), at any size or arm.

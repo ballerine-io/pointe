@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the dispatch validator's cold start time by half.",
+ "state": "Just started. Claude has read the validator source and is about to make changes and run its tests. No changes or results reported yet.",
+ "decisions": [
+  "Owner asked to start the work with the dispatch validator module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What is the current cold start baseline time?",
+  "Where does the cold start time go?",
+  "Do the validator's tests pass after the changes?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to set a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "dispatch validator"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "goal": "Split the ticket webhook into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the ticket webhook module and all 14 tests pass. This is Claude Code's own report; no owner confirmation or review is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the reader/writer interface and confirm the split is acceptable.",
+ "people_and_names": [
+  "isthmus",
+  "ticket webhook",
+  "14 tests"
+ ]
+}

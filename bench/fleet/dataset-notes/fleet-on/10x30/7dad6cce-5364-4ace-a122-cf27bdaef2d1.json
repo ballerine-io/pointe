@@ -1,0 +1,16 @@
+{
+ "goal": "Add retries with backoff to the tariff watchdog, covered by tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made in the tariff watchdog and all 14 tests pass. No independent verification beyond Claude's report is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "viaduct",
+  "tariff watchdog",
+  "14 tests"
+ ]
+}

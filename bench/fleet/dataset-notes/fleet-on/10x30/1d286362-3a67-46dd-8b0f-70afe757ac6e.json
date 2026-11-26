@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the voucher importer drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the voucher importer and all 14 tests pass. The root cause was not stated, and load behavior was not reported as tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Unclear whether the fix was tested under actual load, since only the 14 tests are mentioned"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load.",
+ "people_and_names": [
+  "voucher importer",
+  "14 tests"
+ ]
+}

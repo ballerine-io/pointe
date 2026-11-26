@@ -1,0 +1,19 @@
+{
+ "goal": "Split the inventory importer into a reader and a writer with a clear interface between them.",
+ "state": "Just started: Claude has read the inventory importer but has not yet changed anything or run its tests.",
+ "decisions": [
+  "Owner asked to split the importer into a reader and a writer with a clear interface, starting with the inventory importer module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like",
+  "Whether the existing importer tests pass before and after the split"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the reader/writer split in the inventory importer and runs its tests.",
+ "people_and_names": [
+  "inventory importer"
+ ]
+}

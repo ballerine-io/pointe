@@ -1,0 +1,19 @@
+{
+ "goal": "Move the currency batcher off the deprecated client library.",
+ "state": "Just started. Claude has read the currency batcher file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the currency batcher file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library to use is not stated in the record.",
+  "Whether other files besides the currency batcher also use the deprecated library is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the currency batcher to use the new client library, then run its tests.",
+ "people_and_names": [
+  "currency batcher"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the loyalty notifier drops records under load and fix it.",
+ "state": "Just started. Claude read the loyalty notifier source and is about to change it and run its tests. No root cause identified yet, no fix made, nothing tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What causes the loyalty notifier to drop records under load?",
+  "Does the fix hold up under load and pass the notifier's tests?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude identifies the cause of the dropped records, makes the change, and runs the notifier's tests.",
+ "people_and_names": [
+  "loyalty notifier"
+ ]
+}

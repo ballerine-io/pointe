@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the warranty webhook drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the warranty webhook and all 14 tests pass. The root cause was not stated, and load behavior was not shown to be tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Unclear whether the fix was tested under real load, or only by the 14 unit tests",
+  "Not stated whether the change is deployed"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load before deploying.",
+ "people_and_names": [
+  "warranty webhook",
+  "jasper"
+ ]
+}

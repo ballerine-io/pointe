@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the shipment resolver to the new schema without downtime.",
+ "state": "Claude Code reports the shipment resolver change is done and all 14 tests pass. Nothing has been reported about deployment or a zero-downtime rollout.",
+ "decisions": [
+  "Owner directed starting the migration with the shipment resolver file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the change has been deployed, and whether the zero-downtime requirement was verified; the record shows only unit tests passing.",
+  "Whether other parts of the migration beyond the shipment resolver remain."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime requirement will be verified and plan the rollout, then check for remaining migration work beyond the resolver.",
+ "people_and_names": [
+  "zircon",
+  "shipment resolver",
+  "14 tests"
+ ]
+}

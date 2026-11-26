@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the delivery watchdog to the new schema without downtime.",
+ "state": "Just starting. Claude has read the delivery watchdog script and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to start the migration with the delivery watchdog script.",
+  "Owner set a constraint: the migration must cause no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the watchdog must change to fit it is not yet recorded.",
+  "How the no-downtime requirement will be met (rollout approach) is not yet decided.",
+  "Whether the watchdog's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Have Claude change the delivery watchdog for the new schema and run its tests.",
+ "people_and_names": [
+  "delivery watchdog",
+  "oasis"
+ ]
+}

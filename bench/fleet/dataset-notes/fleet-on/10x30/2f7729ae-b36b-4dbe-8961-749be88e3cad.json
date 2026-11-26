@@ -1,0 +1,17 @@
+{
+ "goal": "Make the inventory queue idempotent so running it twice with the same input is safe.",
+ "state": "Just started: Claude Code has read the inventory queue module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How duplicate input should be detected and handled is not yet settled.",
+  "Whether the existing tests cover running the queue twice with the same input."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the inventory queue to be idempotent, then run its tests.",
+ "people_and_names": [
+  "inventory_queue.py"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the tariff migration drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the tariff migration script and all 14 tests pass. The root cause and the nature of the change were not described, and no load test is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records under load was not stated in the record",
+  "Whether the fix was verified under real load; only the 14 tests are reported passing",
+  "Whether the change is deployed is not stated"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and what changed, and whether it was tested under load.",
+ "people_and_names": [
+  "tariff migration",
+  "14 tests"
+ ]
+}

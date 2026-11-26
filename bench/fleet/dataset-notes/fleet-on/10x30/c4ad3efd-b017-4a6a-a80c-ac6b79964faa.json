@@ -1,0 +1,20 @@
+{
+ "goal": "Move the wishlist digest off the deprecated client library, starting with the wishlist digest module.",
+ "state": "Claude reports the migration of the wishlist digest module is done and all 14 tests pass. This is Claude's own report; no independent check is in the record.",
+ "decisions": [
+  "Owner directed starting the migration with wishlist_digest.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other files still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether anything else still depends on the deprecated client library and migrate it if so.",
+ "people_and_names": [
+  "wishlist digest",
+  "wishlist_digest.py",
+  "noa-mini"
+ ]
+}

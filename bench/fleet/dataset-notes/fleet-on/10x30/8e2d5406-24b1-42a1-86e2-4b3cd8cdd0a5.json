@@ -1,0 +1,18 @@
+{
+ "goal": "Add structured logging to the coupon queue and remove the print calls, starting with the coupon queue module.",
+ "state": "Claude Code reports the coupon queue change is done and all 14 tests pass. Only the coupon queue module was changed; no other modules are mentioned.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether print calls remain elsewhere beyond the coupon queue module is not stated; the owner said to start there."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change, then decide whether to extend structured logging and print removal to other modules.",
+ "people_and_names": [
+  "avocet",
+  "coupon queue",
+  "14 tests"
+ ]
+}

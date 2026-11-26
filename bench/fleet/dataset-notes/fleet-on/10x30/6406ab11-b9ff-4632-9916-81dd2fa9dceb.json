@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the tenant ledger's cold start time by half.",
+ "state": "Just started. Claude Code has read the tenant ledger module and is about to make changes and run its tests. No changes, measurements, or results yet.",
+ "decisions": [
+  "Owner directed starting with the tenant ledger module, with the target of halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is; no baseline measured yet.",
+  "Where the cold start time goes; not yet identified.",
+  "Whether the tenant ledger tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the first change to the tenant ledger and run its tests.",
+ "people_and_names": [
+  "tenant ledger",
+  "scarp"
+ ]
+}

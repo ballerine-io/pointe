@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the tenant dashboard to the new schema without downtime.",
+ "state": "Claude Code reports the change to the tenant dashboard is done and all 14 tests pass. Nothing in the record shows it deployed or tested for downtime.",
+ "decisions": [
+  "Owner: the migration must happen without downtime (a stated constraint).",
+  "Owner: start with the tenant dashboard module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was actually verified; the record only shows 14 passing tests.",
+  "Whether the change is deployed or only done locally; not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime requirement was checked, then decide on rollout of the change.",
+ "people_and_names": [
+  "tenant dashboard",
+  "new schema",
+  "14 tests"
+ ]
+}
