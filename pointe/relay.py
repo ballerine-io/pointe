@@ -188,7 +188,7 @@ _NAME_CUES = (re.compile(r"\b(?:function|method|class|constant|variable|helper)\
 
 
 # The recognizer's spellings of words of the trade (tester round 5: "dark string", "unitist", "Uniris", "UNIREST").
-_TRADE_SPELLINGS = {"docstring": r"[\"'“‘]?\b(?:dark|doc|dock)\b[\"'”’]? ?strings?\b", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
+_TRADE_SPELLINGS = {"docstring": r"([\"'“‘])?\b(?:dark|doc|dock)\b[\"'”’]? ?strings?\b(?(1)[\"'”’]?)", "unittest": r"\b(?:uni(?:tist|ris|rest|t ?test)|unit ?tist)\b"}
 # "Convert hero dot png to webp" is heard "to web" (lat-04, by Soniox and by Whisper): an image converted to "web" is WebP,
 # and "web" that is a place ("move it to web", "web folder") or a thing of the web ("a web app", "web-safe") stays.
 _IMAGE_TO_WEB = re.compile(
