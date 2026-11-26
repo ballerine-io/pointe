@@ -354,7 +354,7 @@
   #people-link { font: 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; user-select: all; }
   #people-link:empty, #people-qr:empty { display: none; }
   .settings #people-copy { min-height: 36px; padding: 0 16px; }
-  .mlist .pacts { grid-row: 1 / 4; grid-column: 2; display: flex; gap: 8px; align-items: center; }
+  .mlist .pacts { grid-row: 1 / 5; grid-column: 2; display: flex; gap: 8px; align-items: center; }
   .mlist .pv { font-size: 12px; }
   @media (max-width: 560px) { .mlist li.person { grid-template-columns: 1fr; } .mlist li.person .pacts { grid-row: auto; grid-column: 1; margin-top: 6px; } }
   /* Settings → Phone (phone_pairing.py) */
@@ -2115,7 +2115,8 @@
     const foldedNames = machinesFolded(), seen = new Set();
     // What a machine says about itself, under its header: "avi-box removed you", with Remove next to it.
     const leaving = revoking && Date.now() < revoking.until ? revoking.name : '';
-    const gone = m => !m.here && canInvite && !remotePage && / removed you\b/.test(m.notice || '');
+    const gone = m => !m.here && canInvite && !remotePage && !!m.notice
+                      && (typeof m.removed === 'boolean' ? m.removed : / removed you\b/.test(m.notice));
     const notice = m => {
       const n = el('div', 'mnote'); n.setAttribute('role', 'status'); n.append(el('span', '', m.notice));
       if (gone(m)) {
@@ -4647,8 +4648,8 @@
   function setPrivate(name, on) {
     $('renameproblem').textContent = '';
     want('private ' + name, s => { const x = s.sessions.find(y => y.name === name); if (x) { if (on) x.private = true; else delete x.private; } },
-      postSafe('/voice/share', {session: name, private: on}).then(r => {
-        if (!r.ok) $('renameproblem').textContent = r.detail || PEOPLE_COPY.notShared;
+      fetch('/voice/share', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({session: name, private: on})}).then(async r => {
+        if (!r.ok) $('renameproblem').textContent = await refusal(r) || PEOPLE_COPY.notShared;  // the Mac's sentence, in plain text
         refresh(); return r.ok;
       }));
   }
@@ -4677,11 +4678,12 @@
     try {
       r = await fetch('/voice/machines/add', {method: 'POST', headers: {'content-type': 'application/json'},
                                               body: JSON.stringify(addNeedsName && name ? {line, name} : {line})});
-      if (!r.ok) said = r.status === 403 ? "Only the Mac's own page or the app can do this." : await refusal(r);
+      if (!r.ok) said = await refusal(r);
+      if (said === 'forbidden') said = "Only the Mac's own page or the app can do this.";  // any other 403 is the machine's own refusal, said as it is
     } catch (e) { said = PEOPLE_COPY.noAnswer; }
     adding = false;
     if (!r || !r.ok) {  // the field keeps the line; a name that is taken asks for another
-      const taken = !!r && r.status === 409;
+      const taken = !!r && r.status === 409 && /another name/i.test(said);  // a 409 is also "already in your voice": no name helps there
       if (taken) addNeedsName = true;
       $('mach-adderr').textContent = said || PEOPLE_COPY.notAdded;
       showAdd();
@@ -4730,10 +4732,9 @@
   }
 
   // Settings → Machines → People: who the owner invited to this machine, what each may do, and an invite for one more.
-  // Only where an invite can be made (the machine's own page). The status lists the people; /voice/people adds the
-  // services each one's voice uses.
+  // Only where an invite can be made (the machine's own page).
   let peopleShown = '', removing = null, personInvite = null, inviteGrant = 'send', personFormOpen = false;
-  let peopleMore = {}, peopleAsked = '', personCancelled = '', personTicking = false;
+  let personCancelled = '', personTicking = false;
   function showPeople(s) {
     const people = Array.isArray(s.people) ? s.people : [];
     const here = canInvite && !remotePage && Array.isArray(s.machines);
@@ -4741,19 +4742,18 @@
     if (!here) { $('people-h').hidden = $('people-trust').hidden = true; return; }
     const pi = s.people_invite;  // a code made elsewhere (the app, the command line) shows here too
     if (pi && pi.code && pi.code !== personCancelled && !(personInvite && personInvite.code === pi.code))
-      personInvite = {code: pi.code, link: pi.link || '', name: pi.name || '', svg: '', until: Date.now() + (pi.expires_in || 0) * 1000};
+      personInvite = {code: pi.code, link: pi.link || '', name: pi.name || '', svg: pi.svg || '', until: Date.now() + (pi.expires_in || 0) * 1000};
     const asking = removing && Date.now() < removing.until ? removing.name : '';
-    const namesKey = JSON.stringify(people.map(p => [p.name, p.online]));
-    if (namesKey !== peopleAsked && people.length && $('settingssheet').classList.contains('open')) { peopleAsked = namesKey; loadPeople(); }
-    const sig = JSON.stringify([people, asking, peopleMore, fails > 0]);
+    const sig = JSON.stringify([people, asking]);
     if (sig !== peopleShown) {
       peopleShown = sig;
       $('people-list').replaceChildren(...people.map(p => {
-        const li = el('li', 'person'), more = peopleMore[p.name] || {};
+        const li = el('li', 'person');
         li.append(el('span', 'mn', p.name));
         li.append(el('span', 'mmeta', p.online ? PEOPLE_COPY.online : p.since ? PEOPLE_COPY.lastHere(sinceText(p.since)) : PEOPLE_COPY.notYet));
-        const vendors = vendorNames(p.vendors || more.vendors);
+        const vendors = vendorNames(p.vendors);
         if (vendors.length) li.append(el('span', 'mmeta pv', PEOPLE_COPY.uses(vendors)));
+        if (p.notice) li.append(el('span', 'mmeta away', p.notice));  // their voice runs an older Pointe
         const acts = el('div', 'pacts'), watch = p.grant === 'watch';
         const grant = el('button', '', watch ? PEOPLE_COPY.grantWatch : PEOPLE_COPY.grantSend); grant.type = 'button';
         grant.title = PEOPLE_COPY.grantTitle(p.name, p.grant); grant.setAttribute('aria-label', grant.title);
@@ -4771,12 +4771,6 @@
     $('people-h').hidden = $('people-trust').hidden = !some;
     text('people-trust', PEOPLE_COPY.trust(s.account || ''));
     showPersonInvite();
-  }
-  async function loadPeople() {
-    const got = await fetch('/voice/people').then(r => r.ok ? r.json() : null).catch(() => null);
-    if (!got || !Array.isArray(got.people)) return;
-    peopleMore = Object.fromEntries(got.people.map(p => [p.name, {vendors: vendorNames(p.vendors)}]));
-    if (status) showPeople(status);
   }
   function showPersonInvite() {
     const left = personInvite ? Math.max(0, Math.round((personInvite.until - Date.now()) / 1000)) : 0;

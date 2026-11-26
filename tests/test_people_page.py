@@ -9,6 +9,7 @@
 - Whose a session or a machine is shows only when the status says so; a machine I may only watch offers no send.
 - Private on a session I own, on a machine that has people.
 - With machines of my own and no people, none of it shows.
+- One test opens the page the real daemon serves (tests/join_hub.py) and invites a person on its real routes.
 
 Every name here is made up.
 
@@ -33,7 +34,9 @@ pytestmark = [pytest.mark.slow, pytest.mark.chrome]
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
 LINE = "pointe://machine?v=1&host=avi-box.example&port=7443&fp=" + "ab" * 32 + "&code=K7PQ-2MXD&name=avi-box"
-QR = '<svg viewBox="0 0 4 4" class="segno"><path class="qrline" stroke="#000" d="M0 0h4"/></svg>'
+from phone_pairing import _svg  # noqa: E402  (page_rig put pointe/ on the path)
+
+QR = _svg(LINE)  # as guests.qr draws the invite
 
 
 # ---------- the statuses ----------
@@ -68,45 +71,51 @@ def with_avi(grant: str = "send") -> dict:
 def with_people() -> dict:
     """My Mac, which Dana (can talk) and Noor (watch only, away) were invited to."""
     s = fixture(sessions=2, machines=1)
-    s["account"] = "sam"
-    s["people"] = [{"name": "Dana", "grant": "send", "online": True, "since": time.time() - 900},
-                   {"name": "Noor", "grant": "watch", "online": False, "since": time.time() - 7200}]
-    s["people_invite"] = None
+    s["account"] = "sam"  # guests.status: `people` and `account` only while somebody is invited; no `people_invite` key with no code out
+    s["people"] = [{"name": "Dana", "grant": "send", "online": True, "since": None, "vendors": ["Soniox", "ElevenLabs"]},
+                   {"name": "Noor", "grant": "watch", "online": False, "since": time.time() - 7200, "vendors": []}]
     return s
 
 
 # ---------- the stub Mac, with the contract's routes ----------
 
 class PeopleMac(StubMac):
-    """Answers the routes of people-and-machines.md the way the daemon will, and changes the status as it would."""
+    """Answers the routes of people-and-machines.md with what pointe/guests.py `install` and pointe/machines.py `install`
+    build (the same fields, a refusal as one plain-text sentence), and changes the status as guests.status does."""
 
     def __init__(self, port: int):
         super().__init__(port)
-        self.add_answers: list[tuple[int, object]] = []  # the next answers of /voice/machines/add; none left: it is added
+        self.add_answers: list[tuple[int, str]] = []  # the next refusals of /voice/machines/add; none left: it is added
         self.add_delay = 0.0
         self.added = {"name": "avi-box", "owner": "Avi", "grant": "send", "vendors": ["Soniox", "ElevenLabs", "OpenAI"]}
-        self.pinvite: dict | None = None
-        self.vendors = {"Dana": ["Soniox", "ElevenLabs"], "Noor": []}
-        self.invite_svg = ""
+        self.pinvite: dict | None = None  # guests.invite_status: the code that waits
+        self.paired: dict | None = None  # Invites.paired: the last pairing, until the next invite is made
+        self.gets: list[str] = []
 
     def routes(self, app) -> None:
         app.router.add_get("/voice/people/invite", self._people_invite)
         app.router.add_get("/voice/people", self._people)
 
     async def _people_invite(self, request):
-        return web.json_response(self.pinvite or {"code": None, "expires_in": 0, "link": None, "name": None, "paired": None, "ended": None})
+        return web.json_response({**(self.pinvite or {"code": None, "expires_in": 0, "name": None}), "paired": self.paired, "ended": None})
 
-    async def _people(self, request):
-        return web.json_response({"people": [{**p, "id": p["name"].lower(), "vendors": self.vendors.get(p["name"], []), "address": "10.0.0.7",
-                                              "key_fp": "c0ffee", "added": 0} for p in self.status.get("people") or []]})
+    async def _people(self, request):  # the command line's list: the page reads the status instead
+        self.gets.append(request.path)
+        return web.json_response({"people": []})
+
+    def invite_status(self) -> dict | None:
+        return self.pinvite
 
     def pair(self) -> None:
-        """The invited person's voice traded the code: they are in the list, and the invite is over."""
+        """guests.pair: the invited person's voice traded the code. They are in the list, not linked yet, and the invite is over."""
         name, grant = self.pinvite["name"], self.pinvite["grant"]
-        self.status["people"] = [*(self.status.get("people") or []), {"name": name, "grant": grant, "online": True, "since": time.time()}]
-        self.vendors[name] = ["Deepgram", "Cartesia"]
-        self.status["people_invite"] = None
-        self.pinvite = {"code": None, "expires_in": 0, "link": None, "name": name, "paired": {"name": name}, "ended": None}
+        if "people" not in self.status:
+            self.status["account"] = "sam"
+        self.status["people"] = [*(self.status.get("people") or []),
+                                 {"name": name, "grant": grant, "online": False, "since": time.time(), "vendors": ["Deepgram", "Cartesia"]}]
+        self.paired = {"name": name, "address": "100.64.0.7", "network": "Tailscale", "grant": grant, "key_fp": "c0ffee", "vendors": ["Deepgram", "Cartesia"]}
+        self.pinvite = None
+        self.status.pop("people_invite", None)
 
     async def _post(self, request):
         path, s = request.path, self.status
@@ -114,15 +123,17 @@ class PeopleMac(StubMac):
             return await super()._post(request)
         body = await request.json()
         self.posts.append((path, body, time.time()))
+        said = lambda sentence, code: web.Response(status=code, text=sentence)  # noqa: E731  (PlainTextResponse)
         if path == "/voice/machines/add":
-            if "seen" in body:
-                if (s.get("disclosure") or {}).get("machine") == body["seen"]:
-                    s["disclosure"] = None
-                return web.json_response({"ok": True})
+            if body.get("seen"):
+                known = (s.get("disclosure") or {}).get("machine") == body["seen"]
+                if known:
+                    del s["disclosure"]  # daemon._disclosure: absent when there is none
+                return web.json_response({"ok": known})
             await asyncio.sleep(self.add_delay)
             if self.add_answers:
-                code, said = self.add_answers.pop(0)
-                return web.Response(status=code, text=said) if isinstance(said, str) else web.json_response(said, status=code)
+                code, sentence = self.add_answers.pop(0)
+                return said(sentence, code)
             made = {**self.added, "name": body.get("name") or self.added["name"]}
             s["machines"].append(machine(made["name"], owner=made["owner"], grant=made["grant"], sessions=2))
             s["sessions"] += [session("billing", machine=made["name"], owner=made["owner"]),
@@ -131,25 +142,38 @@ class PeopleMac(StubMac):
             return web.json_response(made)
         if path == "/voice/people/invite":
             if body.get("cancel"):
-                self.pinvite, s["people_invite"] = None, None
+                self.pinvite = None
+                s.pop("people_invite", None)
                 return web.json_response({"ok": True})
             if any(p["name"].lower() == body["name"].lower() for p in s.get("people") or []):
-                return web.json_response({"detail": f"Somebody called {body['name']} is here already. Give this person another name."}, status=409)
-            made = {"code": "K7PQ-2MXD", "link": LINE, "expires_in": 600, "name": body["name"], "grant": body.get("grant", "send")}
-            self.pinvite = {**made, "paired": None, "ended": None}
-            s["people_invite"] = {"code": made["code"], "expires_in": 600}
-            return web.json_response({**made, **({"svg": self.invite_svg} if self.invite_svg else {})})
+                return said(f"A person called {body['name']} is already on this machine.", 409)
+            made = {"code": "K7PQ-2MXD", "link": LINE, "svg": QR, "expires_in": 600, "name": body["name"], "grant": body.get("grant", "send")}
+            self.paired = None
+            self.pinvite = {"code": made["code"], "expires_in": 600, "wrong_codes": 0, "link": LINE, "svg": QR, "name": made["name"], "grant": made["grant"]}
+            s["people_invite"] = self.pinvite
+            return web.json_response(made)
         people = s.get("people") or []
+        nobody = said(f"Nobody called {body.get('name') or '(no name)'} is on this machine.", 404)
         if path == "/voice/people/grant":
-            next(p for p in people if p["name"] == body["name"])["grant"] = body["grant"]
+            person = next((p for p in people if p["name"] == body["name"]), None)
+            if person is None:
+                return nobody
+            person["grant"] = body["grant"]
         elif path == "/voice/people/remove":
-            s["people"] = [p for p in people if p["name"] != body["name"]] or None
-            if s["people"] is None:
-                del s["people"]
+            if not any(p["name"] == body["name"] for p in people):
+                return nobody
+            s["people"] = [p for p in people if p["name"] != body["name"]]
+            if not s["people"]:  # guests.status: nothing at all with nobody invited
+                del s["people"], s["account"]
         elif path == "/voice/share":
-            row = next(x for x in s["sessions"] if x["name"] == body["session"])
-            row["private"] = bool(body["private"])
-            return web.json_response({"ok": True, "private": row["private"]})
+            row = next((x for x in s["sessions"] if x["name"] == body["session"]), None)
+            if row is None:
+                return said(f"No session called {body['session']} is on the voice.", 404)
+            if body["private"]:
+                row["private"] = True  # guests.session_status: `private` only on a session kept private
+            else:
+                row.pop("private", None)
+            return web.json_response({"ok": True, "private": body["private"]})
         elif path == "/voice/hub/revoke":
             s["machines"] = [m for m in s["machines"] if m["name"] != body["name"]]
             s["sessions"] = [x for x in s["sessions"] if x["machine"] != body["name"]]
@@ -266,7 +290,7 @@ def test_a_pasted_line_adds_the_machine_and_says_once_where_its_transcripts_go()
         await page.eval("document.querySelector('#mach-disclosure button').click()")
         assert await until(page, "!document.querySelector('#mach-disclosure .ask') && !document.querySelector('#disclosure .ask')")
         await asyncio.sleep(1.3)
-        out["after"] = [await page.eval("document.querySelectorAll('.ask').length"), posts(stub, "/voice/machines/add")[-1], stub.status["disclosure"]]
+        out["after"] = [await page.eval("document.querySelectorAll('.ask').length"), posts(stub, "/voice/machines/add")[-1], stub.status.get("disclosure")]
         return out
     got = asyncio.run(on_page(fixture(sessions=2), steps, settings=True))
     assert got["label"] == "Paste the line the machine's owner sent you" and got["button"] == "Add"
@@ -300,9 +324,10 @@ def test_a_machine_added_elsewhere_shows_its_card_in_the_conversation():
 @needs_chrome
 def test_a_refused_line_says_the_daemons_sentence_next_to_the_field_and_keeps_the_line():
     async def steps(page, stub):
-        stub.add_answers = [(400, {"detail": "That code was used already. Ask Avi for a new line."}), (403, "forbidden")]
+        stub.add_answers = [(403, USED), (403, "forbidden"), (409, "Avi-box is already in your voice. To add it again, remove it first: pointe machine remove avi-box"),
+                            (400, "Not an invite to a machine (pointe://machine?v=1&...): ask its owner for the line Invite a person shows.")]
         out = []
-        for _ in range(2):
+        for _ in range(4):
             await page.eval(f"(() => {{ document.getElementById('mach-line').value = '{LINE}'; document.getElementById('mach-add').requestSubmit(); return true; }})()")
             assert await until(page, f"{TEXT}('mach-adderr')")
             out.append({"said": await page.eval(f"{TEXT}('mach-adderr')"), "line": await page.eval("document.getElementById('mach-line').value"),
@@ -310,9 +335,15 @@ def test_a_refused_line_says_the_daemons_sentence_next_to_the_field_and_keeps_th
                         "busy": await page.eval("document.getElementById('mach-addbtn').disabled"), "list": await page.eval("document.querySelectorAll('#mach-list li').length")})
             await page.eval("document.getElementById('mach-adderr').textContent = ''")
         return out
-    first, second = asyncio.run(on_page(fixture(sessions=2), steps, settings=True))
-    assert first == {"said": "That code was used already. Ask Avi for a new line.", "line": LINE, "name": False, "alert": "alert", "busy": False, "list": 1}
+    first, second, third, fourth = asyncio.run(on_page(fixture(sessions=2), steps, settings=True))
+    assert first == {"said": USED, "line": LINE, "name": False, "alert": "alert", "busy": False, "list": 1}  # the machine's 403, said as it is
     assert second["said"] == "Only the Mac's own page or the app can do this." and second["line"] == LINE
+    assert third["said"].startswith("Avi-box is already in your voice.") and third["name"] is False  # a 409 that no name fixes
+    assert fourth["said"].startswith("Not an invite to a machine") and fourth["name"] is False
+
+
+TAKEN = "A machine called avi-box is already paired. Give the machine another name and add it again."  # machines.Dialer.add
+USED = "The machine refused: no such invite: the code is wrong, expired or already used. Ask for a new one."
 
 
 @needs_chrome
@@ -321,7 +352,7 @@ def test_a_name_is_asked_for_only_when_the_daemon_says_it_is_taken():
     status = fixture(sessions=2, machines=2)
     status["machines"][1]["name"] = status["machines"][1]["id"] = "avi-box"
     async def steps(page, stub):
-        stub.add_answers = [(409, "You have a machine called avi-box already. Give this one another name.")]
+        stub.add_answers = [(409, TAKEN)]
         before = await page.eval(f"{SEEN}('mach-name-f')")
         await page.eval(f"(() => {{ document.getElementById('mach-line').value = '{LINE}'; document.getElementById('mach-add').requestSubmit(); return true; }})()")
         assert await until(page, f"{SEEN}('mach-name-f')")
@@ -332,7 +363,7 @@ def test_a_name_is_asked_for_only_when_the_daemon_says_it_is_taken():
         return before, asked, posts(stub, "/voice/machines/add"), await page.eval(MACHINES), await page.eval(f"{SEEN}('mach-name-f')")
     before, asked, sent, machines, after = asyncio.run(on_page(status, steps, settings=True))
     assert before is False and after is False
-    assert asked == {"said": "You have a machine called avi-box already. Give this one another name.", "label": "Call it", "focus": "mach-name", "line": LINE}
+    assert asked == {"said": TAKEN, "label": "Call it", "focus": "mach-name", "line": LINE}
     assert sent == [{"line": LINE}, {"line": LINE, "name": "avi-lab"}]
     assert machines[2][0] == "avi-lab · Avi's"
 
@@ -367,21 +398,23 @@ def test_inviting_a_person_shows_the_line_and_lists_them_once_they_pair():
         assert await until(page, "document.querySelector('#people-list .pv')")
         out["people"] = await page.eval(PEOPLE)
         out["after"] = [await page.eval(f"{SEEN}('{i}')") for i in ("people-h", "people-trust", "people-invitebtn", "people-cancel")]
+        out["trust"] = await page.eval(f"{TEXT}('people-trust')")  # the status names the account once somebody is invited
+        out["status"] = await page.eval("status.people_invite === undefined")
         return out, posts(stub, "/voice/people/invite")
-    status = fixture(sessions=2)
-    status["account"] = "sam"
-    got, sent = asyncio.run(on_page(status, steps, settings=True, prepare=lambda stub: setattr(stub, "invite_svg", QR)))
+    got, sent = asyncio.run(on_page(fixture(sessions=2), steps, settings=True))
     assert got["before"] == [False, False, False]
     assert got["form"] == {"focus": "people-name", "name": "Name", "group": "What they can do",
-                           "trust": "People you invite can make these agents run commands as sam. Keep a session to yourself with Private.",
+                           "trust": "People you invite can make these agents run commands as your account on this machine. Keep a session to yourself with Private.",
                            "choices": [["Can talk to the sessions", "true"], ["Can only watch", "false"]]}
     assert sent == [{"name": "Dana", "grant": "send"}]
     assert got["invite"]["help"] == "Send this line to Dana. It works once." and got["invite"]["line"] == got["invite"]["copied"] == LINE
     assert got["invite"]["dir"] == "ltr" and got["invite"]["copy"] == "Copied" and re.fullmatch(r"Expires in \d+:\d\d", got["invite"]["left"])
-    assert got["invite"]["qr"] == 1 and got["invite"]["shown"] == [True, False, False, True]
+    assert got["invite"]["qr"] >= 1 and got["invite"]["shown"] == [True, False, False, True]
     assert got["waiting"] is True
-    assert got["people"] == [{"name": "Dana", "meta": ["online", "Their voice uses: Deepgram, Cartesia"], "buttons": ["Can talk", "Remove"]}]
-    assert got["after"] == [True, True, True, False]
+    assert len(got["people"]) == 1 and got["people"][0]["name"] == "Dana" and got["people"][0]["buttons"] == ["Can talk", "Remove"]
+    assert re.fullmatch(r"last here \d\d:\d\d", got["people"][0]["meta"][0]) and got["people"][0]["meta"][1:] == ["Their voice uses: Deepgram, Cartesia"]
+    assert got["after"] == [True, True, True, False] and got["status"] is True
+    assert got["trust"] == "People you invite can make these agents run commands as sam. Keep a session to yourself with Private."
 
 
 @needs_chrome
@@ -394,15 +427,18 @@ def test_a_watch_only_invite_can_be_cancelled_and_a_taken_name_keeps_the_form():
         await page.eval("""(() => { document.querySelector('#people-grant [data-grant=watch]').click(); document.getElementById('people-name').value = 'Omar';
                                    document.getElementById('people-form').requestSubmit(); return true; })()""")
         assert await until(page, f"{SEEN}('people-invite')")
-        qr = await page.eval(f"{SEEN}('people-qrtile')")  # this Mac drew none: no empty tile
+        qr = await page.eval(f"{SEEN}('people-qrtile')")
         await page.eval("document.getElementById('people-cancel').click()")
         assert await until(page, f"!{SEEN}('people-invite')")
         await asyncio.sleep(1.3)
         return taken, qr, await page.eval(f"{SEEN}('people-invite')"), await page.eval(f"{SEEN}('people-invitebtn')"), posts(stub, "/voice/people/invite")
     taken, qr, still, button, sent = asyncio.run(on_page(with_people(), steps, settings=True))
-    assert taken == ["Somebody called dana is here already. Give this person another name.", True, "dana"]
-    assert qr is False and still is False and button is True
+    assert taken == ["A person called dana is already on this machine.", True, "dana"]
+    assert qr is True and still is False and button is True
     assert sent == [{"name": "dana", "grant": "send"}, {"name": "Omar", "grant": "watch"}, {"cancel": True}]
+
+
+OLD_VOICE = "Noor's voice runs an older Pointe (0.9.0). They update it with: pointe update"
 
 
 @needs_chrome
@@ -417,10 +453,14 @@ def test_a_persons_grant_changes_in_one_click_each_way():
             assert await until(page, f"{grant}.textContent === '{want}'", 1.0)  # at once, before the Mac's next status
             await asyncio.sleep(1.4)
             out.append(await page.eval(f"{grant}.textContent"))
-        return out, posts(stub, "/voice/people/grant")
-    (people, label, first, second), sent = asyncio.run(on_page(with_people(), steps, settings=True))
+        return out, posts(stub, "/voice/people/grant"), stub.gets
+    status = with_people()
+    status["people"][1]["notice"] = OLD_VOICE
+    (people, label, first, second), sent, gets = asyncio.run(on_page(status, steps, settings=True))
+    assert gets == []  # the status has each person's services: /voice/people is the command line's
     assert people[0] == {"name": "Dana", "meta": ["online", "Their voice uses: Soniox, ElevenLabs"], "buttons": ["Can talk", "Remove"]}
     assert people[1]["name"] == "Noor" and re.fullmatch(r"last here (\w{3} )?\d\d:\d\d", people[1]["meta"][0]) and people[1]["buttons"] == ["Watch only", "Remove"]
+    assert people[1]["meta"][1:] == [OLD_VOICE]  # no services line for a voice that named none; what the machine says about it
     assert label == "Dana can talk to the sessions. Click to make it watch only."
     assert (first, second) == ("Watch only", "Can talk")
     assert sent == [{"name": "Dana", "grant": "watch"}, {"name": "Dana", "grant": "send"}]
@@ -518,11 +558,12 @@ def test_what_a_machine_says_shows_under_it_with_remove_next_to_removed_you():
     machine that is offline reads as any offline machine."""
     status = with_avi()
     since = time.time() - 1800
-    status["machines"][1].update(online=False, since=since, notice="avi-box removed you")
+    status["machines"][1].update(online=False, since=since, notice="avi-box removed you", removed=True)
     for x in status["sessions"][2:]:
         x.update(online=False, working=False, by=None)
     old = "lab runs an older Pointe (0.9.0). Update it there: pointe update"
-    status["machines"].append(machine("lab", owner="Noor", grant="send", online=False, since=since, notice=old))
+    status["machines"].append(machine("lab", owner="Noor", grant="send", online=False, since=since, notice=old, removed=False))
+    status["machines"].append(machine("attic", owner="Omar", grant="send", online=False, since=since, notice="attic removed you"))  # no flag: the line says it
     async def steps(page, stub):
         notes = "[...document.querySelectorAll('#list .mnote')].map(n => [n.querySelector('span').textContent, [...n.querySelectorAll('button')].map(b => b.textContent)])"
         out = {"notes": await page.eval(notes), "headers": await page.eval(HEADERS), "role": await page.eval("document.querySelector('#list .mnote').getAttribute('role')"),
@@ -534,17 +575,17 @@ def test_what_a_machine_says_shows_under_it_with_remove_next_to_removed_you():
         await asyncio.sleep(0.3)
         out["asked"] = [await page.eval(notes), len(posts(stub, "/voice/hub/revoke"))]
         await page.eval("document.querySelector('#list .mnote button').click()")
-        assert await until(page, "document.querySelectorAll('#list .mnote').length === 1")
+        assert await until(page, "document.querySelectorAll('#list .mnote').length === 2")
         out["after"] = [posts(stub, "/voice/hub/revoke"), await page.eval("[...document.querySelectorAll('#list .mh .mn')].map(n => n.textContent)")]
         return out
     got = asyncio.run(on_page(status, steps))
-    assert got["notes"] == [["avi-box removed you", ["Remove"]], [old, []]] and got["role"] == "status"
+    assert got["notes"] == [["avi-box removed you", ["Remove"]], [old, []], ["attic removed you", ["Remove"]]] and got["role"] == "status"
     assert re.fullmatch(r"offline since \d\d:\d\d", got["headers"][1]["said"][-1]) and got["headers"][1]["own"] == "Avi's"
     assert got["rows"][2:] == [["billing", True, "offline"], ["search", True, "offline"]]
     assert got["machines"][1][0] == "avi-box · Avi's" and got["machines"][1][2:] == ["avi-box removed you", "Remove"]
     assert re.search(r"offline since \d\d:\d\d", got["machines"][1][1])
-    assert got["asked"] == [[["avi-box removed you", ["Remove avi-box?"]], [old, []]], 0]
-    assert got["after"] == [[{"name": "avi-box"}], ["studio", "lab"]]
+    assert got["asked"] == [[["avi-box removed you", ["Remove avi-box?"]], [old, []], ["attic removed you", ["Remove"]]], 0]
+    assert got["after"] == [[{"name": "avi-box"}], ["studio", "lab", "attic"]]
 
 
 # ---------- private ----------
@@ -596,12 +637,11 @@ def test_a_session_i_own_goes_private_and_back_on_a_machine_that_has_people():
 @needs_chrome
 def test_a_share_the_mac_refuses_is_said_and_undone():
     async def steps(page, stub):
-        stub.status["sessions"] = [x for x in stub.status["sessions"] if x["name"] != "s0-shop"] + [session("s0-shop")]
-        stub.status["sessions"][-1]["name"] = "gone"  # the session left between the status and the click
+        stub.status["sessions"][0]["name"] = "gone"  # the session left between the status and the click
         await page.eval("setPrivate('s0-shop', true)")
         assert await until(page, f"{TEXT}('renameproblem')")
         return await page.eval(f"{TEXT}('renameproblem')"), await page.eval("document.getElementById('renameproblem').getAttribute('role')")
-    assert asyncio.run(on_page(with_people(), steps)) == ("The Mac did not change it.", "alert")
+    assert asyncio.run(on_page(with_people(), steps)) == ("No session called s0-shop is on the voice.", "alert")
 
 
 # ---------- layout, names, words ----------
@@ -616,7 +656,7 @@ def test_machines_and_people_fit_and_every_control_has_a_name(width, dark):
     async def steps(page, stub):
         if dark:
             await page.cdp("Emulation.setEmulatedMedia", {"features": [{"name": "prefers-color-scheme", "value": "dark"}]})
-        stub.add_answers = [(409, "You have a machine called avi-box already. Give this one another name.")]
+        stub.add_answers = [(409, TAKEN)]
         await open_machines(page)
         await page.eval(f"(() => {{ document.getElementById('mach-line').value = '{LINE}'; document.getElementById('mach-add').requestSubmit(); return true; }})()")
         assert await until(page, f"{SEEN}('mach-name-f')")
@@ -679,3 +719,70 @@ def test_the_apps_say_the_same_words_once_they_have_them():
               "callIt", "mine", "makePrivate", "makeShared", "watchOnly", "privateMark", "noAnswer"}
     assert shared <= set(app) and shared <= set(page), (shared - set(app), shared - set(page))
     assert {k: page[k] for k in app if k in page} == {k: v for k, v in app.items() if k in page}  # a key both have says the same
+
+
+# ---------- the real daemon ----------
+
+@needs_chrome
+def test_on_the_real_daemon_an_invite_shows_its_line_and_code_and_cancel_ends_it():
+    """The page the real daemon serves (tests/join_hub.py: daemon.py's app on its own state folder and ports, as
+    tests/test_integration_join.py runs it), with an address set up as `pointe pair host` does. Invite a person makes
+    the code on the real route: the line and the QR code show, the status carries the code, and Cancel ends it."""
+    import secrets
+    import shutil
+    import subprocess
+    import tempfile
+
+    from test_integration_join import Box, local
+    from test_integration_join import until as soon
+
+    async def run(box):
+        token = secrets.token_hex(24)
+        (box.hub / "token").write_text(token)
+        (box.hub / "first-hello").write_text("")
+        made = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); import pair; "
+                               "pair.setup('127.0.0.1', '127.0.0.1')", str(ROOT / "pointe")],
+                              env=box.env(box.hub, box.hub_port), capture_output=True, text=True, timeout=60)
+        assert made.returncode == 0, made.stderr[-2000:]
+        hub = box.start([sys.executable, "-I", str(ROOT / "tests" / "join_hub.py"), str(box.hub_port)], box.hub, box.hub_port, "hub.log")
+        await soon("the daemon answers", lambda: hub.poll() is None and local(box.hub_port, "/voice/health", token), 120)
+        before = local(box.hub_port, "/voice/status", token)
+        async with Browser() as browser:
+            page = await browser.open(f"http://localhost:{box.hub_port}/voice?key={(box.hub / 'page_key').read_text().strip()}")
+            await open_machines(page)
+            shown = [await page.eval(f"{SEEN}('{i}')") for i in ("mach-add", "people-invitebtn", "people-h", "people-list")]
+            await page.eval("document.getElementById('people-invitebtn').click()")
+            await page.eval("(() => { document.getElementById('people-name').value = 'Dana'; document.querySelector('#people-grant [data-grant=watch]').click();"
+                            " document.getElementById('people-form').requestSubmit(); return true; })()")
+            assert await until(page, f"{SEEN}('people-invite')", 10), await page.eval(f"{TEXT}('people-err')")
+            invite = {"line": await page.eval(f"{TEXT}('people-link')"), "help": await page.eval(f"{TEXT}('people-help')"),
+                      "qr": await page.eval("document.querySelectorAll('#people-qr svg path').length"), "tile": await page.eval(f"{SEEN}('people-qrtile')"),
+                      "left": await page.eval(f"{TEXT}('people-left')")}
+            waiting = local(box.hub_port, "/voice/people/invite", token)
+            in_status = local(box.hub_port, "/voice/status", token).get("people_invite")
+            await asyncio.sleep(2.5)  # two of the page's own polls of the real GET: the invite stays up
+            still = await page.eval(f"{SEEN}('people-invite')")
+            await page.eval("document.getElementById('people-cancel').click()")
+            assert await until(page, f"!{SEEN}('people-invite')")
+            await asyncio.sleep(1.3)
+            after = [await page.eval(f"{SEEN}('{i}')") for i in ("people-invite", "people-invitebtn", "people-ended")]
+        return before, shown, invite, waiting, in_status, still, after, local(box.hub_port, "/voice/people/invite", token), local(box.hub_port, "/voice/status", token)
+
+    box = Box(Path(tempfile.mkdtemp(prefix="pointe-people-")))
+    try:
+        before, shown, invite, waiting, in_status, still, after, ended, status = asyncio.run(run(box))
+    except BaseException:
+        print("---- hub.log\n" + box.log("hub.log"))
+        raise
+    finally:
+        box.stop()
+        shutil.rmtree(box.root, ignore_errors=True)
+    assert before["can_invite"] is True and "people" not in before and "people_invite" not in before and "account" not in before
+    assert shown == [True, True, False, False]  # nobody invited: the two ways in, and nothing else
+    assert invite["line"].startswith("pointe://machine?v=1&host=127.0.0.1&port=") and "&code=" in invite["line"] and invite["line"] == waiting["link"]
+    assert invite["help"] == "Send this line to Dana. It works once." and invite["tile"] and invite["qr"] >= 1
+    assert re.fullmatch(r"Expires in \d+:\d\d", invite["left"])
+    assert waiting["name"] == "Dana" and waiting["grant"] == "watch" and waiting["paired"] is None and waiting["svg"].startswith("<svg")
+    assert in_status["code"] == waiting["code"] and in_status["link"] == waiting["link"]
+    assert still is True and after == [False, True, False]
+    assert ended["code"] is None and ended["paired"] is None and "people_invite" not in status and "people" not in status
