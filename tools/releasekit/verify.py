@@ -127,7 +127,10 @@ def linux(installer: Path, version: str, work: Path, tarball: Path | None = None
     file is installed through --url and its SHA-256 (a candidate not yet published); without, the pinned release from
     github.com."""
     env = colima_up()
-    shared = Path(tempfile.mkdtemp(prefix="pointe-linux-"))
+    # Under HOME: Colima shares only the home folder with its VM, so a folder in /var/folders mounts empty.
+    shared = work / "linux-in"
+    shutil.rmtree(shared, ignore_errors=True)
+    shared.mkdir(parents=True)
     shutil.copyfile(installer, shared / "install.sh")
     extra = ""
     if tarball:

@@ -82,7 +82,16 @@ def tree(ctx: Ctx) -> str:
 
 
 def ci_main(ctx: Ctx) -> str:
-    return preflight.ci_main()
+    """A cut waits up to 45 minutes for main's CI to finish (red fails at once); a dry run and --no-wait report it."""
+    end = time.monotonic() + 45 * 60
+    while True:
+        try:
+            return preflight.ci_main()
+        except Stop as e:
+            if ctx.dry_run or getattr(ctx.args, "no_wait", False) or time.monotonic() > end:
+                raise
+            ctx.say(f"    {e.why}: waiting")
+            time.sleep(60)
 
 
 def wip(ctx: Ctx) -> str:
