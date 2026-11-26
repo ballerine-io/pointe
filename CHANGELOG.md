@@ -10,6 +10,7 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
 
 ## 0.10 (beta)
 
+- **0.10.1** (2026-11-26, beta): Speech no longer breaks between words on the iPhone, the page and the Mac, and the iPhone app gets the People and Machines screens
 - **0.10.0** (2026-11-26, beta): Machines running different Pointe versions say which one to update and how, a correction takes a request back from the wrong session, mute holds through quick taps, and Linux hubs, the iPhone and the Mac get their fixes
 
   What is in it:
