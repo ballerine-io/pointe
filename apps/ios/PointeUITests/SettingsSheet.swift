@@ -26,12 +26,17 @@ extension XCUIApplication {
         return item
     }
 
-    /// A switch in Settings: the tap goes to the switch itself, not to the words beside it.
+    /// A switch in Settings: the tap goes to the switch itself, not to the words beside it. On a loaded CI simulator a tap
+    /// at the switch's centre is now and then dropped (the app idle, the switch never moves): tap until its value changes.
     func flipSetting(_ id: String) {
         let row = settingsItem(id, .switch)
         XCTAssertTrue(row.exists, "Settings has \(id)")
         let control = row.switches.firstMatch
-        (control.exists ? control : row).tap()
+        let moved = NSPredicate(format: "value != %@", (row.value as? String) ?? "")
+        for _ in 0..<3 {
+            (control.exists ? control : row).tap()
+            if XCTWaiter().wait(for: [XCTNSPredicateExpectation(predicate: moved, object: row)], timeout: 3) == .completed { return }
+        }
     }
 
     func closeSettings() {
