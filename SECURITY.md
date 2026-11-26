@@ -641,7 +641,9 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
     dictionary (`/voice/dictionary`), and briefings (`/voice/briefings`, `/voice/briefings/latest`,
     `/voice/briefings/schedule`);
   - Show while it says (`/voice/artifact`), once `show.on_phone` is on;
-  - machines: `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke`.
+  - machines: `/voice/hub/invite`, `/voice/hub/nodes`, `/voice/hub/revoke`, and `/voice/machines/add` (adds a machine
+    somebody invited this person to, from its owner's one-time line: the daemon then connects out to that machine,
+    and only to the certificate the line names).
 
   Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
   uses.

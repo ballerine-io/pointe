@@ -56,6 +56,7 @@ import mac
 import newsession
 import nightshift
 import hub_nodes
+import machines
 import phone_pairing
 import nodelink
 from harnesses import FINISHED_MARK, claude_code
@@ -197,6 +198,7 @@ from sessions import (
     machines as paired_machines,
     machines_named,
     online,
+    owner_of,
     name_groups,
     named_sessions,
     pick_nudge,
@@ -882,7 +884,9 @@ def _left_session_mode() -> None:
 
 async def _asked_for_held(heard: str) -> bool:
     """"Anything from the others?" while focused: the held news, told; session mode stays."""
-    if REGISTRY.mode != "session" or _dumping() or state.meeting is not None or not scope.others_intent(heard):
+    # Outside session mode only when something is held: reports of turns other people started (_hold_others).
+    if (REGISTRY.mode != "session" and not len(HELD)) or _dumping() or state.meeting is not None \
+            or not scope.others_intent(heard):
         return False
     _remember("user", heard)
     state.last_utterance = heard  # its language; not fresh speech for a send
@@ -1393,6 +1397,8 @@ def _machines_line() -> str | None:
             facts = [_OS_NAMES.get(m.os, m.os), _count(on.count(name))] + ([f"{m.rtt_ms} ms"] if m.rtt_ms is not None else [])
         else:
             facts = [_since(m.since if m else None), _count(on.count(name))]
+        if m is not None and m.owner:  # somebody invited the user to it: the sessions there are that person's
+            facts.insert(0, f"{m.owner}'s machine" + (", the user may only watch it" if m.grant == "watch" else ""))
         parts.append(f"{name} ({', '.join(f for f in facts if f)})")
     return (f"Machines: {', '.join(parts)}. Say a session's machine only when it tells two sessions apart, when you move "
             "to a session on another machine, and when asked where one runs or what is going on everywhere (then answer "
@@ -1423,8 +1429,18 @@ def _status_machines() -> list[dict]:
         n, need = counts(m.name)
         out.append({"id": m.id, "name": m.name, "here": False, "os": m.os, "online": m.online, "since": m.since,
                     "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp,
+                    # a machine somebody invited this voice to: whose it is, and what this person may do there
+                    **({"owner": m.owner} if m.owner else {}), **({"grant": m.grant} if m.grant else {}),
                     **({"notice": m.notice} if m.notice else {})})
     return out
+
+
+def _disclosure(request) -> dict:
+    """`disclosure` in the status, once after a machine is added: which services this voice sends that machine's
+    transcripts to, until the person dismisses it (POST /voice/machines/add {seen}). Absent when there is none."""
+    told = getattr(harnesses.HOST, "disclosure", None)
+    found = told() if told and _shows_invite(request) else None
+    return {"disclosure": found} if found else {}
 
 
 def _shows_invite(request) -> bool:
@@ -2694,6 +2710,8 @@ class SonioxEars(FrameProcessor):
             return
         if await _attach_words(heard):
             return
+        if await _anyway_words(heard):
+            return
         if await _asked_for_held(heard):
             return
         await on_user_utterance(heard)
@@ -3059,6 +3077,10 @@ class State:
     last_mode_at: float = 0.0
     pending_route: tuple[float, str | None, str] | None = None  # (when, proposed session id, message): refused for want of a session
     pending_close: tuple[float, list[str], str] | None = None  # (when, session ids, the read-back): closes on the next yes
+    # (when, session id, message): a machine refused it because its session works on another person's request;
+    # "send it anyway" delivers it (_anyway_words)
+    pending_anyway: tuple[float, str, str] | None = None
+    others_asked: dict[str, list[str]] = field(default_factory=dict)  # per session: what other people sent it (`sent`)
     last_close_at: float = 0.0
     # A new session read back and not started yet: (when, {id, harness, folder, name, line}). Starts on the next yes.
     pending_start: tuple[float, dict] | None = None
@@ -3123,6 +3145,15 @@ async def feed(session: Session, text: str, respond: bool) -> None:
         asyncio.create_task(_refresh_brief(session))
         return
     if FINISHED_MARK in text:
+        mine, session.turn_mine = session.turn_mine, False
+        if not mine and _others_machine(session):
+            # A machine somebody invited the user to: the report of a turn another person started is theirs to hear.
+            # Here it is held: counted on the screens, read at "anything from the others?", never said on its own.
+            _clear_stop(session)
+            asyncio.create_task(_digest_others(session, text))
+            if state.conn is not None:
+                _hold_others(session, text)
+            return
         _clear_stop(session)
         _note_relay_refusal(session, text.split(FINAL_MARK, 1)[-1])
         if state.conn is None and (carry := _quick_answer(session, text, call=False)) is not None:
@@ -3430,6 +3461,26 @@ def _quick_answer(session: Session, text: str, call: bool = True) -> str | None:
     return (f"[{_tag(session)}{harnesses.of(session).label} {FINISHED_MARK} It answered the question you sent it. Tell "
             f"the user its answer in {lang}, in one or two short sentences, the answer first, keeping every number; a "
             f"caveat gets a few words, and only when it changes what the answer means; add nothing:\n{final}")
+
+
+def _others_machine(session: Session) -> bool:
+    """The session runs on a machine somebody invited this voice to (machines.py), not on one of the user's own."""
+    m = paired_machine(session.machine) if session.machine else None
+    return bool(m and m.dialed)
+
+
+def _hold_others(session: Session, text: str) -> None:
+    line = text.split(FINAL_MARK, 1)[-1].strip().split("\n")[0][:300]
+    HELD.add(session.name, "report", line or "finished a turn", text)
+    logger.info(f"held: the report of a turn on {session.name} that {session.owner or 'another person'} started, "
+                f"not the user ({len(HELD)} waiting)")
+
+
+async def _digest_others(session: Session, text: str) -> None:
+    """The reader's pass over a turn another person started: the notes follow the session, and what it then waits
+    for is that person's to answer, so it never nudges the user."""
+    await _digest_quietly(session, text)
+    session.needs, session.open_questions, session.urgency = None, [], "normal"
 
 
 async def _digest_quietly(session: Session, text: str) -> None:
@@ -4637,9 +4688,11 @@ async def post_channel(session: Session, path: str, body: dict) -> bool:
         return False
 
 
-async def deliver(session: Session, text: str) -> bool:
-    """Through the session's harness: for Claude Code, its voice channel when it has one, else its inbox socket."""
-    return await harnesses.of(session).send(session, text)
+async def deliver(session: Session, text: str, anyway: bool = False) -> bool:
+    """Through the session's harness: for Claude Code, its voice channel when it has one, else its inbox socket.
+    `anyway`, for a session on a machine with other people: deliver although it works on another person's request."""
+    harness = harnesses.of(session)
+    return await harness.send(session, text, anyway=True) if anyway else await harness.send(session, text)
 
 
 # ---------- devil's advocate (the rules: challenge.py) ----------
@@ -4945,6 +4998,8 @@ async def _send_dump(name: str = "", orchestrator: bool = False) -> dict:
     target.joining = False
     began = time.time()
     if not await _dispatch(target, f"{braindump.sent_header(target.name)}\n{text}"):
+        if there := _turned_down(target, began, f"{braindump.sent_header(target.name)}\n{text}"):
+            raise HTTPException(status_code=409, detail=there)
         held = target.held_at is not None and target.held_at >= began
         refused = target.refused_at is not None and target.refused_at >= began
         raise HTTPException(status_code=409, detail=f"Not delivered to {target.name}. {inbox_need(target, time.time())}"
@@ -6451,6 +6506,8 @@ def _needs_now() -> str:
         notes = _brief_of(s) or {}
         promised = "; ".join(str(p) for p in notes.get("owner_promised") or [])
         machine = f" on {_machine_of(s)}" if several else ""
+        machine += f", {s.owner}'s session" if s.owner else ""
+        others = state.others_asked.get(s.id) or []
         doing = "stopped at a prompt in its terminal" if terminal_wait(s) else "working" if s.busy else "not working"
         lines.append(f"- {s.name} ({harnesses.of(s).agent}{machine}, {doing}). "
                      + ("" if online(s) else "OFFLINE: cannot be sent to. ")
@@ -6459,6 +6516,7 @@ def _needs_now() -> str:
                      f"Waits on the user for: {'; '.join(items(s)) or 'nothing'}."
                      + (f" Clocks: {'; '.join(s.deadlines)}." if s.deadlines else "")
                      + (f" Sent to it, with no report back yet, so not known to be done: {'; '.join(sent)}." if sent else "")
+                     + (f" Sent to it by other people, never by the user: {'; '.join(others)}." if others else "")
                      + (f" The user said they would: {promised}." if promised else "")
                      + (f" Harness messages left out of what you hear: {s.noise}." if s.noise else ""))
     if state.blocked:
@@ -7159,7 +7217,7 @@ async def _send_now(message: str) -> dict:
         return dict(ABANDONED)
     wrong = _sent_by_mistake(message, targets)
     taken_back, since = state.last_message, wrong.last_delegation_at if wrong else 0.0
-    sent_to, failed, set_aside = [], [], []
+    sent_to, failed, set_aside, turned_down = [], [], [], []
     for target in targets:
         logger.info(f"-> {target.name}: {message!r} (routing: {how})")
         target.joining = False  # its next finished turn answers this, even if its join turn was never seen ending
@@ -7167,6 +7225,14 @@ async def _send_now(message: str) -> dict:
         (sent_to if await _dispatch(target, message) else failed).append(target.name)
         if why := _set_aside(target, began):
             set_aside.append(why)
+        if why := _turned_down(target, began, message):
+            turned_down.append(why)
+    if not sent_to and turned_down:
+        # The machine refused it (the user may only watch, the session works for another person, ...): the daemon's
+        # own sentence, said word for word in place of the model's reply (BrainFront._speak).
+        _record(message, [], "refused by the session's machine")
+        state.readback = " ".join(turned_down)
+        return {"error": f"Not sent. The user is told why in exactly these words, so add nothing: {state.readback}"}
     if not sent_to:
         _record(message, [], "failed: " + ("held or refused by Claude Code" if set_aside else "delivery error"))
         if set_aside:
@@ -7204,6 +7270,8 @@ async def _send_now(message: str) -> dict:
         result["failed"] = failed
     if set_aside:
         result["say"] = " ".join(set_aside)
+    if turned_down:
+        result["say"] = (result.get("say", "") + " Say exactly: " + " ".join(turned_down)).strip()
     if how in ("auto", "thread") and targets[0] is not REGISTRY.active:
         result["say"] = (f"Tell the user it went to {targets[0].name}. " + result.get("say", "")).strip()
     if offline:
@@ -7384,16 +7452,68 @@ def _set_aside(target: Session, since: float) -> str:
     return ""
 
 
-async def _dispatch(target: Session, message: str, for_user: bool = True) -> bool:
+ANYWAY_SECS = 120.0  # how long "send it anyway" still means the request a machine just refused
+
+
+def _turned_down(target: Session, since: float, message: str) -> str:
+    """Why the machine a session runs on refused a send since `since`, in the daemon's own sentence (machines.refusal);
+    "" when it did not. A request refused because the session works on another person's is kept: "send it anyway"
+    delivers it (_anyway_words)."""
+    down = target.turned_down
+    if not down or down.get("at", 0.0) < since:
+        return ""
+    if down.get("why") == "busy":
+        state.pending_anyway = (time.time(), target.id, message)
+    m = paired_machine(target.machine)
+    return machines.refusal(target.name, target.machine, m.owner if m else "", down)
+
+
+async def _anyway_words(heard: str) -> bool:
+    """"Send it anyway", after a machine refused a request because its session works on another person's: the same
+    request goes again, marked so the machine delivers it. Only the user's own words do this, never the model."""
+    pending = state.pending_anyway
+    if pending is None or time.time() - pending[0] > ANYWAY_SECS or not machines.anyway_intent(heard) \
+            or _dumping() or state.meeting is not None:
+        return False
+    state.pending_anyway = None
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for another send
+    _, sid, message = pending
+    target = REGISTRY.sessions.get(sid)
+    if target is None:
+        await _say_exactly("That session is gone.", "send anyway: the session left")
+        return True
+    began = time.time()
+    logger.info(f"-> {target.name}: {message!r} (sent anyway: the user said so)")
+    if not await _dispatch(target, message, anyway=True):
+        line = _turned_down(target, began, message) or (
+            f"Not sent. {_offline_line(target)}." if not online(target) else f"Not sent. It did not reach {target.name}.")
+        _record(message, [], "sent anyway, and not delivered")
+        await _say_exactly(line, "send anyway: not delivered")
+        return True
+    now = time.time()
+    state.last_sent, state.last_aimed, state.thread = (now, target.name), target.name, (target.id, now)
+    target.last_delegation_at = state.last_delegation_at = now
+    state.sent.append(f"{target.name}: {message}")
+    state.last_message = message
+    state.blocked = [m for m in state.blocked if m != message]
+    _record(message, [target.name], "sent anyway: the session worked on another person's request")
+    state.unconfirmed.setdefault(target.id, []).append(message)
+    await _say_exactly(f"Sent to {target.name}.", "sent anyway")
+    return True
+
+
+async def _dispatch(target: Session, message: str, for_user: bool = True, anyway: bool = False) -> bool:
     """Delivered, or not: a bus job only queues the request, so it cannot say whether it arrived. `for_user`: the owner
     asked for it on this call, so the screens say the session is working and progress.py may say how it goes; a night
     shift's own message is not."""
     asked = target.stop_asked_at
     while asked is not None and target.stop_asked_at == asked and time.time() - asked < STOP_SETTLE_SECS:
         await asyncio.sleep(0.2)  # "stop, and do X": X goes after the stop landed, or Claude reads it inside that turn
-    if not await deliver(target, message):
+    if not (await deliver(target, message, anyway=True) if anyway else await deliver(target, message)):
         return False
     target.busy = True
+    target.turn_mine = True  # its next report answers this voice: said, also on a machine with other people (feed)
     if for_user and state.conn is not None:
         state.watch.asked(target.id, time.time())
     return True
@@ -8781,6 +8901,7 @@ async def _with_housekeeping(_app):
 app.router.lifespan_context = _with_housekeeping
 HUB = hub_nodes.Hub(STATE_DIR, REGISTRY)  # the machines paired with this Mac: their links, invites and mirrors
 hub_nodes.install(app, HUB)  # wraps the lifespan just set
+DIALER = machines.install(app, HUB)  # the machines somebody invited this voice to: added, then dialed
 
 
 async def _end_phone_call(ids: set[str] | None) -> None:
@@ -8881,15 +9002,20 @@ def _tell_apart(session: Session, label: str) -> None:
     that a session on this Mac always does: a remote one holding it is renamed "<name> <machine>", so "tell shop" never
     goes to another machine because it joined first. When the suffix does not fit, the registry's "-2" does. A session
     on this Mac never takes this Mac's name: that would make it an alias ("go to studio" would pick one of its
-    sessions), which _here() must never be."""
+    sessions), which _here() must never be. The same for whose it is (docs/design/people-and-machines.md): a session
+    of the user's own, on any of their machines, takes the plain name from somebody else's session that holds it, and
+    somebody else's never takes it from theirs."""
     if session.id in REGISTRY.sessions:
         return
     clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
-    if not session.machine:
-        for other in [o for o in clashing if o.machine]:
+    yields = [o for o in clashing if o.machine] if not session.machine else \
+        [o for o in clashing if o.owner and o.machine != session.machine] if not session.owner else []
+    if yields:
+        for other in yields:
             labelled = f"{other.name} {other.machine}"[:40]
             if valid_name(labelled) and not REGISTRY.rename(other.id, labelled):
-                logger.info(f"{session.name} joined on this Mac: the one on {other.machine} is now {labelled}")
+                logger.info(f"{session.name} joined on {session.machine or 'this Mac'}: the one on {other.machine} "
+                            f"is now {labelled}")
         clashing = [o for o in REGISTRY.sessions.values() if _clash(o.name, session.name)]
     if session.machine and any(o.machine != session.machine for o in clashing):
         suffix = session.machine
@@ -8920,6 +9046,7 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
     if session is not None:
         apply_wait_state(session, entry, skew)  # a prompt in its terminal there, as for a session here
         session.cwd = str(entry.get("cwd") or session.cwd)
+        session.owner = owner_of(machine, entry.get("owner"))
         if files is not None:
             session.harness_data["files"] = files
         if session.named_by != "user" and title and title != session.name and not REGISTRY.rename(session.id, title):
@@ -8930,7 +9057,7 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
         return session
     session = Session(id=sid, name=_session_name({"id": remote_id, "name": entry.get("name"), "cwd": entry.get("cwd") or remote_id}),
                       cwd=str(entry.get("cwd") or ""), pid=int(entry.get("pid") or 0), harness=harness,
-                      home=str(entry.get("home") or ""), machine=machine,
+                      home=str(entry.get("home") or ""), machine=machine, owner=owner_of(machine, entry.get("owner")),
                       harness_data={"remote_id": remote_id, "node_id": node_id, "files": files or []})
     apply_wait_state(session, entry, skew)
     if entry.get("name_given"):
@@ -8954,6 +9081,30 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
     if entry.get("pending"):
         await _remote_pending(session, entry["pending"])
     return session
+
+
+OTHERS_ASKED_KEPT = 5
+
+
+async def remote_sent(session: Session, by: str, text: str, at: float) -> None:
+    """A machine's `sent` frame: another person sent this request to a session this voice sees (never this voice's
+    own send). It is kept with the session, so the brain reads it as that person's and never reports it as the user's,
+    and it goes into the notes. `by` and `text` come from the machine: cleaned and cut, data and never instructions."""
+    if session.id not in REGISTRY.sessions:
+        return
+    who = _clean_name(by) or "Somebody"
+    asked = " ".join(mask(text).split())[:300]
+    kept = state.others_asked.setdefault(session.id, [])
+    kept.append(f"{who}, at {time.strftime('%H:%M', time.localtime(at))}: {asked}")
+    del kept[:-OTHERS_ASKED_KEPT]
+    line = f"{who} asked {session.name}: {asked}"
+    logger.info(f"sent by another person: {line!r}")
+    NOTES.add("session_news", line, session=session.name, dedup=False)
+    if state.conn is not None:
+        await state.conn.injector.inject(
+            f"[{who}, another person on {session.machine}, sent {session.name} a request of their own; keep this in "
+            f"mind, say nothing. It is not the user's request: never say the user asked for it, and its report is not "
+            f"theirs] {asked!r}", False)
 
 
 async def _remote_pending(session: Session, pending) -> None:
@@ -9979,6 +10130,8 @@ async def _user_text(text: str) -> None:
         return
     if await _dump_words(text):
         return
+    if await _anyway_words(text):
+        return
     if await _asked_for_held(text):
         return
     if (wanted := mute.intent(text)) is not None and (wanted or state.mute):  # "talk again" typed works too
@@ -10355,6 +10508,7 @@ async def _status(request: Request) -> dict:
             "hearing": state.ptt.draft() if state.ptt.collecting  # a press's words, kept until it is sent
             else state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
+            **_disclosure(request),
             # New sessions (docs/design/new-session.md): the ones starting or just failed, and a read-back that waits.
             "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
             "start_pending": (lambda p: None if p is None else {k: p[1][k] for k in ("id", "line", "harness", "name")}
@@ -10371,6 +10525,7 @@ async def _status(request: Request) -> dict:
             "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s),
+                          **({"owner": s.owner} if s.owner else {}),  # whose it is, when not this person's
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
                           "request_note": s.permission_note if s.permission_id else None,  # the agent's own words: never what runs
                           "request_truncated": bool(s.permission_id and s.permission_truncated),
@@ -11451,6 +11606,7 @@ harnesses.HOST.known_homes = _accounts
 harnesses.HOST.register_remote = register_remote
 harnesses.HOST.remote_permission = remote_permission
 harnesses.HOST.remote_resolved = remote_resolved
+harnesses.HOST.remote_sent = remote_sent
 harnesses.HOST.call_state = _call_state
 harnesses.HOST.vendors = _vendor_names
 

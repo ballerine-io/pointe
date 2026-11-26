@@ -116,6 +116,14 @@ The hub treats a node's transcripts like its own: they go to the hub's reader an
 | node | `pointe node status` | the hub, the link, round trip, the hub's vendors, sessions here, key fingerprint |
 | node | `pointe node leave` | unpairs this machine from its side |
 
+**A machine somebody invited you to.** Its owner gives you one line (`pointe://machine?...`), valid once, for ten
+minutes. `pointe machine add '<line>' [--name NAME]` adds it: your voice checks the machine's certificate against the
+line, trades the code for your own key there, and connects. Its sessions then show in your conversation, each with its
+owner's name. `pointe machine list` (or `pointe machines`) shows every machine in your voice and whose it is.
+`pointe machine remove <name>` takes one out. You hear the report of a request you sent there; reports of other
+people's requests are held, and "anything from the others?" reads them. The design:
+[design/people-and-machines.md](design/people-and-machines.md).
+
 **Names.** The hub's name is `"machine"` in its `~/.claude-voice/config.json` (else its short host name). Rename the hub
 there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
 (`pointe hub invite --name devbox`); to change it, pair again.

@@ -64,7 +64,9 @@ MAX_LABEL_CHARS = 200  # names, titles, tool names
 MAX_DESCRIPTION_CHARS = 2000
 MAX_PREVIEW_CHARS = 20_000
 MAX_READABLE_CHARS = 1000  # over this the read-out is dropped (unreadable), never cut: a voice yes must match it exactly
+MAX_SENT_CHARS = 600  # another person's request, as the notes and the brain keep it (a `sent` frame)
 _LIMITS = {"cwd": MAX_PATH_CHARS, "home": MAX_PATH_CHARS, "name": MAX_LABEL_CHARS, "title": MAX_LABEL_CHARS,
+           "owner": MAX_LABEL_CHARS,
            "harness": MAX_LABEL_CHARS, "tool": MAX_LABEL_CHARS, "description": MAX_DESCRIPTION_CHARS,
            "preview": MAX_PREVIEW_CHARS}
 
@@ -83,6 +85,14 @@ def _bounded(fields: dict) -> dict:
     if isinstance(out.get("readable"), str) and len(out["readable"]) > MAX_READABLE_CHARS:
         out["readable"] = None
     return out
+
+
+def _bounded_busy(busy) -> dict:
+    """`send.result.busy` from a machine: who the session works for and since when, each cut."""
+    busy = busy if isinstance(busy, dict) else {}
+    by, since = busy.get("by"), busy.get("since")
+    return {"by": _cut(by, MAX_LABEL_CHARS) if isinstance(by, str) else "",
+            "since": since if nodelink._num(since) else _cut(since, 20) if isinstance(since, str) else None}
 
 
 def _names(names: list) -> list:
@@ -135,6 +145,11 @@ def network(address: str) -> str:
     return "LAN" if ip.is_private else ""
 
 
+def removed_line(name: str) -> str:
+    """The line a machine keeps on the screens after its owner removed this person from it."""
+    return f"{name} removed you"
+
+
 def paired_line(paired: dict) -> str:
     """What the owner reads to see that the machine that paired is the one they typed the code on."""
     where = f" ({paired['network']})" if paired.get("network") else ""
@@ -161,8 +176,17 @@ def _legible_hub_id(raw: str) -> str | None:
     return found.group(1) if found else None
 
 
+def _entries(data: dict) -> dict[str, dict]:
+    """The machines a nodes.json lists. One with no key is kept only when it is a machine that removed this person
+    (`removed`): it stays listed, with that line, and is never dialed."""
+    return {n["id"]: n for n in data.get("nodes", [])
+            if isinstance(n, dict) and isinstance(n.get("id"), str) and (n.get("key") or n.get("removed"))}
+
+
 class NodesRegistry:
-    """$STATE/nodes.json, 0600: this hub's id and each paired node's {id, name, os, key, paired_at}. It holds the keys."""
+    """$STATE/nodes.json, 0600: this hub's id and each paired node's {id, name, os, key, paired_at}. It holds the keys.
+    A machine somebody invited this voice to (machines.py) is an entry too, with `dial: {host, port, fp}`, the
+    machine's own id (`host_id`), its `owner`, this person's `grant`, id (`person`) and name there (`person_name`)."""
 
     def __init__(self, path: Path):
         self.path = path
@@ -177,8 +201,7 @@ class NodesRegistry:
         else:
             data = {"hub_id": self._hub_id_set_aside()}
         data = data if isinstance(data, dict) else {}
-        self.nodes: dict[str, dict] = {n["id"]: n for n in data.get("nodes", [])
-                                       if isinstance(n, dict) and isinstance(n.get("id"), str) and n.get("key")}
+        self.nodes: dict[str, dict] = _entries(data)
         self.hub_id = data.get("hub_id") if isinstance(data.get("hub_id"), str) else secrets.token_hex(8)
         if not broken:  # a broken file is not saved over: the next pairing or revoke writes a new one
             self.save()
@@ -204,8 +227,7 @@ class NodesRegistry:
         except (OSError, ValueError):
             data = {}
         data = data if isinstance(data, dict) else {}
-        self.nodes = {n["id"]: n for n in data.get("nodes", [])
-                      if isinstance(n, dict) and isinstance(n.get("id"), str) and n.get("key")}
+        self.nodes = _entries(data)
         if isinstance(data.get("hub_id"), str):
             self.hub_id = data["hub_id"]
 
@@ -251,15 +273,26 @@ class NodesRegistry:
         self.refresh()
         return next((n for n in self.nodes.values() if n["name"].lower() == name.lower()), None)
 
-    def add(self, name: str, os_name: str) -> dict:
+    def add(self, name: str, os_name: str, key: str | None = None, **more) -> dict:
+        """A new machine, under an id made here. `key` and `more` are a dialed machine's: the key its owner's Pointe
+        gave this person, and where it is dialed."""
         self.refresh()
         prefixes = {n["id"][:6] for n in self.nodes.values()}
         node_id = secrets.token_hex(8)
         while node_id[:6] in prefixes:  # hub session ids carry the first six: they must tell nodes apart
             node_id = secrets.token_hex(8)
-        node = {"id": node_id, "name": name, "os": os_name, "key": nodelink.new_key(), "paired_at": time.time()}
+        node = {"id": node_id, "name": name, "os": os_name, "key": key or nodelink.new_key(), "paired_at": time.time(),
+                **more}
         self.nodes[node_id] = node
         self.save()
+        return node
+
+    def update(self, node_id: str, **fields) -> dict | None:
+        self.refresh()
+        node = self.nodes.get(node_id)
+        if node is not None and any(node.get(k) != v for k, v in fields.items()):
+            node.update(fields)
+            self.save()
         return node
 
     def remove(self, node_id: str) -> None:
@@ -583,13 +616,21 @@ class Hub:
         for paired in self.nodes.nodes.values():
             self._track(paired)
         self._tasks: set[asyncio.Task] = set()
+        self.on_forget: Callable[[str], None] | None = None  # machines.Dialer: a forgotten machine is no longer dialed
 
     def _track(self, paired: dict) -> Node:
         """A node's live record, and its entry in sessions.MACHINES: offline since now until its link is up."""
+        dialed = isinstance(paired.get("dial"), dict)
         machine = Machine(name=paired["name"], id=paired["id"], os=paired.get("os", ""), online=False,
-                          since=self._clock(), key_fp=nodelink.fingerprint(paired["key"]))
+                          since=self._clock(), key_fp=nodelink.fingerprint(paired["key"]) if paired.get("key") else "",
+                          dialed=dialed, owner=str(paired.get("owner") or "") if dialed else "",
+                          grant=str(paired.get("grant") or "") if dialed else "",
+                          me=str(paired.get("person_name") or "") if dialed else "",
+                          notice=removed_line(paired["name"]) if paired.get("removed") else "")
         sessions.MACHINES[machine.name] = machine
         node = self.live[paired["id"]] = Node(id=paired["id"], machine=machine, offline_at=self._mono())
+        if paired.get("removed"):  # its sessions are not kept for a link that will not come back
+            node.offline_at -= nodelink.OFFLINE_GRACE_SECS
         return node
 
     def wrap(self, session: Session, inner: harnesses.Harness) -> harnesses.Harness:
@@ -639,14 +680,18 @@ class Hub:
         """The nodes, for `pointe hub nodes` (the status's `machines` is the daemon's, from sessions.MACHINES)."""
         return [{"id": n.id, "name": n.name, "here": False, "os": n.machine.os, "online": n.online,
                  "since": n.machine.since, "sessions": len(self._sessions_of(n)), "rtt_ms": n.machine.rtt_ms,
-                 "key_fp": n.machine.key_fp} for n in self.live.values()]
+                 "key_fp": n.machine.key_fp,
+                 **({"owner": n.machine.owner, "grant": n.machine.grant} if n.machine.dialed else {}),
+                 **({"notice": n.machine.notice} if n.machine.notice else {})} for n in self.live.values()]
 
-    def name_problem(self, name: str) -> str | None:
+    def name_problem(self, name: str, replacing: str = "") -> str | None:
         """A machine's own sessions do not count: one revoked and paired again (a rotated certificate) still has its
-        old sessions listed, named "shop devbox" by the machine suffix, until the next liveness check reaps them."""
+        old sessions listed, named "shop devbox" by the machine suffix, until the next liveness check reaps them.
+        `replacing`: the id of the entry this name is for, when a machine is added again."""
         others = [s for s in self.registry.sessions.values() if (s.machine or "").lower() != name.lower()]
         self.nodes.refresh()
-        return name_problem(name, [n["name"] for n in self.nodes.nodes.values()], others, _here(self.state_dir))
+        taken = [n["name"] for n in self.nodes.nodes.values() if n["id"] != replacing]
+        return name_problem(name, taken, others, _here(self.state_dir))
 
     # ---------- hub to node ----------
 
@@ -674,20 +719,28 @@ class Hub:
         finally:
             node.waiting.pop(key, None)
 
-    async def send(self, session: Session, text: str) -> bool:
+    async def send(self, session: Session, text: str, anyway: bool = False) -> bool:
+        """`anyway`: deliver although the session works on another person's request. A send the machine refused
+        (a person may only watch, the session is busy, private, at a prompt, or the words claim a consent) leaves why
+        on the session (`turned_down`), for the daemon to say in a sentence (machines.refusal)."""
         node = self._node_of(session)
         if node is None or not node.online:
             return False
         req = nodelink.new_id()
-        sent = encode("send", req=req, id=session.harness_data["remote_id"], text=text)
+        sent = encode("send", req=req, id=session.harness_data["remote_id"], text=text,
+                      **({"anyway": True} if anyway else {}))
+        session.turned_down = None
         reply = await self._request(node, f"send:{req}", sent)
         if not isinstance(reply, tuple):
             return False
-        ok, held = reply
+        ok, held, why, busy = reply
         if held == "held":  # the node's Claude Code kept it for approval in that terminal: said as on this machine
             session.held_at = time.time()
         elif held == "refused":
             session.refused_at = time.time()
+        if ok is not True and why and node.machine.dialed:
+            session.turned_down = {"why": _cut(why, MAX_LABEL_CHARS), "at": time.time(), "skew": node.machine.skew,
+                                   "busy": _bounded_busy(busy)}
         return ok is True
 
     async def answer(self, session: Session, request_id: str, verdict: str, how: str,
@@ -772,17 +825,31 @@ class Hub:
     async def _forget(self, node: Node, why: str) -> None:
         """Revoked here, or it left: its key goes, and a live link is closed. Its sessions are no longer alive, so the
         daemon's next liveness check takes them off the voice."""
+        if why == "left" and node.machine.dialed:  # a machine this voice dialed says it is done with this person
+            return self.removed(node)
         self.nodes.remove(node.id)
         self.live.pop(node.id, None)
         if sessions.MACHINES.get(node.name) is node.machine:
             del sessions.MACHINES[node.name]
         ws = node.socket
         if ws is not None:
-            if why == "revoked":
-                await self._send(node, encode("unpaired"))
+            if why == "revoked":  # a machine this voice dialed is told as a node tells its hub: `bye`
+                await self._send(node, encode("bye" if node.machine.dialed else "unpaired"))
             node.socket = None  # gone, not offline
             await _close(ws, 1000, why)
+        if self.on_forget is not None:
+            self.on_forget(node.id)
         logger.info(f"node {node.name} {why}: forgotten")
+
+    def removed(self, node: Node) -> None:
+        """The owner of a machine this voice dialed removed this person (the link closed with 4401): the key goes,
+        the machine stays listed with one line that says so, and it is not dialed again. Its sessions leave the voice
+        at the next liveness check."""
+        self.nodes.update(node.id, key="", removed=True)
+        node.machine.notice, node.skewed = removed_line(node.name), False
+        node.machine.key_fp = ""
+        node.offline_at = self._mono() - nodelink.OFFLINE_GRACE_SECS
+        logger.info(f"{node.machine.notice}: its key is deleted, and it is not dialed again")
 
     # ---------- pairing ----------
 
@@ -851,6 +918,8 @@ class Hub:
         if hello is None or hello["t"] != "hello":
             return await _close(ws, nodelink.CLOSE_BAD_HELLO, "hello first")
         paired = self.nodes.get(hello["node"]["id"])
+        if paired is not None and (paired.get("dial") or not paired.get("key")):
+            paired = None  # a machine this voice dials never links from its side: its entry's key is this person's
         if nodelink.common(hello["protocol"], hello.get("protocol_min")) is None:
             # No protocol both speak: said to the node in the close, and on this side with the machine, by name, when
             # the hello is from the machine it claims to be (its key answers the nonce as every protocol has).
@@ -1039,11 +1108,24 @@ class Hub:
             future = node.waiting.get(f"attach:{frame['req']}")
             if future is not None and not future.done():
                 future.set_result((frame["ok"], frame.get("why")))
-        elif t in ("permission.answered", "send.result"):
-            key = f"answer:{frame['request_id']}" if t == "permission.answered" else f"send:{frame['req']}"
-            future = node.waiting.get(key)
+        elif t == "permission.answered":
+            future = node.waiting.get(f"answer:{frame['request_id']}")
             if future is not None and not future.done():
-                future.set_result((frame["ok"], frame.get("why") if t == "permission.answered" else frame.get("held")))
+                future.set_result((frame["ok"], frame.get("why")))
+        elif t == "send.result":
+            future = node.waiting.get(f"send:{frame['req']}")
+            if future is not None and not future.done():
+                future.set_result((frame["ok"], frame.get("held"), frame.get("why"), frame.get("busy")))
+        elif t == "you" and node.machine.dialed:  # the machine's owner changed what this person may do there
+            node.machine.grant = frame["grant"]
+            self.nodes.update(node.id, grant=frame["grant"])
+            logger.info(f"{node.name}: this voice may now {frame['grant']}")
+        elif t == "sent" and node.machine.dialed:
+            session = self._session(node, frame["id"])
+            told = self._hook("remote_sent")
+            if session is not None and told is not None:
+                await _maybe(told(session, _cut(frame["by"], MAX_LABEL_CHARS), _cut(frame["text"], MAX_SENT_CHARS),
+                                  frame["at"] + node.machine.skew))
 
     def _backlog_wait(self, node: Node, sid: str) -> None:
         """The backlog is all here once frames stop for HISTORY_QUIET_SECS: then it becomes the mirror."""
@@ -1060,6 +1142,9 @@ class Hub:
         """A node's full list. New ones join through the daemon's register_remote (it also refreshes known ones and
         puts a prompt the node still holds, `pending`); ones no longer listed are no longer alive."""
         node.sessions = {e["id"]: _bounded(e) for e in entries if _ID.fullmatch(e["id"])}
+        if not node.machine.dialed:  # a node of one's own has no other people: it cannot name an owner
+            for entry in node.sessions.values():
+                entry.pop("owner", None)
         register = self._hook("register_remote")
         for entry in node.sessions.values():
             session = await register(node.id, node.name, entry) if register else None
@@ -1215,7 +1300,7 @@ def install(app, hub: Hub, link: Callable[[str], str] | None = None) -> None:
 
 # ---------- the command line: pointe hub ----------
 
-def _daemon(method: str, path: str, body: dict | None = None) -> dict:
+def _daemon(method: str, path: str, body: dict | None = None, timeout: float = 5) -> dict:
     import urllib.error
     import urllib.request
 
@@ -1230,7 +1315,7 @@ def _daemon(method: str, path: str, body: dict | None = None) -> dict:
                                      headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json",
                                               skew.HEADER: skew.header("cli", skew.version())})
     try:
-        with urllib.request.urlopen(request, timeout=5) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             return json.loads(response.read())
     except urllib.error.HTTPError as e:
         said = e.read().decode(errors="replace")

@@ -370,17 +370,21 @@ def _write_private(path: Path, text: str) -> None:
 
 def _sign_everyone_out() -> None:
     """Every credential the listener honours, gone: each phone's key (`phones.json`, the shared `phone_key`) and each
-    machine's (`nodes.json` keeps only the hub's id, so a machine pairs again with a new code and nothing else). A
+    machine's (`nodes.json` keeps only the hub's id and the machines this voice dials, so a machine pairs again with a new code and nothing else). A
     running daemon reads these files at each check and closes the calls and links they held within seconds."""
     for name in ("phone_key", "phones.json"):
         (STATE / name).unlink(missing_ok=True)
     nodes = STATE / "nodes.json"
     try:
-        hub_id = json.loads(nodes.read_text()).get("hub_id")
+        data = json.loads(nodes.read_text())
+        hub_id = data.get("hub_id")
+        # A machine somebody invited this voice to (machines.py) holds no credential of this Mac's: this voice dials
+        # it, with a key that machine gave. It stays.
+        dialed = [n for n in data.get("nodes") or [] if isinstance(n, dict) and n.get("dial")]
     except (OSError, ValueError, AttributeError):
-        hub_id = None
+        hub_id, dialed = None, []
     if nodes.exists():
-        _write_private(nodes, json.dumps({"hub_id": hub_id, "nodes": []} if isinstance(hub_id, str) else {"nodes": []}) + "\n")
+        _write_private(nodes, json.dumps({**({"hub_id": hub_id} if isinstance(hub_id, str) else {}), "nodes": dialed}) + "\n")
 
 
 def _paired_nodes() -> list[str]:
@@ -389,7 +393,7 @@ def _paired_nodes() -> list[str]:
         nodes = json.loads((STATE / "nodes.json").read_text()).get("nodes") or []
     except (OSError, ValueError, AttributeError):
         return []
-    return [str(n["name"]) for n in nodes if isinstance(n, dict) and n.get("name")]
+    return [str(n["name"]) for n in nodes if isinstance(n, dict) and n.get("name") and not n.get("dial")]
 
 
 def _say_nodes_pair_again(names: list[str], revoke: bool = False) -> None:

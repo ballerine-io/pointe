@@ -282,3 +282,7 @@ def test_a_machine_invite_round_trips_and_a_hub_invite_is_told_apart():
 def test_a_node_of_this_version_still_links_with_a_hub_that_speaks_only_protocol_1():
     assert nodelink.common(1, None) == 1  # the hub's side: a 0.9.0 node offers 1
     assert nodelink.MIN_PROTOCOL == 1 <= nodelink.PROTOCOL  # the node's side: a 0.9.0 hub welcomes with 1
+
+
+def test_a_voice_can_say_bye_to_a_machine_it_dialed():
+    assert decode(encode("bye"), HUB_FRAMES) == {"t": "bye"} and decode(encode("bye"), NODE_FRAMES) == {"t": "bye"}

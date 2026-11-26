@@ -165,6 +165,7 @@ HUB_FRAMES: dict[str, dict[str, Check]] = {
     "attach": {"req": _str, "harness": _str, "id": _str, "reopen?": _bool},
     "leave": {"id": _str},
     "unpaired": {},
+    "bye": {},  # a person's voice removes a machine it dialed: the machine forgets that person's link, not the person
     "ping": {"id": _int, "rtt_ms": _or_none(_count)},
 }
 

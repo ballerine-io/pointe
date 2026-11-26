@@ -941,7 +941,9 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 <li>
 <p>Show while it says (<code>/voice/artifact</code>), once <code>show.on_phone</code> is on;</p>
 </li>
-<li>machines: <code>/voice/hub/invite</code>, <code>/voice/hub/nodes</code>, <code>/voice/hub/revoke</code>.</li>
+<li>machines: <code>/voice/hub/invite</code>, <code>/voice/hub/nodes</code>, <code>/voice/hub/revoke</code>, and <code>/voice/machines/add</code> (adds a machine
+  somebody invited this person to, from its owner's one-time line: the daemon then connects out to that machine,
+  and only to the certificate the line names).</li>
 </ul>
 <p>Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
 uses.</p>

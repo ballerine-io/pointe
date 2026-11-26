@@ -37,8 +37,10 @@ class RemoteHarness(Harness):
 
         return [follow_transcript(session, feed, lambda: None)]
 
-    async def send(self, session: Session, text: str) -> bool:
-        return await self.hub.send(session, text)
+    async def send(self, session: Session, text: str, anyway: bool = False) -> bool:
+        """False also when the machine refused it: why is then on `session.turned_down` (hub_nodes.Hub.send).
+        `anyway`: deliver although the session works on another person's request."""
+        return await self.hub.send(session, text, anyway=True) if anyway else await self.hub.send(session, text)
 
     def noise(self, text: str) -> str:
         return self.inner.noise(text)

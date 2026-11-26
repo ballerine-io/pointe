@@ -91,6 +91,12 @@ class Session:
     noise: int = 0  # harness messages kept out of the feed: "how much was junk" has an answer
     harness: str = "claude-code"  # which coding agent runs it: harnesses/ (claude-code, opencode)
     machine: str = ""  # the node it runs on; "" is this machine. Its adapter is harnesses.of(session), never get()
+    # Whose session it is, when not this person's: a name, on a machine somebody invited this voice to
+    # (docs/design/people-and-machines.md). "" is mine. Somebody else's never wins a name against mine (name_groups).
+    owner: str = ""
+    turn_mine: bool = False  # this voice sent it a request and no report has come since: that report is said, not held
+    # The machine refused this voice's last send: {"why", "busy": {by, since}, "at"} (hub_nodes.Hub.send). None when not.
+    turned_down: dict | None = None
     turn: Turn = field(default_factory=Turn)  # what the turn in progress touched (show while it says)
     artifacts: list = field(default_factory=list)  # what the last finished turn touched, for its report
     step: tuple[float, str] | None = None  # (when, what): its newest tool use, in progress.step_of's fixed words
@@ -104,7 +110,7 @@ class Session:
 PERSISTED = ("id", "name", "named_by", "cwd", "pid", "transcript", "inbox_socket", "inbox_token", "channel_url",
              "permission_id", "permission_text", "permission_since", "permission_cut", "permission_full", "permission_spoken",
              "permission_note", "permission_truncated",
-             "harness", "home", "harness_data", "machine", "tone")  # Claude Code still waits after a restart
+             "harness", "home", "harness_data", "machine", "tone", "owner")  # Claude Code still waits after a restart
 MAX_DEPARTED = 20
 
 
@@ -122,6 +128,12 @@ class Machine:
     skew: float = 0.0  # the hub's clock minus the node's, measured at its hello: node stamps are shifted by it
     link: int = 0  # links accepted since this hub started: a prompt a node re-offers on a new link is asked again
     notice: str = ""  # one line for the owner about its link (a takeover from another address), shown with the machine
+    # A machine somebody invited this voice to, which this voice dials (machines.py): its owner's name, what this
+    # person may do there ("send" or "watch"), and this person's name there. All empty on a machine of one's own.
+    dialed: bool = False
+    owner: str = ""
+    grant: str = ""
+    me: str = ""
 
 
 MACHINES: dict[str, Machine] = {}
@@ -138,6 +150,19 @@ def online(session: "Session") -> bool:
 
 def machine(name: str) -> Machine | None:
     return MACHINES.get(name)
+
+
+def owner_of(machine_name: str, said) -> str:
+    """Whose session this is, from the `owner` its machine's snapshot gave it: "" when it is this person's. Only a
+    machine this voice dialed has other people's sessions: a node of one's own cannot make a session somebody else's.
+    There, a session with no owner named is the machine owner's, and one named as this person is theirs."""
+    m = MACHINES.get(machine_name)
+    if m is None or not m.dialed:
+        return ""
+    said = " ".join(re.sub(r"[^\w ./-]+", " ", said if isinstance(said, str) else "").split())[:40].strip(" ./-")
+    if said and m.me and said.lower() == m.me.lower():
+        return ""
+    return said or m.owner or m.name
 
 
 def machines() -> list[Machine]:
@@ -298,6 +323,8 @@ class Registry:
                    or o.name.lower().startswith(base + "/") for o in across):
                 return None
         for o in across:
+            if o.machine and o.name.lower() == f"{name} {o.machine}".lower():
+                continue  # its twin there, already told apart by that machine's name
             theirs = [w for w in _name_words(o.name) if _distinctive(w)]
             if any(_alike(a, b) for a in words for b in theirs):
                 return f"{name} is too close to {o.name}, on {o.machine or 'this Mac'}"
@@ -576,7 +603,10 @@ def name_groups(utterance: str, sessions: list[Session], addressed: bool = False
     groups = []
     for c in components:
         top = max(found[k][0] for k in c)
-        groups.append(sorted(k for k in c if found[k][0] == top))
+        tied = sorted(k for k in c if found[k][0] == top)
+        if any(not sessions[k].owner for k in tied):  # somebody else's session never ties one of mine: mine it is
+            tied = [k for k in tied if not sessions[k].owner]
+        groups.append(tied)
     return [[sessions[k] for k in g] for g in sorted(groups)]
 
 

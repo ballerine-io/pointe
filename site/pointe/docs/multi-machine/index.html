@@ -308,6 +308,13 @@ says which setting is on.</p>
 </tr>
 </tbody>
 </table></div>
+<p><strong>A machine somebody invited you to.</strong> Its owner gives you one line (<code>pointe://machine?...</code>), valid once, for ten
+minutes. <code>pointe machine add '&lt;line&gt;' [--name NAME]</code> adds it: your voice checks the machine's certificate against the
+line, trades the code for your own key there, and connects. Its sessions then show in your conversation, each with its
+owner's name. <code>pointe machine list</code> (or <code>pointe machines</code>) shows every machine in your voice and whose it is.
+<code>pointe machine remove &lt;name&gt;</code> takes one out. You hear the report of a request you sent there; reports of other
+people's requests are held, and "anything from the others?" reads them. The design:
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/people-and-machines.md">design/people-and-machines.md</a>.</p>
 <p><strong>Names.</strong> The hub's name is <code>"machine"</code> in its <code>~/.claude-voice/config.json</code> (else its short host name). Rename the hub
 there and restart it: each node takes the new name at its next link. A node's name is set when it pairs
 (<code>pointe hub invite --name devbox</code>); to change it, pair again.</p>
