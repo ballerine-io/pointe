@@ -1,0 +1,21 @@
+{
+ "goal": "Add structured logging to the loyalty watchdog and remove its print calls.",
+ "state": "Just started. Claude has read the watchdog file and is about to make the changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with the loyalty watchdog file, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging approach or library to use is not stated.",
+  "Whether other files besides the watchdog contain print calls is unknown.",
+  "Tests have not been run yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the watchdog to use structured logging, removes the print calls, and runs its tests.",
+ "people_and_names": [
+  "loyalty watchdog",
+  "finch"
+ ]
+}

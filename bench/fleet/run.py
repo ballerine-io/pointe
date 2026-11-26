@@ -252,14 +252,11 @@ class Launch:
         self.watch = Watch(f)
         f.open_call()
         f.start_states()
-        # every session's notes, before the first line: read now by the reader for the ones with none on disk
-        deadline = time.time() + 240
-        while time.time() < deadline and (len(f.noted()) < len(f.sessions) or not self.watch.quiet()):
-            self.watch.poll()
-            time.sleep(0.1)
-        self.watch.settle(least=2.0, most=60.0)
+        # the reader reads now what it will read (every session with no notes on disk, or the ones the build chooses):
+        # the first line waits until that is over
+        self.watch.settle(least=8.0, most=300.0)
         noted = f.noted()
-        if f.notes is not None and not f.notes.exists() and len(noted) == len(f.sessions):
+        if f.notes is not None and not f.notes.exists() and noted:
             f.save_notes()
         setup = [c for c in self.watch.all_calls]
         self.manifest.update(

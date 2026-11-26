@@ -1,0 +1,20 @@
+{
+ "goal": "Add retries with backoff to the inventory sampler and cover them with tests.",
+ "state": "Just started. Claude has read the inventory sampler and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to begin with the inventory sampler module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delays, which errors to retry) are not yet specified or decided.",
+  "Test coverage for the retries has not been written."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the inventory sampler, then write and run tests covering them.",
+ "people_and_names": [
+  "inventory sampler",
+  "meteor"
+ ]
+}
