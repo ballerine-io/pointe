@@ -1,0 +1,993 @@
+[
+ {
+  "id": "clear_name-00",
+  "kind": "clear_name",
+  "slot": 0,
+  "text": "Tell loom to rebase onto main.",
+  "expect": {
+   "action": "send",
+   "session": "3c0272f3-b299-473c-894b-0ef7376e7ff4"
+  },
+  "label": "the only session named loom"
+ },
+ {
+  "id": "clear_name-01",
+  "kind": "clear_name",
+  "slot": 1,
+  "text": "Ask ivy to run the tests.",
+  "expect": {
+   "action": "send",
+   "session": "6722a90a-6be2-4b68-97fd-869304d8100b"
+  },
+  "label": "the only session named ivy"
+ },
+ {
+  "id": "clear_name-02",
+  "kind": "clear_name",
+  "slot": 2,
+  "text": "Tell nozzle to add a docstring to the main function.",
+  "expect": {
+   "action": "send",
+   "session": "63f6f812-f933-4103-84db-600430d19401"
+  },
+  "label": "the only session named nozzle"
+ },
+ {
+  "id": "clear_name-03",
+  "kind": "clear_name",
+  "slot": 3,
+  "text": "Ask anchor to bump the patch version.",
+  "expect": {
+   "action": "send",
+   "session": "5db6a1b7-8a4d-45ec-9dce-70672a189427"
+  },
+  "label": "the only session named anchor"
+ },
+ {
+  "id": "clear_name-04",
+  "kind": "clear_name",
+  "slot": 4,
+  "text": "Tell jackal to write a changelog entry for today's change.",
+  "expect": {
+   "action": "send",
+   "session": "13b1c5d8-8d12-43a3-8d80-67f38be038c6"
+  },
+  "label": "the only session named jackal"
+ },
+ {
+  "id": "clear_name-05",
+  "kind": "clear_name",
+  "slot": 5,
+  "text": "Ask sage to list the open TODO comments.",
+  "expect": {
+   "action": "send",
+   "session": "1d286362-3a67-46dd-8b0f-70afe757ac6e"
+  },
+  "label": "the only session named sage"
+ },
+ {
+  "id": "clear_name-06",
+  "kind": "clear_name",
+  "slot": 6,
+  "text": "Tell spool to run the linter and fix what it reports.",
+  "expect": {
+   "action": "send",
+   "session": "03679d0e-134e-43af-960f-74df4fcb29e1"
+  },
+  "label": "the only session named spool"
+ },
+ {
+  "id": "clear_name-07",
+  "kind": "clear_name",
+  "slot": 7,
+  "text": "Ask funnel to summarize what changed since yesterday.",
+  "expect": {
+   "action": "send",
+   "session": "0cba1c34-4698-4cf2-9acb-f4b8f41219a0"
+  },
+  "label": "the only session named funnel"
+ },
+ {
+  "id": "clear_name-08",
+  "kind": "clear_name",
+  "slot": 8,
+  "text": "Tell spindle to add a unit test for the empty input case.",
+  "expect": {
+   "action": "send",
+   "session": "e290ec66-023a-42a8-9ae2-a93595df9f43"
+  },
+  "label": "the only session named spindle"
+ },
+ {
+  "id": "clear_name-09",
+  "kind": "clear_name",
+  "slot": 9,
+  "text": "Ask fjord to rename the helper to something clearer.",
+  "expect": {
+   "action": "send",
+   "session": "a9b11038-9c80-401f-8b8a-b12624f2624a"
+  },
+  "label": "the only session named fjord"
+ },
+ {
+  "id": "clear_name-10",
+  "kind": "clear_name",
+  "slot": 10,
+  "text": "Tell wharf to check that the README matches the code.",
+  "expect": {
+   "action": "send",
+   "session": "dd09ce7b-5b9d-49b2-84ba-14cc0173aa28"
+  },
+  "label": "the only session named wharf"
+ },
+ {
+  "id": "clear_name-11",
+  "kind": "clear_name",
+  "slot": 11,
+  "text": "Ask matrix to print the last commit message.",
+  "expect": {
+   "action": "send",
+   "session": "b8b6b4fe-fbf1-4c08-b256-da867c0f1833"
+  },
+  "label": "the only session named matrix"
+ },
+ {
+  "id": "clear_machine_name-00",
+  "kind": "clear_machine_name",
+  "slot": 0,
+  "text": "Tell api on avi-box to add type hints to the public functions.",
+  "expect": {
+   "action": "send",
+   "session": "ad6a2d09-8013-4c61-8212-05e2df82d118"
+  },
+  "label": "the session named api on avi-box"
+ },
+ {
+  "id": "clear_machine_name-01",
+  "kind": "clear_machine_name",
+  "slot": 1,
+  "text": "Ask api on dana-rig to look for a flaky test and say which one.",
+  "expect": {
+   "action": "send",
+   "session": "fcfe435c-dc7d-4e6b-8e43-fb7cc2d52736"
+  },
+  "label": "the session named api on dana-rig"
+ },
+ {
+  "id": "clear_machine_name-02",
+  "kind": "clear_machine_name",
+  "slot": 2,
+  "text": "Tell api on omer-lab to say how long the test suite takes.",
+  "expect": {
+   "action": "send",
+   "session": "6858899d-1f1c-49a2-b8d1-74d0308d2938"
+  },
+  "label": "the session named api on omer-lab"
+ },
+ {
+  "id": "clear_machine_name-03",
+  "kind": "clear_machine_name",
+  "slot": 3,
+  "text": "Ask docs on lior-tower to add a timeout to the network call.",
+  "expect": {
+   "action": "send",
+   "session": "892b5635-39f0-4591-a248-2098105ce4f7"
+  },
+  "label": "the session named docs on lior-tower"
+ },
+ {
+  "id": "clear_machine_name-04",
+  "kind": "clear_machine_name",
+  "slot": 4,
+  "text": "Tell docs on noa-mini to check for a newer version of its main dependency.",
+  "expect": {
+   "action": "send",
+   "session": "c4ad3efd-b017-4a6a-a80c-ac6b79964faa"
+  },
+  "label": "the session named docs on noa-mini"
+ },
+ {
+  "id": "clear_machine_name-05",
+  "kind": "clear_machine_name",
+  "slot": 5,
+  "text": "Ask docs on omer-lab to sort the imports.",
+  "expect": {
+   "action": "send",
+   "session": "cd5dec22-653c-49ba-bf84-14495182747d"
+  },
+  "label": "the session named docs on omer-lab"
+ },
+ {
+  "id": "clear_machine_name-06",
+  "kind": "clear_machine_name",
+  "slot": 6,
+  "text": "Tell shop on avi-box to add a comment explaining the retry loop.",
+  "expect": {
+   "action": "send",
+   "session": "06273b5f-88fb-4750-97f3-680910681842"
+  },
+  "label": "the session named shop on avi-box"
+ },
+ {
+  "id": "clear_machine_name-07",
+  "kind": "clear_machine_name",
+  "slot": 7,
+  "text": "Ask shop on dana-rig to show the size of the largest file.",
+  "expect": {
+   "action": "send",
+   "session": "344f21a7-74f2-46d4-8f64-2b2ba1c8d11f"
+  },
+  "label": "the session named shop on dana-rig"
+ },
+ {
+  "id": "clear_machine_name-08",
+  "kind": "clear_machine_name",
+  "slot": 8,
+  "text": "Tell shop on omer-lab to count the failing tests.",
+  "expect": {
+   "action": "send",
+   "session": "737885f9-64f1-431b-99a1-e370a5f6f6a7"
+  },
+  "label": "the session named shop on omer-lab"
+ },
+ {
+  "id": "clear_machine_name-09",
+  "kind": "clear_machine_name",
+  "slot": 9,
+  "text": "Ask shop on studio to say which function is the longest.",
+  "expect": {
+   "action": "send",
+   "session": "9ea8da76-e204-4116-8992-76d6edd82969"
+  },
+  "label": "the session named shop on studio"
+ },
+ {
+  "id": "clear_description-00",
+  "kind": "clear_description",
+  "slot": 0,
+  "text": "Tell the session working on the payroll archive to check the code coverage.",
+  "expect": {
+   "action": "send",
+   "session": "a71672f8-0560-41f8-a23b-1fbc9a09265f"
+  },
+  "label": "the only session whose goal is about the payroll archive"
+ },
+ {
+  "id": "clear_description-01",
+  "kind": "clear_description",
+  "slot": 1,
+  "text": "Ask whoever has tenant_scheduler.py to list the files changed today.",
+  "expect": {
+   "action": "send",
+   "session": "67e5e981-daa4-4104-b31a-a3c7fc5381ae"
+  },
+  "label": "the only session with tenant_scheduler.py"
+ },
+ {
+  "id": "clear_description-02",
+  "kind": "clear_description",
+  "slot": 2,
+  "text": "Tell the session working on the pricing watchdog to rebase onto main.",
+  "expect": {
+   "action": "send",
+   "session": "d7373ea6-8653-4907-b30d-5c0ca2906e1a"
+  },
+  "label": "the only session whose goal is about the pricing watchdog"
+ },
+ {
+  "id": "clear_description-03",
+  "kind": "clear_description",
+  "slot": 3,
+  "text": "Ask whoever has dispatch_sampler.py to run the tests.",
+  "expect": {
+   "action": "send",
+   "session": "65ca135b-bf90-4c6a-8d87-657f1e22e72e"
+  },
+  "label": "the only session with dispatch_sampler.py"
+ },
+ {
+  "id": "clear_description-04",
+  "kind": "clear_description",
+  "slot": 4,
+  "text": "Tell the session working on the warranty cache to add a docstring to the main function.",
+  "expect": {
+   "action": "send",
+   "session": "9290a284-85c9-449d-89cb-24956ac4c7b4"
+  },
+  "label": "the only session whose goal is about the warranty cache"
+ },
+ {
+  "id": "clear_description-05",
+  "kind": "clear_description",
+  "slot": 5,
+  "text": "Ask whoever has payroll_notifier.py to bump the patch version.",
+  "expect": {
+   "action": "send",
+   "session": "ce739dda-ea2e-4e34-b524-bcda395d6063"
+  },
+  "label": "the only session with payroll_notifier.py"
+ },
+ {
+  "id": "clear_description-06",
+  "kind": "clear_description",
+  "slot": 6,
+  "text": "Tell the session working on the payroll ledger to write a changelog entry for today's change.",
+  "expect": {
+   "action": "send",
+   "session": "77ce0f57-a364-4337-988b-a9b4a20bb257"
+  },
+  "label": "the only session whose goal is about the payroll ledger"
+ },
+ {
+  "id": "clear_description-07",
+  "kind": "clear_description",
+  "slot": 7,
+  "text": "Ask whoever has wishlist_queue.py to list the open TODO comments.",
+  "expect": {
+   "action": "send",
+   "session": "7cbf068e-c528-45a8-831c-cb399c14f008"
+  },
+  "label": "the only session with wishlist_queue.py"
+ },
+ {
+  "id": "clear_description-08",
+  "kind": "clear_description",
+  "slot": 8,
+  "text": "Tell the session working on the ticket throttle to run the linter and fix what it reports.",
+  "expect": {
+   "action": "send",
+   "session": "84355e58-7b5e-4ff9-bab4-29510b0896b1"
+  },
+  "label": "the only session whose goal is about the ticket throttle"
+ },
+ {
+  "id": "clear_description-09",
+  "kind": "clear_description",
+  "slot": 9,
+  "text": "Ask whoever has dispatch_ledger.py to summarize what changed since yesterday.",
+  "expect": {
+   "action": "send",
+   "session": "9529a596-8079-48b5-8c37-34d3163abbba"
+  },
+  "label": "the only session with dispatch_ledger.py"
+ },
+ {
+  "id": "clear_description-10",
+  "kind": "clear_description",
+  "slot": 10,
+  "text": "Tell the session working on the warranty scheduler to add a unit test for the empty input case.",
+  "expect": {
+   "action": "send",
+   "session": "2bf19ee3-1c78-46ed-b4cb-2a4b04724d33"
+  },
+  "label": "the only session whose goal is about the warranty scheduler"
+ },
+ {
+  "id": "clear_description-11",
+  "kind": "clear_description",
+  "slot": 11,
+  "text": "Ask whoever has billing_migration.py to rename the helper to something clearer.",
+  "expect": {
+   "action": "send",
+   "session": "eaad54ac-93aa-4546-ade5-29ce4ccc20d2"
+  },
+  "label": "the only session with billing_migration.py"
+ },
+ {
+  "id": "ambiguous_name-00",
+  "kind": "ambiguous_name",
+  "slot": 0,
+  "text": "Tell api to check that the README matches the code.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "ad6a2d09-8013-4c61-8212-05e2df82d118",
+    "fcfe435c-dc7d-4e6b-8e43-fb7cc2d52736",
+    "6858899d-1f1c-49a2-b8d1-74d0308d2938"
+   ]
+  },
+  "label": "3 machines have a session named api",
+  "this_mac_holds": false
+ },
+ {
+  "id": "ambiguous_name-01",
+  "kind": "ambiguous_name",
+  "slot": 1,
+  "text": "Ask docs to print the last commit message.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "cd5dec22-653c-49ba-bf84-14495182747d",
+    "c4ad3efd-b017-4a6a-a80c-ac6b79964faa",
+    "892b5635-39f0-4591-a248-2098105ce4f7"
+   ]
+  },
+  "label": "3 machines have a session named docs",
+  "this_mac_holds": false
+ },
+ {
+  "id": "ambiguous_name-02",
+  "kind": "ambiguous_name",
+  "slot": 2,
+  "text": "Tell shop to add type hints to the public functions.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "9ea8da76-e204-4116-8992-76d6edd82969",
+    "06273b5f-88fb-4750-97f3-680910681842",
+    "344f21a7-74f2-46d4-8f64-2b2ba1c8d11f",
+    "737885f9-64f1-431b-99a1-e370a5f6f6a7"
+   ]
+  },
+  "label": "4 machines have a session named shop",
+  "this_mac_holds": true
+ },
+ {
+  "id": "ambiguous_name-03",
+  "kind": "ambiguous_name",
+  "slot": 3,
+  "text": "Ask web to look for a flaky test and say which one.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "59eebdc7-ec26-4ce3-ab42-83877389dc77",
+    "b82babf0-fd16-4fae-ad22-c09720505a35",
+    "bb345a07-7c7d-46f4-9075-b1069163a756"
+   ]
+  },
+  "label": "3 machines have a session named web",
+  "this_mac_holds": false
+ },
+ {
+  "id": "ambiguous_name-04",
+  "kind": "ambiguous_name",
+  "slot": 4,
+  "text": "Tell api to say how long the test suite takes.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "ad6a2d09-8013-4c61-8212-05e2df82d118",
+    "fcfe435c-dc7d-4e6b-8e43-fb7cc2d52736",
+    "6858899d-1f1c-49a2-b8d1-74d0308d2938"
+   ]
+  },
+  "label": "3 machines have a session named api",
+  "this_mac_holds": false
+ },
+ {
+  "id": "ambiguous_name-05",
+  "kind": "ambiguous_name",
+  "slot": 5,
+  "text": "Ask docs to add a timeout to the network call.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "cd5dec22-653c-49ba-bf84-14495182747d",
+    "c4ad3efd-b017-4a6a-a80c-ac6b79964faa",
+    "892b5635-39f0-4591-a248-2098105ce4f7"
+   ]
+  },
+  "label": "3 machines have a session named docs",
+  "this_mac_holds": false
+ },
+ {
+  "id": "ambiguous_description-00",
+  "kind": "ambiguous_description",
+  "slot": 0,
+  "text": "Tell the session working on the catalog watchdog to check for a newer version of its main dependency.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "d6196cc7-cbc2-484c-b9d0-d96a08f0ae4f",
+    "9adb380c-f7e0-49e4-af93-fea296baef2d"
+   ]
+  },
+  "label": "two sessions work on the catalog watchdog"
+ },
+ {
+  "id": "ambiguous_description-01",
+  "kind": "ambiguous_description",
+  "slot": 1,
+  "text": "Ask the session working on the delivery parser to sort the imports.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "d2a87e8d-5306-4760-9bb2-4296f564ea3c",
+    "1848793d-c286-494d-b2b5-edee5760b5c5"
+   ]
+  },
+  "label": "two sessions work on the delivery parser"
+ },
+ {
+  "id": "ambiguous_description-02",
+  "kind": "ambiguous_description",
+  "slot": 2,
+  "text": "Tell the session working on the tariff parser to add a comment explaining the retry loop.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "24748986-b396-41cc-b988-75f062772396",
+    "779c9496-b5b4-4fc3-b1f8-1d6cc9380ef2"
+   ]
+  },
+  "label": "two sessions work on the tariff parser"
+ },
+ {
+  "id": "ambiguous_description-03",
+  "kind": "ambiguous_description",
+  "slot": 3,
+  "text": "Ask the session working on the warranty queue to show the size of the largest file.",
+  "expect": {
+   "action": "ask",
+   "fits": [
+    "42f465ff-43b4-42a9-bece-a76ee0dc951d",
+    "cf2777e3-68f9-4014-a81b-2cc8a26837d0"
+   ]
+  },
+  "label": "two sessions work on the warranty queue"
+ },
+ {
+  "id": "ambiguous_none-00",
+  "kind": "ambiguous_none",
+  "slot": 0,
+  "text": "Tell nimbus to count the failing tests.",
+  "expect": {
+   "action": "ask",
+   "fits": []
+  },
+  "label": "no session is named nimbus"
+ },
+ {
+  "id": "ambiguous_none-01",
+  "kind": "ambiguous_none",
+  "slot": 1,
+  "text": "Ask the session working on the passport scanner to say which function is the longest.",
+  "expect": {
+   "action": "ask",
+   "fits": []
+  },
+  "label": "no session works on the passport scanner"
+ },
+ {
+  "id": "ambiguous_none-02",
+  "kind": "ambiguous_none",
+  "slot": 2,
+  "text": "Tell drizzle to check the code coverage.",
+  "expect": {
+   "action": "ask",
+   "fits": []
+  },
+  "label": "no session is named drizzle"
+ },
+ {
+  "id": "ambiguous_none-03",
+  "kind": "ambiguous_none",
+  "slot": 3,
+  "text": "Ask the session working on the elevator firmware to list the files changed today.",
+  "expect": {
+   "action": "ask",
+   "fits": []
+  },
+  "label": "no session works on the elevator firmware"
+ },
+ {
+  "id": "needs_me-00",
+  "kind": "needs_me",
+  "slot": 0,
+  "text": "What needs me?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "needs_me-01",
+  "kind": "needs_me",
+  "slot": 1,
+  "text": "What needs me right now?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "needs_me-02",
+  "kind": "needs_me",
+  "slot": 2,
+  "text": "Is anything waiting on me?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "needs_me-03",
+  "kind": "needs_me",
+  "slot": 3,
+  "text": "Which sessions are waiting for me?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "needs_me-04",
+  "kind": "needs_me",
+  "slot": 4,
+  "text": "Does any session need an answer from me?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "needs_me-05",
+  "kind": "needs_me",
+  "slot": 5,
+  "text": "What is blocked on me?",
+  "expect": {
+   "action": "answer",
+   "sessions": [
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "3c0d7368-85c9-4f79-aaec-e61724d055ed",
+    "b1e7b099-40e9-4ee9-83ee-1e846b3bc348",
+    "c61fb4e3-9b23-481f-8df9-4821b0a759b3",
+    "8bf313b7-3e4e-402c-81b2-28164b33a5cf",
+    "e290ec66-023a-42a8-9ae2-a93595df9f43",
+    "9529a596-8079-48b5-8c37-34d3163abbba"
+   ]
+  },
+  "label": "the sessions whose state is asks or permission in the fleet's description"
+ },
+ {
+  "id": "on_machine-00",
+  "kind": "on_machine",
+  "slot": 0,
+  "text": "What's on studio?",
+  "expect": {
+   "action": "answer",
+   "machine": "studio",
+   "sessions": [
+    "9ea8da76-e204-4116-8992-76d6edd82969",
+    "c80f9731-9c6b-48fc-a3bd-817cd58f70dc",
+    "e823784c-8eab-4236-95cc-ffba3e544dce",
+    "2bf19ee3-1c78-46ed-b4cb-2a4b04724d33",
+    "dd09ce7b-5b9d-49b2-84ba-14cc0173aa28",
+    "dd68a369-a0e0-4eee-b9e8-12d481dc52a7",
+    "49ffb1c3-4daa-48d1-b383-59ed560d49e7",
+    "2d327982-3610-4137-a349-9025bf386368",
+    "191ded8d-16fc-4698-9322-902e3f443658",
+    "a71672f8-0560-41f8-a23b-1fbc9a09265f",
+    "3c0272f3-b299-473c-894b-0ef7376e7ff4",
+    "ed9236f1-10b8-4844-9af6-be80f8743c52",
+    "a0d2169c-0a63-478d-8388-da1edefe171e",
+    "4e9a70a8-36e2-4255-b390-a05e24d8288c",
+    "955830f7-f415-4f80-a4a8-484f6f941276",
+    "d49a56c6-f574-49dc-a56b-f5e87e57b6ff",
+    "3ad0dd51-7f95-487f-9b75-fab6ef6f96f3",
+    "116a8000-8f7b-4456-8417-54099a79698f",
+    "f98c43a5-a6c7-4f82-b35a-a5f29f1e6f09",
+    "6406ab11-b9ff-4632-9916-81dd2fa9dceb",
+    "1d49f822-a919-48c5-8fcc-5bafedcc4741",
+    "440b610d-eb26-4ec7-8e93-a1f7a33a5a88",
+    "9cabd24d-8d2d-4592-82bb-bed6748a15ec",
+    "609c3ea9-5f6f-4df2-ba9c-dc1133714179",
+    "e9bbfbec-7ded-4f1a-b479-918d8b9812e3",
+    "591ebad7-2535-49de-afb3-87df0f478e1b",
+    "6ce79362-b3c1-4d0d-8ee5-f77fc70757dd",
+    "4622e766-d1d9-45d1-be12-e00956ffdf19",
+    "25b0405d-a94e-4029-85c0-9d7cdb5fbcee",
+    "16f1e483-7200-4271-917f-2cc5578391e1"
+   ]
+  },
+  "label": "the sessions on studio in the fleet's description"
+ },
+ {
+  "id": "on_machine-01",
+  "kind": "on_machine",
+  "slot": 1,
+  "text": "What is running on avi-box?",
+  "expect": {
+   "action": "answer",
+   "machine": "avi-box",
+   "sessions": [
+    "06273b5f-88fb-4750-97f3-680910681842",
+    "ad6a2d09-8013-4c61-8212-05e2df82d118",
+    "5d5cccec-def4-4da5-8c06-75ff76e8dd21",
+    "bd49e289-87cb-483d-9437-1de56599b577",
+    "ec5d1062-dcbc-425b-bbf8-2bd497c9bde4",
+    "1ad3560e-f77b-4013-ba53-b4a717f9fd04",
+    "46620692-f7c0-4127-acba-5382f31fe396",
+    "7dad6cce-5364-4ace-a122-cf27bdaef2d1",
+    "eaad54ac-93aa-4546-ade5-29ce4ccc20d2",
+    "a0a3e776-5593-4ceb-be57-ecc3ae5bfa31",
+    "e2308879-3e78-45ac-8830-c32094b982fa",
+    "3b2856fe-1ac7-4473-82a4-a886282eac81",
+    "d7638a6f-5cf9-43a8-ac01-3cf6f83bd7a4",
+    "67e5e981-daa4-4104-b31a-a3c7fc5381ae",
+    "0afb2123-08a2-4deb-a826-137ebcdc3575",
+    "d2a87e8d-5306-4760-9bb2-4296f564ea3c",
+    "8f3fd0c8-ec49-4044-935d-1254549945ac",
+    "7648e569-c10c-46c3-b752-393f73e24152",
+    "b8b6b4fe-fbf1-4c08-b256-da867c0f1833",
+    "eb38a98f-2ba7-47a4-837e-e892a79657f0",
+    "83353d9c-7103-4e17-9838-003fbd49e1ea",
+    "f7fa806a-24b7-466d-828e-0db45ab5815a",
+    "5fd04767-91af-4b5a-9ea9-99a5c131d5d0",
+    "6722a90a-6be2-4b68-97fd-869304d8100b",
+    "cf7f612c-cfad-4a2d-bb38-0781b6530cf0",
+    "64c898a7-444d-4f48-b01a-e0c9bcf3b360",
+    "a09ba532-4a9f-4ce7-9909-93501b8a90a0",
+    "dc1e44d3-667b-4cd3-a0cb-961330533588",
+    "a1eb11d5-3aaa-4435-ae65-b80174846b9a",
+    "23b0aefd-1547-456c-84e7-0f3b6107ab6e"
+   ]
+  },
+  "label": "the sessions on avi-box in the fleet's description"
+ },
+ {
+  "id": "on_machine-02",
+  "kind": "on_machine",
+  "slot": 2,
+  "text": "Which sessions are on dana-rig?",
+  "expect": {
+   "action": "answer",
+   "machine": "dana-rig",
+   "sessions": [
+    "344f21a7-74f2-46d4-8f64-2b2ba1c8d11f",
+    "fcfe435c-dc7d-4e6b-8e43-fb7cc2d52736",
+    "59eebdc7-ec26-4ce3-ab42-83877389dc77",
+    "d5a3e33b-14c8-4fbb-bb55-d71ebc8a0fb8",
+    "3eecaba1-15dc-4189-8ad0-9bff3ce913dc",
+    "aac53cf7-b2bd-4fb9-b78e-74a2b7a1c4b6",
+    "3fcd2027-d1a3-47d5-89aa-3a9814fff420",
+    "d7373ea6-8653-4907-b30d-5c0ca2906e1a",
+    "91729898-8457-430e-824c-fa13756510d9",
+    "a08515f3-79d5-48e8-b613-db5dfb0b065f",
+    "1099ead6-3292-4d57-a05d-f781afaa9ffa",
+    "dee91b5e-0c55-42dd-9b1b-aec32751184c",
+    "49ef6f8d-5cf1-45a6-bc9b-e62494e62831",
+    "498ad020-56ea-4e1f-9e1e-d4e646fd0bc7",
+    "af243b0e-c297-4a0e-abf2-2dd90b5efd89",
+    "63f6f812-f933-4103-84db-600430d19401",
+    "f7692ff5-5d1d-4225-b852-6c02f0bae518",
+    "393caa63-6aa3-465f-b59d-321d8d4f0cc6",
+    "bdfc8837-9a2c-4523-9227-edc17ccfa14c",
+    "a4ee27c5-59bb-49d5-a763-38ea7e6d5bf0",
+    "cefea7bd-3149-4042-850e-90a92f9b1150",
+    "dc2ed622-66f4-49e8-a985-0f75784a4e16",
+    "16d6ec75-d92a-45c5-a141-24699fed50df",
+    "3d1523f9-1e1f-4ef5-99d9-be5967209282",
+    "0f12c1af-0845-45c4-a6ab-a394ba3082be",
+    "3f013e7a-207f-4ea0-be47-443c55751e01",
+    "b67600c2-8320-4b4f-8782-60223e8c27e1",
+    "34eab0e7-0c75-4c8a-ade1-7529168dccbb",
+    "95e6a284-ef0d-47f7-a6d9-3bc15a704085",
+    "01b0c0d2-39d4-431b-a924-797978de6621"
+   ]
+  },
+  "label": "the sessions on dana-rig in the fleet's description"
+ },
+ {
+  "id": "on_machine-03",
+  "kind": "on_machine",
+  "slot": 3,
+  "text": "What's going on on omer-lab?",
+  "expect": {
+   "action": "answer",
+   "machine": "omer-lab",
+   "sessions": [
+    "737885f9-64f1-431b-99a1-e370a5f6f6a7",
+    "6858899d-1f1c-49a2-b8d1-74d0308d2938",
+    "b82babf0-fd16-4fae-ad22-c09720505a35",
+    "cd5dec22-653c-49ba-bf84-14495182747d",
+    "65ca135b-bf90-4c6a-8d87-657f1e22e72e",
+    "8e2d5406-24b1-42a1-86e2-4b3cd8cdd0a5",
+    "b6f47462-f386-4ccd-8de0-69e2fcebd5bf",
+    "c4a10d12-13a3-433b-b13b-7444702e7ef2",
+    "2c0d8a72-4d2a-4da8-9032-7fc20b725aad",
+    "8b132660-2e62-491a-8185-1ecace101825",
+    "93a41557-69d7-4109-973c-2b79face9604",
+    "81ace581-e029-4c9f-bcc4-a6bfd248c37e",
+    "20e9c620-d4a3-4c11-8744-682551143ad8",
+    "c7a7fb71-68c0-4fe8-80c7-edf19e15b193",
+    "50e5b83e-79ef-41e9-8f7e-35ea14c0af02",
+    "ee9c0896-ff11-413f-9b6b-d6b7fbbc84a9",
+    "6705978e-c021-4ca4-a073-e34ec40623be",
+    "0cd0c884-2508-4dda-b776-bb6269047ae4",
+    "38f5ae43-4230-4c7b-8d41-a37316d7dec4",
+    "6d46089e-4c2e-43d5-b45b-cc3045773a3f",
+    "5db6a1b7-8a4d-45ec-9dce-70672a189427",
+    "032d4b60-4261-420b-9652-842881b799c0",
+    "0ae6bf63-9329-4efe-9074-9fad35a110c4",
+    "a5f077da-f4ce-42e1-838e-68f70fbc4533",
+    "7872c677-ea13-43b3-ba4a-47b26bf8f2db",
+    "122592fb-4652-498c-ac37-837dd1026915",
+    "a72b08f8-5f77-4a6f-9598-e4219a8f42f8",
+    "2ec5cf09-f566-47a0-9574-13c6ca0f0393",
+    "6c811d33-c21c-41e9-983f-94ae5340e2a3",
+    "d73e7e81-b92a-4cc3-969c-3196f7c5d70e"
+   ]
+  },
+  "label": "the sessions on omer-lab in the fleet's description"
+ },
+ {
+  "id": "on_machine-04",
+  "kind": "on_machine",
+  "slot": 4,
+  "text": "List the sessions on noa-mini.",
+  "expect": {
+   "action": "answer",
+   "machine": "noa-mini",
+   "sessions": [
+    "bb345a07-7c7d-46f4-9075-b1069163a756",
+    "c4ad3efd-b017-4a6a-a80c-ac6b79964faa",
+    "921f7bd1-7ee6-4f9c-b7bd-3607f2cbac0f",
+    "185d2dee-2789-45fa-8cd6-81eea39bc6cb",
+    "31669dbf-4200-43b3-9b12-c6a105d11137",
+    "b076b257-08e1-4d59-9430-4c3ad5217298",
+    "cf099300-fe2d-4a8d-acc6-eaed76e51687",
+    "68193eee-932a-4230-8e90-1e81c7e99038",
+    "e99dba4a-5e0e-4f97-9c55-9b59471aef60",
+    "aefa0b20-2de2-4497-a386-86a1c40b3865",
+    "6d47d59b-417e-46d3-871d-15a1c721e9ab",
+    "13b1c5d8-8d12-43a3-8d80-67f38be038c6",
+    "c66b6f1d-fb9a-4bd6-981a-05174b3a82ac",
+    "47117f5e-214f-4e8d-88e4-7f3f6294073f",
+    "7a210b61-3edb-483a-b522-4720c1060519",
+    "6f51e75e-1777-4fd1-a173-2f73f96dfa6a",
+    "ee4d4a9a-5a8f-4b86-aa9d-1656f451e9d4",
+    "80f637e7-1c2d-4e8a-b41c-6954f66cb37e",
+    "31b5259b-6708-4eaa-9649-af23cf62d7c9",
+    "42f465ff-43b4-42a9-bece-a76ee0dc951d",
+    "66c3af78-1847-47db-9031-7d6cf62d0d85",
+    "1935ce1f-799d-43e5-bb85-b3ac39596506",
+    "27a8d2b5-e750-458c-9857-3e9f195b738d",
+    "c03a1235-368e-4857-93c0-1869c90b6bc9",
+    "9087eea0-d84e-4b26-bdd9-7ef9ea4b8ccb",
+    "9290a284-85c9-449d-89cb-24956ac4c7b4",
+    "cc0243c2-7038-45db-9b42-aafe9bbe5f3a",
+    "5fca8f42-89ff-4b4e-8002-72c393fc473e",
+    "9ce91f9a-1908-4d17-8658-8da50fa7b6d6",
+    "f1fcd287-f9d8-4834-8133-562b57e723dc"
+   ]
+  },
+  "label": "the sessions on noa-mini in the fleet's description"
+ },
+ {
+  "id": "on_machine-05",
+  "kind": "on_machine",
+  "slot": 5,
+  "text": "What do I have on lior-tower?",
+  "expect": {
+   "action": "answer",
+   "machine": "lior-tower",
+   "sessions": [
+    "892b5635-39f0-4591-a248-2098105ce4f7",
+    "9acdf6e2-14c5-47e2-961a-69ac330a6786",
+    "47dd0b65-957c-4986-842e-652ca61ae7bd",
+    "99d4862e-f658-4752-840c-7309c67502fa",
+    "db68cb30-aa57-4fa3-a836-9be8965a6968",
+    "2fa10c86-b752-41ca-9077-7878e151e36e",
+    "32f44b15-2648-46d8-9190-4aa43537e076",
+    "0726e3c8-984f-49b4-b8a6-be6f8c3b68f8",
+    "6f71efdf-e924-4f81-ac76-4f0f8d30cfe6",
+    "8b037cec-e06c-49ce-8044-a858c0b58e25",
+    "4702b69a-9105-4e05-b129-fb78a0fd6ac7",
+    "f03ee432-ae2d-4155-a3ea-21830166fcf2",
+    "1ef91ad2-e4fe-46d0-8da5-f1c62dbced8d",
+    "d9840a40-8ce2-40d9-b8f0-8d40709026cd",
+    "02f64ee2-671c-4712-9727-d902fea137ad",
+    "94011eb5-dcf9-479e-86b0-650b9a98499c",
+    "ce739dda-ea2e-4e34-b524-bcda395d6063",
+    "5df76389-264f-498a-a6fc-0d3c1b95cde6",
+    "4cb972df-a169-41ec-b3ed-51a21399c524",
+    "3487debd-d672-4841-b6cb-993051eae517",
+    "23396cde-f7eb-4485-8dd5-34a51f4cf37c",
+    "5f17d404-0c08-47d0-a536-cf3303ae7e5b",
+    "0c2a71d0-89c3-41f9-bb7b-1cc2f870bdd0",
+    "4e63376f-0ce5-41ef-b172-7a2ae5022381",
+    "8a238a72-3660-4643-b1f1-215c797a3557",
+    "4d7dcb39-9326-4fd2-b9e7-b738d8b74609",
+    "5027bfa4-38ac-46dd-b7ee-8ef31a6d0b84",
+    "1d286362-3a67-46dd-8b0f-70afe757ac6e",
+    "1848793d-c286-494d-b2b5-edee5760b5c5",
+    "54d11712-46bf-4977-a06c-282315298f30"
+   ]
+  },
+  "label": "the sessions on lior-tower in the fleet's description"
+ }
+]

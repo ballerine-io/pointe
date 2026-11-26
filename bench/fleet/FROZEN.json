@@ -1,0 +1,16 @@
+{
+ "benchmark": "fleet",
+ "dataset_version": "fleet-0.1",
+ "frozen_at": "2026-11-26T14:58:25+0200",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "fleet_seed": 20261126,
+ "files": {
+  "fleet-10x30.json": "275e6af100aa9fd2cebc2422e98aa0080a3c68be3331f72ff935454a883bc889",
+  "fleet-1x4.json": "7c36b40a112e9cb472dcc2b034f7f2d0ea7a317e9c7e5245a5dca535e340a584",
+  "fleet-5x20.json": "69534134ec5f963b3c89991a5bba747cceced77d8b443e3f9a49d485f1ed0964",
+  "turns-10x30.json": "78717476a6af70010a135eb4fa5955a3da864b5690358cb8292fcf0a69516002",
+  "turns-1x4.json": "398a5954689f67a4d77aa4ca3cce6739459eb6c9422c2772aa69b257fa61e084",
+  "turns-5x20.json": "9b3d35443b7ae2da381c2a2fe9612869f0c1316de85ea94f18bc9af6078eb4bd"
+ },
+ "note": "Frozen before any paid row. Expected outcomes are labelled by rule from the fleet's description (bench/fleet/turns.py), never by a model. Reader notes made by a paid pass are not part of this hash: each run's manifest names the notes it used."
+}

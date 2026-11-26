@@ -1,0 +1,13 @@
+{
+ "read": "2026-11-26",
+ "sources": "bench/conversational/dialogues/prices.json (Anthropic and Gemini list prices, read 2026-11-23)",
+ "unit": "USD per million tokens",
+ "tokens": {
+  "claude-sonnet-5-5": {"in": 2.0, "cache_read": 0.1, "cache_write": 2.5, "out": 10.0},
+  "claude-haiku-5-5": {"in": 0.1, "cache_read": 0.01, "cache_write": 0.125, "out": 0.5},
+  "gemini-3.5-flash-lite": {"in": 0.3, "cache_read": 0.03, "cache_write": 0.3, "out": 2.5},
+  "gemini-3.8-flash": {"in": 0.3, "cache_read": 0.03, "cache_write": 0.3, "out": 2.5}
+ },
+ "thinking_allowance_tokens": 800,
+ "note": "A call with the vendor's own token counts is priced from them. A call without (failed, cancelled, or a client that could not be counted) is estimated: characters over 3 as input, the reply's characters over 3 plus the thinking allowance as output. A brain step's uncached input is priced as a cache write, the dearer case. gemini-3.8-flash is not used by default and its price here is a placeholder equal to flash-lite's: a row priced with it is flagged in the spend table by its model name."
+}
