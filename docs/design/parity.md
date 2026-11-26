@@ -1,12 +1,12 @@
-# One product on three surfaces
+# One product on four surfaces
 
-Pointe has three surfaces: the page the daemon serves (`ui.html`), the iPhone app (`apps/ios/Pointe`) and the Mac app
-(`apps/macos/PointeMac`). This document is the audit of what each one has, the rule that keeps them the same, and the
+Pointe has four surfaces: the page the daemon serves (`ui.html`), the iPhone app (`apps/ios/Pointe`), the Mac app
+(`apps/macos/PointeMac`), and the Linux hub, which serves the same page from a daemon on Linux ([linux.md](../linux.md)). This document is the audit of what each one has, the rule that keeps them the same, and the
 architecture that makes "the same" cheap. The matrix itself is generated: [parity-matrix.md](parity-matrix.md).
 
 ## The matrix
 
-`python3 tools/parity.py` reads the code of all three surfaces and writes `docs/design/parity-matrix.md`.
+`python3 tools/parity.py` reads the code of all four surfaces and writes `docs/design/parity-matrix.md`.
 
 - A **feature** is a row in `tools/parity.py` (`GROUPS`): an id, a sentence a user would recognise, and per surface the
   regular expressions that must all be found in that surface's sources: a control's `id` or accessibility identifier,
@@ -16,10 +16,17 @@ architecture that makes "the same" cheap. The matrix itself is generated: [parit
 - **Sources.** The page is `ui*.html`. The iPhone app is `apps/ios/Pointe`, `apps/ios/PointeShared`, `apps/ios/PointeWidget` and the
   package targets it links; the Mac app is `apps/macos/PointeMac` and the package targets it links. Shared Swift is read
   once per app with the other platform's `#if os(...)` branches blanked, so a screen compiled out of the Mac app does
-  not count for the Mac.
+  not count for the Mac. The Linux hub is the page's sources read with the page's patterns: a row gives it its own
+  patterns or reason only where a Linux hub differs (`linux=`), and a row the page cannot have keeps the page's reason.
+- **The Linux hub's differences** are the daemon's, not the page's: each function in `pointe/` that asks which system it
+  runs on (`sys.platform`, `platform.system()`) has an entry in `LINUX_BRANCHES` saying which features it touches and what
+  a Linux hub does instead: another path (the login keyring through secret-tool, tmux for a started session, the
+  terminal key prompt), a limit (no reopen of the hub's own recent sessions, no one-step local mode), or a bound feature
+  with its Linux reason. The generated file lists them at the end.
 - **The guard.** `tests/test_parity_matrix.py` (offline suite, CI) fails when the generated file is stale, when a
   feature is missing from a surface without a reason, when a surface marked "cannot" has the feature's code after all,
-  and when the scan stops noticing a removed control. A gap being closed is listed in `KNOWN_GAPS` there; the list
+  when the scan stops noticing a removed control, and when a Mac-only branch in `pointe/` has no `LINUX_BRANCHES` entry
+  (or an entry outlives its branch). A gap being closed is listed in `KNOWN_GAPS` there; the list
   only shrinks, and a closed gap left in it fails too.
 
 To add a feature: add its row, build it on every surface, run the script. To drop one from a surface: give the reason
@@ -54,6 +61,9 @@ What stays on one surface, with the reason, is the generated file's "Bound to a 
 - **Not on the page:** the device's owner check on Approve (a page has no Touch ID without WebAuthn enrolment), actions
   on a notification, a demo (the page exists only while the daemon runs).
 - **Not on the phone:** showing the pairing code; a key for every action (an iPhone has no keyboard by default).
+- **The Linux hub:** what the page cannot have, for the page's reasons, and the line about keeping awake for a call
+  (holding off sleep and the idle and power checks are macOS only). Its limits beside that: no reopening of its own
+  recent sessions, and local roles set by hand instead of the one-step local mode.
 
 ## The architecture that keeps them the same
 

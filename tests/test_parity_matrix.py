@@ -1,8 +1,9 @@
-"""The page, the iPhone app and the Mac app have the same features (docs/design/parity.md).
+"""The page, the iPhone app, the Mac app and the Linux hub have the same features (docs/design/parity.md).
 
-tools/parity.py reads the code of all three and writes docs/design/parity-matrix.md. These tests fail when that file
+tools/parity.py reads the code of all four and writes docs/design/parity-matrix.md. These tests fail when that file
 is stale, when a feature is on one surface and not on another without a reason in the table, and when the scan itself
-stops telling the truth (a control removed from a surface must flip its cell).
+stops telling the truth (a control removed from a surface must flip its cell). The Linux hub serves the page; every
+Mac-only branch in pointe/ must say what it means there (parity.LINUX_BRANCHES).
 """
 
 import shutil
@@ -51,6 +52,40 @@ def test_each_row_is_real_and_each_exception_has_a_reason():
                 continue
             found = [parity._find(p, files[surface]) for p in f.needs(twin)]
             assert not all(found), f"{f.id}: {surface} is marked as unable, and its code has all of it: {found}"
+
+def test_every_mac_only_branch_says_what_it_means_on_a_linux_hub():
+    found = parity.mac_only_branches()
+    missing = sorted(set(found) - set(parity.LINUX_BRANCHES))
+    assert not missing, ("a branch in pointe/ asks which system it runs on, and tools/parity.py's LINUX_BRANCHES does not "
+                         "say what a Linux hub does instead: " + ", ".join(f"{k} (line {found[k][0]})" for k in missing))
+    gone = sorted(set(parity.LINUX_BRANCHES) - set(found))
+    assert not gone, f"no such Mac-only branch any more: take these out of LINUX_BRANCHES: {gone}"
+    ids = {f.id: f for f in parity.FEATURES}
+    for key, branch in parity.LINUX_BRANCHES.items():
+        assert branch.kind in ("path", "limit", "bound"), f"{key}: kind {branch.kind!r}"
+        assert len(branch.linux) > 20, f"{key}: say what a Linux hub does"
+        assert set(branch.features) <= set(ids), f"{key}: no feature {set(branch.features) - set(ids)}"
+        assert branch.features or branch.kind == "path", f"{key}: a limit or a bound names the features it takes away"
+        for fid in branch.features if branch.kind == "bound" else ():
+            assert "linux" in ids[fid].bound, f"{key} binds {fid} on Linux, and the row gives no Linux reason"
+
+
+def test_the_linux_scan_finds_a_new_mac_only_branch(tmp_path):
+    (tmp_path / "pointe" / "harnesses").mkdir(parents=True)
+    (tmp_path / "pointe" / "harnesses" / "x.py").write_text(
+        "import platform, sys\n"
+        "WHERE = '/a' if sys.platform == 'darwin' else '/b'\n"
+        "class A:\n    def start(self):\n        if sys.platform != 'darwin':\n            return 1\n"
+        "async def idle():\n    return platform.system() == 'Darwin'\n"
+        "def plain():\n    return sys.argv\n")
+    assert parity.mac_only_branches(tmp_path) == {"harnesses/x.py:<module>": [2], "harnesses/x.py:A.start": [5],
+                                                  "harnesses/x.py:idle": [8]}
+
+
+def test_the_linux_hub_reads_the_page():
+    assert parity.sources("linux") == parity.sources("web")
+    assert parity.scan()["call.keep-awake"]["linux"].why == parity.LINUX_POWER, "a Linux reason replaces the page's"
+
 
 def test_a_branch_the_platform_does_not_compile_does_not_count():
     source = "\n".join([

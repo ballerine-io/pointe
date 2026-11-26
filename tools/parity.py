@@ -4,14 +4,17 @@
     python3 tools/parity.py --check    exit 1 if the file is not what this would write
     python3 tools/parity.py --json     the matrix as JSON on stdout (tests/test_parity_matrix.py reads it)
 
-The three surfaces are the page (ui.html), the iPhone app (apps/ios/Pointe and the package it links) and the Mac app
-(apps/macos/PointeMac and the package it links). A feature is a row of FEATURES: per surface, the regular expressions that
+The four surfaces are the page (ui.html), the iPhone app (apps/ios/Pointe and the package it links), the Mac app
+(apps/macos/PointeMac and the package it links) and the Linux hub: the same page, served by a daemon on Linux
+(docs/linux.md). The Linux column reads the page's sources with the page's patterns unless a row says otherwise; what
+the daemon does differently off a Mac is LINUX_BRANCHES, one entry per Mac-only branch in pointe/ (mac_only_branches). A feature is a row of FEATURES: per surface, the regular expressions that
 must all be found in that surface's sources. All found is "yes", some is "partial", none is "no". A surface that cannot
 have the feature carries the reason in `bound`, and is "n/a". The Swift the two apps share (apps/PointeKit) counts for
 an app only when its project links that target, and is read with the other platform's `#if os(...)` branches blanked,
 so a screen compiled out of the Mac app does not count for it. Standard library only.
 """
 
+import ast
 import json
 import re
 import sys
@@ -21,8 +24,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = "docs/design/parity-matrix.md"
 BASELINE = "tools/parity_baseline.json"
-SURFACES = ("web", "ios", "mac")
-NAMES = {"web": "Page", "ios": "iPhone", "mac": "Mac"}
+SURFACES = ("web", "ios", "mac", "linux")
+NAMES = {"web": "Page", "ios": "iPhone", "mac": "Mac", "linux": "Linux hub"}
 
 # ---------- sources ----------
 
@@ -87,7 +90,7 @@ def linked(project: Path, root: Path) -> list[str]:
 
 def sources(surface: str, root: Path = ROOT) -> dict[str, str]:
     """Path (relative to the repository) to text, for one surface."""
-    if surface == "web":
+    if surface in ("web", "linux"):  # a Linux hub serves the same page
         return {path.name: path.read_text() for path in sorted((root / "pointe").glob("ui*.html"))}  # the page and the parts daemon.py puts in it
     # the iPhone app's own folders: the app, the intents it shares with its widget extension, and the extension
     project, own = {"ios": ("apps/ios/Pointe.xcodeproj", ["apps/ios/Pointe", "apps/ios/PointeShared", "apps/ios/PointeWidget"]),
@@ -109,19 +112,22 @@ class Feature:
     web: tuple[str, ...] = ()
     ios: tuple[str, ...] = ()
     mac: tuple[str, ...] = ()
+    linux: tuple[str, ...] = ()
     bound: dict = field(default_factory=dict)  # surface -> why it cannot have the feature
 
     def needs(self, surface: str) -> tuple[str, ...]:
         return getattr(self, surface)
 
 
-def F(id: str, title: str, web=(), swift=(), ios=None, mac=None) -> Feature:
-    """`swift` is what both apps must show; `ios` or `mac` replaces it for one. A list is patterns; a plain sentence
-    in place of a list is the reason that surface cannot have the feature."""
-    given = {"web": web, "ios": swift if ios is None else ios, "mac": swift if mac is None else mac}
+def F(id: str, title: str, web=(), swift=(), ios=None, mac=None, linux=None) -> Feature:
+    """`swift` is what both apps must show; `ios` or `mac` replaces it for one. `linux` is the page's (patterns or
+    reason) unless given: a Linux hub serves the same page. A list is patterns; a plain sentence in place of a list is
+    the reason that surface cannot have the feature."""
+    given = {"web": web, "ios": swift if ios is None else ios, "mac": swift if mac is None else mac,
+             "linux": web if linux is None else linux}
     reasons = {s: v for s, v in given.items() if isinstance(v, str)}
     needs = {s: () if s in reasons else tuple(v) for s, v in given.items()}
-    return Feature(id, title, needs["web"], needs["ios"], needs["mac"], reasons)
+    return Feature(id, title, needs["web"], needs["ios"], needs["mac"], needs["linux"], reasons)
 
 
 def ident(*names: str) -> str:
@@ -134,6 +140,8 @@ NO_DAEMON_NO_PAGE = "the page exists only while the daemon runs, so there is not
 MAC_SHELL = "a Mac shell feature: AppKit only (docs/design/macos-app.md)"
 DRIVE_IS_THE_PHONES = "drive mode is for a phone in a car: it starts there or by voice, and the Mac only shows it and stops it"
 PHONE_ONLY_HARDWARE = "needs the phone's own hardware or system service"
+LINUX_POWER = ("holding off sleep for a call, and the idle and power checks, are macOS only (pointe/mac.py: caffeinate, "
+               "ioreg, pmset); on a Linux hub they are off (docs/linux.md, Limits on Linux)")
 IPHONE_SYSTEM = "an iPhone system surface (Controls, Live Activities, Home Screen widgets: WidgetKit and App Intents on iOS 18)"
 
 GROUPS: list[tuple[str, list[Feature]]] = [
@@ -178,7 +186,8 @@ GROUPS: list[tuple[str, list[Feature]]] = [
           web=['id="recent"'], swift=[r"recentAndContext|struct RecentRequests\b"]),
         F("call.keep-awake", "A line while the Mac keeps itself awake for a call from another device",
           swift=[ident("keepAwake")], web="the rule runs only for a call from another device; on the Mac there is nothing to say",
-          mac="the rule runs only for a call from another device; on the Mac there is nothing to say"),
+          mac="the rule runs only for a call from another device; on the Mac there is nothing to say",
+          linux=LINUX_POWER),
     ]),
     ("Push to talk and turn taking", [
         F("talk.mode", "Microphone: Always on or Push to talk",
@@ -453,6 +462,94 @@ GROUPS: list[tuple[str, list[Feature]]] = [
 FEATURES = [f for _, group in GROUPS for f in group]
 
 
+# ---------- the Linux hub ----------
+
+@dataclass(frozen=True)
+class Branch:
+    """What one Mac-only branch in pointe/ means for a Linux hub. `kind`: "path", the hub does the same another way;
+    "limit", part of the features is not on a Linux hub (said in the matrix); "bound", the features cannot be on a Linux
+    hub and carry a Linux reason. `features` may be empty for a branch no feature row covers (setup, uninstall)."""
+    kind: str
+    features: tuple[str, ...]
+    linux: str
+
+
+def B(kind: str, linux: str, *features: str) -> Branch:
+    return Branch(kind, features, linux)
+
+
+SETUP_ONLY = "not a feature row: the terminal setup and uninstall, run once"
+# Every function in pointe/ whose behaviour depends on running on a Mac (mac_only_branches finds them), by file and
+# function. tests/test_parity_matrix.py fails on a branch missing here and on an entry whose branch is gone: a new
+# Mac-only branch needs its Linux decision written down.
+LINUX_BRANCHES: dict[str, Branch] = {
+    "keys.py:on_a_mac": B("path", "`pointe key` asks in the terminal with hidden typing and saves the key in the login "
+                          "keyring (Secret Service), not the Keychain", "keys.status"),
+    "vendors.py:from_store": B("path", "keys are read from the Secret Service (secret-tool), not the Keychain", "keys.status"),
+    "vendors.py:_stored": B("path", "only Pointe's own key names are read: the pre-release names are a Mac Keychain history",
+                            "keys.status"),
+    "daemon.py:add_key": B("path", "the page's Add answers with the terminal command (pointe key <vendor>, hidden typing) "
+                           "instead of opening a key window", "keys.status"),
+    "daemon.py:_status_machines": B("path", "the hub names its own system, linux, in the machines list", "machines.list"),
+    "node.py:_os": B("path", "a node tells the hub its system, linux, for the machines list", "machines.list"),
+    "daemon.py:_start_harnesses": B("path", "the agent list says Claude Code opens in a tmux window on this machine",
+                                    "sessions.new"),
+    "harnesses/claude_code.py:ClaudeCode.can_start": B("path", "starting Claude Code needs tmux; without it the start says "
+                                                       "how to install it", "sessions.new"),
+    "harnesses/claude_code.py:opens_where": B("path", "a started session opens in a tmux window (tmux attach -t pointe)",
+                                              "sessions.new", "sessions.add"),
+    "harnesses/claude_code.py:could_not_open": B("path", "a failed start names tmux", "sessions.new", "sessions.add"),
+    "harnesses/claude_code.py:open_window": B("path", "a started or reopened session runs in a tmux window, not a Terminal "
+                                              "window", "sessions.new", "sessions.add"),
+    "harnesses/claude_code.py:<module>": B("path", "Claude Code's managed settings are read from /etc/claude-code"),
+    "daemon.py:add_sessions_options": B("limit", "a Linux hub joins its open sessions and its machines' sessions, and does "
+                                        "not offer to reopen its own recent ones (reopen_here is false)", "sessions.add"),
+    "local.py:supported": B("limit", "the one-step local mode needs an Apple-silicon Mac; on Linux each role is set to local "
+                            "by hand (docs/features/local.md), and the page's line shows it", "local-mode"),
+    "local.py:supported_voice": B("limit", "Voice stays local needs an Apple-silicon Mac (MLX); on Linux ears and mouth are "
+                                  "set to local by hand", "local-mode"),
+    "vendors.py:_local_ears": B("path", "local ears are faster-whisper instead of MLX Whisper", "local-mode"),
+    "pair.py:_wifi": B("path", "Same network listens on the private address of the default route (wired or Wi-Fi)",
+                       "pair.show"),
+    "pair.py:_open_picture": B("path", "the pairing QR is printed in the terminal; no picture opens", "pair.show"),
+    "pair.py:main": B("path", "Twingate through a Docker-bridged connector gets the --listen docker hint", "pair.show"),
+    "terminal_setup.py:chrome": B("path", SETUP_ONLY + "; Chrome or Chromium is looked up on the PATH"),
+    "terminal_setup.py:desktop": B("path", SETUP_ONLY + "; a screen exists only in a desktop session (DISPLAY, WAYLAND_DISPLAY)"),
+    "terminal_setup.py:first_setup": B("path", SETUP_ONLY + "; it says \"this machine\" and does not require Chrome first"),
+    "uninstall.py:_in_keychain": B("path", SETUP_ONLY + "; keys are looked up in the login keyring"),
+    "uninstall.py:plan": B("path", SETUP_ONLY + "; keyring items are listed, and no pre-release Keychain names"),
+    "uninstall.py:remove": B("path", SETUP_ONLY + "; keyring items are removed with secret-tool"),
+}
+
+
+def _is_platform_test(node: ast.AST) -> bool:
+    """`sys.platform` or `platform.system()`: a test of which system this is."""
+    if isinstance(node, ast.Attribute) and node.attr == "platform" and isinstance(node.value, ast.Name) and node.value.id == "sys":
+        return True
+    return (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "system"
+            and isinstance(node.func.value, ast.Name) and node.func.value.id == "platform")
+
+
+def mac_only_branches(root: Path = ROOT) -> dict[str, list[int]]:
+    """"file:Class.function" (or "file:<module>") to the lines where pointe/ asks which system it runs on."""
+    found: dict[str, list[int]] = {}
+    for path in sorted((root / "pointe").rglob("*.py")):
+        rel = str(path.relative_to(root / "pointe"))
+
+        def walk(node: ast.AST, scope: list[str]) -> None:
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    walk(child, scope + [child.name])
+                    continue
+                if _is_platform_test(child):
+                    key = f"{rel}:{'.'.join(scope) or '<module>'}"
+                    found.setdefault(key, []).append(child.lineno)
+                walk(child, scope)
+
+        walk(ast.parse(path.read_text(), str(path)), [])
+    return found
+
+
 # ---------- the scan ----------
 
 @dataclass
@@ -474,7 +571,7 @@ def _find(pattern: str, files: dict[str, str]) -> str | None:
 
 def _help_cell(surface: str, root: Path) -> Cell:
     """The product help names this surface, and at least one topic has a path on it."""
-    key = {"web": "page", "ios": "iphone", "mac": "mac"}[surface]
+    key = {"web": "page", "ios": "iphone", "mac": "mac", "linux": "page"}[surface]  # a Linux hub's help is the page's
     data = json.loads((root / "pointe" / "product_help.json").read_text())
     with_path = sum(1 for e in data["entries"] if e.get(key))
     if key in data["surfaces"] and with_path:
@@ -520,7 +617,8 @@ MARK = {"yes": "yes", "partial": "partial", "no": "**no**", "n/a": "n/a"}
 def render(matrix: dict[str, dict[str, Cell]], baseline: dict | None) -> str:
     lines = ["# Parity matrix",
              "",
-             "Written by `python3 tools/parity.py` from the code of the three surfaces; do not edit by hand.",
+             "Written by `python3 tools/parity.py` from the code of the four surfaces; do not edit by hand. The Linux hub",
+             "serves the page: its column is the page's unless a row or a Mac-only branch (at the end) says otherwise.",
              "`tests/test_parity_matrix.py` fails when this file is stale, and when a feature is missing from a surface",
              "without a reason. What the rows mean, how the scan works and the component spec: [parity.md](parity.md).",
              ""]
@@ -533,21 +631,24 @@ def render(matrix: dict[str, dict[str, Cell]], baseline: dict | None) -> str:
         lines += ["", f"Before this work ({baseline['at']}), by the same scan:", "",
                   "| Surface | yes | partial | no | n/a |", "|---|---|---|---|---|"]
         for s in SURFACES:
-            c = baseline["counts"][s]
-            lines.append(f"| {NAMES[s]} | {c['yes']} | {c['partial']} | {c['no']} | {c['n/a']} |")
+            c = baseline["counts"].get(s)  # a surface added after the baseline has no count in it
+            lines.append(f"| {NAMES[s]} | " + (" | ".join(str(c[k]) for k in ("yes", "partial", "no", "n/a")) if c
+                                               else "not a surface then | | |") + " |")
     for title, group in GROUPS:
-        lines += ["", f"## {title}", "", "| Feature | Page | iPhone | Mac |", "|---|---|---|---|"]
+        lines += ["", f"## {title}", "", "| Feature | Page | iPhone | Mac | Linux hub |", "|---|---|---|---|---|"]
         for f in group:
             cells = []
             for s in SURFACES:
                 cell = matrix[f.id][s]
                 text = MARK[cell.state]
-                if cell.refs:
+                if s == "linux" and cell.state == "yes" and cell.refs == matrix[f.id]["web"].refs:
+                    text += " (the page)"
+                elif cell.refs:
                     text += " `" + cell.refs[0] + "`"
                 cells.append(text)
             lines.append(f"| {f.title} <br>`{f.id}` | " + " | ".join(cells) + " |")
     bound = [(f, s) for f in FEATURES for s in SURFACES if s in f.bound]
-    lines += ["", "## Bound to a platform", "", "A feature a surface cannot have, and why. Everything else is on all three.", "",
+    lines += ["", "## Bound to a platform", "", "A feature a surface cannot have, and why. Everything else is on all four.", "",
               "| Feature | Not on | Why |", "|---|---|---|"]
     for f, s in bound:
         lines.append(f"| {f.title} | {NAMES[s]} | {f.bound[s]} |")
@@ -559,6 +660,12 @@ def render(matrix: dict[str, dict[str, Cell]], baseline: dict | None) -> str:
         lines += ["| Feature | Surface | State | Not found |", "|---|---|---|---|"]
         for f, s, cell in gaps:
             lines.append(f"| {f.title} | {NAMES[s]} | {cell.state} | " + "; ".join(f"`{p}`" for p in cell.missing).replace("|", "\\|") + " |")
+    lines += ["", "## The Linux hub: what the daemon does differently off a Mac", "",
+              "Each function in `pointe/` that asks which system it runs on (`LINUX_BRANCHES`). A path does the same another",
+              "way; a limit leaves part of the features out on Linux; a bound feature carries its Linux reason above.", "",
+              "| Branch | Kind | Features | On a Linux hub |", "|---|---|---|---|"]
+    for key, b in sorted(LINUX_BRANCHES.items()):
+        lines.append(f"| `{key}` | {b.kind} | " + (", ".join(f"`{x}`" for x in b.features) or "none") + f" | {b.linux} |")
     return "\n".join(lines) + "\n"
 
 
