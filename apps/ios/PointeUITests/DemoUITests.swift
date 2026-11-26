@@ -5,6 +5,16 @@ import XCTest
 final class DemoUITests: XCTestCase {
     override func setUp() { continueAfterFailure = false }
 
+    /// A loaded CI simulator now and then drops the tap on Try a demo, and the pairing screen stays: tap until it goes,
+    /// at most three times. A tap that lands is never repeated.
+    private func tryTheDemo(_ app: XCUIApplication) {
+        let tryDemo = app.buttons["tryDemo"]
+        for _ in 0..<3 where tryDemo.exists {
+            tryDemo.tap()
+            if tryDemo.waitForNonExistence(timeout: 5) { return }
+        }
+    }
+
     func testTryADemoFromThePairingScreenAndLeaveIt() {
         let app = XCUIApplication()
         app.launchEnvironment["POINTE_FORGET"] = "1"
@@ -12,7 +22,7 @@ final class DemoUITests: XCTestCase {
 
         let tryDemo = app.buttons["tryDemo"]
         XCTAssertTrue(tryDemo.waitForExistence(timeout: 15), "the pairing screen offers the demo")
-        tryDemo.tap()
+        tryTheDemo(app)
 
         let badge = app.buttons["demoBadge"]
         XCTAssertTrue(badge.waitForExistence(timeout: 10), "the demo says it is one")
@@ -36,7 +46,7 @@ final class DemoUITests: XCTestCase {
         app.launchEnvironment["POINTE_FORGET"] = "1"
         app.launch()
         XCTAssertTrue(app.buttons["tryDemo"].waitForExistence(timeout: 15))
-        app.buttons["tryDemo"].tap()
+        tryTheDemo(app)
         let line = app.descendants(matching: .any)["statusLine"].firstMatch
         XCTAssertTrue(line.waitForExistence(timeout: 10))
 
