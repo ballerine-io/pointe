@@ -5,6 +5,30 @@ Repeat it before a release and add a section on top ([docs/releasing.md](releasi
 
 The runs below version 0.8.0 are pre-release builds; their versions are those builds' own numbers.
 
+## 2026-11-26, version 0.9.0: the standalone install from github.com
+
+**Machine.** Apple-silicon Mac, macOS 27.0. No Claude Code in the run.
+
+**How clean.** As in the run below: one shell with an empty environment (`env -i`), a new empty `HOME`, `PATH` set to
+`/usr/bin:/bin:/usr/sbin:/sbin` and a fake `security` that answers "not found", so no Keychain item was read. No uv,
+no `~/.pointe`, no `~/.claude-voice`. Nothing was started, so no port was used.
+
+**The repository is public.** `install.sh` (pinned to 0.9.0 and `72d6dbec…c802`, the release's tarball) downloaded the
+tarball from `github.com/ballerine-io/pointe/releases/download/v0.9.0/` as a stranger would, while v0.9.0 was a
+prerelease.
+
+| # | Step | Result | Time |
+|---|---|---|---|
+| 1 | `bash install.sh --yes` | the plan printed first; "SHA-256 matches"; uv 0.12.21 installed with both of its checks; `~/.local/bin/pointe` written; "Pointe 0.9.0 is installed in ~/.pointe/0.9.0" | 69 s |
+| 2 | `pointe version`, `bin/pointe-installs list` | "Pointe 0.9.0"; one line, `standalone 0.9.0 ~/.pointe/0.9.0` | |
+| 3 | `pointe setup` with no terminal | the setups table | |
+| 4 | `pointe update --yes` | "Pointe 0.9.0 is up to date: 0.8.7 is not newer." (0.8.7 was still Latest) | |
+| 5 | `pointe uninstall --dry-run`, then `--yes` | lists `~/.pointe` (455 MB); removes it and `~/.local/bin/pointe`: "Pointe is removed."; uv kept | |
+
+**Not covered.** `pointe update` between two published versions from github.com, `pointe setup` at a terminal past its
+first question, and the first call, as in the run below. Linux: the hub and node installs ran in CI's Ubuntu smoke and
+in docs/linux.md's containers, not here.
+
 ## 2026-11-23, version 1.23.0: the standalone install
 
 **Machine.** Apple-silicon Mac, macOS 27.0. No Claude Code in the run.
