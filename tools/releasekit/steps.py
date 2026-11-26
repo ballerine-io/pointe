@@ -341,11 +341,17 @@ def dmg(ctx: Ctx) -> str:
         stable.with_name("Pointe.dmg.sha256").write_text(f"{github.sha256(stable.read_bytes())}  Pointe.dmg\n")
         sh(["gh", "release", "upload", ctx.tag, "-R", REPO, str(stable), f"{stable}.sha256"])
         return "Pointe.dmg attached from the versioned image"
-    _dmg_probes()
+    given = getattr(ctx.args, "mac_app", None)
+    if given:  # a Pointe.app notarized elsewhere (Xcode's Organizer, when xcodebuild cannot use the account)
+        need(creds.keychain_unlocked())
+        need(creds.notary_profile())
+    else:
+        _dmg_probes()
     if Path("/Volumes/Pointe").exists():
         raise Stop("a volume named Pointe is mounted", "Eject it (Finder lays the new image out by that name), then tools/release resume")
     git(ctx, "checkout", "-q", "--detach", ctx.state.fact("pin_commit"))
-    out = sh(["tools/build_dmg.sh", "--upload"], cwd=ctx.tree, check=False, timeout=7200, stream=True)
+    out = sh(["tools/build_dmg.sh", "--upload", *(["--app", str(Path(given).expanduser())] if given else [])], cwd=ctx.tree,
+             check=False, timeout=7200, stream=True)
     if out.returncode == 3:
         raise Stop("build_dmg.sh stopped before signing or notarizing the image: " + preflight_tail(out.stdout), creds.developer_id().fix, waiting=True)
     if out.returncode != 0:
@@ -376,6 +382,12 @@ def ios(ctx: Ctx) -> str:
         return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
     if ctx.state.fact("ios_uploaded"):
         return ctx.state.fact("ios_uploaded")
+    from . import asc
+
+    if asc.have_key() and asc.build(ctx.version, ctx.state.fact("ios_build")):  # uploaded already: another run, or Xcode's Organizer
+        done = f"App Store Connect already has {ctx.version} ({ctx.state.fact('ios_build')}); not uploaded again"
+        ctx.state.set(ios_uploaded=done)
+        return done
     need(creds.xcode_tools())
     need(creds.keychain_unlocked())
     need(creds.xcode_account())

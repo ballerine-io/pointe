@@ -10,7 +10,8 @@
 Options for cut and resume: --notes FILE (the release notes; default: the draft, which must be rewritten before the release
 is promoted), --no-wait (stop instead of waiting for CI), --site-approved (the owner has seen the site preview), --adopt
 (take over a tag this clone did not make, after checking it is yours), --platforms mac,linux (leave the iPhone app out:
-no upload, and the tag's ui run gates on its Mac jobs only), --suite-from-ci (when the Mac is too loaded for
+no upload, and the tag's ui run gates on its Mac jobs only), --mac-app PATH (a Pointe.app notarized in Xcode's Organizer
+when xcodebuild cannot use Xcode's account: the image is made from it), --suite-from-ci (when the Mac is too loaded for
 the local suite: CI's full suite on the same commit stands in, and the report says the Mac-only tests did not run).
 
 Idempotent: each step's outcome is kept in a state file per version in the clone's git folder (pointe-release/<version>/),
@@ -249,6 +250,7 @@ def main(argv: list[str]) -> int:
         c.add_argument("--site-approved", action="store_true")
         c.add_argument("--adopt", action="store_true")
         c.add_argument("--suite-from-ci", action="store_true")
+        c.add_argument("--mac-app", help="a Pointe.app already notarized (Xcode's Organizer): the disk image is made from it")
         c.add_argument("--platforms", help="the platforms this release ships, of iphone,mac,linux (default all); kept for resume")
     st = sub.add_parser("status")
     st.add_argument("version", nargs="?")

@@ -103,6 +103,13 @@ The tool asks for each before the step that needs it, and stops there; nothing i
 | The App Store submission | The owner's yes, every time | The owner | |
 | The owner's iPhone | Unlocked, paired with Xcode, on the network or a cable | The owner | |
 
+**When xcodebuild cannot use Xcode's account.** On Xcode 27.2 the account worked in Xcode's own window while
+`xcodebuild -exportArchive` answered "No Accounts", from any Terminal (0.10.1). Then Xcode exports from the archives the
+tool already built: open `apps/macos/build/dmg/Pointe.xcarchive` (Organizer, Distribute App, Direct Distribution) and
+export the notarized `Pointe.app`, then `tools/release resume --mac-app <that Pointe.app>`, which makes, notarizes and
+attaches the image from it; open `apps/ios/build/Pointe.xcarchive` (Distribute App, App Store Connect, Upload), and the
+next `resume` sees the build in App Store Connect and does not upload it again.
+
 **The App Store Connect API key.** A generic password in the login keychain (service `pointe-asc-api-key-p8`, account
 the key ID, holding the base64 of the `.p8`). `tools/release` reads it into memory, signs a short-lived token with
 openssl on a pipe, and never writes or prints it. It has the Developer role: the build's processing and TestFlight
