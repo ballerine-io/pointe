@@ -18,6 +18,7 @@ from .core import sh
 TEAM = os.environ.get("POINTE_TEAM", "PP445E78PD")  # the team that publishes Pointe (tools/build_dmg.sh's default)
 NOTARY_PROFILE = os.environ.get("POINTE_NOTARY_PROFILE", "pointe-notary")
 WRANGLER = "wrangler@4.166.0"  # site/deploy.sh's pin
+IPHONE = os.environ.get("POINTE_IPHONE", "")  # the owner's iPhone, by its device identifier, when Xcode knows several
 
 
 @dataclass
@@ -104,7 +105,7 @@ def asc_api_key() -> Probe:
 def iphone() -> Probe:
     """The owner's iPhone, paired with Xcode and awake. Names are not printed."""
     out = sh(["xcrun", "devicectl", "list", "devices"], check=False, timeout=60)
-    lines = [line for line in out.stdout.splitlines() if "iPhone" in line]
+    lines = [line for line in out.stdout.splitlines() if "iPhone" in line and (not IPHONE or IPHONE in line)]
     ready = [line for line in lines if "available" in line and "unavailable" not in line]
     return Probe("iphone", bool(ready), f"{len(ready)} iPhone reachable ({len(lines)} known to Xcode)",
                  "The owner unlocks the iPhone, on the same network or by cable, and trusts this Mac; then tools/release resume. "

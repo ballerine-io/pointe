@@ -721,7 +721,8 @@ def iphone(ctx: Ctx) -> str:
         raise Stop(probe.detail, probe.fix, waiting=True)
     need(creds.xcode_account())
     git(ctx, "checkout", "-q", "--detach", ctx.state.fact("pin_commit"))
-    out = sh(["bin/pointe", "apps", "ios", "--team", creds.TEAM, "--no-launch"], cwd=ctx.tree, check=False, timeout=3600, stream=True)
+    device = ["--device", creds.IPHONE] if creds.IPHONE else []
+    out = sh(["bin/pointe", "apps", "ios", "--team", creds.TEAM, "--no-launch", *device], cwd=ctx.tree, check=False, timeout=3600, stream=True)
     if out.returncode != 0:
         raise Fail(f"the iPhone install failed: {preflight_tail(out.stdout)}")
     return f"Pointe {ctx.version} built from the release commit and installed on the owner's iPhone (not opened)"
