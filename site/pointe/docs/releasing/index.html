@@ -154,15 +154,16 @@ together:</p>
 <div class="dx-code"><pre><code>uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto   # every test, the slow ones too
 python3 tools/check_action_pins.py                       # each GitHub Action is still the commit its tag names</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>Run the full suite with <code>--runslow</code> on a Mac: CI runs it on Ubuntu, where the tests that need a Mac skip themselves.
-CI must be green on the version commit: <code>test</code>, <code>apps</code> and <code>ui</code>. The version commit changes both apps' projects, so
-<code>apps</code> and <code>ui</code> run on it, and the tag runs them again whatever changed.</p>
+On the version commit, <code>test</code> and <code>apps</code> must be green before the tag. Its own <code>ui</code> run on <code>main</code> does not count: a
+newer push to <code>main</code> cancels the older <code>ui</code> run still going, so a version commit can rarely finish one. The <code>ui</code>
+that gates the release is the tag's (step 3).</p>
 <p>For a minor version, or when the install path or setup changed, follow <code>docs/install.md</code> again on a clean environment and add the run on top of
 <a href="https://github.com/ballerine-io/pointe/blob/main/docs/install-verification.md">docs/install-verification.md</a>. The paid end-to-end suites (<code>tests/e2e/run_all.sh</code>) run
 when the call path changed; say in the notes whether they ran.</p>
 <p><strong>Screenshots come from CI.</strong> The <code>ui</code> workflow (<code>.github/workflows/ui.yml</code>) runs the iPhone UI tests in the Simulator,
 the Mac smoke and the Mac XCUITests on a hosted runner, and uploads their pictures: <code>ios-ui-screenshots</code>,
 <code>mac-smoke-screenshots</code> and <code>mac-xcuitest-screenshots</code>. Every screenshot in the notes, the site or a review comes from
-that run on the version commit (<code>gh run download &lt;run&gt; -R ballerine-io/pointe</code>). Never take one by running UI tests
+the tag's run (<code>gh run download &lt;run&gt; -R ballerine-io/pointe</code>). Never take one by running UI tests
 on a Mac somebody works at: they take the screen, the keyboard and the pointer, and the scripts refuse to start there
 (<code>tools/ui_guard.py</code>).</p>
 <h2 id="3-the-tag">3. The tag</h2>
@@ -170,6 +171,11 @@ on a Mac somebody works at: they take the screen, the keyboard and the pointer, 
 git push origin vX.Y.Z</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>The tag's name is <code>v</code> plus the version in <code>.claude-plugin/plugin.json</code> at that commit. Never move a pushed tag: a
 mistake gets a new patch version.</p>
+<p>The tag runs <code>test</code>, <code>apps</code> and <code>ui</code> on exactly that commit, in a group no push cancels. The order is: version
+commit, <code>test</code> and <code>apps</code> green on it, the tag, the release as a prerelease (step 4), then wait for the tag's <code>ui</code>
+run to be green before the release is promoted to Latest. The tarball, the pin, the disk image and the TestFlight
+upload can go on while it runs. If it fails on a real bug, the fix goes in the next patch version; the tag stays.
+Screenshots come from the tag's <code>ui</code> run.</p>
 <h2 id="4-the-github-release">4. The GitHub Release</h2>
 <div class="dx-code"><pre><code>python3 tools/release_tarball.py build vX.Y.Z          # dist/pointe-X.Y.Z.tar.gz and .sha256, a git archive of the tag
 gh release create vX.Y.Z --prerelease --title &quot;Pointe X.Y.Z&quot; --notes-file notes.md dist/pointe-X.Y.Z.tar.gz dist/pointe-X.Y.Z.tar.gz.sha256
@@ -196,7 +202,7 @@ image again from an app already notarized, without a new archive.</p>
 <code>Pointe.dmg</code> (0.8.2's first held the 0.8.1 app), replace that copy alone with <code>gh release upload vX.Y.Z Pointe.dmg
 Pointe.dmg.sha256 --clobber</code>; the versioned <code>Pointe-X.Y.Z.dmg</code> is never replaced.</p>
 <p><strong>Never Latest before the disk image.</strong> The release is created as a prerelease (<code>--prerelease</code> above) and stays one
-until <code>Pointe-X.Y.Z.dmg</code>, <code>Pointe.dmg</code> and their <code>.sha256</code> are attached and checked. <code>releases/latest/download/Pointe.dmg</code>
+until <code>Pointe-X.Y.Z.dmg</code>, <code>Pointe.dmg</code> and their <code>.sha256</code> are attached and checked, and the tag's <code>ui</code> run is green. <code>releases/latest/download/Pointe.dmg</code>
 follows whichever release is Latest, so a Latest release without its image makes the site's download a 404 (0.8.7 was
 published that way and was set back). Then promote it:</p>
 <div class="dx-code"><pre><code>gh release edit vX.Y.Z --prerelease=false --latest</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>

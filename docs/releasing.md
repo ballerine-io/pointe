@@ -38,8 +38,9 @@ python3 tools/check_action_pins.py                       # each GitHub Action is
 ```
 
 Run the full suite with `--runslow` on a Mac: CI runs it on Ubuntu, where the tests that need a Mac skip themselves.
-CI must be green on the version commit: `test`, `apps` and `ui`. The version commit changes both apps' projects, so
-`apps` and `ui` run on it, and the tag runs them again whatever changed.
+On the version commit, `test` and `apps` must be green before the tag. Its own `ui` run on `main` does not count: a
+newer push to `main` cancels the older `ui` run still going, so a version commit can rarely finish one. The `ui`
+that gates the release is the tag's (step 3).
 
 For a minor version, or when the install path or setup changed, follow `docs/install.md` again on a clean environment and add the run on top of
 [docs/install-verification.md](install-verification.md). The paid end-to-end suites (`tests/e2e/run_all.sh`) run
@@ -48,7 +49,7 @@ when the call path changed; say in the notes whether they ran.
 **Screenshots come from CI.** The `ui` workflow (`.github/workflows/ui.yml`) runs the iPhone UI tests in the Simulator,
 the Mac smoke and the Mac XCUITests on a hosted runner, and uploads their pictures: `ios-ui-screenshots`,
 `mac-smoke-screenshots` and `mac-xcuitest-screenshots`. Every screenshot in the notes, the site or a review comes from
-that run on the version commit (`gh run download <run> -R ballerine-io/pointe`). Never take one by running UI tests
+the tag's run (`gh run download <run> -R ballerine-io/pointe`). Never take one by running UI tests
 on a Mac somebody works at: they take the screen, the keyboard and the pointer, and the scripts refuse to start there
 (`tools/ui_guard.py`).
 
@@ -61,6 +62,12 @@ git push origin vX.Y.Z
 
 The tag's name is `v` plus the version in `.claude-plugin/plugin.json` at that commit. Never move a pushed tag: a
 mistake gets a new patch version.
+
+The tag runs `test`, `apps` and `ui` on exactly that commit, in a group no push cancels. The order is: version
+commit, `test` and `apps` green on it, the tag, the release as a prerelease (step 4), then wait for the tag's `ui`
+run to be green before the release is promoted to Latest. The tarball, the pin, the disk image and the TestFlight
+upload can go on while it runs. If it fails on a real bug, the fix goes in the next patch version; the tag stays.
+Screenshots come from the tag's `ui` run.
 
 ## 4. The GitHub Release
 
@@ -100,7 +107,7 @@ Check before attaching: `spctl -a -vvv -t install` on the image and `spctl -a -v
 Pointe.dmg.sha256 --clobber`; the versioned `Pointe-X.Y.Z.dmg` is never replaced.
 
 **Never Latest before the disk image.** The release is created as a prerelease (`--prerelease` above) and stays one
-until `Pointe-X.Y.Z.dmg`, `Pointe.dmg` and their `.sha256` are attached and checked. `releases/latest/download/Pointe.dmg`
+until `Pointe-X.Y.Z.dmg`, `Pointe.dmg` and their `.sha256` are attached and checked, and the tag's `ui` run is green. `releases/latest/download/Pointe.dmg`
 follows whichever release is Latest, so a Latest release without its image makes the site's download a 404 (0.8.7 was
 published that way and was set back). Then promote it:
 
