@@ -7054,6 +7054,11 @@ def _voice_over_the_bot() -> bool:
     return began > state.last_user_speech_at and began > stopped and ECHO.speaking and not LEVEL.loud()
 
 
+_REDIRECT = re.compile(r"^\W*(?:(?:oh|um|uh|sorry|okay|ok)\W+)*(?:wait|stop|hold on|hang on|no|nope|cancel|never ?mind|"
+                       r"forget (?:it|that|about it)|actually|just|scratch that|don't|do not|rather)\b|\binstead\b|"
+                       r"^\W*(?:רגע|עצור|לא|בעצם|תעזוב|עזוב|רק)(?![\u0590-\u05ff])|(?<![\u0590-\u05ff])במקום(?![\u0590-\u05ff])", re.I)
+
+
 async def _abandoned(message: str) -> bool:
     """The user talked over the turn this send was made for and said something new: the request they left is not
     delivered behind their back (a barge-in "wait, just tell me about quarry" once left the rundown it replaced with
@@ -7067,6 +7072,11 @@ async def _abandoned(message: str) -> bool:
     if brain is None or not hasattr(brain, "abandoned") or not await brain.abandoned(voicing=_voice_since_the_turn):
         return False
     if backchannel(state.last_utterance) or ack_only(state.last_utterance):
+        return False
+    if not _REDIRECT.search(state.last_utterance or ""):
+        # A new question or request after this one is its own (t3-02: "Going back to the import, ..." 7 s after "tell it
+        # to add a docstring" dropped the docstring): only words that take it back or turn away drop it.
+        logger.info(f"new words after the request, not a redirect: it still goes: {message!r}")
         return False
     logger.info(f"send dropped, the user talked over its turn and said something new: {message!r}")
     _record(message, [], "dropped: the user talked over it and said something new")

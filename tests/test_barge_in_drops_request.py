@@ -10,6 +10,8 @@ uv run pytest -q tests/test_barge_in_drops_request.py
 
 import asyncio
 import time
+
+import pytest
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -232,3 +234,30 @@ def test_the_bots_own_echo_delays_a_send_only_a_moment(d, monkeypatch):  # noqa:
 
     verdicts, took = _over_the_bot(d, monkeypatch, b, then)
     assert verdicts == [False] and took < 1.6
+
+
+def _abandoned_after(d, monkeypatch, words):  # noqa: F811
+    """The daemon's check, with a turn the user's new words came during (the brain says so), and those words."""
+    async def gone(*a, **k):
+        return True
+
+    d.state.front = SimpleNamespace(brain=SimpleNamespace(abandoned=gone))
+    d.state.last_utterance = words
+    return asyncio.run(d._abandoned("Add a docstring to calc_total."))
+
+
+@pytest.mark.parametrize("words", ["Wait, wait. Just tell me about lantern.", "Stop.", "No, don't.",
+                                   "Actually, tell lantern instead.", "Never mind that.", "Just tell me about lantern."])
+def test_words_that_redirect_drop_the_send(d, monkeypatch, words):  # noqa: F811
+    assert _abandoned_after(d, monkeypatch, words) is True
+
+
+def test_a_new_question_after_the_request_does_not_drop_it(d, monkeypatch):  # noqa: F811
+    """t3-02 at cb3fb9ac: "Tell it to add a docstring" took 7 s to clear its checks; "Going back to the import, who
+    reviews that change?" came after it, and the docstring was dropped as if the user had taken it back."""
+    assert _abandoned_after(d, monkeypatch, "Going back to the import, who reviews that change?") is False
+
+
+@pytest.mark.parametrize("words,dropped", [("רגע, רק תגיד לי על lantern.", True), ("למה הבדיקות לא עוברות ב-billing?", False)])
+def test_hebrew_redirects_drop_it_and_a_hebrew_question_does_not(d, monkeypatch, words, dropped):  # noqa: F811
+    assert _abandoned_after(d, monkeypatch, words) is dropped
