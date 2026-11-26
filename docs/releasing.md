@@ -6,9 +6,133 @@ version; `install.sh` and `pointe update` install the tarball of a tag. A change
 `bin/`, `hooks/`, `plugin/`, `install.sh`, the page, the app) reaches them only with a new version number. A change to
 docs, tests or `bench/` alone needs no version.
 
-**Batch.** At most one release a day, carrying everything merged since the last one, unless an owner-reported bug
-needs a fix out sooner. Between releases, changes land on `main` through the inner loop and CI (CONTRIBUTING.md,
-"How to test"); the release is where the full gate below runs.
+## When to release: batches
+
+- **On demand, when a batch is worth it**, at most about one a day. A batch is everything merged since the last
+  release; a small change waits for the next batch.
+- **Sooner only for an owner-reported bug.** The fix goes out as a patch as soon as it is on `main` and green.
+- **The version number** follows step 1's rules: patch for a fix, minor for something a user can newly do or a protocol
+  change between machines (the skew matrix in `tests/fixtures/skew_requests.json` then has an entry for it), major for a
+  change that breaks a setup.
+- **`tools/release plan`** says what the next release would carry and whether it is ready. Between releases, changes
+  land on `main` through the inner loop and CI (CONTRIBUTING.md, "How to test"); the release is where the full gate runs.
+
+## The command: tools/release
+
+```
+tools/release plan                              what the next release carries, whether it is ready, who must act
+tools/release cut X.Y.Z --dry-run               every check below, nothing published: no push, tag, release, upload or deploy
+tools/release cut X.Y.Z --summary "…" --notes notes.md
+tools/release resume                            after an outage, an expired sign-in, or a person's step
+tools/release status                            each step and its state
+```
+
+`cut` runs these steps in order; each is checked before the next one that needs it, and the sections below say what
+each does by hand:
+
+1. **Preflight.** A release worktree at the newest `main`. `main` green on `test`, `apps` and `ui` (a red `main` stops
+   the line). Nothing half-done: no `WIP`/`fixup!` commit since the last tag, no `DO-NOT-RELEASE` marker in a tracked
+   file. Everything generated is current: the parity matrix with no unexplained gap on the page, the iPhone, the Mac or
+   the Linux hub; the product help; the site's docs pages, version and app cards. The versions agree (step 1's tests),
+   and the skew matrix has the cut version's entry. The integration join (`tests/test_integration_join.py`). The full
+   suite with `--runslow` on a Mac, on at most four workers (other work shares the Mac; `POINTE_RELEASE_WORKERS`
+   sets another number). When the Mac is too loaded, `--suite-from-ci` takes CI's full suite on
+   the same commit instead, and the report says the Mac-only tests did not run. The changelog since the last Latest release, grouped by what a person uses, as a
+   notes draft.
+2. **The version commit** in lockstep (step 1), pushed to `main`, then `test` and `apps` green on it. CHANGELOG entries
+   marked **Unreleased** are folded under the version's line; one whose commit is already in the last tag shipped then
+   and is dropped. If `main` moved after the preflight, the preflight runs again on the new `main`.
+3. **The tag**, then the tag's own `test` and `apps` green (step 3).
+4. **Artifacts:** the tarball on a prerelease; `install.sh` pinned, on a commit that is the tag plus the pin (the disk
+   image and the iPhone build come from it) and the same change on `main`; the disk image signed, notarized, stapled
+   and attached; the iPhone build uploaded to App Store Connect.
+5. **Verify:** every asset downloaded anonymously against its `.sha256`, the local build and the pin; `spctl` and
+   `stapler` on the image and the app, from a quarantined copy mounted as a download is; a clean standalone install from
+   github.com in an empty environment on this Mac; a Linux hub (installed, started on a synthetic key, health, status
+   and page answer, status names the version) and a Linux node, each installed from github.com in an empty Ubuntu
+   container in the Colima VM `pointe-release` (its own profile: no other container is touched).
+6. **Publish:** the tag's `ui` run green; then, and only with the disk image attached and checked and the notes no
+   longer the draft, the prerelease becomes Latest, and `releases/latest/download/Pointe.dmg` must answer 200 with the
+   image's SHA-256. Then `apps.json`, the roadmap's votes, and the site: a preview for the owner first when a page
+   written by hand changed since the last release, production directly when only generated content did. The site is
+   deployed only after the promotion, so its `install.sh` never pins a prerelease. Then the live checks: the hero line,
+   `/pointe/install.sh` (the repository's bytes, pinning this version, which is Latest), the download.
+7. **Distribution:** TestFlight's internal group (automatic once Apple has processed the build); the external group,
+   Beta App Review and the App Store submission, which wait for the owner (below); the release installed on the
+   owner's iPhone when it is reachable (`pointe apps ios --no-launch`: installed, not opened).
+8. **The report:** each platform's state, the links, the SHA-256s, and what waits for whom
+   (`pointe-release/<version>/report.md` in the clone's git folder).
+
+**Idempotent and resumable.** Each step's outcome is kept in `pointe-release/<version>/state.json` in the clone's git
+folder, so every worktree of the clone sees it, with a log beside it. A done step is never run again. A step that
+changes something outside first asks what is already there: the tag on github.com (one at another commit is someone
+else's: the tool stops and never moves it), the release and its assets (a published asset is compared, never
+replaced; a release found Latest without its disk image is set back to prerelease and the previous one made Latest
+again, as 0.8.7 had to be), the pin and `apps.json` on `main`, and the build number App Store Connect already holds (a
+second upload of it is refused by Apple and recorded as done by another run). One release run at a time per clone: a
+lock, taken over only from a run that died. A stopped step names the one thing to do and `tools/release resume`.
+
+**The rules it holds, and the failure each came from:**
+
+| Rule | From |
+|---|---|
+| Created as a prerelease; Latest only with `Pointe-X.Y.Z.dmg` and `Pointe.dmg` attached and checked | 0.8.7 published Latest with the tarball only: the site's download was a 404 |
+| The `ui` that gates is the tag's; a `ui` run on `main` cancelled by a newer push is looked past | the cancel-older-runs rule cancelled the `ui` run on 0.9.0's version commit |
+| A step that needs Xcode's account, the keychain, the notary profile or wrangler asks first and stops with the fix; nothing signs another way | Xcode lost its account in the middle of 0.9.0 |
+| One run per clone (a lock); the tag, the assets and App Store Connect are asked before acting | a duplicate agent tagged 0.8.7, published it and uploaded its TestFlight build |
+| The site is deployed after the promotion; the live check fails when `install.sh` pins anything but Latest | the site's `install.sh` pinned 0.9.0 while it was a prerelease |
+| A red `main` stops the release at the first step | a red `main` held the 0.8.7 gate |
+| The App Store step reports how many commits changed the iPhone's screens since its screenshots were taken | the App Store screenshots were older than the screens |
+| The summary (the App Store's What's New) may not say "beta"; the iPhone's version line drops it (`AppVersion.line`) | the "beta" rule on iOS (App Review 2.2) |
+
+## What needs a person
+
+The tool asks for each before the step that needs it, and stops there; nothing is improvised around a missing one.
+`tools/release plan` lists them all.
+
+| Step | Needs | Who, and how | Kept |
+|---|---|---|---|
+| Everything on GitHub | `gh` signed in with write access | `gh auth login` | gh's own store |
+| The Mac app's export and notarization; the iPhone archive and upload | An Apple Account in Xcode for team PP445E78PD (Account Holder or Admin for the Developer ID export; App Manager or more for uploads) | The owner: Xcode, Settings, Accounts, + | Xcode |
+| Signing the disk image | The "Developer ID Application" identity of the team, in the login keychain | The owner, once: Xcode, Settings, Accounts, the team, Manage Certificates, +, Developer ID Application | login keychain |
+| Notarizing the disk image | notarytool profile `pointe-notary` | The owner, once: `xcrun notarytool store-credentials pointe-notary --apple-id <account> --team-id PP445E78PD` (an app-specific password) | login keychain |
+| Every signing step | The login keychain unlocked (a locked one makes codesign and notarytool hang) | The owner unlocks the Mac | |
+| The site | wrangler signed in to Ballerine's Cloudflare account | The owner: `npx -y wrangler@4.166.0 login` | wrangler's own store |
+| A site preview | The owner's look, when a hand-written page changed | The owner opens the preview, then `tools/release resume --site-approved` | |
+| TestFlight external group, Beta App Review, the App Store | App Store Connect: an App Manager role. The Developer-role key the release used before was refused every write | The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text) | |
+| The App Store submission | The owner's yes, every time | The owner | |
+| The owner's iPhone | Unlocked, paired with Xcode, on the network or a cable | The owner | |
+
+**Recommendations.** Keep Xcode's account and the notary profile on the owner's Mac until the CI path below is
+approved: they are the two that stop a release today. Create an App Store Connect API key with the App Manager role
+only if the owner wants TestFlight's external group and Beta App Review done without a click; it would live in the
+Keychain (service `pointe-asc-api-key`), and the tool would then submit (not built yet: the step stops with the
+clicks). The App Store submission stays the owner's, by choice.
+
+## Proposed: Mac signing and notarization in CI (not done)
+
+So that a release does not depend on the owner's Mac being awake, signed in and unlocked, `mac-release`
+(`.github/workflows/mac-release.yml`) already builds `tools/build_dmg.sh --ci` with a Developer ID `.p12` and an App
+Store Connect API key in the `mac-release` environment. Three things stand between it and a real release:
+
+1. **It builds the wrong commit.** It checks out the tag, but the disk image must come from the tag plus the pin
+   (`build_dmg.sh` refuses an `install.sh` that does not pin its version, and the pin cannot be inside the tag: the
+   tarball it pins is the tag's archive). Change: the dispatch takes the build commit, and the job checks that the
+   commit's parent is the tag and that it changes only `install.sh` and `Installer.swift`. Drop the `release:
+   published` trigger, which fires on the prerelease before the pin exists.
+2. **It attaches nothing** (its token is read-only, by rule). Keep it so: `tools/release` dispatches it with the build
+   commit, waits, downloads the `pointe-dmg` artifact, verifies it (the same `spctl`, `stapler` and quarantined mount)
+   and attaches it. The tool would prefer this path when the environment holds the secrets, and fall back to the
+   owner's Mac.
+3. **The secrets.** In Settings, Environments, `mac-release`, never repository-wide: `MAC_DEVELOPER_ID_P12` and its
+   password (an export of the Developer ID Application certificate and private key), and `ASC_API_KEY_P8`,
+   `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID` (a key with the Developer role is enough to notarize). Protect the environment
+   with a required reviewer and deployment from `main` and tags only.
+
+What the owner approves: exporting the Developer ID private key off the Mac into GitHub (anyone who can run a job in
+that environment can then sign as the team: the required reviewer is the control), creating the API key, and the
+workflow change. The iPhone upload can follow the same way later (an App Store distribution certificate and
+`xcodebuild -exportArchive` with the API key); it is not proposed here.
 
 ## 1. The version commit
 
@@ -26,7 +150,7 @@ together:
 - `CHANGELOG.md`: one line on top, the same words as the commit subject
 - `tests/fixtures/skew_requests.json`: an entry for the new version, with the requests its scripts send (copy the
   newest entry and change what moved). `tests/test_skew.py` replays every release's requests against the new daemon,
-  and fails while the new version has no entry
+  and fails while the new version has no entry. It goes on `main` before the cut: `tools/release` checks it first
 - `python3 tools/site_version.py`: writes the version into the site's pages (`site/deploy.sh` runs it too)
 
 Commit as `Version X.Y.Z: <what changed, in the words a user would use>`, with `git commit -s`.

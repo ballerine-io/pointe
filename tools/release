@@ -1,0 +1,262 @@
+#!/usr/bin/env -S python3 -I
+"""One release of Pointe, end to end, to every platform (docs/releasing.md).
+
+    tools/release plan                          what the next release would carry, and whether it is ready
+    tools/release cut X.Y.Z --summary "…"       cut it: preflight, version commit, tag, artifacts, verify, publish, distribution
+    tools/release cut X.Y.Z --dry-run           every check, nothing published (no push, tag, release, upload or deploy)
+    tools/release resume                        go on from where the last run stopped (an outage, a sign-in, a person's step)
+    tools/release status [X.Y.Z]                the steps and their state
+
+Options for cut and resume: --notes FILE (the release notes; default: the draft, which must be rewritten before the release
+is promoted), --no-wait (stop instead of waiting for CI), --site-approved (the owner has seen the site preview), --adopt
+(take over a tag this clone did not make, after checking it is yours), --suite-from-ci (when the Mac is too loaded for
+the local suite: CI's full suite on the same commit stands in, and the report says the Mac-only tests did not run).
+
+Idempotent: each step's outcome is kept in a state file per version in the clone's git folder (pointe-release/<version>/),
+done steps are not run again, and a step that changes something outside first asks what is already there. One run at a
+time per clone (a lock). A step that needs a person stops with what to do; nothing signs or publishes another way.
+"""
+
+from __future__ import annotations
+
+import argparse
+import datetime
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from releasekit import bump, core, creds, github, notes, preflight, report, steps  # noqa: E402
+from releasekit.core import Ctx, Fail, Lock, State, Stop, sh  # noqa: E402
+
+ROOT = Path(sh(["git", "rev-parse", "--show-toplevel"], cwd=Path(__file__).resolve().parent).stdout.strip())
+HOME = core.git_dir(ROOT) / "pointe-release"
+
+
+def folder(version: str, dry: bool) -> Path:
+    return HOME / (f"{version}-dry-run" if dry else version)
+
+
+def tree_path(version: str, dry: bool) -> Path:
+    clone = core.git_dir(ROOT).parent
+    return clone.parent / "claude-voice-wt" / (f"rel-{version}-dry" if dry else f"rel-{version}")
+
+
+def context(version: str, dry: bool, args) -> Ctx:
+    work = folder(version, dry)
+    core.LOG.path = work / "log.txt"
+    return Ctx(root=ROOT, version=version, dry_run=dry, state=State(work / "state.json"), work=work, tree=tree_path(version, dry), args=args)
+
+
+def run(ctx: Ctx) -> int:
+    os.environ["POINTE_RELEASE_VERSION"] = ctx.version
+    with Lock(HOME / "lock"):
+        ctx.state.set(version=ctx.version, dry_run=ctx.dry_run, started=ctx.state.fact("started") or core.now())
+        ctx.say(f"Pointe {ctx.version}: {'dry run (nothing is published)' if ctx.dry_run else 'release'}; state {ctx.state.path}")
+        core.run_steps(ctx, steps.STEPS)
+    text = report.render(ctx)
+    (ctx.work / "report.md").write_text(text)
+    print("\n" + text)
+    print(f"(report: {ctx.work / 'report.md'}; log: {ctx.work / 'log.txt'})")
+    statuses = {o.status for o in ctx.outcomes.values()}
+    return 1 if "failed" in statuses else 3 if statuses & {"waiting", "stopped", "blocked"} else 0
+
+
+def cmd_cut(args) -> int:
+    bump.parse(args.version)
+    if args.dry_run:
+        work, tree = folder(args.version, True), tree_path(args.version, True)
+        if tree.exists():
+            sh(["git", "worktree", "remove", "--force", str(tree)], cwd=ROOT, check=False)
+        shutil.rmtree(work, ignore_errors=True)  # a dry run starts over every time
+    return run(context(args.version, args.dry_run, args))
+
+
+def unfinished() -> list[str]:
+    found = []
+    for state in sorted(HOME.glob("*/state.json")):
+        s = State(state)
+        if s.fact("dry_run") or state.parent.name.endswith("-dry-run"):
+            continue
+        if any(v.get("status") not in ("done", "skipped") for v in s.data["steps"].values()) or len(s.data["steps"]) < len(steps.STEPS):
+            found.append(state.parent.name)
+    return found
+
+
+def cmd_resume(args) -> int:
+    version = args.version
+    if not version:
+        open_ = unfinished()
+        if not open_:
+            print("no release to resume: tools/release plan, then tools/release cut X.Y.Z")
+            return 2
+        if len(open_) > 1:
+            print(f"more than one release is unfinished ({', '.join(open_)}): tools/release resume --version X.Y.Z")
+            return 2
+        version = open_[0]
+    ctx = context(version, False, args)
+    if not args.summary and ctx.state.fact("summary"):
+        args.summary = ctx.state.fact("summary")
+    if args.summary:
+        ctx.state.set(summary=args.summary)
+    return run(ctx)
+
+
+def cmd_status(args) -> int:
+    names = [args.version] if args.version else sorted(p.name for p in HOME.glob("*") if (p / "state.json").exists())
+    for name in names:
+        s = State(HOME / name / "state.json")
+        print(f"{name}: started {s.fact('started')}")
+        for step in steps.STEPS:
+            got = s.step(step.name)
+            print(f"  {report.MARK.get(got.get('status', ''), got.get('status', '-')):<5} {step.name:<20} {got.get('detail', '')[:150]}")
+    return 0
+
+
+# ---------- plan ----------
+
+def line(ok: bool | None, text: str) -> str:
+    return f"  {'ok' if ok else 'wait' if ok is None else 'NO':<5} {text}"
+
+
+def cmd_plan(args) -> int:
+    sh(["git", "fetch", "-q", "--tags", "origin", "+refs/heads/main:refs/remotes/origin/main"], cwd=ROOT)
+    tree = HOME / "plan-tree"
+    if (tree / ".git").exists():
+        sh(["git", "checkout", "-q", "--detach", "origin/main"], cwd=tree)
+    else:
+        HOME.mkdir(parents=True, exist_ok=True)
+        sh(["git", "worktree", "add", "-q", "--detach", str(tree), "origin/main"], cwd=ROOT)
+    head = sh(["git", "rev-parse", "HEAD"], cwd=tree).stdout.strip()
+    current = bump.current(tree)
+    tags = [t for t in sh(["git", "tag", "--list", "v*"], cwd=tree).stdout.split() if bump.VERSION_RE.fullmatch(t[1:])]
+    last_tag = max(tags, key=lambda t: bump.parse(t[1:]))
+    rels = github.releases(15)
+    latest = next((r for r in rels if r.get("isLatest")), None) or {}
+    since = latest.get("tagName", last_tag)
+    newest = max(bump.parse(current), bump.parse(last_tag[1:]))
+    # A release the skew matrix already has an entry for (tests/fixtures/skew_requests.json), newer than any tag, is the
+    # version the work on main was written for; otherwise the next patch.
+    pending = [v for v in preflight.skew_releases(tree) if bump.VERSION_RE.fullmatch(v) and bump.parse(v) > newest]
+    suggested = args.version or (max(pending, key=bump.parse) if pending else bump.next_versions(".".join(map(str, newest)))["patch"])
+
+    print(f"Pointe release plan: main {head[:10]}, version {current}, {datetime.datetime.now():%Y-%m-%d %H:%M}\n")
+    published = latest.get("publishedAt", "")
+    hours = (datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(published.replace("Z", "+00:00"))).total_seconds() / 3600 if published else 0
+    print(f"Last release: {since} (Latest, {hours:.0f} h ago). Newest tag: {last_tag}.")
+    for r in rels:
+        if r["isPrerelease"] and bump.parse(r["tagName"][1:]) > bump.parse(since[1:] if since else "0.0.0"):
+            missing = {f"Pointe-{r['tagName'][1:]}.dmg", "Pointe.dmg"} - github.asset_names(github.release(r["tagName"]))
+            print(f"  {r['tagName']} is a prerelease, never promoted" + (f" (no {', '.join(sorted(missing))})" if missing else "")
+                  + f": the next release supersedes it, and its notes cover everything since {since}.")
+    print(f"Next version: {suggested}" + (" (the skew matrix's pre-added entry)" if pending and not args.version else "")
+          + " (patch for fixes; minor when a user can newly do something or a protocol changes; docs/releasing.md, step 1).")
+    print("Batch: " + ("about a day since the last release: a batch is due if it carries something worth it." if hours >= 20 else
+                       f"{hours:.0f} h since the last release: wait for the batch unless an owner-reported bug needs a fix out now."))
+
+    found = notes.commits(tree, since, "HEAD")
+    groups = notes.grouped(found)
+    since_tag = len(notes.commits(tree, last_tag, "HEAD")) if last_tag != since else len(found)
+    user = sum(len(v) for k, v in groups.items() if k in notes.USER_FACING)
+    print(f"\nWould carry {len(found)} commits since {since} ({since_tag} since {last_tag}); {user} change what a user runs:")
+    for name, items in groups.items():
+        print(f"  {name}: {len(items)}")
+        if name in notes.USER_FACING:
+            for c in items[:8]:
+                print(f"    - {c.subject[:110]} ({c.sha[:8]})")
+            if len(items) > 8:
+                print(f"    - … {len(items) - 8} more")
+    fold, drop = bump.unreleased(tree, last_tag)
+    if fold or drop:
+        print(f"  CHANGELOG: {len(fold)} Unreleased entr{'y' if len(fold) == 1 else 'ies'} fold into the version line"
+              + (f"; {len(drop)} already shipped in {last_tag} and are dropped" if drop else ""))
+        for entry in drop:
+            print(f"    dropped: {entry[:100]}")
+    work = folder(suggested, False)
+    work.mkdir(parents=True, exist_ok=True)
+    draft = work / "notes.md"
+    if not draft.exists() or notes.DRAFT in draft.read_text():
+        draft.write_text(notes.draft(tree, suggested, groups, since))
+    print(f"  Notes draft: {draft} (rewrite it; the release is not promoted while it is a draft)")
+
+    print("\nReady?")
+    blockers = []
+
+    def gate(name: str, fn) -> None:
+        try:
+            print(line(True, fn()))
+        except Stop as e:
+            print(line(None, f"{name}: {e.why}"))
+            blockers.append(f"{name}: {e.why}")
+        except Fail as e:
+            print(line(False, f"{name}: {e}"))
+            blockers.append(f"{name}: {str(e).splitlines()[0]}")
+
+    gate("CI on main", preflight.ci_main)
+    gate("nothing half-done", lambda: preflight.wip(tree, last_tag))
+    gate("generated files and parity", lambda: preflight.generated(tree))
+    gate("version skew", lambda: preflight.skew(tree, suggested))
+    if user == 0:
+        print(line(False, "nothing a user runs has changed since the last release: no release needed"))
+        blockers.append("nothing to release")
+    print(line(None, "the full suite (--runslow), the integration join and every artifact check run in `cut` (and --dry-run)"))
+
+    print("\nWhat a stranger gets today:")
+    ok, words = preflight.published_pin_matches_latest(tree)
+    print(line(ok, words + ("" if ok else ": a prerelease is pinned; this release's publish step fixes it")))
+    apps = json.loads((tree / "site" / "pointe" / "apps.json").read_text())
+    problems = steps.live_checks(since[1:], None, tree / "install.sh", apps["mac"].get("size"))
+    print(line(not problems, "live site: " + ("hero line, install.sh and the download match the Latest release" if not problems else "; ".join(problems))))
+
+    print("\nCredentials (a missing one stops its step with the fix; nothing signs another way):")
+    for p in creds.all_probes(network=True):
+        print(line(p.ok, p.detail + ("" if p.ok else f"\n          fix: {p.fix}")))
+
+    print()
+    if blockers:
+        print(f"NOT READY ({len(blockers)}): " + "; ".join(blockers))
+        print(f"Fix those on main, then: tools/release plan. To see every check now: tools/release cut {suggested} --dry-run")
+        return 1
+    print(f"READY: tools/release cut {suggested} --summary \"<what changed, in the words a user would use>\" --notes {draft}")
+    return 0
+
+
+def main(argv: list[str]) -> int:
+    p = argparse.ArgumentParser(prog="tools/release", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = p.add_subparsers(dest="command", required=True)
+    plan = sub.add_parser("plan")
+    plan.add_argument("--version")
+    for name in ("cut", "resume"):
+        c = sub.add_parser(name)
+        if name == "cut":
+            c.add_argument("version")
+            c.add_argument("--dry-run", action="store_true")
+        else:
+            c.add_argument("--version")
+        c.add_argument("--summary")
+        c.add_argument("--notes")
+        c.add_argument("--no-wait", action="store_true")
+        c.add_argument("--site-approved", action="store_true")
+        c.add_argument("--adopt", action="store_true")
+        c.add_argument("--suite-from-ci", action="store_true")
+    st = sub.add_parser("status")
+    st.add_argument("version", nargs="?")
+    args = p.parse_args(argv)
+    try:
+        if args.command == "cut":
+            if args.summary and not args.dry_run:
+                State(folder(args.version, False) / "state.json").set(summary=args.summary)
+            return cmd_cut(args)
+        return {"plan": cmd_plan, "resume": cmd_resume, "status": cmd_status}[args.command](args)
+    except Stop as e:
+        print(f"STOP  {e.why}\n      next: {e.how}")
+        return 3
+    except Fail as e:
+        print(f"FAIL  {e}")
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

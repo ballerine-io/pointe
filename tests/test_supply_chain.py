@@ -433,7 +433,7 @@ def test_fetch_keeps_only_a_file_whose_hash_is_the_pinned_one(tmp_path, monkeypa
 
 URL_HOST = re.compile(r"(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]*)")
 EGRESS_SOURCES = ("install.sh", "pointe/*.py", "pointe/harnesses/*.py", "bench/**/*.py", "bench/**/*.sh", "bench/**/*.ts", "evals/**/*.py", "tools/demo-video/**/*.py",
-                  "apps/ios/e2e/*.py", "apps/ios/*.sh", "apps/macos/e2e/*", "tools/*.py", "tools/*.sh", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
+                  "apps/ios/e2e/*.py", "apps/ios/*.sh", "apps/macos/e2e/*", "tools/*.py", "tools/*.sh", "tools/release", "tools/releasekit/*.py", "bin/*", "hooks/**/*", "plugin/**/*", ".claude-plugin/*",
                   "channel/*.mjs", "channel/package.json", "pointe/ui*.html", "site/**/*", "apps/ios/Pointe/**/*.swift", "apps/ios/PointeShared/*.swift", "apps/ios/PointeWidget/*.swift", "apps/PointeKit/Package.swift",
                   "apps/PointeKit/Sources/**/*.swift", "apps/macos/PointeMac/**/*.swift", "apps/macos/*.sh",
                   "apps/macos/tools/*", ".github/**/*.yml", "tools/*.swift", "apps/macos/PointeMac/*.sh")

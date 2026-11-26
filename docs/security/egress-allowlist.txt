@@ -35,6 +35,7 @@ github.com                 release assets: Kokoro v1.0, the speaker model (asset
 release-assets.githubusercontent.com where github.com release downloads redirect
 
 # maintainers' tools, never the plugin
+eng.ballerine.com          the site: tools/release reads its live page and /pointe/install.sh after a deploy (release checks only); also the site's own address in link previews and where a person downloads install.sh
 api.github.com             the roadmap issues and their 👍 counts, through `gh api` (tools/roadmap.py, site/deploy.sh --roadmap)
 
 # installers
@@ -64,7 +65,6 @@ link code.claude.com       where to get Claude Code (doctor.py, site)
 link tailscale.com         where to get Tailscale (pair.py)
 link ballerine.com         the makers' site, linked from About (ui.html, apps/PointeKit/Sources/PointeUI/About.swift, site)
 link happy.engineering     a compared tool's voice docs (site)
-link eng.ballerine.com     the site's own address, for link previews and the redirect from the old one (site); where a person downloads install.sh (its usage line, the docs)
 link pointe.ballerine.com  the site's old address: a visitor there is sent to eng.ballerine.com/pointe/ (site)
 link arxiv.org             a cited study, speech against typing (site)
 link doi.org               cited studies: typing speed, interrupted work (site)

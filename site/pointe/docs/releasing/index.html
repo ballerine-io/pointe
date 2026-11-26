@@ -125,9 +125,243 @@ the release tarball the standalone install uses. Claude Code installs the plugin
 version; <code>install.sh</code> and <code>pointe update</code> install the tarball of a tag. A change to anything a user runs (the Python,
 <code>bin/</code>, <code>hooks/</code>, <code>plugin/</code>, <code>install.sh</code>, the page, the app) reaches them only with a new version number. A change to
 docs, tests or <code>bench/</code> alone needs no version.</p>
-<p><strong>Batch.</strong> At most one release a day, carrying everything merged since the last one, unless an owner-reported bug
-needs a fix out sooner. Between releases, changes land on <code>main</code> through the inner loop and CI (CONTRIBUTING.md,
-"How to test"); the release is where the full gate below runs.</p>
+<h2 id="when-to-release-batches">When to release: batches</h2>
+<ul>
+<li>
+<p><strong>On demand, when a batch is worth it</strong>, at most about one a day. A batch is everything merged since the last
+  release; a small change waits for the next batch.</p>
+</li>
+<li>
+<p><strong>Sooner only for an owner-reported bug.</strong> The fix goes out as a patch as soon as it is on <code>main</code> and green.</p>
+</li>
+<li>
+<p><strong>The version number</strong> follows step 1's rules: patch for a fix, minor for something a user can newly do or a protocol
+  change between machines (the skew matrix in <code>tests/fixtures/skew_requests.json</code> then has an entry for it), major for a
+  change that breaks a setup.</p>
+</li>
+<li>
+<p><strong><code>tools/release plan</code></strong> says what the next release would carry and whether it is ready. Between releases, changes
+  land on <code>main</code> through the inner loop and CI (CONTRIBUTING.md, "How to test"); the release is where the full gate runs.</p>
+</li>
+</ul>
+<h2 id="the-command-toolsrelease">The command: tools/release</h2>
+<div class="dx-code"><pre><code>tools/release plan                              what the next release carries, whether it is ready, who must act
+tools/release cut X.Y.Z --dry-run               every check below, nothing published: no push, tag, release, upload or deploy
+tools/release cut X.Y.Z --summary &quot;…&quot; --notes notes.md
+tools/release resume                            after an outage, an expired sign-in, or a person&#x27;s step
+tools/release status                            each step and its state</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><code>cut</code> runs these steps in order; each is checked before the next one that needs it, and the sections below say what
+each does by hand:</p>
+<ol>
+<li>
+<p><strong>Preflight.</strong> A release worktree at the newest <code>main</code>. <code>main</code> green on <code>test</code>, <code>apps</code> and <code>ui</code> (a red <code>main</code> stops
+   the line). Nothing half-done: no <code>WIP</code>/<code>fixup!</code> commit since the last tag, no <code>DO-NOT-RELEASE</code> marker in a tracked
+   file. Everything generated is current: the parity matrix with no unexplained gap on the page, the iPhone, the Mac or
+   the Linux hub; the product help; the site's docs pages, version and app cards. The versions agree (step 1's tests),
+   and the skew matrix has the cut version's entry. The integration join (<code>tests/test_integration_join.py</code>). The full
+   suite with <code>--runslow</code> on a Mac, on at most four workers (other work shares the Mac; <code>POINTE_RELEASE_WORKERS</code>
+   sets another number). When the Mac is too loaded, <code>--suite-from-ci</code> takes CI's full suite on
+   the same commit instead, and the report says the Mac-only tests did not run. The changelog since the last Latest release, grouped by what a person uses, as a
+   notes draft.</p>
+</li>
+<li>
+<p><strong>The version commit</strong> in lockstep (step 1), pushed to <code>main</code>, then <code>test</code> and <code>apps</code> green on it. CHANGELOG entries
+   marked <strong>Unreleased</strong> are folded under the version's line; one whose commit is already in the last tag shipped then
+   and is dropped. If <code>main</code> moved after the preflight, the preflight runs again on the new <code>main</code>.</p>
+</li>
+<li>
+<p><strong>The tag</strong>, then the tag's own <code>test</code> and <code>apps</code> green (step 3).</p>
+</li>
+<li>
+<p><strong>Artifacts:</strong> the tarball on a prerelease; <code>install.sh</code> pinned, on a commit that is the tag plus the pin (the disk
+   image and the iPhone build come from it) and the same change on <code>main</code>; the disk image signed, notarized, stapled
+   and attached; the iPhone build uploaded to App Store Connect.</p>
+</li>
+<li>
+<p><strong>Verify:</strong> every asset downloaded anonymously against its <code>.sha256</code>, the local build and the pin; <code>spctl</code> and
+   <code>stapler</code> on the image and the app, from a quarantined copy mounted as a download is; a clean standalone install from
+   github.com in an empty environment on this Mac; a Linux hub (installed, started on a synthetic key, health, status
+   and page answer, status names the version) and a Linux node, each installed from github.com in an empty Ubuntu
+   container in the Colima VM <code>pointe-release</code> (its own profile: no other container is touched).</p>
+</li>
+<li>
+<p><strong>Publish:</strong> the tag's <code>ui</code> run green; then, and only with the disk image attached and checked and the notes no
+   longer the draft, the prerelease becomes Latest, and <code>releases/latest/download/Pointe.dmg</code> must answer 200 with the
+   image's SHA-256. Then <code>apps.json</code>, the roadmap's votes, and the site: a preview for the owner first when a page
+   written by hand changed since the last release, production directly when only generated content did. The site is
+   deployed only after the promotion, so its <code>install.sh</code> never pins a prerelease. Then the live checks: the hero line,
+   <code>/pointe/install.sh</code> (the repository's bytes, pinning this version, which is Latest), the download.</p>
+</li>
+<li>
+<p><strong>Distribution:</strong> TestFlight's internal group (automatic once Apple has processed the build); the external group,
+   Beta App Review and the App Store submission, which wait for the owner (below); the release installed on the
+   owner's iPhone when it is reachable (<code>pointe apps ios --no-launch</code>: installed, not opened).</p>
+</li>
+<li>
+<p><strong>The report:</strong> each platform's state, the links, the SHA-256s, and what waits for whom
+   (<code>pointe-release/&lt;version&gt;/report.md</code> in the clone's git folder).</p>
+</li>
+</ol>
+<p><strong>Idempotent and resumable.</strong> Each step's outcome is kept in <code>pointe-release/&lt;version&gt;/state.json</code> in the clone's git
+folder, so every worktree of the clone sees it, with a log beside it. A done step is never run again. A step that
+changes something outside first asks what is already there: the tag on github.com (one at another commit is someone
+else's: the tool stops and never moves it), the release and its assets (a published asset is compared, never
+replaced; a release found Latest without its disk image is set back to prerelease and the previous one made Latest
+again, as 0.8.7 had to be), the pin and <code>apps.json</code> on <code>main</code>, and the build number App Store Connect already holds (a
+second upload of it is refused by Apple and recorded as done by another run). One release run at a time per clone: a
+lock, taken over only from a run that died. A stopped step names the one thing to do and <code>tools/release resume</code>.</p>
+<p><strong>The rules it holds, and the failure each came from:</strong></p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>From</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Created as a prerelease; Latest only with <code>Pointe-X.Y.Z.dmg</code> and <code>Pointe.dmg</code> attached and checked</td>
+<td>0.8.7 published Latest with the tarball only: the site's download was a 404</td>
+</tr>
+<tr>
+<td>The <code>ui</code> that gates is the tag's; a <code>ui</code> run on <code>main</code> cancelled by a newer push is looked past</td>
+<td>the cancel-older-runs rule cancelled the <code>ui</code> run on 0.9.0's version commit</td>
+</tr>
+<tr>
+<td>A step that needs Xcode's account, the keychain, the notary profile or wrangler asks first and stops with the fix; nothing signs another way</td>
+<td>Xcode lost its account in the middle of 0.9.0</td>
+</tr>
+<tr>
+<td>One run per clone (a lock); the tag, the assets and App Store Connect are asked before acting</td>
+<td>a duplicate agent tagged 0.8.7, published it and uploaded its TestFlight build</td>
+</tr>
+<tr>
+<td>The site is deployed after the promotion; the live check fails when <code>install.sh</code> pins anything but Latest</td>
+<td>the site's <code>install.sh</code> pinned 0.9.0 while it was a prerelease</td>
+</tr>
+<tr>
+<td>A red <code>main</code> stops the release at the first step</td>
+<td>a red <code>main</code> held the 0.8.7 gate</td>
+</tr>
+<tr>
+<td>The App Store step reports how many commits changed the iPhone's screens since its screenshots were taken</td>
+<td>the App Store screenshots were older than the screens</td>
+</tr>
+<tr>
+<td>The summary (the App Store's What's New) may not say "beta"; the iPhone's version line drops it (<code>AppVersion.line</code>)</td>
+<td>the "beta" rule on iOS (App Review 2.2)</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="what-needs-a-person">What needs a person</h2>
+<p>The tool asks for each before the step that needs it, and stops there; nothing is improvised around a missing one.
+<code>tools/release plan</code> lists them all.</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Step</th>
+<th>Needs</th>
+<th>Who, and how</th>
+<th>Kept</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Everything on GitHub</td>
+<td><code>gh</code> signed in with write access</td>
+<td><code>gh auth login</code></td>
+<td>gh's own store</td>
+</tr>
+<tr>
+<td>The Mac app's export and notarization; the iPhone archive and upload</td>
+<td>An Apple Account in Xcode for team PP445E78PD (Account Holder or Admin for the Developer ID export; App Manager or more for uploads)</td>
+<td>The owner: Xcode, Settings, Accounts, +</td>
+<td>Xcode</td>
+</tr>
+<tr>
+<td>Signing the disk image</td>
+<td>The "Developer ID Application" identity of the team, in the login keychain</td>
+<td>The owner, once: Xcode, Settings, Accounts, the team, Manage Certificates, +, Developer ID Application</td>
+<td>login keychain</td>
+</tr>
+<tr>
+<td>Notarizing the disk image</td>
+<td>notarytool profile <code>pointe-notary</code></td>
+<td>The owner, once: <code>xcrun notarytool store-credentials pointe-notary --apple-id &lt;account&gt; --team-id PP445E78PD</code> (an app-specific password)</td>
+<td>login keychain</td>
+</tr>
+<tr>
+<td>Every signing step</td>
+<td>The login keychain unlocked (a locked one makes codesign and notarytool hang)</td>
+<td>The owner unlocks the Mac</td>
+<td></td>
+</tr>
+<tr>
+<td>The site</td>
+<td>wrangler signed in to Ballerine's Cloudflare account</td>
+<td>The owner: <code>npx -y wrangler@4.166.0 login</code></td>
+<td>wrangler's own store</td>
+</tr>
+<tr>
+<td>A site preview</td>
+<td>The owner's look, when a hand-written page changed</td>
+<td>The owner opens the preview, then <code>tools/release resume --site-approved</code></td>
+<td></td>
+</tr>
+<tr>
+<td>TestFlight external group, Beta App Review, the App Store</td>
+<td>App Store Connect: an App Manager role. The Developer-role key the release used before was refused every write</td>
+<td>The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text)</td>
+<td></td>
+</tr>
+<tr>
+<td>The App Store submission</td>
+<td>The owner's yes, every time</td>
+<td>The owner</td>
+<td></td>
+</tr>
+<tr>
+<td>The owner's iPhone</td>
+<td>Unlocked, paired with Xcode, on the network or a cable</td>
+<td>The owner</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Recommendations.</strong> Keep Xcode's account and the notary profile on the owner's Mac until the CI path below is
+approved: they are the two that stop a release today. Create an App Store Connect API key with the App Manager role
+only if the owner wants TestFlight's external group and Beta App Review done without a click; it would live in the
+Keychain (service <code>pointe-asc-api-key</code>), and the tool would then submit (not built yet: the step stops with the
+clicks). The App Store submission stays the owner's, by choice.</p>
+<h2 id="proposed-mac-signing-and-notarization-in-ci-not-done">Proposed: Mac signing and notarization in CI (not done)</h2>
+<p>So that a release does not depend on the owner's Mac being awake, signed in and unlocked, <code>mac-release</code>
+(<code>.github/workflows/mac-release.yml</code>) already builds <code>tools/build_dmg.sh --ci</code> with a Developer ID <code>.p12</code> and an App
+Store Connect API key in the <code>mac-release</code> environment. Three things stand between it and a real release:</p>
+<ol>
+<li>
+<p><strong>It builds the wrong commit.</strong> It checks out the tag, but the disk image must come from the tag plus the pin
+   (<code>build_dmg.sh</code> refuses an <code>install.sh</code> that does not pin its version, and the pin cannot be inside the tag: the
+   tarball it pins is the tag's archive). Change: the dispatch takes the build commit, and the job checks that the
+   commit's parent is the tag and that it changes only <code>install.sh</code> and <code>Installer.swift</code>. Drop the <code>release:
+   published</code> trigger, which fires on the prerelease before the pin exists.</p>
+</li>
+<li>
+<p><strong>It attaches nothing</strong> (its token is read-only, by rule). Keep it so: <code>tools/release</code> dispatches it with the build
+   commit, waits, downloads the <code>pointe-dmg</code> artifact, verifies it (the same <code>spctl</code>, <code>stapler</code> and quarantined mount)
+   and attaches it. The tool would prefer this path when the environment holds the secrets, and fall back to the
+   owner's Mac.</p>
+</li>
+<li>
+<p><strong>The secrets.</strong> In Settings, Environments, <code>mac-release</code>, never repository-wide: <code>MAC_DEVELOPER_ID_P12</code> and its
+   password (an export of the Developer ID Application certificate and private key), and <code>ASC_API_KEY_P8</code>,
+   <code>ASC_API_KEY_ID</code>, <code>ASC_API_ISSUER_ID</code> (a key with the Developer role is enough to notarize). Protect the environment
+   with a required reviewer and deployment from <code>main</code> and tags only.</p>
+</li>
+</ol>
+<p>What the owner approves: exporting the Developer ID private key off the Mac into GitHub (anyone who can run a job in
+that environment can then sign as the team: the required reviewer is the control), creating the API key, and the
+workflow change. The iPhone upload can follow the same way later (an App Store distribution certificate and
+<code>xcodebuild -exportArchive</code> with the API key); it is not proposed here.</p>
 <h2 id="1-the-version-commit">1. The version commit</h2>
 <p>Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. While the major
 version is 0, Pointe is in beta: the page, the apps and the site say "beta" beside the version by that rule alone,
@@ -148,7 +382,7 @@ together:</p>
 <li>
 <p><code>tests/fixtures/skew_requests.json</code>: an entry for the new version, with the requests its scripts send (copy the
   newest entry and change what moved). <code>tests/test_skew.py</code> replays every release's requests against the new daemon,
-  and fails while the new version has no entry</p>
+  and fails while the new version has no entry. It goes on <code>main</code> before the cut: <code>tools/release</code> checks it first</p>
 </li>
 <li>
 <p><code>python3 tools/site_version.py</code>: writes the version into the site's pages (<code>site/deploy.sh</code> runs it too)</p>
@@ -281,6 +515,10 @@ with invented sessions, the iPhone images are crops of <code>docs/ios/screenshot
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
+<li class="dx-l2"><a href="#when-to-release-batches">When to release: batches</a></li>
+<li class="dx-l2"><a href="#the-command-toolsrelease">The command: tools/release</a></li>
+<li class="dx-l2"><a href="#what-needs-a-person">What needs a person</a></li>
+<li class="dx-l2"><a href="#proposed-mac-signing-and-notarization-in-ci-not-done">Proposed: Mac signing and notarization in CI (not done)</a></li>
 <li class="dx-l2"><a href="#1-the-version-commit">1. The version commit</a></li>
 <li class="dx-l2"><a href="#2-checks">2. Checks</a></li>
 <li class="dx-l2"><a href="#3-the-tag">3. The tag</a></li>
