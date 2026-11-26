@@ -39,6 +39,19 @@ def test_what_a_session_said_is_asked_for_again_without_the_repeat_cut(said, ask
     assert said_question(said) is asks
 
 
+def test_the_daemon_wires_both_into_the_brains_repeat_filter():
+    """The brain's repeat_asked is built in the daemon from both checks: a missing import there broke every brain turn."""
+    import os
+    import tempfile
+
+    os.environ.setdefault("CLAUDE_VOICE_STATE", tempfile.mkdtemp())
+    import daemon
+
+    assert daemon.said_question("What did hermes say?") and daemon.repeat_intent("Say that again?")
+    source = Path(daemon.__file__).read_text()
+    assert "brain.repeat_asked = lambda asked: repeat_intent(asked) or said_question(asked)" in source
+
+
 def test_the_brain_lets_the_repeated_sentence_through(monkeypatch):
     import asyncio
     from types import SimpleNamespace
