@@ -79,6 +79,8 @@ class FakeMachine:
     async def _pair(self, request: web.Request) -> web.Response:
         body = await request.json()
         self.pairs.append(body)
+        if getattr(self, "pair_status", None):
+            return web.Response(status=self.pair_status, text="that name is taken on this machine")
         if body.get("code") != self.CODE or self.used:
             return web.Response(status=403, text=hub_nodes.NO_SUCH_INVITE)
         self.used = True
@@ -195,7 +197,7 @@ def test_a_machine_is_added_from_its_owners_invite_and_linked(world, tmp_path):
 def test_a_certificate_that_is_not_the_invites_gets_nothing_sent_to_it(world, tmp_path):
     async def scenario(machine, dialer, hub, host):
         status, answer = await dialer.add(machine.invite(fp="00" * 32))
-        assert (status, answer) == (409, machines.CERTIFICATE_DIFFERS)
+        assert (status, answer) == (403, machines.CERTIFICATE_DIFFERS)
         assert machine.pairs == [] and machine.connections == 0 and not hub.nodes.nodes  # not the code, not a byte
     go(world, scenario, tmp_path)
 
@@ -241,11 +243,11 @@ def test_this_voices_own_machine_is_not_added(world, tmp_path):
         tls = hub.state_dir / "tls"
         tls.mkdir()
         (tls / "cert.pem").write_bytes(machine.cert.read_bytes())  # the invite is this voice's own
-        assert await dialer.add(machine.invite()) == (409, machines.OWN_MACHINE)
+        assert await dialer.add(machine.invite()) == (400, machines.OWN_MACHINE)
         assert machine.pairs == []
         (tls / "cert.pem").unlink()
         machine.HOST = {**machine.HOST, "id": hub.nodes.hub_id}  # or the machine that answers is this one
-        assert await dialer.add(machine.invite()) == (409, machines.OWN_MACHINE)
+        assert await dialer.add(machine.invite()) == (400, machines.OWN_MACHINE)
         assert not hub.nodes.nodes
     go(world, scenario, tmp_path)
 
@@ -255,7 +257,7 @@ def test_a_machine_already_added_is_not_added_twice(world, tmp_path):
         await added(machine, dialer, hub)
         machine.used = False
         status, answer = await dialer.add(machine.invite())
-        assert status == 409 and "already in your voice" in answer and "pointe machine remove avi-box" in answer
+        assert status == 400 and "already in your voice" in answer and "pointe machine remove avi-box" in answer
         assert len(machine.pairs) == 1
     go(world, scenario, tmp_path)
 
@@ -387,9 +389,11 @@ def test_a_machine_that_removed_this_person_keeps_its_line_loses_its_key_and_is_
         kept = json.loads((hub.state_dir / "nodes.json").read_text())["nodes"][0]
         assert kept["key"] == "" and kept["removed"] is True and machine.key not in (hub.state_dir / "nodes.json").read_text()
         assert hub.machines()[0]["notice"] == "avi-box removed you" and not hub.machines()[0]["online"]
+        assert hub.machines()[0]["removed"] is True and sessions.MACHINES["avi-box"].removed  # the flag the screens read
         assert not hub.alive(shop)  # its sessions leave the voice at the next check
         again = hub_nodes.Hub(hub.state_dir, hub.registry, host)  # and after a restart it still says so
         assert sessions.MACHINES["avi-box"].notice == "avi-box removed you" and again.machines()[0]["key_fp"] == ""
+        assert again.machines()[0]["removed"] is True
         other = machines.Dialer(again, backoff=lambda attempt: 0.05)
         other.start()
         assert other.tasks == {}
@@ -398,6 +402,7 @@ def test_a_machine_that_removed_this_person_keeps_its_line_loses_its_key_and_is_
         status, answer = await other.add(machine.invite())
         assert status == 200 and again.nodes.by_name("avi-box")["id"] == paired_["id"]
         await until(lambda: sessions.MACHINES["avi-box"].online and sessions.MACHINES["avi-box"].notice == "")
+        assert "removed" not in again.machines()[0] and not again.nodes.by_name("avi-box").get("removed")
         await other.close()
     go(world, scenario, tmp_path)
 
@@ -638,13 +643,13 @@ def test_the_route_adds_a_machine_for_the_owner_only(world, tmp_path, monkeypatc
     async def add(line, name=None):
         calls.append((line, name))
         return (200, {"name": "avi-box", "owner": "Avi", "grant": "send", "vendors": []}) if line == "good" else \
-            (409, "The machine's certificate is not the one in the invite.")
+            (403, "The machine's certificate is not the one in the invite.")
     monkeypatch.setattr(dialer, "add", add)
     monkeypatch.setattr(dialer, "seen", lambda name: name == "avi-box")
     with TestClient(app) as client:
         assert client.post("/voice/machines/add", json={"line": "good", "name": "lake"}).json()["owner"] == "Avi"
         refused = client.post("/voice/machines/add", json={"line": "bad"})
-        assert refused.status_code == 409 and refused.text == "The machine's certificate is not the one in the invite."
+        assert refused.status_code == 403 and refused.text == "The machine's certificate is not the one in the invite."
         assert client.post("/voice/machines/add", json={"seen": "avi-box"}).json() == {"ok": True}
         assert calls == [("good", "lake"), ("bad", None)]
     with TestClient(app, base_url=f"https://studio.example:{TLS_PORT}") as browser:  # a page over the TLS listener
@@ -672,12 +677,15 @@ def test_pointe_machine_add_says_what_was_added_whose_it_is_and_where_its_transc
 def test_pointe_machine_list_says_whose_each_machine_is(monkeypatch, capsys):
     nodes = [{"id": "a", "name": "devbox", "os": "linux", "online": True, "since": None, "sessions": 2, "rtt_ms": 23, "key_fp": "ab"},
              {"id": "b", "name": "avi-box", "os": "linux", "online": False, "since": 0.0, "sessions": 0, "rtt_ms": None,
-              "key_fp": "", "owner": "Avi", "grant": "send", "notice": "avi-box removed you"}]
+              "key_fp": "", "owner": "Avi", "grant": "send", "notice": "avi-box removed you", "removed": True},
+             {"id": "c", "name": "noa-box", "os": "macos", "online": False, "since": 0.0, "sessions": 0, "rtt_ms": None,
+              "key_fp": "cd", "owner": "Noa", "grant": "watch", "notice": "noa-box runs an older Pointe. Update it there"}]
     monkeypatch.setattr(hub_nodes, "_daemon", lambda method, path, body=None, timeout=5: {"nodes": nodes})
     machines.main(["list"])
-    devbox, avi, notice = capsys.readouterr().out.splitlines()
+    devbox, avi, noa, notice = capsys.readouterr().out.splitlines()
     assert devbox.startswith("devbox  linux  online, 23 ms  2 session(s)") and devbox.endswith("yours")
-    assert avi.endswith("Avi's, you can talk to its sessions") and notice.strip() == "avi-box removed you"
+    assert avi.endswith("Avi's, removed you")  # from the flag, and nothing that says its sessions can be talked to
+    assert noa.endswith("Noa's, you can watch its sessions") and notice.strip().startswith("noa-box runs an older Pointe")
     monkeypatch.setattr(hub_nodes, "_daemon", lambda method, path, body=None, timeout=5: {"ok": True})
     machines.main(["remove", "avi-box"])
     assert "avi-box is no longer in your voice" in capsys.readouterr().out
@@ -703,3 +711,32 @@ def test_a_new_certificate_here_signs_out_this_voices_own_machines_and_keeps_the
     assert nodes.get(own["id"]) is None and nodes.get(dialed["id"])["key"] == dialed["key"]
     said = capsys.readouterr().out
     assert "devbox must pair again" in said and "avi-box" not in said
+
+
+def test_only_a_name_that_cannot_be_used_answers_409(world, tmp_path):
+    """The page and the apps show "Call it" on a 409: every other refusal has another status, and one sentence."""
+    async def scenario(machine, dialer, hub, host):
+        async def status(line, name=None):
+            got, said = await dialer.add(line, name)
+            assert isinstance(said, str) and "\n" not in said and said.rstrip().endswith((".", "avi-box")), said
+            return got
+        assert await status("not a line") == 400
+        assert await status(machine.invite(fp="00" * 32)) == 403  # the certificate differs
+        dead = nodelink.machine_invite("127.0.0.1", 1, machine.fp, machine.CODE, "avi-box")
+        assert await status(dead) == 502  # nothing answers there
+        paired(hub, "ledger-box")
+        assert await status(machine.invite("ledger-box")) == 409 and await status(machine.invite(), "main") == 409
+        machine.used = True
+        assert await status(machine.invite()) == 403  # the code is wrong or used
+        machine.used, machine.pair_status = False, 409  # the machine's own 409 (its name for this person is taken there)
+        assert await status(machine.invite()) == 403
+        machine.pair_status = 500
+        assert await status(machine.invite()) == 502
+        machine.pair_status, machine.key = None, "not a key"
+        assert await status(machine.invite()) == 502  # not a pairing
+        machine.key, machine.used = nodelink.new_key(), False
+        assert (await dialer.add(machine.invite()))[0] == 200
+        machine.used = False
+        assert await status(machine.invite()) == 400  # already in this voice
+        assert machine.pairs and not [n for n in hub.nodes.nodes.values() if n["name"] not in ("ledger-box", "avi-box")]
+    go(world, scenario, tmp_path)

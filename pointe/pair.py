@@ -368,10 +368,20 @@ def _write_private(path: Path, text: str) -> None:
         os.umask(old)
 
 
-def _sign_everyone_out() -> None:
-    """Every credential the listener honours, gone: each phone's key (`phones.json`, the shared `phone_key`) and each
-    machine's (`nodes.json` keeps only the hub's id and the machines this voice dials, so a machine pairs again with a new code and nothing else). A
-    running daemon reads these files at each check and closes the calls and links they held within seconds."""
+def _sign_everyone_out() -> list[str]:
+    """Every credential the listener honours, gone: each phone's key (`phones.json`, the shared `phone_key`), each
+    machine's (`nodes.json` keeps only the hub's id and the machines this voice dials, so a machine pairs again with a new code and nothing else) and
+    each person's (`people.json` keeps only the sessions kept private). A running daemon reads these files at each
+    check and closes the calls and links they held within seconds. The names of the people who were signed out."""
+    people = STATE / "people.json"
+    try:
+        data = json.loads(people.read_text())
+        names = [str(p["name"]) for p in data.get("people", {}).values() if isinstance(p, dict) and p.get("name")]
+        private = [s for s in data.get("private") or [] if isinstance(s, str)]
+    except (OSError, ValueError, AttributeError, TypeError):
+        names, private = [], []
+    if people.exists():
+        _write_private(people, json.dumps({"people": {}, "private": private}) + "\n")
     for name in ("phone_key", "phones.json"):
         (STATE / name).unlink(missing_ok=True)
     nodes = STATE / "nodes.json"
@@ -385,6 +395,15 @@ def _sign_everyone_out() -> None:
         hub_id, dialed = None, []
     if nodes.exists():
         _write_private(nodes, json.dumps({**({"hub_id": hub_id} if isinstance(hub_id, str) else {}), "nodes": dialed}) + "\n")
+    return names
+
+
+def _say_people_invited_again(names: list[str]) -> None:
+    """A person's voice holds this machine's old certificate and a key that is gone: each needs a new invite."""
+    if names:
+        count = "1 person" if len(names) == 1 else f"{len(names)} people"
+        print(f"{count} invited to this machine must be invited again ({', '.join(names)}): pointe people invite <name>, "
+              "and they add this machine again with the new line.")
 
 
 def _paired_nodes() -> list[str]:
@@ -414,7 +433,7 @@ def rotate() -> None:
     pairing secret, and every phone, browser and machine signed out."""
     _certificate(_config()["host"])
     nodes = _paired_nodes()
-    _sign_everyone_out()
+    people = _sign_everyone_out()
     _write_private(STATE / "remote_token", os.urandom(32).hex())
     print(f"New certificate {fingerprint()[:16]}... Every phone, browser and machine paired with this Mac is signed out "
           "now; a running daemon serves the new certificate within a few seconds.")
@@ -423,15 +442,17 @@ def rotate() -> None:
     if not nodes:
         print("No node (another machine) is paired with this Mac, so none has to pair again.")
     _say_nodes_pair_again(nodes)
+    _say_people_invited_again(people)
 
 
 def off() -> None:
     shutil.rmtree(STATE / "tls", ignore_errors=True)
     for name in ("remote.json", "remote_token"):
         (STATE / name).unlink(missing_ok=True)
-    _sign_everyone_out()
+    people = _sign_everyone_out()
     print("The phone listener stops within a few seconds, and every phone, browser and machine paired with this Mac is "
           "signed out. A network connector (bin/voice-connector) and its tokens are left as they are.")
+    _say_people_invited_again(people)
 
 
 def show() -> None:

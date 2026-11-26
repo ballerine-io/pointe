@@ -34,8 +34,10 @@ import guards  # noqa: E402
 import harnesses  # noqa: E402
 import nodelink  # noqa: E402
 import readout  # noqa: E402
+import shipping  # noqa: E402
 from harnesses.base import HOST  # noqa: E402
 from sessions import Registry, Session, wait_state  # noqa: E402
+from shipping import Tail, size as _size  # noqa: E402
 
 # loguru's default sink prints each frame's variables under a traceback (diagnose): a key, a URL with ?key=, in a log a
 # failure shows. Replaced by one that does not, before Pointe logs anything (tests/test_log_tracebacks.py).
@@ -51,7 +53,7 @@ NO_WAIT = {"blocked_on": "", "blocked_since": None, "held_at": None}
 STATE = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice"))
 PORT = int(os.environ.get("CLAUDE_VOICE_DAEMON_PORT", "7860"))
 POLL_SECS = 0.3  # as the daemon tails a local transcript (sessions.py)
-READ_MAX = 4 << 20  # bytes read from one transcript per poll: a long backlog ships over several polls
+READ_MAX = shipping.READ_MAX
 LIVENESS_SECS = 5
 GRACE_SECS = nodelink.HOLD_GRACE_SECS
 
@@ -97,23 +99,27 @@ def mask_line(line: str) -> str:
     return line if masked == entry else json.dumps(masked, ensure_ascii=False) + "\n"
 
 
-def _line_end(f, read: int) -> int | None:
-    """Bytes from the read's start to the end of the line it is in, with `read` bytes already read and no newline in
-    them; None when the file ends before the line does."""
-    while True:
-        chunk = f.read(READ_MAX)
-        if not chunk:
-            return None
-        i = chunk.find(b"\n")
-        if i >= 0:
-            return read + i + 1
-        read += len(chunk)
+def masked_lines(data: bytes) -> list[tuple[int, str | None]]:
+    """Each complete line in `data`: (its bytes in this file, the masked entry to ship). None for a line that is not
+    shipped, before or after masking over MAX_ENTRY_BYTES: its bytes still count."""
+    lines = []
+    for raw in nodelink.complete_lines(data):
+        entry = mask_line(raw.decode("utf-8", "replace")) if len(raw) <= nodelink.MAX_ENTRY_BYTES else None
+        lines.append((len(raw), entry if entry is not None and len(entry.encode()) <= nodelink.MAX_ENTRY_BYTES else None))
+    return lines
 
 
 def masked_frames(session_id: str, gen: int, offset: int, data: bytes, skipped: int = 0) -> tuple[list[str], int]:
     """nodelink.transcript_frames, with each line masked: offsets count this file's bytes, entries are the masked
     lines (masking changes lengths, which is why the hub persists next_offset and never trusts a mirror's size).
     `skipped` bytes at `offset`, before `data`, are a line not shipped: the first frame counts them."""
+    return frames_of(session_id, gen, offset, masked_lines(data), skipped)
+
+
+def frames_of(session_id: str, gen: int, offset: int, lines: list[tuple[int, str | None]],
+              skipped: int = 0) -> tuple[list[str], int]:
+    """`transcript` frames for lines masked once (masked_lines), for one link's gen and offset, and the offset to
+    read from next."""
     frames: list[str] = []
     start = offset
     pos = offset + skipped
@@ -127,17 +133,16 @@ def masked_frames(session_id: str, gen: int, offset: int, data: bytes, skipped: 
                                       entries=entries))
         start, entries, size = pos, [], 0
 
-    for raw in nodelink.complete_lines(data):
-        entry = mask_line(raw.decode("utf-8", "replace")) if len(raw) <= nodelink.MAX_ENTRY_BYTES else None
-        if entry is None or len(entry.encode()) > nodelink.MAX_ENTRY_BYTES:
-            logger.warning(f"{session_id}: a transcript line of {len(raw)} bytes not shipped")
+    for length, entry in lines:
+        if entry is None:
+            logger.warning(f"{session_id}: a transcript line of {length} bytes not shipped")
         else:
             cost = len(json.dumps(entry, ensure_ascii=False).encode()) + 2
             if entries and overhead + size + cost > nodelink.MAX_FRAME_BYTES:
                 flush()
             entries.append(entry)
             size += cost
-        pos += len(raw)
+        pos += length
     if pos > start:
         flush()
     return frames, pos
@@ -205,14 +210,6 @@ def _unreachable(e: Exception) -> str:
     if isinstance(e, aiohttp.WSServerHandshakeError):
         return f"it refused the link (HTTP {e.status})"
     return "the connection failed"
-
-
-@dataclass
-class Tail:
-    path: str
-    gen: int = 0
-    offset: int | None = None  # next byte to ship; None until the hub says where it is (welcome, resume)
-    files: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -784,13 +781,8 @@ class Node:
                     tail.offset = 0
                     await self._send("transcript.repointed", id=sid, gen=tail.gen, history=True)
                 continue
-            size = _size(tail.path)
-            if at["gen"] == tail.gen and at["offset"] <= size:
-                tail.offset = at["offset"]
+            if not shipping.resume_to(tail, at, _size(tail.path)):
                 continue
-            # the hub is on another file, or past this one's end (it was replaced): a new gen from 0
-            tail.gen = max(tail.gen, at["gen"]) + (0 if at["gen"] < tail.gen else 1)
-            tail.offset = 0
             self._save_tails()
             await self._send("transcript.repointed", id=sid, gen=tail.gen, history=True)
 
@@ -827,18 +819,12 @@ class Node:
             await self._send("transcript.repointed", id=session.id, gen=tail.gen)
         if size <= tail.offset:
             return
-        with open(path, "rb") as f:
-            f.seek(tail.offset)
-            data = f.read(min(size - tail.offset, READ_MAX))
-            skipped = 0
-            if len(data) == READ_MAX and b"\n" not in data:
-                # one line longer than a read (a pasted screenshot): without this, every poll re-reads the same bytes
-                skipped = _line_end(f, len(data))
-                if skipped is None:
-                    return  # the line is not written to its end yet
-                logger.warning(f"{session.name}: a transcript line of {skipped} bytes not shipped")
-                f.seek(tail.offset + skipped)
-                data = f.read(max(0, min(size - tail.offset - skipped, READ_MAX)))
+        read = shipping.read_new(path, tail.offset, size, READ_MAX)
+        if read is None:
+            return  # a line longer than a read is not written to its end yet
+        data, skipped = read
+        if skipped:
+            logger.warning(f"{session.name}: a transcript line of {skipped} bytes not shipped")
         gen, start = tail.gen, tail.offset
         frames, nxt = masked_frames(session.id, gen, start, data, skipped)
         for frame in frames:
@@ -1051,13 +1037,6 @@ class Node:
         else:
             logger.warning(f"refused a {frame['how']} {frame['verdict']} for {frame['request_id']}: {why}")
             await self._send("permission.answered", request_id=frame["request_id"], ok=False, why=why)
-
-
-def _size(path: str) -> int:
-    try:
-        return os.stat(path).st_size
-    except OSError:
-        return 0
 
 
 def _netloc(host: str, port: int) -> str:

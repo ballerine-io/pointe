@@ -626,6 +626,7 @@ class Hub:
                           dialed=dialed, owner=str(paired.get("owner") or "") if dialed else "",
                           grant=str(paired.get("grant") or "") if dialed else "",
                           me=str(paired.get("person_name") or "") if dialed else "",
+                          removed=bool(dialed and paired.get("removed")),
                           notice=removed_line(paired["name"]) if paired.get("removed") else "")
         sessions.MACHINES[machine.name] = machine
         node = self.live[paired["id"]] = Node(id=paired["id"], machine=machine, offline_at=self._mono())
@@ -682,6 +683,7 @@ class Hub:
                  "since": n.machine.since, "sessions": len(self._sessions_of(n)), "rtt_ms": n.machine.rtt_ms,
                  "key_fp": n.machine.key_fp,
                  **({"owner": n.machine.owner, "grant": n.machine.grant} if n.machine.dialed else {}),
+                 **({"removed": True} if n.machine.removed else {}),
                  **({"notice": n.machine.notice} if n.machine.notice else {})} for n in self.live.values()]
 
     def name_problem(self, name: str, replacing: str = "") -> str | None:
@@ -846,7 +848,7 @@ class Hub:
         the machine stays listed with one line that says so, and it is not dialed again. Its sessions leave the voice
         at the next liveness check."""
         self.nodes.update(node.id, key="", removed=True)
-        node.machine.notice, node.skewed = removed_line(node.name), False
+        node.machine.notice, node.skewed, node.machine.removed = removed_line(node.name), False, True
         node.machine.key_fp = ""
         node.offline_at = self._mono() - nodelink.OFFLINE_GRACE_SECS
         logger.info(f"{node.machine.notice}: its key is deleted, and it is not dialed again")

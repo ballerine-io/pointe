@@ -229,6 +229,26 @@ def test_rotate_and_off_revoke_every_phone_browser_and_machine_in_the_running_da
     assert "phone" in out and "machine" in out
 
 
+@pytest.mark.parametrize("command", ["rotate", "off"])
+def test_rotate_and_off_delete_every_persons_key_and_say_how_many_must_be_invited_again(pair, tmp_path, capsys, command):
+    import guests
+
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    people = guests.People(tmp_path / "people.json")  # held in memory by a daemon that was already running
+    dana = people.add("Dana", "send", "100.64.0.7", ["Anthropic"], 5.0)
+    people.add("Erin", "watch", "100.64.0.8", [], 6.0)
+    people.set_private("s1", True, {"s1"})
+    capsys.readouterr()
+    pair.main([command])
+    assert people.get(dana["id"]) is None and people.by_name("Erin") is None
+    on_disk = json.loads((tmp_path / "people.json").read_text())
+    assert on_disk == {"people": {}, "private": ["s1"]} and dana["key"] not in (tmp_path / "people.json").read_text()
+    assert people.private == {"s1"}  # what the owner keeps private stays private
+    assert "2 people invited to this machine must be invited again (Dana, Erin): pointe people invite" in capsys.readouterr().out
+    pair.main([command]) if command == "off" else pair.main(["rotate"])
+    assert "invited again" not in capsys.readouterr().out  # nobody is left to say it of
+
+
 def test_after_rotate_a_new_pairing_does_not_bring_the_old_ones_back(pair, tmp_path):
     phones, phone, nodes, node, _ = _everyone_paired(pair, tmp_path)
     pair.main(["rotate"])

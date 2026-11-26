@@ -120,7 +120,7 @@ For a person's voice, on the TLS listener, with no key (each proves itself in it
 
 | Route | Body | Answer |
 |---|---|---|
-| `POST /voice/machines/add` | `{line, name?}` | `{name, owner, grant, vendors: [..]}` once paired and linking; 4xx with one sentence (not an invite, the certificate differs, the code is wrong or used, the name is taken) |
+| `POST /voice/machines/add` | `{line, name?}` | `{name, owner, grant, vendors: [..]}` once paired and linking. Else one sentence: 409 only when the name is taken or cannot be said (the screens then ask for another name); 400 for a line that is not an invite, this voice's own machine, or one already added; 403 when the certificate differs or the machine refuses the code; 502 when the machine cannot be reached or its answer is not a pairing |
 | `POST /voice/hub/revoke` | `{name}` | As today. For a machine this voice dialed: it says `bye`, deletes its key, forgets the machine |
 
 `name` is this voice's own name for the machine (default: the machine's). It follows the machine-name rules of
@@ -134,6 +134,7 @@ Added, all optional so an older app reads the rest:
 |---|---|
 | `machines[].owner` | The owner's name, on a machine that is not this person's own. Absent on their own |
 | `machines[].grant` | `"send"` or `"watch"`, on a machine they were invited to |
+| `machines[].removed` | `true` on a machine whose owner removed this person. It stays listed, with its `notice`, and is not dialed |
 | `machines[].notice` | One line: "avi-box removed you", "avi-box runs an older Pointe (0.9.0). Update it there…" (exists) |
 | `sessions[].owner` | The owner's name when the session is not this person's |
 | `sessions[].private` | `true` on a session of this machine its owner keeps private |

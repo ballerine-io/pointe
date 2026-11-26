@@ -502,6 +502,31 @@ def test_no_protocol_in_common_closes_4426_and_says_which_side_to_update(world, 
     run(go())
 
 
+def test_a_voice_too_old_or_too_new_is_a_notice_on_its_person_until_it_links(world):
+    who, key = person(world)
+
+    async def go():
+        stranger = FakeVoice(world.host, who, "cd" * 32)
+        assert await stranger.connect(protocol=1, protocol_min=1) is None  # no key: it marks nobody
+        assert "notice" not in world.host.listed()[0] and "notice" not in world.host.status(False)["people"][0]
+        old = FakeVoice(world.host, who, key)
+        assert await old.connect(protocol=1, protocol_min=1) is None
+        said = "Dana's voice runs an older Pointe (0.11.0). Dana updates it with pointe update."
+        assert world.host.listed()[0]["notice"] == said and world.host.status(False)["people"][0]["notice"] == said
+        new = FakeVoice(world.host, who, key)
+        assert await new.connect(protocol=9, protocol_min=5) is None
+        assert world.host.listed()[0]["notice"] == ("Dana's voice runs a newer Pointe (0.11.0) than this machine. "
+                                                    "Update this machine with pointe update.")
+        updated = FakeVoice(world.host, who, key)
+        await updated.connect()
+        await updated.recv("sessions")
+        assert "notice" not in world.host.listed()[0] and "notice" not in world.host.status(False)["people"][0]
+        await updated.drop()
+
+    run(go())
+    assert sum("link refused: Dana's voice runs an older Pointe" in e for e in world.events) == 1
+
+
 def test_one_link_per_person_and_a_silent_one_gives_way(world):
     who, key = person(world)
 
@@ -612,15 +637,15 @@ def test_lines_already_read_for_a_link_do_not_cross_once_the_session_went_privat
     """A transcript is read and masked off the event loop. The owner's "keep it private" can land in between: the
     frames made from that read are then never written."""
     shop = add(world, "s1", "shop", lines=[line("one")])
-    read = guests._read_frames
+    read = guests._read_lines
 
-    def slow_read(path, session_id, *rest):
-        frames = read(path, session_id, *rest)
+    def slow_read(path, *rest):
+        lines = read(path, *rest)
         if b"a secret plan" in Path(path).read_bytes():
-            world.host.people.private.add(session_id)  # the owner's share landed while the lines were read
-        return frames
+            world.host.people.private.add("s1")  # the owner's share landed while the lines were read
+        return lines
 
-    monkeypatch.setattr(guests, "_read_frames", slow_read)
+    monkeypatch.setattr(guests, "_read_lines", slow_read)
 
     async def go():
         dana = await linked(world)
@@ -736,6 +761,65 @@ def test_a_transcript_that_moves_is_repointed_and_a_restart_keeps_the_gen(world)
         later = await back.recv("transcript")
         assert later["gen"] == 1 and later["offset"] == fresh["next_offset"] and later["entries"] == [line("later")]
         await back.drop()
+
+    run(go())
+
+
+def test_with_three_links_a_new_line_is_read_and_masked_once(world, monkeypatch):
+    shop = add(world, "s1", "shop", lines=[line("one")])
+    reads, masked = [], []
+    import node
+
+    read, mask_line = guests._read_lines, node.mask_line
+
+    def counting_read(path, offset, size):
+        reads.append(offset)
+        return read(path, offset, size)
+
+    def counting_mask(text):
+        masked.append(text)
+        return mask_line(text)
+
+    monkeypatch.setattr(guests, "_read_lines", counting_read)
+    monkeypatch.setattr(node, "mask_line", counting_mask)
+    world.host.poll = 0.05  # the three links poll inside one another's read
+
+    async def go():
+        voices = [await linked(world, name) for name in ("Dana", "Erin", "Wren")]
+        for voice in voices:
+            assert (await voice.recv("transcript"))["entries"] == [line("one")]
+        reads.clear(), masked.clear()
+        with open(shop.transcript, "a") as f:
+            f.write(line(f"two TOKEN={SECRET}"))
+        frames = [await voice.recv("transcript") for voice in voices]
+        assert len({json.dumps(f) for f in frames}) == 1 and SECRET not in frames[0]["entries"][0]
+        assert reads == [len(line("one").encode())] and len(masked) == 1  # once, whatever the number of links
+        for voice in voices:
+            await voice.drop()
+
+    run(go())
+
+
+def test_a_link_that_resumes_from_an_older_offset_still_gets_its_backlog(world):
+    one, two, three = line("one"), line("two"), line("three")
+    shop = add(world, "s1", "shop", lines=[one, two])
+    behind, behind_key = person(world, "Erin")
+
+    async def go():
+        dana = await linked(world, "Dana")
+        assert (await dana.recv("transcript"))["entries"] == [one, two]
+        late = FakeVoice(world.host, behind, behind_key, resume={"s1": {"gen": 0, "offset": len(one.encode())}})
+        await late.connect()
+        got = await late.recv("transcript")
+        assert got["offset"] == len(one.encode()) and got["entries"] == [two]  # its own read, from its own offset
+        with open(shop.transcript, "a") as f:
+            f.write(three)
+        for voice in (dana, late):
+            more = await voice.recv("transcript")
+            assert more["offset"] == len((one + two).encode()) and more["entries"] == [three]
+        assert await dana.quiet("transcript") and len(world.host._reads) <= guests.MAX_READS
+        await dana.drop()
+        await late.drop()
 
     run(go())
 
@@ -1011,6 +1095,32 @@ def test_removing_a_person_says_unpaired_closes_4401_and_deletes_only_their_key(
     assert [p["name"] for p in saved.values()] == ["Erin"]
     assert any(e == "Dana removed: their key is deleted" for e in world.events)
     assert len(json.loads((world.tmp / "people_tails.json").read_text())) == 1  # where Dana's mirror ended goes too
+
+
+def test_people_signed_out_on_disk_are_refused_and_their_live_links_close(world):
+    """`pointe pair rotate` and `off` empty people.json under the running daemon (pair._sign_everyone_out)."""
+    shop = add(world, "s1", "shop", lines=[line("one")])
+    run(world.host.share(shop, False))
+
+    async def go():
+        dana = await linked(world)
+        await dana.recv("transcript")
+        path = world.tmp / "people.json"
+        kept = json.loads(path.read_text())
+        path.write_text(json.dumps({"people": {}, "private": kept["private"]}))
+        with open(shop.transcript, "a") as f:
+            f.write(line("two"))
+        assert await dana.quiet("transcript")  # refused at the next check, before the link is closed
+        await world.host.drop_removed()
+        assert await dana.recv("unpaired") == {"t": "unpaired"}
+        assert await dana.recv() is None and dana.pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+        again = FakeVoice(world.host, dana.person, dana.key)
+        assert await again.connect() is None and again.pipe.closed[0] == nodelink.CLOSE_UNAUTHORIZED
+        person(world, "Erin")  # a new pairing does not bring the old one back
+
+    run(go())
+    assert [p["name"] for p in world.host.listed()] == ["Erin"]
+    assert any("Dana signed out with this machine's certificate" in e for e in world.events)
 
 
 def test_a_voice_that_says_bye_is_no_longer_linked_and_its_person_stays_listed(world):
@@ -1519,6 +1629,8 @@ def test_a_persons_send_is_kept_as_theirs_in_the_owners_routing_panel_and_the_jo
     last = real.state.dispatches[-1]
     assert last["to"] == ["shop"] and last["how"] == "sent by Dana" and last["message"] == "run the tests"
     assert last["said"] == "Dana, through their voice"
+    note = real.NOTES.items[-1]  # in the notes too, in the words a voice notes another person's request with
+    assert (note.kind, note.text) == ("session_news", "Dana asked shop: run the tests")
     # the journal takes lines logged from the daemon module (its sink's filter): this one is
     assert ("daemon", "people: Dana asked shop: 'run the tests'") in lines or ("__main__", "people: Dana asked shop: 'run the tests'") in lines
 

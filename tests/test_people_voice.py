@@ -47,6 +47,12 @@ def test_the_status_says_whose_machine_and_session_and_what_this_person_may_do(d
     status = client_for(d).get("/voice/status").json()
     box = next(m for m in status["machines"] if m["name"] == "avi-box")
     assert (box["owner"], box["grant"], box["notice"]) == ("Avi", "send", avi.notice) and box["sessions"] == 2
+    assert "removed" not in box
+    avi.removed, avi.notice, avi.online = True, "avi-box removed you", False
+    box = next(m for m in client_for(d).get("/voice/status").json()["machines"] if m["name"] == "avi-box")
+    assert box["removed"] is True and box["notice"] == "avi-box removed you"
+    avi.removed, avi.online = False, True
+    status = client_for(d).get("/voice/status").json()
     rows = {s["name"]: s for s in status["sessions"]}
     assert rows["shop"]["owner"] == "Avi" and rows["shop"]["machine"] == "avi-box"
     assert "owner" not in rows["atlas"] and "owner" not in rows["ledger"]

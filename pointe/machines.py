@@ -34,6 +34,10 @@ from nodelink import NODE_FRAMES, decode, encode  # noqa: E402
 
 PEOPLE_PROTOCOL = 2  # the first link protocol in which a machine serves a person's voice: a dialed link speaks no older
 HANDSHAKE_SECS = 10.0
+CONNECT_SECS = 15.0  # TCP, TLS and the upgrade, to a machine that may be asleep
+# How long a close waits for the machine's own close frame. A link closed because the machine stopped answering gets
+# none: the machine shows offline only after this, so it is short.
+CLOSE_WAIT_SECS = 2.0
 PAIR_SECS = 20.0
 MAX_ANSWER_BYTES = 16 << 10  # a pairing answer is a few hundred bytes; no more is read from a machine not yet trusted
 OWN_MACHINE = "This is your own machine: its sessions are already in your voice."
@@ -221,10 +225,14 @@ class Dialer:
         dial, name = paired["dial"], paired["name"]
         url = f"wss://{_netloc(dial['host'], int(dial['port']))}{nodelink.HOST_PATH}"
         try:
-            # aiohttp checks the certificate's SHA-256 right after the TLS handshake, before the upgrade is written
-            async with aiohttp.ClientSession() as http, http.ws_connect(
+            async with aiohttp.ClientSession() as http:
+                # aiohttp checks the certificate's SHA-256 right after the TLS handshake, before the upgrade is
+                # written. The connect has a bound of its own: a machine asleep, or a network that takes the packets
+                # and answers nothing, would hold this dial for minutes, and the machine would stay offline after it
+                # is back.
+                raw = await asyncio.wait_for(http.ws_connect(
                     url, ssl=aiohttp.Fingerprint(bytes.fromhex(dial["fp"])), max_msg_size=nodelink.MAX_FRAME_BYTES,
-                    autoping=True, timeout=aiohttp.ClientWSTimeout(ws_close=5)) as raw:
+                    autoping=True, timeout=aiohttp.ClientWSTimeout(ws_close=CLOSE_WAIT_SECS)), CONNECT_SECS)
                 ws = Dialed(raw, str(dial["host"]))
                 try:
                     return await self._handshake(ws, paired)
@@ -232,6 +240,8 @@ class Dialer:
                     return False
                 finally:
                     self._closed(paired, ws)
+                    if not raw.closed:
+                        await raw.close()
         except aiohttp.ServerFingerprintMismatch:
             self._notice(paired, f"{name}'s certificate is not the one in its invite. If its owner paired it again or "
                                  f"rotated its certificate, ask them for a new invite")
@@ -309,13 +319,13 @@ class Dialer:
             return 400, _sentence(str(e))
         own = own_fingerprint(hub.state_dir)
         if own is not None and hmac.compare_digest(own, invited["fp"]):
-            return 409, OWN_MACHINE
+            return 400, OWN_MACHINE
         hub.nodes.refresh()
         dialed = [n for n in hub.nodes.nodes.values() if isinstance(n.get("dial"), dict)]
         same = next((n for n in dialed if n["dial"].get("fp") == invited["fp"]), None) or next(
             (n for n in dialed if (n["dial"].get("host"), n["dial"].get("port")) == (invited["host"], invited["port"])), None)
         if same is not None and same.get("key") and same["dial"].get("fp") == invited["fp"]:
-            return 409, (f"{same['name']} is already in your voice. To add it again, remove it first: "
+            return 400, (f"{same['name']} is already in your voice. To add it again, remove it first: "
                          f"pointe machine remove {same['name']}")
         wanted = " ".join(str(name or "").split()) or _label(invited["name"])
         if wanted and (problem := hub.name_problem(wanted, replacing=same["id"] if same else "")):
@@ -325,7 +335,7 @@ class Dialer:
             return status, got
         host, person = got["host"], got["person"]
         if host["id"] == hub.nodes.hub_id:
-            return 409, OWN_MACHINE
+            return 400, OWN_MACHINE
         same = same or next((n for n in hub.nodes.nodes.values() if n.get("host_id") == host["id"]), None)
         if not wanted:  # the invite named no machine: the machine's own name, if it can be used
             wanted = _label(host["name"])
@@ -364,11 +374,11 @@ class Dialer:
                 raw = await response.content.read(MAX_ANSWER_BYTES)
                 if response.status != 200:
                     said = " ".join(raw.decode(errors="replace").split())[:200]
-                    return (response.status if 400 <= response.status < 500 else 502,
+                    return (403 if 400 <= response.status < 500 else 502,  # never 409: that is "pick another name"
                             f"The machine refused: {said or response.status}.")
                 got = json.loads(raw)
         except aiohttp.ServerFingerprintMismatch:
-            return 409, CERTIFICATE_DIFFERS
+            return 403, CERTIFICATE_DIFFERS
         except (aiohttp.ClientError, OSError, asyncio.TimeoutError) as e:
             return 502, (f"Cannot reach the machine at {invited['host']}:{invited['port']} ({type(e).__name__}). It "
                          f"must be on the same private network as this one (Tailscale, Twingate, the LAN).")
@@ -480,9 +490,10 @@ def main(argv: list[str]) -> None:
         for m in machines:
             state = (f"online, {m['rtt_ms']} ms" if m["rtt_ms"] is not None else "online") if m["online"] else \
                 f"offline since {time.strftime('%H:%M %b %d', time.localtime(m['since']))}"
-            whose = f"{m['owner'] or 'somebody else'}'s, {_can(m.get('grant', ''))}" if "grant" in m else "yours"
+            whose = "yours" if "grant" not in m else f"{m['owner'] or 'somebody else'}'s, " + (
+                "removed you" if m.get("removed") else _can(m.get("grant", "")))
             print(f"{m['name']}  {m['os']}  {state}  {m['sessions']} session(s)  {whose}"
-                  + (f"\n  {m['notice']}" if m.get("notice") else ""))
+                  + (f"\n  {m['notice']}" if m.get("notice") and not m.get("removed") else ""))
     elif command in ("remove", "rm") and len(argv) > 1:
         hub_nodes._daemon("POST", "/voice/hub/revoke", {"name": " ".join(argv[1:])})
         print(f"{' '.join(argv[1:])} is no longer in your voice; its sessions left it.")

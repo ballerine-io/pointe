@@ -32,12 +32,14 @@ import harnesses  # noqa: E402
 import hub_nodes  # noqa: E402
 import nodelink  # noqa: E402
 import sessions  # noqa: E402
+import shipping  # noqa: E402
 import skew  # noqa: E402
 from hub_nodes import (INVITE_SECS, NO_SUCH_INVITE, PAIR_WRONG_PER_INVITE, Invites, _close, _cut, _here, _peer,  # noqa: E402
                        _write_private, network, pairing_body)
-from node import READ_MAX, Tail, _line_end, _os, _size, masked_frames, precise_mask  # noqa: E402
+from node import _os, frames_of, masked_lines, precise_mask  # noqa: E402
 from nodelink import GRANTS, HUB_FRAMES, decode, encode  # noqa: E402
 from sessions import Registry, Session, speakable, terminal_wait, wait_state  # noqa: E402
+from shipping import Tail, size as _size  # noqa: E402
 
 HOST_MIN_PROTOCOL = 2  # this link exists from protocol 2: an older voice has no /voice/host
 POLL_SECS = 0.3  # as a node tails a transcript
@@ -118,6 +120,26 @@ class People:
 
     def __init__(self, path: Path):
         self.path = path
+        self._load()
+        self._read = self._on_disk()
+
+    def _on_disk(self) -> tuple | None:
+        try:
+            st = self.path.stat()
+        except OSError:
+            return None
+        return st.st_ino, st.st_mtime_ns, st.st_size
+
+    def refresh(self) -> None:
+        """people.json changed under the daemon (`pointe pair rotate` or `off` emptied it): only the people it lists
+        now are on this machine. Before every lookup, so a signed-out person is refused at once and a later save
+        cannot bring them back."""
+        if self._on_disk() != self._read:
+            self._load()
+            self._read = self._on_disk()
+
+    def _load(self) -> None:
+        path = self.path
         self.people: dict[str, dict] = {}
         self.private: set[str] = set()
         if not path.exists():
@@ -157,11 +179,14 @@ class People:
 
     def save(self) -> None:
         _write_private(self.path, json.dumps({"people": self.people, "private": sorted(self.private)}) + "\n")
+        self._read = self._on_disk()
 
     def get(self, person_id) -> dict | None:
+        self.refresh()
         return self.people.get(person_id) if isinstance(person_id, str) else None
 
     def by_name(self, name: str) -> dict | None:
+        self.refresh()
         wanted = " ".join(str(name).split()).lower()
         return next((p for p in self.people.values() if p["name"].lower() == wanted), None)
 
@@ -169,6 +194,7 @@ class People:
         return [p["name"] for p in self.people.values()]
 
     def add(self, name: str, grant: str, address: str, vendors: list[str], now: float) -> dict:
+        self.refresh()
         person_id = secrets.token_hex(8)
         while person_id in self.people:
             person_id = secrets.token_hex(8)
@@ -215,21 +241,18 @@ class Link:
     tasks: set[asyncio.Task] = field(default_factory=set)
 
 
-def _read_frames(path: str, session_id: str, gen: int, offset: int, size: int) -> tuple[list[str], int] | None:
-    """The next transcript frames for one link, from `offset`: read and masked off the event loop, which also runs the
-    owner's call. None when a line longer than one read is not written to its end yet."""
-    with open(path, "rb") as f:
-        f.seek(offset)
-        data = f.read(min(size - offset, READ_MAX))
-        skipped = 0
-        if len(data) == READ_MAX and b"\n" not in data:
-            skipped = _line_end(f, len(data))  # one line longer than a read: counted, not shipped
-            if skipped is None:
-                return None
-            logger.warning(f"{session_id}: a transcript line of {skipped} bytes not shipped")
-            f.seek(offset + skipped)
-            data = f.read(max(0, min(size - offset - skipped, READ_MAX)))
-    return masked_frames(session_id, gen, offset, data, skipped)
+MAX_READS = 32  # reads kept for the other links of the same session: a few polls' worth
+
+
+def _read_lines(path: str, offset: int, size: int) -> tuple[list[tuple[int, str | None]], int] | None:
+    """A transcript's new lines from `offset`, masked, and the bytes before them that are a line too long to ship.
+    Read and masked off the event loop, which also runs the owner's call, and once for every link at that offset
+    (HostSide._lines). None when a line longer than one read is not written to its end yet."""
+    read = shipping.read_new(path, offset, size)
+    if read is None:
+        return None
+    data, skipped = read
+    return masked_lines(data), skipped
 
 
 class HostSide:
@@ -253,11 +276,13 @@ class HostSide:
         self.live: dict[str, Link] = {}
         self.offline_since: dict[str, float] = {p: clock() for p in self.people.people}
         self.asks: dict[str, Ask] = {}
+        self.notices: dict[str, str] = {}  # person id: one line about a link of theirs that cannot come up
         self.poll = POLL_SECS
         self._waiting: dict[str, int] = {}  # address: sockets there still before their hello
         self._tasks: set[asyncio.Task] = set()
         self._titles: dict[str, tuple[float, str | None]] = {}
         self._files: dict[str, tuple[str, list[str]]] = {}  # session id: (its transcript's path, tracked file names)
+        self._reads: dict[tuple[str, int], tuple[int, asyncio.Future]] = {}  # (path, offset): (size then, its lines)
         self._saved_tails = self._load_tails()
 
     # ---------- small things ----------
@@ -469,6 +494,16 @@ class HostSide:
             await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "removed")
         return True
 
+    async def drop_removed(self) -> None:
+        """People whose keys left people.json under the daemon (`pointe pair rotate` or `off`): their links close
+        now, as a removal closes one."""
+        self.people.refresh()
+        for link in [x for x in self.live.values() if x.id not in self.people.people]:
+            self.record(f"{link.name} signed out with this machine's certificate: their key is deleted")
+            await self._send(link, encode("unpaired"))
+            ws, link.ws = link.ws, None
+            await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "removed")
+
     def find(self, wanted: str) -> Session | None:
         """A session by its id, or by its name as the owner says it."""
         wanted = " ".join(str(wanted).split())
@@ -527,6 +562,7 @@ class HostSide:
         if chosen is None:
             # No protocol both speak. The voice is the old side when its newest is under this link's first one.
             older = hello["protocol"] < HOST_MIN_PROTOCOL
+            self._skewed(hello, nonce, older)
             return await _close(ws, nodelink.CLOSE_TOO_OLD, nodelink.too_old(
                 "voice", HOST_MIN_PROTOCOL, hello["protocol"]) if older else nodelink.too_old(
                 "host", min(hello["protocol_min"], hello["protocol"]), nodelink.PROTOCOL))
@@ -535,6 +571,19 @@ class HostSide:
             logger.warning(f"a voice's link from {_peer(ws) or 'loopback'} refused: no such person, or a wrong key")
             return await _close(ws, nodelink.CLOSE_UNAUTHORIZED, "not on this machine")
         return person, hello, chosen
+
+    def _skewed(self, hello: dict, nonce: str, older: bool) -> None:
+        """A person whose voice shares no protocol with this machine stays listed, not linked, with one line that
+        says which side to update. Only for a hello that proves it is theirs: a stranger marks nobody."""
+        person = self.people.get(hello["person"])
+        if person is None or not nodelink.check(person["key"], nonce, self.host_id, hello["auth"]):
+            return
+        name, version = person["name"], _cut(hello["voice"]["version"], 20)
+        line = (f"{name}'s voice runs an older Pointe ({version}). {name} updates it with pointe update." if older else
+                f"{name}'s voice runs a newer Pointe ({version}) than this machine. Update this machine with pointe update.")
+        if self.notices.get(person["id"]) != line:
+            self.notices[person["id"]] = line
+            self.record(f"link refused: {line}")
 
     async def _linked(self, ws, address: str, person: dict, hello: dict, protocol: int) -> None:
         """A proven voice: one link per person, the welcome both ways, then frames until it drops."""
@@ -558,6 +607,7 @@ class HostSide:
             link.resume, link.heard = dict(welcome["resume"]), self._mono()
             self.live[person["id"]] = link
             self.offline_since.pop(person["id"], None)
+            self.notices.pop(person["id"], None)  # their voice was updated, or this machine was
             where = f" ({network(address)})" if network(address) else ""
             self.record(f"{person['name']}'s voice linked from {address or 'an unknown address'}{where}")
             await self._sync(link, first=True)
@@ -796,12 +846,8 @@ class HostSide:
                     tail.offset = 0
                     await self._about(link, sid, encode("transcript.repointed", id=sid, gen=tail.gen, history=True))
                 continue
-            if at["gen"] == tail.gen and at["offset"] <= _size(tail.path):
-                tail.offset = at["offset"]
+            if not shipping.resume_to(tail, at, _size(tail.path)):
                 continue
-            # the voice is on another file, or past this one's end (it was replaced): a new gen from 0
-            tail.gen = max(tail.gen, at["gen"]) + (0 if at["gen"] < tail.gen else 1)
-            tail.offset = 0
             self._save_tails(link)
             await self._about(link, sid, encode("transcript.repointed", id=sid, gen=tail.gen, history=True))
 
@@ -842,17 +888,32 @@ class HostSide:
             return
         gen, start = tail.gen, tail.offset
         try:
-            read = await asyncio.to_thread(_read_frames, path, session.id, gen, start, size)
+            read = await self._lines(path, start, size)
         except OSError:
             return
         if read is None:
             return
-        frames, nxt = read
+        lines, skipped = read
+        if skipped:
+            logger.warning(f"{session.name}: a transcript line of {skipped} bytes not shipped")
+        frames, nxt = frames_of(session.id, gen, start, lines, skipped)
         for frame in frames:
             if not await self._about(link, session.id, frame):
                 return  # the link dropped, or the session is no longer this person's to see
         if tail.gen == gen and tail.offset == start:  # no resume moved it meanwhile
             tail.offset = nxt
+
+    async def _lines(self, path: str, offset: int, size: int):
+        """_read_lines, once for every link that is at this offset of this file: the links of several people on one
+        session poll the same new bytes, and they are read and masked one time. A link at another offset (it resumes
+        a backlog) gets its own read. The frames, with each link's own gen, are made per link."""
+        key = (path, offset)
+        kept = self._reads.get(key)
+        if kept is None or kept[0] != size:
+            for old in list(self._reads)[:max(0, len(self._reads) - MAX_READS + 1)]:
+                del self._reads[old]
+            kept = self._reads[key] = (size, asyncio.ensure_future(asyncio.to_thread(_read_lines, path, offset, size)))
+        return await asyncio.shield(kept[1])  # one link going away does not take the read from the others
 
     async def _send_files(self, link: Link, session: Session) -> None:
         """Up to 40 tracked file names, for the voice's routing hints: at join and after each repoint. Listed once
@@ -889,7 +950,8 @@ class HostSide:
             out.append({"id": p["id"], "name": p["name"], "grant": p["grant"], "online": online,
                         "since": None if online else self.offline_since.get(p["id"]),
                         "address": p.get("address") or "", "key_fp": nodelink.fingerprint(p["key"]),
-                        "vendors": list(p.get("vendors") or []), "added": p.get("added")})
+                        "vendors": list(p.get("vendors") or []), "added": p.get("added"),
+                        **({"notice": self.notices[p["id"]]} if p["id"] in self.notices else {})})
         return out
 
     def status(self, show_invite: bool) -> dict:
@@ -897,7 +959,8 @@ class HostSide:
         invited to answers as it always did."""
         out: dict = {}
         if self.people.people:
-            out["people"] = [{k: p[k] for k in ("name", "grant", "online", "since", "vendors")} for p in self.listed()]
+            out["people"] = [{k: p[k] for k in ("name", "grant", "online", "since", "vendors", "notice") if k in p}
+                             for p in self.listed()]
             out["account"] = account()  # the account a person's requests run as, for the owner's screens
         invite = self.invite_status() if show_invite else None
         if invite is not None:

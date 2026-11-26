@@ -147,6 +147,7 @@ class Machine:
     # A machine somebody invited this voice to, which this voice dials (machines.py): its owner's name, what this
     # person may do there ("send" or "watch"), and this person's name there. All empty on a machine of one's own.
     dialed: bool = False
+    removed: bool = False  # its owner removed this person: it stays listed, with `notice`, and is not dialed again
     owner: str = ""
     grant: str = ""
     me: str = ""

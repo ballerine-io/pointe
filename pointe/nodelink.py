@@ -9,6 +9,7 @@ import hashlib
 import hmac
 import json
 import math
+import os
 import secrets
 import time
 from typing import Any, Callable
@@ -40,8 +41,10 @@ CLOSE_TOO_OLD = 4426
 MAX_FRAME_BYTES = 1 << 20
 MAX_ENTRY_BYTES = 256 << 10  # one transcript line; a longer one is dropped with a warning, its bytes still counted
 MAX_FILES = 40  # tracked file names sent for routing hints
-PING_SECS = 2.0
-DEAD_AFTER_SECS = 12.0
+# Both sides of a link must agree on these two. The environment changes them only for a test of several real Pointes
+# on one host (tests/test_people_loopback.py), which cannot wait 12 s for every dead link.
+PING_SECS = float(os.environ.get("POINTE_LINK_PING_SECS") or 2.0)
+DEAD_AFTER_SECS = float(os.environ.get("POINTE_LINK_DEAD_SECS") or 12.0)
 BACKOFF_MAX_SECS = 30
 HOLDING_WAIT_SECS = 10.0  # the node hands a prompt back to its terminal if the hub has not said `holding` by then
 SEND_TIMEOUT_SECS = 5.0

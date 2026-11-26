@@ -1434,6 +1434,7 @@ def _status_machines() -> list[dict]:
                     "sessions": n, "need": need, "rtt_ms": m.rtt_ms, "key_fp": m.key_fp,
                     # a machine somebody invited this voice to: whose it is, and what this person may do there
                     **({"owner": m.owner} if m.owner else {}), **({"grant": m.grant} if m.grant else {}),
+                    **({"removed": True} if m.removed else {}),  # its owner removed this person: `notice` says so
                     **({"notice": m.notice} if m.notice else {})})
     return out
 
@@ -8938,7 +8939,10 @@ def _people_event(line: str) -> None:
 
 def _person_sent(session: Session, by: str, text: str, at: float) -> None:
     """A person sent this to a session of this machine, through their own voice. The owner's voice keeps it as that
-    person's request: in the routing panel, and in the brain's context when a call is up, never as the owner's own."""
+    person's request: in the notes (as a voice notes another person's `sent`, remote_sent), in the routing panel, and
+    in the brain's context when a call is up, never as the owner's own."""
+    NOTES.add("session_news", f"{by} asked {session.name}: {' '.join(mask(text).split())[:300]}", session=session.name,
+              dedup=False)
     state.dispatches.append({"at": time.strftime("%H:%M:%S", time.localtime(at)), "said": f"{by}, through their voice",
                              "message": text, "to": [session.name], "how": f"sent by {by}"})
     del state.dispatches[:-20]
@@ -11093,6 +11097,7 @@ async def _follow_pairing() -> None:
     if state.phone_socket is not None and state.phone_socket_id and not PHONES.holds(state.phone_socket_id):
         await _end_phone_call(None)
     await HUB.drop_unpaired()
+    await PEOPLE.drop_removed()
 
 
 def _follow_titles() -> None:
