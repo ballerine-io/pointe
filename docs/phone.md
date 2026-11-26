@@ -1,20 +1,28 @@
 # Connect your phone
 
 You can join the call from your phone in two ways: the iPhone app, or Pointe's page in the phone's browser. Both reach
-the daemon on your Mac through a second listener, on port 7443, that uses HTTPS. Your phone needs a private way to
-reach that port. This page helps you choose one, pair the phone, and fix what goes wrong.
+Pointe on your computer (a Mac, or [Linux](linux.md)) through a second listener, on port 7443, that uses HTTPS. Your
+phone needs a private way to reach that port.
+
+## Which should I pick?
+
+- **[Wi-Fi](phone/wifi.md):** the phone and the computer are on the same network. Nothing to set up.
+- **[Tailscale](phone/tailscale.md):** the easiest for personal use. Works anywhere both have internet.
+- **[Twingate](phone/twingate.md):** if your company already uses it.
+
+Each guide is a few numbered steps for a Mac and for Linux, and ends with a check you run on the phone.
 
 The iPhone app is on the [App Store](https://apps.apple.com/app/id6838678047) (next versions early on [TestFlight](https://testflight.apple.com/join/gkRJccpc)). You can also build it from source
 ([The iPhone app](iphone-app.md#getting-the-app)), or use the page in the phone's browser, which needs nothing on the
 phone.
 
-## Which one should I use
+## All the routes
 
 | Route | Works when | You install | iPhone app | Phone browser | Guide |
 |---|---|---|---|---|---|
 | **Wi-Fi** | The phone and the Mac are on the same Wi-Fi, or the Mac is on the iPhone's hotspot. Only while both stay on it. | Nothing | Yes | Yes, after a certificate warning | [Wi-Fi](phone/wifi.md) |
-| **Tailscale** | Anywhere both have internet | Tailscale on the Mac and the phone, one account | Yes | Yes, after a certificate warning | [Tailscale](phone/tailscale.md) |
-| **Twingate** | Anywhere the phone's Twingate client is on | A Twingate network, a connector in Docker on the Mac (Colima works), the Twingate client on the phone | Yes | Yes, after a certificate warning, or with [a certificate the phone trusts](#a-certificate-the-phone-trusts) | [Twingate](phone/twingate.md) |
+| **Tailscale** | Anywhere both have internet | Tailscale on the computer and the phone, one account | Yes | Yes, after a certificate warning | [Tailscale](phone/tailscale.md) |
+| **Twingate** | Anywhere the phone's Twingate client is on | A Twingate network, a connector in Docker on the computer (Colima on a Mac), the Twingate client on the phone | Yes | Yes, after a certificate warning, or with [a certificate the phone trusts](#a-certificate-the-phone-trusts) | [Twingate](phone/twingate.md) |
 | **Cloudflare Tunnel with Access** | Anywhere, through a public name that only you can open | A Cloudflare account with a domain, `cloudflared` on the Mac | No | Yes | [Cloudflare](phone/cloudflare.md) |
 
 - **Start with Tailscale** if you have no preference. It works away from home, needs no server, and is what the page

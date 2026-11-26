@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connect over Wi-Fi · Pointe docs</title>
-<meta name="description" content="The phone reaches the Mac&#x27;s address on the network they share. You install nothing. It works only while both devices stay on that network, and until the…">
+<meta name="description" content="The phone reaches the computer&#x27;s address on the network they share. You install nothing. It works only while both devices stay on that network, and until…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Connect over Wi-Fi">
-<meta property="og:description" content="The phone reaches the Mac&#x27;s address on the network they share. You install nothing. It works only while both devices stay on that network, and until the…">
+<meta property="og:description" content="The phone reaches the computer&#x27;s address on the network they share. You install nothing. It works only while both devices stay on that network, and until…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/wifi/">
 <meta name="twitter:card" content="summary_large_image">
@@ -120,7 +120,7 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="connect-over-wi-fi">Connect over Wi-Fi</h1>
-<p>The phone reaches the Mac's address on the network they share. You install nothing. It works only while both devices
+<p>The phone reaches the computer's address on the network they share. You install nothing. It works only while both devices
 stay on that network, and until the Mac's address changes. For a route that works away from home, use
 <a href="../tailscale/">Tailscale</a>.</p>
 <p>Two networks work:</p>
@@ -136,22 +136,35 @@ stay on that network, and until the Mac's address changes. For a route that work
 </ul>
 <h2 id="set-it-up">Set it up</h2>
 <ol>
-<li>Put the Mac and the phone on the same network (one of the two above).</li>
+<li>Put the computer and the phone on the same network (one of the two above).</li>
 <li>
-<p>Pair. On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. Choose <strong>Same Wi-Fi</strong> (it shows the
-   Mac's address), then <strong>Show the code</strong>. In a terminal instead: <code>pointe pair wifi</code>, then <code>pointe restart</code>.</p>
+<p>On the computer:</p>
+<div class="dx-code"><pre><code>pointe pair wifi</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It prints a QR code. On a Mac it uses the Wi-Fi address (<code>en0</code>, else <code>en1</code>); on Linux, the private address of the
+ default route, wired or Wi-Fi. The page does the same: <strong>Settings → Phone → Connect your phone</strong>, <strong>Same Wi-Fi</strong>,
+ <strong>Show the code</strong>.</p>
 </li>
 <li>
-<p>On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)</p>
+<p>Open the Pointe app, scan the QR code inside the app, and confirm the computer it names. The Camera app does not
+   pair.</p>
 </li>
-<li>The first time, iOS asks whether Pointe may find and connect to devices on your local network. Allow it: the
-   Wi-Fi route needs it.</li>
+<li>
+<p>The first time, iOS asks whether Pointe may find and connect to devices on your local network. Allow it: the
+   Wi-Fi route needs it.</p>
+</li>
 </ol>
+<h2 id="check-it">Check it</h2>
+<p>On the iPhone, on the same network, open this in Safari, with the address <code>pointe pair wifi</code> printed ("It connects to
+…"):</p>
+<div class="dx-code"><pre><code>https://&lt;address&gt;:7443/voice/status</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Safari warns about the certificate first (Pointe made it on your computer); go past the warning. You should see
+"This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…". Pointe on your computer wrote
+that line, so the route works.</p>
 <p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 2 and open the address once on the phone
 (<a href="../#in-the-phones-browser">In the phone's browser</a>).</p>
 <h2 id="how-it-works">How it works</h2>
-<p><code>pointe pair wifi</code> reads the Mac's address on <code>en0</code> (or <code>en1</code>), makes a certificate for that address, and listens on
-it, port 7443 (<code>pointe/pair.py</code>). The app trusts that one certificate, by its fingerprint. The listener is on the Wi-Fi
+<p><code>pointe pair wifi</code> reads the computer's address (above), makes a certificate for that address, and listens on it,
+port 7443 (<code>pointe/pair.py</code>). The app trusts that one certificate, by its fingerprint. The listener is on the Wi-Fi
 address only, not on every interface.</p>
 <h2 id="when-it-stops-working">When it stops working</h2>
 <div class="dx-table"><table>
@@ -199,6 +212,7 @@ address only, not on every interface.</p>
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
 <li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
+<li class="dx-l2"><a href="#check-it">Check it</a></li>
 <li class="dx-l2"><a href="#how-it-works">How it works</a></li>
 <li class="dx-l2"><a href="#when-it-stops-working">When it stops working</a></li>
 </ul>

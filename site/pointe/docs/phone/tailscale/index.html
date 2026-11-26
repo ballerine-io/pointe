@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connect over Tailscale · Pointe docs</title>
-<meta name="description" content="Tailscale puts the Mac and the phone on one private network, wherever each has internet. Pointe listens on the Mac&#x27;s Tailscale address only, so nothing is…">
+<meta name="description" content="Tailscale puts your computer and your phone on one private network, wherever each has internet. Pointe listens on the computer&#x27;s Tailscale address only, so…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Connect over Tailscale">
-<meta property="og:description" content="Tailscale puts the Mac and the phone on one private network, wherever each has internet. Pointe listens on the Mac&#x27;s Tailscale address only, so nothing is…">
+<meta property="og:description" content="Tailscale puts your computer and your phone on one private network, wherever each has internet. Pointe listens on the computer&#x27;s Tailscale address only, so…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/tailscale/">
 <meta name="twitter:card" content="summary_large_image">
@@ -120,66 +120,86 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="connect-over-tailscale">Connect over Tailscale</h1>
-<p><a href="https://tailscale.com/download">Tailscale</a> puts the Mac and the phone on one private network, wherever each has
-internet. Pointe listens on the Mac's Tailscale address only, so nothing is open on the Wi-Fi or the internet. This is
-the route the page recommends when it finds Tailscale on the Mac.</p>
+<p><a href="https://tailscale.com/download">Tailscale</a> puts your computer and your phone on one private network, wherever each
+has internet. Pointe listens on the computer's Tailscale address only, so nothing is open on the Wi-Fi or the internet.
+This is the route the page recommends when it finds Tailscale.</p>
+<p>You need: Pointe installed (<code>pointe</code> works in a terminal), and an iPhone with the Pointe app.</p>
 <h2 id="set-it-up">Set it up</h2>
 <ol>
-<li>Install Tailscale on the Mac and on the iPhone, and sign in to both with the same account.</li>
 <li>
-<p>Pair. On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. Choose <strong>Tailscale</strong> (it shows the
-   Mac's Tailscale name), then <strong>Show the code</strong>. In a terminal instead: <code>pointe pair tailscale</code>, then
-   <code>pointe restart</code>.</p>
+<p>Install Tailscale on the computer and sign in:</p>
+<ul>
+<li><strong>On a Mac:</strong> the app from <a href="https://tailscale.com/download">tailscale.com/download</a>. Open it and sign in.</li>
+<li>
+<p><strong>On Linux:</strong> the package for your distribution, from
+   <a href="https://tailscale.com/kb/1031/install-linux">Tailscale's Linux guide</a>, then:</p>
+<div class="dx-code"><pre><code>sudo tailscale up</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It prints an address: open it in a browser and sign in.</p>
+</li>
+</ul>
 </li>
 <li>
-<p>On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)</p>
+<p>On the iPhone, install <strong>Tailscale</strong> from the App Store, open it, and sign in with the <strong>same account</strong>.</p>
+</li>
+<li>
+<p>On the computer:</p>
+<div class="dx-code"><pre><code>pointe pair tailscale</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It prints a QR code and the name the phone will use ("It connects to …").</p>
+</li>
+<li>
+<p>Open the Pointe app, scan the QR code inside the app, and confirm the computer it names. The Camera app does not
+   pair.</p>
 </li>
 </ol>
-<p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 2 and open the address once on the phone
-(<a href="../#in-the-phones-browser">In the phone's browser</a>).</p>
-<h2 id="how-it-works">How it works</h2>
-<p><code>pointe pair tailscale</code> asks the Tailscale app for this Mac's name (its MagicDNS name) and its IPv4 address
-(<code>tailscale status --json</code>), makes a certificate for that name, and listens on the Tailscale address, port 7443
-(<code>pointe/pair.py</code>). The phone connects by the name; the app trusts that one certificate, by its fingerprint. Tailscale needs
-no account with Pointe and no server of yours.</p>
+<p>The page does the same as step 3: <strong>Settings → Phone → Connect your phone</strong>, choose <strong>Tailscale</strong>, then <strong>Show the
+code</strong>.</p>
+<h2 id="check-it">Check it</h2>
+<p>On the iPhone, with Tailscale on, open this in Safari, with the name from step 3:</p>
+<div class="dx-code"><pre><code>https://&lt;name&gt;:7443/voice/status</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Safari warns about the certificate first (Pointe made it on your computer); go past the warning. You should see
+"This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…". Pointe on your computer wrote
+that line, so the route works. The app does not need this browser pairing.</p>
+<h2 id="name-or-address">Name or address</h2>
+<p>Pointe uses both, for different things. It <strong>listens</strong> on the computer's Tailscale IPv4 address (<code>100.x.y.z</code>), and the
+phone <strong>connects by the MagicDNS name</strong>, such as <code>my-laptop.example-tailnet.ts.net</code>. The certificate is made for that
+name only, so the phone must be able to look it up: MagicDNS must be on. It is on by default for tailnets made since
+October 2022; otherwise turn it on in the admin console's <strong>DNS</strong> page
+(<a href="https://tailscale.com/kb/1081/magicdns">Tailscale's MagicDNS guide</a>). Both come from <code>tailscale status --json</code>
+(<code>pointe/pair.py</code>).</p>
 <h2 id="when-it-stops-working">When it stops working</h2>
-<div class="dx-table"><table>
-<thead>
-<tr>
-<th>What you see</th>
-<th>Why</th>
-<th>Fix</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>"Tailscale is not running on this Mac. Install it (https://tailscale.com/download), sign in, and retry."</td>
-<td>The Tailscale app is not installed, not running, or signed out</td>
-<td>Open Tailscale on the Mac and sign in</td>
-</tr>
-<tr>
-<td>"Tailscale has no name or address for this Mac yet."</td>
-<td>Tailscale is still connecting</td>
-<td>Wait until it shows Connected, then pair again</td>
-</tr>
-<tr>
-<td>"Can't find your Mac" or "Your Mac did not answer" on the phone</td>
-<td>The phone's Tailscale is off, or signed in to another account</td>
-<td>Open Tailscale on the iPhone, turn it on, check the account</td>
-</tr>
-<tr>
-<td>"Your Mac did not answer" or "Pointe is not answering" while both are on Tailscale</td>
-<td>The Mac sleeps, or the phone listener is off</td>
-<td>Wake the Mac; on the page, Settings → Phone, check that Tailscale is "in use"</td>
-</tr>
-<tr>
-<td>The phone reaches other Tailscale devices, not the Mac</td>
-<td>A Tailscale access rule blocks port 7443 to the Mac</td>
-<td>Allow the phone to reach the Mac on TCP 7443 in your tailnet's access controls</td>
-</tr>
-</tbody>
-</table></div>
-<p>The Tailscale name stays the same when the Mac changes networks, so you pair once.</p>
+<ul>
+<li>
+<p><strong>"Tailscale is not running on this Mac. Install it (https://tailscale.com/download), sign in, and retry."</strong> →
+  Tailscale is not installed, not running, or signed out on the computer. Open it and sign in (on Linux,
+  <code>sudo tailscale up</code>).</p>
+</li>
+<li>
+<p><strong>"Tailscale has no name or address for this Mac yet."</strong> → Tailscale is still connecting. Wait until it is
+  connected, then run <code>pointe pair tailscale</code> again.</p>
+</li>
+<li>
+<p><strong>Safari says the server can't be found, or the app says "Can't find your Mac"</strong> → Tailscale on the phone is off,
+  signed in to another account, or MagicDNS is off. Open Tailscale on the iPhone, turn it on, check the account. Check
+  MagicDNS (<a href="#name-or-address">above</a>).</p>
+</li>
+<li>
+<p><strong>"Your Mac did not answer" or "Pointe is not answering", with Tailscale on both</strong> → the computer sleeps, or Pointe
+  does not run. Wake it; run <code>/pointe:voice</code> in a Claude Code session, or <code>pointe restart</code>. <code>pointe doctor</code> checks the
+  route under "Phone".</p>
+</li>
+<li>
+<p><strong>The phone reaches other Tailscale devices, not this computer</strong> → a Tailscale access rule blocks port 7443. Allow
+  the phone to reach the computer on TCP 7443 in your tailnet's access controls.</p>
+</li>
+<li>
+<p><strong>The phone connects, then pairing fails, or the app says "Your Mac's certificate changed"</strong> → the computer has a
+  new certificate: after <code>pointe pair rotate</code>, a new route, a new Tailscale name, or a reinstall that removed Pointe's
+  settings. Run <code>pointe pair tailscale</code> again and scan the new code.</p>
+</li>
+</ul>
+<p>The Tailscale name stays the same when the computer changes networks, so you pair once.</p>
+<p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 3 and open the address once on the phone
+(<a href="../#in-the-phones-browser">In the phone's browser</a>).</p>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone/tailscale.md">docs/phone/tailscale.md</a> in the repository.</p>
 <nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../wifi/"><span class="pg-small">Previous</span>Connect over Wi-Fi</a><a class="dx-next" href="../twingate/"><span class="pg-small">Next</span>Connect over Twingate</a></nav>
@@ -188,7 +208,8 @@ no account with Pointe and no server of yours.</p>
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
 <li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
-<li class="dx-l2"><a href="#how-it-works">How it works</a></li>
+<li class="dx-l2"><a href="#check-it">Check it</a></li>
+<li class="dx-l2"><a href="#name-or-address">Name or address</a></li>
 <li class="dx-l2"><a href="#when-it-stops-working">When it stops working</a></li>
 </ul>
 </details>

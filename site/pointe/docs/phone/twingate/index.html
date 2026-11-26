@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connect over Twingate · Pointe docs</title>
-<meta name="description" content="Twingate gives the phone a private name for the Mac, wherever the phone has internet. A Twingate connector runs on the Mac, in Docker, and forwards that…">
+<meta name="description" content="Twingate gives your phone a private name for your computer, such as pointe.&lt;you&gt;.internal, wherever the phone has internet. A Twingate connector runs on the…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Connect over Twingate">
-<meta property="og:description" content="Twingate gives the phone a private name for the Mac, wherever the phone has internet. A Twingate connector runs on the Mac, in Docker, and forwards that…">
+<meta property="og:description" content="Twingate gives your phone a private name for your computer, such as pointe.&lt;you&gt;.internal, wherever the phone has internet. A Twingate connector runs on the…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/twingate/">
 <meta name="twitter:card" content="summary_large_image">
@@ -120,150 +120,172 @@
 <main id="main" class="dx-main">
 <article class="dx-doc">
 <h1 id="connect-over-twingate">Connect over Twingate</h1>
-<p><a href="https://www.twingate.com">Twingate</a> gives the phone a private name for the Mac, wherever the phone has internet. A
-Twingate connector runs on the Mac, in Docker, and forwards that name to Pointe's listener on <code>127.0.0.1</code>. Nothing is
-open on the Wi-Fi or the internet. The iPhone app was tested on a real iPhone over this route.</p>
-<p>You need a Twingate network you can administer, Docker on the Mac (this guide uses Colima), and
-the Twingate client on the iPhone, signed in.</p>
-<p>On a Linux hub the connector shares the machine's network, or sits on Docker's bridge with
-<code>pointe pair host &lt;alias&gt; --listen docker</code>: <a href="../../linux/#reach-it-from-other-devices">Linux</a>.</p>
+<p><a href="https://www.twingate.com">Twingate</a> gives your phone a private name for your computer, such as
+<code>pointe.&lt;you&gt;.internal</code>, wherever the phone has internet. A Twingate connector runs on the computer, in Docker, and
+forwards that name to Pointe's phone listener on port 7443. Nothing is open on the Wi-Fi or the internet. The steps
+are the same on a Mac and on Linux, except step 2.</p>
+<p>You need: Homebrew on a Mac, or Docker on Linux; Pointe installed (<code>pointe</code> works in a terminal); an iPhone with the
+Pointe app.</p>
 <h2 id="set-it-up">Set it up</h2>
-<h3 id="1-docker-on-the-mac">1. Docker on the Mac</h3>
-<p>With Homebrew:</p>
+<h3 id="1-a-twingate-network">1. A Twingate network</h3>
+<ul>
+<li>
+<p><strong>Your company already uses Twingate:</strong> ask its admin to invite you and to let you add a remote network, or to do
+  steps 3 and 4 for you. Your network's name, such as <code>example.twingate.com</code>, is in Twingate's welcome email.</p>
+</li>
+<li>
+<p><strong>No network yet:</strong> sign up at <a href="https://www.twingate.com">twingate.com</a>. You choose the network's name during the
+  sign-up. The plans are on <a href="https://www.twingate.com/pricing">Twingate's pricing page</a>.</p>
+</li>
+</ul>
+<h3 id="2-docker">2. Docker</h3>
+<p><strong>On a Mac</strong>, with Homebrew:</p>
 <div class="dx-code"><pre><code>brew install colima docker
-colima start</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>Colima does not start by itself after a reboot. To start it now and at every login instead, use
-<code>brew services start colima</code>. Docker Desktop works too.</p>
-<h3 id="2-the-connector">2. The connector</h3>
+limactl --version</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>The second command must print <strong>2.3.0 or later</strong>. Colima runs Docker in a Lima virtual machine, and Lima before 2.3.0
+let only 10 TCP connections at a time start through that machine's network: the phone then failed to connect, or the
+call stalled. Lima 2.3.0 raised the limit to 128 (it ships
+<a href="https://github.com/containers/gvisor-tap-vsock/pull/698">gvisor-tap-vsock 0.9.0</a>). If the version is older:</p>
+<div class="dx-code"><pre><code>brew upgrade lima
+colima stop</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Then start Docker:</p>
+<div class="dx-code"><pre><code>colima start</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Colima does not start by itself after a restart of the Mac. To start it now and at every login, use
+<code>brew services start colima</code> instead.</p>
+<p><strong>On Linux</strong>, install Docker Engine and check that <code>docker ps</code> works without <code>sudo</code>. Or use Twingate's own Linux
+package instead of Docker: in step 3, choose <strong>Linux</strong> instead of <strong>Docker</strong> and run the command the console shows
+(<a href="https://www.twingate.com/docs/connectors-on-linux">Twingate's guide</a>). That command holds the tokens, so it goes into
+your shell history; Pointe's helper below keeps them out.</p>
+<h3 id="3-the-connector">3. The connector</h3>
 <ol>
 <li>
-<p>In the Twingate admin console, add a remote network for the Mac, then a connector in it, and choose Docker. The
-   console shows a <code>docker run</code> command with the connector's tokens.</p>
+<p>In the Twingate admin console, click <strong>Network</strong>. Next to <strong>Remote Networks</strong>, click <strong>Add</strong>, choose a location, and
+   name it after this computer.</p>
 </li>
 <li>
-<p>Copy that command, then run Pointe's <code>voice-connector</code>. It reads the command from the clipboard, keeps the tokens in
-   a file only you can read (<code>~/.claude-voice/twingate-connector.env</code>), and starts the container with
-   <code>--restart=unless-stopped</code>. The tokens never reach a command line or your shell history.</p>
-<p><code>voice-connector</code> is in the <code>bin</code> folder of the plugin: the last line of <code>~/.local/bin/pointe</code> names that folder.
- In a clone, it is <code>bin/voice-connector</code>.</p>
+<p>In that remote network, click <strong>Deploy Connector</strong> and choose <strong>Docker</strong>. Generate the tokens (Twingate asks you to
+   sign in again). Copy the <code>docker run</code> command the console shows. Do not paste it in a terminal: it holds the
+   tokens.</p>
 </li>
 <li>
-<p>In the console, the connector shows as connected after a few seconds. On the Mac, <code>docker ps</code> lists it.</p>
+<p>Run Pointe's connector helper:</p>
+<div class="dx-code"><pre><code>&quot;$(dirname &quot;$(tail -n 1 ~/.local/bin/pointe | cut -d&#x27; &#x27; -f2)&quot;)/voice-connector&quot;</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It reads the command from the clipboard, keeps the tokens in <code>~/.claude-voice/twingate-connector.env</code> (only you can
+ read it), and starts the connector with <code>--restart=unless-stopped</code>. On Linux it shares the computer's network
+ (<code>--network host</code>). Over SSH, with no clipboard, it asks you to paste the command: paste it, press Enter, then
+ Ctrl-D. In a clone of the repository, the helper is <code>bin/voice-connector</code>.</p>
+</li>
+<li>
+<p><code>docker ps</code> lists the connector (<code>twingate-…</code>), and the console shows it as connected after a few seconds.</p>
 </li>
 </ol>
-<h3 id="3-the-resource">3. The resource</h3>
-<p>In the Twingate console, add a resource in the same remote network:</p>
+<h3 id="4-the-resource">4. The resource</h3>
+<p>In the admin console, click <strong>Network</strong>, then <strong>Add Resource</strong>, in the remote network from step 3:</p>
 <div class="dx-table"><table>
 <thead>
 <tr>
 <th>Field</th>
 <th>Value</th>
-<th>Why</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td>Label</td>
+<td><code>Pointe</code></td>
+</tr>
+<tr>
 <td>Address</td>
-<td><code>host.docker.internal</code></td>
-<td>The Mac itself, as the connector's container sees it</td>
+<td>On a Mac: <code>host.docker.internal</code> (the Mac, as the connector's container sees it). On Linux: <code>127.0.0.1</code></td>
 </tr>
 <tr>
 <td>Alias</td>
-<td>a name of your own, such as <code>pointe.example.internal</code></td>
-<td>The name the phone uses, and the name the certificate is made for</td>
+<td><code>pointe.&lt;you&gt;.internal</code>, a name of your own. Not <code>.local</code>, which <a href="https://www.twingate.com/docs/resource-aliases">Twingate advises against</a></td>
 </tr>
 <tr>
 <td>Ports</td>
-<td>TCP 7443 only</td>
-<td>Pointe's phone listener, and nothing else on the Mac</td>
+<td>TCP 7443 only. Block UDP</td>
 </tr>
 <tr>
 <td>Access</td>
-<td>only you</td>
-<td>Anyone with access can reach the listener; pairing still guards it</td>
+<td>A group with only you in it. The <strong>Everyone</strong> group gives it to every user of the network (<a href="https://www.twingate.com/docs/groups">groups</a>)</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="4-pair">4. Pair</h3>
+<h3 id="5-pair">5. Pair</h3>
 <ol>
-<li>On the iPhone, open the Twingate client and sign in.</li>
 <li>
-<p>On the Mac, open Pointe's page: <strong>Settings → Phone → Connect your phone</strong>. In "Or a name you set up (Twingate, a
-   VPN)", type the alias and press <strong>Check</strong>, then choose it and <strong>Show the code</strong>. In a terminal instead:
-   <code>pointe pair host pointe.example.internal</code>, then <code>pointe restart</code>.</p>
+<p>On the computer:</p>
+<div class="dx-code"><pre><code>pointe pair host pointe.&lt;you&gt;.internal</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>It prints a QR code.</p>
 </li>
 <li>
-<p>On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)</p>
+<p>On the iPhone, install <strong>Twingate</strong> from the App Store. Open it, type your network's name, tap <strong>Join Network</strong>,
+   then <strong>Sign in to Connect</strong> (<a href="https://www.twingate.com/docs/ios">Twingate's iOS guide</a>).</p>
+</li>
+<li>
+<p>Open the Pointe app, scan the QR code inside the app, and confirm the computer it names. The Camera app does not
+   pair.</p>
 </li>
 </ol>
-<p>The page may say "This Mac can't look it up, so Pointe can't check it." That is expected: a Twingate alias often
-resolves only on the phone. Use it anyway.</p>
-<p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 2 and open the address once on the phone.
+<p>The page does the same as step 1: <strong>Settings → Phone → Connect your phone</strong>, type the alias in "Or a name you set up
+(Twingate, a VPN)", press <strong>Check</strong>, then <strong>Show the code</strong>. It may say "This Mac can't look it up": expected, as the
+alias often resolves only on the phone.</p>
+<h2 id="check-it">Check it</h2>
+<p>On the iPhone, with Twingate on, open this in Safari, with your alias in place of <code>&lt;alias&gt;</code>:</p>
+<div class="dx-code"><pre><code>https://&lt;alias&gt;:7443/voice/status</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p>Safari warns about the certificate first (Pointe made it on your computer); go past the warning. You should see
+"This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…". Pointe on your computer wrote
+that line, so the route works. The app does not need this browser pairing.</p>
+<h2 id="when-it-stops-working">When it stops working</h2>
+<p>On the computer, <code>pointe doctor</code> checks the paired route under "Phone".</p>
+<ul>
+<li>
+<p><strong>Safari says the server can't be found, or the app says "Can't find your Mac"</strong> → Twingate on the phone does not
+  handle the name. In the phone's Twingate app: it is connected, and the resource is listed. Turn off any other VPN.
+  Turn off iCloud Private Relay (Settings, your name, iCloud, Private Relay). A new alias sometimes resolves only after
+  you quit and reopen the Twingate app.</p>
+</li>
+<li>
+<p><strong>It works on the computer, not on the phone</strong> → the phone signed in with another account or network, or that
+  account is not in the resource's group. Check both in the admin console.</p>
+</li>
+<li>
+<p><strong>"Your Mac did not answer"</strong> → the connector is down. On a Mac: <code>colima status</code>, then <code>colima start</code> (the connector
+  comes back by itself). Then <code>docker ps</code> lists it, and the console shows it connected. If not, read
+  <code>docker logs &lt;the connector's name&gt;</code>, or run the helper again; for new tokens, copy a new command first.</p>
+</li>
+<li>
+<p><strong>The connection stalls, or works only on the second or third try, on a Mac</strong> → <code>limactl --version</code>. Below 2.3.0:
+  <code>brew upgrade lima</code>, <code>colima stop</code>, <code>colima start</code>.</p>
+</li>
+<li>
+<p><strong>"Pointe is not answering"</strong> → Pointe does not run on the computer. Run <code>/pointe:voice</code> in a Claude Code session,
+  or <code>pointe restart</code>.</p>
+</li>
+<li>
+<p><strong>The phone connects, then pairing fails, or the app says "Your Mac's certificate changed"</strong> → the computer has a
+  new certificate: after <code>pointe pair rotate</code>, a new route, or a reinstall that removed Pointe's settings. Run
+  <code>pointe pair host pointe.&lt;you&gt;.internal</code> again and scan the new code.</p>
+</li>
+<li>
+<p><strong>On Linux, you started the console's <code>docker run</code> command yourself</strong> → that connector sits on Docker's bridge and
+  cannot reach <code>127.0.0.1</code>. Run <code>pointe pair host pointe.&lt;you&gt;.internal --listen docker</code>, and set the resource's
+  address to the bridge address it prints (usually <code>172.17.0.1</code>). Or remove that container and use the helper.</p>
+</li>
+<li>
+<p><strong>Safari reaches the address and the app does not</strong> → pair the app again.</p>
+</li>
+</ul>
+<h2 id="how-it-works">How it works</h2>
+<p><code>pointe pair host &lt;alias&gt;</code> makes a certificate for the alias and listens on <code>127.0.0.1</code>, port 7443
+(<code>pointe/pair.py</code>). The phone's Twingate client sends the alias's connections to the connector, which forwards them to
+that port. The app trusts the computer's certificate by its fingerprint, end to end: Twingate carries the connection
+and does not decrypt it.</p>
+<p>For the phone's browser instead of the app, run <code>pointe pair link</code> after step 5 and open the address once on the phone.
 To avoid the certificate warning, make the phone trust this one name:
 <a href="../#a-certificate-the-phone-trusts">A certificate the phone trusts</a>.</p>
-<h2 id="how-it-works">How it works</h2>
-<p><code>pointe pair host &lt;alias&gt;</code> makes a certificate for the alias and listens on <code>127.0.0.1</code>, port 7443 (<code>pointe/pair.py</code>). The
-phone's Twingate client resolves the alias and sends the connection to the connector on the Mac, which forwards it to
-the listener. The app trusts the Mac's certificate by its fingerprint, end to end: Twingate carries the connection and
-does not decrypt it.</p>
-<h2 id="when-it-stops-working">When it stops working</h2>
-<p>The app says "Can't find your Mac" or "Your Mac did not answer", with the alias it tried. On the Mac, the page warns
-"&lt;alias&gt; does not reach this Mac" beside the code, and <code>pointe doctor</code> says the same under "Phone". Check in this
-order.</p>
-<div class="dx-table"><table>
-<thead>
-<tr>
-<th>Check</th>
-<th>Why</th>
-<th>Fix</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>Docker runs on the Mac: <code>colima status</code> (or <code>docker ps</code> answers)</td>
-<td>Colima stops when the Mac restarts, and the connector with it. The phone cannot connect until it runs again.</td>
-<td><code>colima start</code>. The connector comes back by itself (<code>--restart=unless-stopped</code>). To avoid this after the next reboot: <code>brew services start colima</code>.</td>
-</tr>
-<tr>
-<td>The connector container runs: <code>docker ps</code> lists it</td>
-<td>It was stopped, or its tokens were revoked in the console</td>
-<td>Start it again with <code>voice-connector</code>; for new tokens, copy a new command from the console first</td>
-</tr>
-<tr>
-<td>The console shows the connector as connected</td>
-<td>The Mac has no internet, or the connector cannot reach Twingate</td>
-<td>Fix the Mac's network; read <code>docker logs &lt;the connector's name&gt;</code></td>
-</tr>
-<tr>
-<td>The phone's Twingate client is on and signed in</td>
-<td>The alias resolves only through the client</td>
-<td>Turn the client on</td>
-</tr>
-<tr>
-<td>The alias resolves on the phone</td>
-<td>A new alias sometimes does not resolve until the client restarts</td>
-<td>Quit and reopen the Twingate client on the phone, or sign out and in</td>
-</tr>
-<tr>
-<td>The resource allows TCP 7443, for you</td>
-<td>Another port, or no access, blocks the connection</td>
-<td>Edit the resource in the console</td>
-</tr>
-<tr>
-<td>The listener answers: open <code>https://&lt;alias&gt;:7443/voice/status</code> in Safari on the phone</td>
-<td>A certificate warning, then "This browser is no longer paired with the Mac…" or "forbidden", means Twingate works</td>
-<td>If Safari reaches it and the app does not, pair the app again. If Safari can't reach it either, the problem is in the rows above.</td>
-</tr>
-<tr>
-<td>Pointe runs on the Mac, with the phone listener on</td>
-<td>The listener starts with Pointe</td>
-<td>On the page, Settings → Phone: the alias is "in use". Or run <code>pointe pair host &lt;alias&gt;</code>, then <code>pointe restart</code>.</td>
-</tr>
-</tbody>
-</table></div>
-<p><code>pointe pair off</code> stops Pointe's listener and leaves the connector running. To remove the connector too, stop and
-delete its container (<code>docker rm -f &lt;the connector's name&gt;</code>), delete <code>~/.claude-voice/twingate-connector.env</code>, and
-remove the connector in the console.</p>
+<p>To remove the connector: <code>pointe pair off</code> stops Pointe's listener only. Then <code>docker rm -f &lt;the connector's name&gt;</code>,
+delete <code>~/.claude-voice/twingate-connector.env</code>, and remove the connector in the console.</p>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/phone/twingate.md">docs/phone/twingate.md</a> in the repository.</p>
 <nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../tailscale/"><span class="pg-small">Previous</span>Connect over Tailscale</a><a class="dx-next" href="../cloudflare/"><span class="pg-small">Next</span>Connect over Cloudflare Tunnel with Access</a></nav>
@@ -272,12 +294,14 @@ remove the connector in the console.</p>
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
 <li class="dx-l2"><a href="#set-it-up">Set it up</a></li>
-<li class="dx-l3"><a href="#1-docker-on-the-mac">1. Docker on the Mac</a></li>
-<li class="dx-l3"><a href="#2-the-connector">2. The connector</a></li>
-<li class="dx-l3"><a href="#3-the-resource">3. The resource</a></li>
-<li class="dx-l3"><a href="#4-pair">4. Pair</a></li>
-<li class="dx-l2"><a href="#how-it-works">How it works</a></li>
+<li class="dx-l3"><a href="#1-a-twingate-network">1. A Twingate network</a></li>
+<li class="dx-l3"><a href="#2-docker">2. Docker</a></li>
+<li class="dx-l3"><a href="#3-the-connector">3. The connector</a></li>
+<li class="dx-l3"><a href="#4-the-resource">4. The resource</a></li>
+<li class="dx-l3"><a href="#5-pair">5. Pair</a></li>
+<li class="dx-l2"><a href="#check-it">Check it</a></li>
 <li class="dx-l2"><a href="#when-it-stops-working">When it stops working</a></li>
+<li class="dx-l2"><a href="#how-it-works">How it works</a></li>
 </ul>
 </details>
 </aside>

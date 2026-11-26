@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Connect your phone · Pointe docs</title>
-<meta name="description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach the daemon on your Mac through a…">
+<meta name="description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach Pointe on your computer (a Mac, or…">
 <meta name="referrer" content="no-referrer">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0A0400" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Connect your phone">
-<meta property="og:description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach the daemon on your Mac through a…">
+<meta property="og:description" content="You can join the call from your phone in two ways: the iPhone app, or Pointe&#x27;s page in the phone&#x27;s browser. Both reach Pointe on your computer (a Mac, or…">
 <meta property="og:image" content="https://eng.ballerine.com/pointe/social.png">
 <meta property="og:url" content="https://eng.ballerine.com/pointe/docs/phone/">
 <meta name="twitter:card" content="summary_large_image">
@@ -121,12 +121,19 @@
 <article class="dx-doc">
 <h1 id="connect-your-phone">Connect your phone</h1>
 <p>You can join the call from your phone in two ways: the iPhone app, or Pointe's page in the phone's browser. Both reach
-the daemon on your Mac through a second listener, on port 7443, that uses HTTPS. Your phone needs a private way to
-reach that port. This page helps you choose one, pair the phone, and fix what goes wrong.</p>
+Pointe on your computer (a Mac, or <a href="../linux/">Linux</a>) through a second listener, on port 7443, that uses HTTPS. Your
+phone needs a private way to reach that port.</p>
+<h2 id="which-should-i-pick">Which should I pick?</h2>
+<ul>
+<li><strong><a href="wifi/">Wi-Fi</a>:</strong> the phone and the computer are on the same network. Nothing to set up.</li>
+<li><strong><a href="tailscale/">Tailscale</a>:</strong> the easiest for personal use. Works anywhere both have internet.</li>
+<li><strong><a href="twingate/">Twingate</a>:</strong> if your company already uses it.</li>
+</ul>
+<p>Each guide is a few numbered steps for a Mac and for Linux, and ends with a check you run on the phone.</p>
 <p>The iPhone app is on the <a href="https://apps.apple.com/app/id6838678047">App Store</a> (next versions early on <a href="https://testflight.apple.com/join/gkRJccpc">TestFlight</a>). You can also build it from source
 (<a href="../iphone-app/#getting-the-app">The iPhone app</a>), or use the page in the phone's browser, which needs nothing on the
 phone.</p>
-<h2 id="which-one-should-i-use">Which one should I use</h2>
+<h2 id="all-the-routes">All the routes</h2>
 <div class="dx-table"><table>
 <thead>
 <tr>
@@ -150,7 +157,7 @@ phone.</p>
 <tr>
 <td><strong>Tailscale</strong></td>
 <td>Anywhere both have internet</td>
-<td>Tailscale on the Mac and the phone, one account</td>
+<td>Tailscale on the computer and the phone, one account</td>
 <td>Yes</td>
 <td>Yes, after a certificate warning</td>
 <td><a href="tailscale/">Tailscale</a></td>
@@ -158,7 +165,7 @@ phone.</p>
 <tr>
 <td><strong>Twingate</strong></td>
 <td>Anywhere the phone's Twingate client is on</td>
-<td>A Twingate network, a connector in Docker on the Mac (Colima works), the Twingate client on the phone</td>
+<td>A Twingate network, a connector in Docker on the computer (Colima on a Mac), the Twingate client on the phone</td>
 <td>Yes</td>
 <td>Yes, after a certificate warning, or with <a href="#a-certificate-the-phone-trusts">a certificate the phone trusts</a></td>
 <td><a href="twingate/">Twingate</a></td>
@@ -550,7 +557,8 @@ route before they show the code, and <code>pointe doctor</code> checks the route
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>
 <ul>
-<li class="dx-l2"><a href="#which-one-should-i-use">Which one should I use</a></li>
+<li class="dx-l2"><a href="#which-should-i-pick">Which should I pick?</a></li>
+<li class="dx-l2"><a href="#all-the-routes">All the routes</a></li>
 <li class="dx-l2"><a href="#pairing">Pairing</a></li>
 <li class="dx-l3"><a href="#from-the-page">From the page</a></li>
 <li class="dx-l3"><a href="#from-the-mac-app">From the Mac app</a></li>

@@ -1,6 +1,6 @@
 # Connect over Wi-Fi
 
-The phone reaches the Mac's address on the network they share. You install nothing. It works only while both devices
+The phone reaches the computer's address on the network they share. You install nothing. It works only while both devices
 stay on that network, and until the Mac's address changes. For a route that works away from home, use
 [Tailscale](tailscale.md).
 
@@ -13,20 +13,41 @@ Two networks work:
 
 ## Set it up
 
-1. Put the Mac and the phone on the same network (one of the two above).
-2. Pair. On the Mac, open Pointe's page: **Settings → Phone → Connect your phone**. Choose **Same Wi-Fi** (it shows the
-   Mac's address), then **Show the code**. In a terminal instead: `pointe pair wifi`, then `pointe restart`.
-3. On the iPhone, scan the code in the Pointe app and confirm the Mac it names. (The Camera does not pair: a link it opens only takes you to the app's scanner.)
+1. Put the computer and the phone on the same network (one of the two above).
+2. On the computer:
+
+   ```
+   pointe pair wifi
+   ```
+
+   It prints a QR code. On a Mac it uses the Wi-Fi address (`en0`, else `en1`); on Linux, the private address of the
+   default route, wired or Wi-Fi. The page does the same: **Settings → Phone → Connect your phone**, **Same Wi-Fi**,
+   **Show the code**.
+3. Open the Pointe app, scan the QR code inside the app, and confirm the computer it names. The Camera app does not
+   pair.
 4. The first time, iOS asks whether Pointe may find and connect to devices on your local network. Allow it: the
    Wi-Fi route needs it.
+
+## Check it
+
+On the iPhone, on the same network, open this in Safari, with the address `pointe pair wifi` printed ("It connects to
+…"):
+
+```
+https://<address>:7443/voice/status
+```
+
+Safari warns about the certificate first (Pointe made it on your computer); go past the warning. You should see
+"This browser is no longer paired with the Mac. On the Mac, run: pointe pair link…". Pointe on your computer wrote
+that line, so the route works.
 
 For the phone's browser instead of the app, run `pointe pair link` after step 2 and open the address once on the phone
 ([In the phone's browser](../phone.md#in-the-phones-browser)).
 
 ## How it works
 
-`pointe pair wifi` reads the Mac's address on `en0` (or `en1`), makes a certificate for that address, and listens on
-it, port 7443 (`pointe/pair.py`). The app trusts that one certificate, by its fingerprint. The listener is on the Wi-Fi
+`pointe pair wifi` reads the computer's address (above), makes a certificate for that address, and listens on it,
+port 7443 (`pointe/pair.py`). The app trusts that one certificate, by its fingerprint. The listener is on the Wi-Fi
 address only, not on every interface.
 
 ## When it stops working
