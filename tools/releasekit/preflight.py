@@ -41,7 +41,7 @@ def wip(tree: Path, base: str) -> str:
     problems = []
     subjects = sh(["git", "log", "--format=%h %s", f"{base}..HEAD"], cwd=tree).stdout.splitlines()
     problems += [f"commit {s}" for s in subjects if WIP_SUBJECT.search(s.split(" ", 1)[1] if " " in s else s)]
-    marked = sh(["git", "grep", "-n", "-I", "-F", WIP_MARK, "--", ".", ":!tools/releasekit", ":!docs/releasing.md", ":!tests/test_release_tool.py"],
+    marked = sh(["git", "grep", "-n", "-I", "-F", WIP_MARK, "--", ".", ":!tools/releasekit", ":!docs/releasing.md", ":!site/pointe/docs/releasing", ":!tests/test_release_tool.py"],
                 cwd=tree, check=False).stdout.splitlines()
     problems += [f"marker {line[:120]}" for line in marked]
     if problems:

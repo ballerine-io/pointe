@@ -141,7 +141,7 @@ def version_commit(ctx: Ctx) -> str:
         raise Fail("the summary says 'beta': it becomes the App Store's What's New, which must not (App Review 2.2)")
     git(ctx, "checkout", "-q", "--detach", ctx.state.fact("base"))
     builds = bumpmod.bump(ctx.tree, ctx.version, summary, last_tag=ctx.state.fact("last_tag", ""))
-    changed = sorted(line[3:] for line in git(ctx, "status", "--porcelain").splitlines())
+    changed = sorted(f for f in sh(["git", "diff", "--name-only", "HEAD"], cwd=ctx.tree).stdout.split() if f)  # porcelain's columns break under strip()
     expected = {".claude-plugin/plugin.json", "pyproject.toml", "uv.lock", "CHANGELOG.md", "apps/ios/Pointe.xcodeproj/project.pbxproj",
                 "apps/macos/tools/make_project.py", "apps/macos/PointeMac.xcodeproj/project.pbxproj"}
     stray = [f for f in changed if f not in expected and not f.startswith("site/")]
