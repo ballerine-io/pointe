@@ -36,7 +36,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 2 of 102 (1% to 7%) against 0 of 102 | **FAIL** |
 | wrong session on clear turns | at most 5% | 2 of 102 (1% to 7%); the interval does not rule out a rate above the bar | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 36 of 42 (72% to 93%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 12000 against 12000 (100%); models: stubbed; 80 of 100 marked quiet, 0 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=on, build `502cd35ea5`
@@ -67,7 +67,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 15 of 100 (9% to 23%) against 1 of 102 | **FAIL** |
 | wrong session on clear turns | at most 5% | 15 of 100 (9% to 23%) | **FAIL** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 20 of 42 (33% to 62%) | **FAIL** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=off, build `05857b19f6`
@@ -98,7 +98,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 1 of 102 | **pass** |
 | wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 31 of 42 (59% to 85%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 12000 against 12000 (100%); models: stubbed; 80 of 100 marked quiet, 0 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=on, build `05857b19f6`
@@ -129,7 +129,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 0 of 100 (0% to 4%) against 1 of 102 | **pass** |
 | wrong session on clear turns | at most 5% | 0 of 100 (0% to 4%) | **pass** |
 | asked first on ambiguous turns | at least 30 of 41 (10 of 14, scaled to n) | 35 of 41 (72% to 93%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried)
@@ -160,7 +160,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 1 of 102 | **pass** |
 | wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 31 of 42 (59% to 85%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 12000 against 12000 (100%); models: stubbed; 80 of 100 marked quiet, 0 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 10x30, the fleet build, POINTE_FLEET=off, build `0b98c14e3a` (rows of build `05857b19f6`, carried)
@@ -175,7 +175,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | first token, p90 | at most 150 ms above 1x4 | 2.014 s against 1.142 s (+872 ms; 95% interval +679 ms to +1078 ms) | **FAIL** |
 | wrong session on clear turns | not above the 1x4 rate | 2 of 32 (2% to 20%) against 1 of 102 | **FAIL** |
 | asked first on ambiguous turns | at least 10 of 14 (10 of 14, scaled to n) | 3 of 14 (8% to 48%) | **FAIL** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 36000 against 36000 (100%); models: stubbed; 240 of 300 marked quiet, 97 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=on, build `0b98c14e3a`
@@ -206,7 +206,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 0 of 102 | **FAIL** |
 | wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 35 of 42 (69% to 92%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 10x30, the fleet build, POINTE_FLEET=on, build `0b98c14e3a`
@@ -221,7 +221,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | first token, p90 | at most 150 ms above 1x4 | 1.955 s against 1.303 s (+652 ms; 95% interval +501 ms to +846 ms) | **FAIL** |
 | wrong session on clear turns | not above the 1x4 rate | 1 of 99 (0% to 6%) against 0 of 102 | **FAIL** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 38 of 42 (78% to 96%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 5160 against 36000 (14%); models: stubbed; 240 of 300 marked quiet, 255 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
 
 ### 1x4, the fleet build, POINTE_FLEET=off, build `271e64c1d0`
@@ -252,7 +252,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 1 of 102 (0% to 5%) against 0 of 101 | **FAIL** |
 | wrong session on clear turns | at most 5% | 1 of 102 (0% to 5%); the interval does not rule out a rate above the bar | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 32 of 42 (61% to 87%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 12000 against 12000 (100%); models: stubbed; 80 of 100 marked quiet, 0 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (5 spoken), 0 held, 26 lost, of 30 (fleet-20261127-015709-burst-5x20-fleet-off) | **FAIL** |
 
 ### 10x30, the fleet build, POINTE_FLEET=off, build `271e64c1d0`
@@ -267,7 +267,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | first token, p90 | at most 150 ms above 1x4 | 1.156 s against 1.031 s (+125 ms; 95% interval -53 ms to +227 ms) | **pass** |
 | wrong session on clear turns | not above the 1x4 rate | 5 of 96 (2% to 12%) against 0 of 101 | **FAIL** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 19 of 42 (31% to 60%) | **FAIL** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 36000 against 36000 (100%); models: stubbed; 240 of 300 marked quiet, 97 quiet in the tiers | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (5 spoken), 0 held, 25 lost, of 30 (fleet-20261127-020207-burst-10x30-fleet-off) | **FAIL** |
 
 ### 1x4, the fleet build, POINTE_FLEET=on, build `271e64c1d0`
@@ -298,7 +298,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | 0 of 102 (0% to 4%) against 0 of 102 | **pass** |
 | wrong session on clear turns | at most 5% | 0 of 102 (0% to 4%) | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 35 of 42 (69% to 92%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 3 report lines (5 spoken), 1 held, 25 lost, of 30 (fleet-20261127-015503-burst-5x20-fleet-on) | **FAIL** |
 
 ### 10x30, the fleet build, POINTE_FLEET=on, build `271e64c1d0`
@@ -313,7 +313,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | first token, p90 | at most 150 ms above 1x4 | 1.781 s against 1.005 s (+776 ms; 95% interval +711 ms to +881 ms) | **FAIL** |
 | wrong session on clear turns | not above the 1x4 rate | 0 of 96 (0% to 4%) against 0 of 102 | **pass** |
 | asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 38 of 42 (78% to 96%) | **pass** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 5160 against 36000 (14%); models: stubbed; 240 of 300 marked quiet, 255 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (6 spoken), 1 held, 25 lost, of 30 (fleet-20261127-015918-burst-10x30-fleet-on) | **FAIL** |
 
 ### 5x20, the fleet build, POINTE_FLEET=on, build `26a52ec697`
@@ -329,7 +329,7 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | wrong session on clear turns | not above the 1x4 rate | not measured | **not measured** |
 | wrong session on clear turns | at most 5% | not measured | **not measured** |
 | asked first on ambiguous turns | at least 0 of 0 (10 of 14, scaled to n) | not measured | **not measured** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (5 spoken), 23 held, 0 lost, of 30 (fleet-20261127-031550-burst-5x20-fleet-on) | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (6 spoken), 23 held, 0 lost, of 30 (fleet-20261127-031758-burst-5x20-fleet-on) | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 23 held, 0 lost, of 30 (fleet-20261127-031957-burst-5x20-fleet-on) | **pass** |
@@ -346,14 +346,14 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | first token, p90 | at most 150 ms above 1x4 | not measured | **not measured** |
 | wrong session on clear turns | not above the 1x4 rate | not measured | **not measured** |
 | asked first on ambiguous turns | at least 0 of 0 (10 of 14, scaled to n) | not measured | **not measured** |
-| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 5160 against 36000 (14%); models: stubbed; 240 of 300 marked quiet, 255 quiet in the tiers | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 23 held, 4 lost, of 30 (fleet-20261127-032202-burst-10x30-fleet-on) | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 24 held, 3 lost, of 30 (fleet-20261127-032444-burst-10x30-fleet-on) | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 25 held, 1 lost, of 30 (fleet-20261127-032726-burst-10x30-fleet-on) | **FAIL** |
 
 ## The arms, as the daemon states them
 
-3152 of 3152 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `26a52ec697`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
+3160 of 3160 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `26a52ec697`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
 
 Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0b98c14e3a`, not run again. Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`.
 
@@ -755,6 +755,14 @@ Lost: a session that ended its turn and is named neither in a spoken line nor in
 | fleet-on | 10x30 | quiet_80 | 60 of 300 | n/a | n/a | 120 | 144 | 21 | 4,320 |  |
 | fleet-off | 10x30 | all_active | 300 of 300 | n/a | n/a | 600 | 930 | 0 | 27,900 |  |
 | fleet-off | 10x30 | quiet_80 | 60 of 300 | n/a | n/a | 120 | 186 | 0 | 5,580 |  |
+| fleet-on | 5x20 | all_active | 100 of 100 | 0 | 0 | 200 | 400 | 0 | 12,000 |  |
+| fleet-on | 5x20 | quiet_80 | 100 of 100 | 80 | 78 | 200 | 84 | 158 | 2,520 |  |
+| fleet-off | 5x20 | all_active | 100 of 100 | 0 | 0 | 200 | 400 | 0 | 12,000 |  |
+| fleet-off | 5x20 | quiet_80 | 100 of 100 | 80 | 0 | 200 | 400 | 0 | 12,000 |  |
+| fleet-on | 10x30 | all_active | 300 of 300 | 0 | 97 | 600 | 806 | 197 | 24,180 |  |
+| fleet-on | 10x30 | quiet_80 | 300 of 300 | 240 | 255 | 600 | 172 | 514 | 5,160 |  |
+| fleet-off | 10x30 | all_active | 300 of 300 | 0 | 97 | 600 | 1200 | 0 | 36,000 |  |
+| fleet-off | 10x30 | quiet_80 | 300 of 300 | 240 | 97 | 600 | 1200 | 0 | 36,000 |  |
 
 Counted with stubbed models: the count is the daemon's own decisions to call the reader, not what a model wrote. Every session ends a turn once a minute for two minutes; the hourly figure is the window's count times 30. In quiet_80 the user first types "keep tide harbor … quiet" for 80% of the sessions. The bar compares it with the rules-off arm's all_active, which reads every finished turn (all followed). Rows written before that (80% of the sessions idle, none marked, "Marked quiet" n/a) are listed and not counted. One run each: n = 1.
 
