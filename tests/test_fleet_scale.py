@@ -517,6 +517,78 @@ def test_a_quiet_sessions_finished_turn_is_not_read_until_it_asks_or_is_named(d,
     assert view["tiers"] == {"focus": 3, "background": 20, "quiet": 7}  # the active one, the thread, the one named
 
 
+def test_a_quiet_sessions_finished_turn_is_held_for_the_screen_and_never_lost(d, node, call, monkeypatch):
+    """The fleet benchmark's burst at 10x30: the quiet sessions' finished turns were neither said nor held (reader
+    skipped 3, 2 and 1 of them). Not read is not lost: the turn is held with its last words."""
+    voice, _ = call
+    read = reader(d, monkeypatch)
+    everyone = build(d, node, 1, 30)
+    tier = d._fleet_tiers()
+    quiet = [s for s in everyone if tier[s.id] == scale.QUIET][:3]
+
+    async def run():
+        for s in quiet:
+            await d.feed(s, finished(d, s.name, "The export queue now drains in order."), True)
+    asyncio.run(run())
+    assert read == [] and d.state.fleet_stats["reader_skipped"] == 3
+    held = {i.session: i.line for i in d.HELD.items}
+    assert set(held) == {s.name for s in quiet} and all("export queue" in held[s.name] for s in quiet), held
+    assert d.state.fleet_stats["reports_held"] == 3 and not any(s.name in voice.told() for s in quiet)
+
+
+def test_with_a_speech_plan_the_brain_never_folds_reports_into_one_line(d, node, call, monkeypatch):
+    """The fleet benchmark's burst at 10x30: three reports from three machines (each one its machine's only one, so
+    each "as it came") went to the brain as one batch, and its "Three updates:" line named two. With a plan, the brain
+    is handed one thing at a time: no batch, so no name to drop."""
+    voice, _ = call
+    _reports(d, monkeypatch)
+    everyone = build(d, node, 3, 2, here=1)
+    one_each = [everyone[1], everyone[3], everyone[5]]
+    assert len({s.machine for s in one_each}) == 3
+    asker = everyone[2]
+
+    async def run():
+        for s in one_each:
+            await d.feed(s, finished(d, s.name), True)
+        voice.injector._queue_update(f"[{asker.name} is waiting for a permission, not the active session] Tell the user "
+                                     f"in one line; they can switch to it by name.")
+        for _ in range(8):  # the gaps in the conversation that follow
+            voice.injector._asked_at = 0.0
+            await voice.injector._deliver_if_free()
+    asyncio.run(run())
+    to_brain = [f.text for f in voice.frames if isinstance(f, d.InputTextRawFrame)]
+    assert not any(t.startswith("[updates:") for t in to_brain), to_brain
+    assert [sum(scale.re.search(rf"\b{s.name}\b", t) is not None for t in to_brain) for s in one_each] == [1, 1, 1], to_brain
+    assert "waiting for a permission" in to_brain[1], to_brain  # after the report said at once, before the ones that waited
+    stats = d.state.fleet_stats
+    assert stats["reports_spoken"] == 3 and stats["report_lines_spoken"] == 3 and not d.HELD.items
+
+
+def test_a_burst_with_quiet_sessions_ends_each_report_said_or_held(d, node, call, monkeypatch):
+    """The 10x30 burst offline: machines of 25, so five on each are quiet, and thirty finish within the minute, every
+    quiet one among them. Each is named in a line said or in the held list, and four report lines at most are said."""
+    voice, _ = call
+    _reports(d, monkeypatch)
+    everyone = build(d, node, 2, 25, here=1)
+    tier = d._fleet_tiers()
+    quiet = [s for s in everyone if tier[s.id] == scale.QUIET]
+    assert len(quiet) == 10
+    done = quiet + [s for s in everyone[1:] if tier[s.id] != scale.QUIET][:20]
+
+    async def run():
+        for s in done:
+            await d.feed(s, finished(d, s.name), True)
+        for _ in range(8):
+            voice.injector._asked_at = 0.0
+            await voice.injector._deliver_if_free()
+    asyncio.run(run())
+    lines = spoken_lines(d, voice)
+    assert 1 <= len(lines) <= 4 and not any(x.startswith("[updates:") for x in lines), lines
+    said = {s.name for s in done if any(scale.re.search(rf"\b{s.name}\b", x) for x in lines)}
+    held = {i.session for i in d.HELD.items}
+    assert said | held == {s.name for s in done} and not said & held, ({s.name for s in done} - said - held)
+
+
 def test_with_the_rules_off_every_finished_turn_is_read(d, node, call, monkeypatch):
     monkeypatch.setenv("POINTE_FLEET", "off")
     read = reader(d, monkeypatch)

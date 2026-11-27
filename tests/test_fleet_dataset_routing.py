@@ -369,6 +369,36 @@ def test_a_description_narrows_to_its_session_and_the_models_pick_of_it_is_sent(
     rig.answer = None
 
 
+@pytest.mark.parametrize("size", ["5x20", "10x30"])
+def test_a_send_routed_by_its_description_is_acknowledged_in_code_on_a_big_fleet(d, node, monkeypatch, size):  # noqa: F811
+    """The paid rows at 58af2eb7: clear_description took a second brain step 36 times at 5x20 against 12 at 1x4. On a
+    big fleet the brain is not shown the sessions, so it sends with no name and the daemon picks by the words ("auto");
+    the result then asked the brain to "tell the user it went to X", a whole model step for the words "Sent to X.".
+    The quick acknowledgement says that name in code. With the rules off the result is as it was."""
+    rig = Rig(d, node, monkeypatch, size)
+    t = next(t for t in rig.turns if t["kind"] == "clear_description")
+    target = rig.by_id[t["expect"]["session"]]
+    message = t["text"].split(" to ", 1)[-1]
+
+    def send() -> dict:
+        d.state = d.State()
+        d.state.conn = fake_conn()
+        open_gates(d, monkeypatch, t["text"])
+        p = Params(message=message[0].upper() + message[1:])
+        asyncio.run(d.send_to_claude_code(p))
+        return p.results[0]
+
+    rig.answer = target
+    result = send()
+    assert result["sent_to"] == [target.name] and result["routing"] == "auto", result
+    assert d._quick_ack({"message": message}, result, t["text"]) == f"Sent to {d._spoken_names(target.name).split('/')[0]}."
+    monkeypatch.setenv("POINTE_FLEET", "off")
+    result = send()
+    assert result["sent_to"] == [target.name] and result["say"] == f"Tell the user it went to {target.name}.", result
+    assert d._quick_ack({"message": message}, result, t["text"]) is None
+    rig.answer = None
+
+
 # ---------- the budget, in the vendor's tokens ----------
 
 def test_the_block_stays_under_the_budget_at_the_vendors_worst_measured_rate(rig):
@@ -398,7 +428,7 @@ def test_list_sessions_rows_are_slim_for_sessions_out_of_focus(rig):
 
 # ---------- the brain's input does not grow with the fleet ----------
 
-def _a_call(d, monkeypatch, rig, turns: int = 30) -> list[int]:  # noqa: F811
+def _a_call(d, monkeypatch, rig, turns: int = 30, sent: list | None = None) -> list[int]:  # noqa: F811
     """A call of `turns` scripted turns of the benchmark's kinds, with a stub model that sends what is asked and then
     says a line. Returns the size of the brain's whole input at each turn's first step, in tokens by the budget's own
     estimate (characters over 2.6): the prompt, the tools and the history as assembled."""
@@ -413,6 +443,9 @@ def _a_call(d, monkeypatch, rig, turns: int = 30) -> list[int]:  # noqa: F811
     async def step(choice, instructions, messages, decls, heard=None):
         chars = len(instructions) + len(json.dumps(decls, ensure_ascii=False)) + sum(map(d.Brain._chars, messages))
         sizes[-1].append(int(chars / scale.CHARS_PER_TOKEN))
+        if sent is not None:  # what the vendor is handed, in its order: tools, the system prompt, then the history
+            sent.append((json.dumps(decls, ensure_ascii=False), instructions,
+                         [json.dumps(m, ensure_ascii=False, sort_keys=True, default=str) for m in messages]))
         last = messages[-1]
         asked = next((m["content"] for m in reversed(messages) if m["role"] == "user" and not m["content"].startswith("[")), "")
         if last["role"] != "tool" and d._FAST_SEND.match(asked) and len(sizes[-1]) == 1:
@@ -469,6 +502,29 @@ def test_the_brains_input_at_5x20_is_within_a_twentieth_of_1x4(d, node, monkeypa
           f"last {small[-1]}; 5x20 median {statistics.median(big)}, first {big[0]}, last {big[-1]}")
     assert statistics.median(big) <= 1.05 * statistics.median(small)  # measured: 3.5% under
     assert big[0] <= 1.05 * small[0] and big[-1] <= 1.05 * small[-1]  # at the call's start and after thirty turns
+
+
+@pytest.mark.parametrize("size", ["1x4", "10x30"])
+def test_what_the_brain_is_sent_keeps_its_prefix_from_step_to_step(d, node, monkeypatch, size):  # noqa: F811
+    """The paid rows at 10x30 with the rules on: the vendor's time to first token was about 1.1 s against 0.76 s with
+    the rules off right after. A prompt the vendor cannot cache is the classic cause: an early part that changes. It is
+    not that here: over a scripted call the tools and the system prompt are the same bytes at every step, and each
+    step's history begins with the whole history of the step before, unless the history was trimmed (brain._trim,
+    over its budget). The cache then reads everything but what is new."""
+    sent: list = []
+    trims: list[int] = []
+    trim = d.Brain._trim
+
+    def counted(self):
+        before = len(self.messages)
+        trim(self)
+        if len(self.messages) != before:
+            trims.append(len(sent))
+    monkeypatch.setattr(d.Brain, "_trim", counted)
+    _a_call(d, monkeypatch, Rig(d, node, monkeypatch, size), sent=sent)
+    assert len(sent) >= 30 and len({(tools, system) for tools, system, _ in sent}) == 1
+    broke = [i for i in range(1, len(sent)) if sent[i][2][:len(sent[i - 1][2])] != sent[i - 1][2]]
+    assert set(broke) <= set(trims), (broke, trims)
 
 
 def test_the_block_of_a_big_fleet_does_not_change_when_a_session_is_only_named(rig):

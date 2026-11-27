@@ -1099,16 +1099,20 @@ class FeedInjector(FrameProcessor):
         items = [text for text in taken if not self._parked(text) and not _gone_since(text)]
         if items and scale.enabled() and not awaited:
             items = _fleet_speech(items)  # one line per machine, and past four lines a minute the rest are held
-            planned = [text for text in items if text in _PLANNED]
-            if planned and state.front is not None:
-                if len(planned) < len(items):
-                    # In a batch the brain would reword the plan's lines and drop names they say: what ranks before
-                    # them goes now, and they are said as planned at the next gap.
-                    for text in reversed(planned):
-                        self._queue_update(text, front=True)
-                    items = [text for text in items if text not in _PLANNED]
-                else:
-                    _PLANNED.difference_update(items)
+            if any(text in _PLANNED for text in items):
+                # A speech plan: its order, one thing at a time. Handed a batch, the brain rewords it and drops names
+                # ("Three updates:" naming two). The daemon's own lines at the head go together, as planned.
+                said = len(items)
+                for i, text in enumerate(items):
+                    if text not in _PLANNED or text not in _VERBATIM:
+                        said = i
+                        break
+                head = items[:said] if said and state.front is not None else items[:1]
+                for text in reversed(items[len(head):]):
+                    self._queue_update(text, front=True)
+                items = head
+                _PLANNED.difference_update(items)
+                if len(items) > 1:
                     self._offered, self._offered_at = items, time.time()
                     await self._say_verbatim("\n".join(items), " ".join(_VERBATIM.pop(text) for text in items))
                     return True
@@ -3386,7 +3390,9 @@ def _note_relay_refusal(session: Session, final: str) -> None:
 QUICK_ANSWER_CHARS = 700  # a final message this short, answering the user's question, is said without the reader
 VERBATIM_WORDS, VERBATIM_SENTENCES = 40, 3  # an answer this short is said in Claude's own words, without the model
 _VERBATIM: dict[str, str] = {}  # a queued short answer -> the line said for it, word for word
-_PLANNED: set[str] = set()  # the speech plan's lines (_fleet_speech), each in _VERBATIM: never folded into a batch
+# What the speech plan placed (_fleet_speech): its own lines, each in _VERBATIM, and the reports it says as they came.
+# Never folded into a batch, never planned twice.
+_PLANNED: set[str] = set()
 _CODE_NAME = re.compile(r"`([^`\n]{1,80})`")
 _FILE_LINE = re.compile(r"(\b[\w./-]+\.[A-Za-z]{1,5}):\d+(?:[-–:]\d+)?\b")
 _PATH = re.compile(r"(?<![\w/.])(?:[\w.-]+/)+[\w-]+(?:\.[A-Za-z]{1,5})?(?![\w/])|"
@@ -6682,7 +6688,7 @@ def fleet_view() -> dict:
 def _fleet_quiet_turn(session: Session, text: str) -> bool:
     """A quiet session ended a turn nobody here asked for: no reading-model call. Its state is what its machine
     signals (busy, a prompt, the turn's end). Read after all when its last words ask something, and when it is next
-    named, asked about or sent to (_fleet_touch)."""
+    named, asked about or sent to (_fleet_touch). In a call the turn is held with its last words: not read is not lost."""
     if not scale.enabled() or session is REGISTRY.active or state.unconfirmed.get(session.id) \
             or _night_front(session) is not None or text.rstrip().endswith(("?", "？")) \
             or _fleet_tiers().get(session.id) != scale.QUIET:
@@ -6690,6 +6696,10 @@ def _fleet_quiet_turn(session: Session, text: str) -> bool:
     state.fleet_unread.add(session.id)
     state.fleet_stats["reader_skipped"] += 1
     logger.info(f"fleet: {session.name} is quiet, its finished turn was not read")
+    if state.conn is not None:
+        line = text.split(FINAL_MARK, 1)[-1].strip().split("\n")[0][:300]
+        HELD.add(session.name, "report", line or "finished a turn", text)
+        state.fleet_stats["reports_held"] += 1
     return True
 
 
@@ -6977,7 +6987,8 @@ def _fleet_speech(items: list[str]) -> list[str]:
         return (scale.THREAD if s is None and was == 0 else scale.REST), was
 
     background = [t for t in items if (s := about(t)) is not None and s is not thread and s is not REGISTRY.active
-                  and flow.priority(t) >= 0 and "not the active session]" in t[:300] and not flow.awaited(t)]
+                  and flow.priority(t) >= 0 and "not the active session]" in t[:300] and not flow.awaited(t)
+                  and t not in _PLANNED]  # placed by an earlier plan, and waiting for its gap: not planned again
     if not background:
         return sorted(items, key=rank)
     text_of = {about(t).name: t for t in background}
@@ -6989,6 +7000,7 @@ def _fleet_speech(items: list[str]) -> list[str]:
     for line in lines:
         if not line.text:
             out.append(text_of[line.sessions[0]])
+            _PLANNED.add(text_of[line.sessions[0]])
         else:
             said = _spoken_names(line.text)
             item = _about(f"[{len(line.sessions)} sessions finished their turns, not the active session; data about the "
@@ -7844,7 +7856,10 @@ async def _send_now(message: str) -> dict:
         result["say"] = " ".join(set_aside)
     if turned_down:
         result["say"] = (result.get("say", "") + " Say exactly: " + " ".join(turned_down)).strip()
-    if how in ("auto", "thread") and targets[0] is not REGISTRY.active:
+    # A big fleet's brain is shown no session to name, so most sends there are picked by their words ("auto"): when
+    # that name is all there is to say, the quick acknowledgement says it ("Sent to nimbus."), with no second model step.
+    big_auto = how == "auto" and scale.big(len(REGISTRY.sessions))
+    if how in ("auto", "thread") and targets[0] is not REGISTRY.active and not (result.get("say") is None and big_auto):
         result["say"] = (f"Tell the user it went to {targets[0].name}. " + result.get("say", "")).strip()
     if offline:
         result["offline"] = [t.name for t in offline]

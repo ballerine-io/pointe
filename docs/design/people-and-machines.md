@@ -241,14 +241,19 @@ session those words fit, and it is sent, also when the talk was about another se
 `more`, and the per-machine lines. "What's going on everywhere" with more than five sessions is said by the daemon
 from its counts, machine by machine.
 
-**Quiet sessions.** A quiet session's finished turn is not read by the reading model. It is read when its last words
-end in a question, and its notes are read when it is next named, asked about or sent to.
+**Quiet sessions.** A quiet session's finished turn is not read by the reading model. In a call it is held for the
+screen with its last words, like any report past the minute's four lines: not read is not lost. It is read when its
+last words end in a question, and its notes are read when it is next named, asked about or sent to.
 
 **Speech.** Approvals first, then sessions that need the user, then the thread's reports, then the rest. More than two
 background reports waiting become one line per machine ("Three on avi-box finished: tide, harbor and ferry; ferry has
 a question."). Past four background lines in a minute the rest are held for the screen and for "anything from the
-others?". A report with a question for the user is never held. The plan's lines are said by the daemon as planned,
-never folded into a batch the brain rewords: what ranks before them goes first, and they follow at the next gap.
+others?". A report with a question for the user is never held. While a plan has placed what waits, it is said in the plan's
+order one thing at a time, and the brain is never handed a batch of them: handed three reports, it said "Three
+updates:" and named two. The daemon's own lines at the head of the order are said together, as planned.
+
+On a big fleet the brain is shown no session to name, so most sends there are routed by their words. When the session's
+name is all there is to say about such a send, the daemon says "Sent to nimbus." itself, with no second model step.
 
 **For the benchmark.** `GET /voice/context` has `fleet`: the block and its token estimate, the count of sessions per
 tier, the candidates of the last routing decision with how each was picked, and counters of reader calls made and
