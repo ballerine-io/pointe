@@ -65,6 +65,21 @@ def bootstrap(values: list[float], q: float = 0.5, iters: int = 2000, seed: int 
     return stats[int(0.025 * iters)], stats[min(iters - 1, int(0.975 * iters))]
 
 
+def bootstrap_against(mine: list[float], ref: list[float], q: float, ratio: bool, iters: int = 2000,
+                      seed: int = 20261126) -> tuple[float, float] | None:
+    """95% percentile interval of a size's quantile against the 1x4 one (a ratio minus 1, or a difference), resampling
+    both sets of turns independently."""
+    if not mine or not ref:
+        return None
+    rng = random.Random(seed)
+
+    def one(values: list[float]) -> float:
+        return quantile([values[rng.randrange(len(values))] for _ in values], q)
+
+    stats = sorted((one(mine) / one(ref) - 1) if ratio else (one(mine) - one(ref)) for _ in range(iters))
+    return stats[int(0.025 * iters)], stats[min(iters - 1, int(0.975 * iters))]
+
+
 def asked(said: list[str]) -> bool:
     return any("?" in line or "？" in line for line in said)
 
@@ -124,7 +139,7 @@ def _rate(k: int, n: int) -> dict:
 
 
 def _spread(values: list[float]) -> dict:
-    return {"n": len(values), "median": median(values), "p90": quantile(values, 0.9), "max": max(values) if values else None,
+    return {"n": len(values), "values": values, "median": median(values), "p90": quantile(values, 0.9), "max": max(values) if values else None,
             "median_interval": bootstrap(values, 0.5), "p90_interval": bootstrap(values, 0.9)}
 
 
@@ -195,6 +210,10 @@ def verdict(ok: bool | None) -> str:
     return "not measured" if ok is None else "pass" if ok else "FAIL"
 
 
+def _between(interval: tuple[float, float] | None, fmt: str, scale: float = 1) -> str:
+    return "" if interval is None else f"; 95% interval {fmt.format(interval[0] * scale)} to {fmt.format(interval[1] * scale)}"
+
+
 def bars(at: dict, base: dict | None, size: str, bursts: list[dict], reader: dict) -> list[dict]:
     """The plan's bars for one size and arm. `at`: summarize() of that size's rows; `base`: of the 1x4 rows of the
     same arm (None when 1x4 was not run). Each bar: its name, the bar, the measured value and pass, FAIL or not
@@ -215,7 +234,8 @@ def bars(at: dict, base: dict | None, size: str, bursts: list[dict], reader: dic
             "not measured" if mine is None else f"median {mine:,}", None if mine is None else True)
     else:
         bar("brain input tokens per turn", f"within {BARS['brain_input_within']:.0%} of 1x4",
-            "not measured" if None in (mine, ref) else f"median {mine:,} against {ref:,} ({mine / ref - 1:+.1%})",
+            "not measured" if None in (mine, ref) else f"median {mine:,} against {ref:,} ({mine / ref - 1:+.1%}"
+            + _between(bootstrap_against(at["brain_input"].get("values"), base["brain_input"].get("values"), 0.5, True), "{:+.1%}") + ")",
             None if None in (mine, ref) else mine <= ref * (1 + BARS["brain_input_within"]))
     for q, label in ((0.5, "median"), (0.9, "p90")):
         mine = at["first_token"]["median" if q == 0.5 else "p90"]
@@ -225,7 +245,8 @@ def bars(at: dict, base: dict | None, size: str, bursts: list[dict], reader: dic
                 "not measured" if mine is None else f"{mine:.3f} s", None if mine is None else True)
         else:
             bar(f"first token, {label}", f"at most {BARS['first_token_within_secs'] * 1000:.0f} ms above 1x4",
-                "not measured" if None in (mine, ref) else f"{mine:.3f} s against {ref:.3f} s ({(mine - ref) * 1000:+.0f} ms)",
+                "not measured" if None in (mine, ref) else f"{mine:.3f} s against {ref:.3f} s ({(mine - ref) * 1000:+.0f} ms"
+                + _between(bootstrap_against(at["first_token"].get("values"), base["first_token"].get("values"), q, False), "{:+.0f} ms", 1000) + ")",
                 None if None in (mine, ref) else mine - ref <= BARS["first_token_within_secs"])
     wrong = at["clear"]["wrong"]
     said = f"{wrong['k']} of {wrong['n']} ({wrong['low']:.0%} to {wrong['high']:.0%})" if wrong["n"] else "not measured"

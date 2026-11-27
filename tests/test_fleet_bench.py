@@ -81,6 +81,9 @@ def test_the_bars_say_fail_plainly_and_scale_the_ask_bar():
     assert bars[("asked first on ambiguous turns", "at least 3 of 3 (10 of 14, scaled to n)")]["measured"].startswith("1 of 3")
     assert bars[("wrong session on clear turns", "not above the 1x4 rate")]["verdict"] == "FAIL"  # 2 of 5 against 0 of 1
     assert bars[("wrong session on clear turns", "at most 5%")]["verdict"] == "FAIL"
+    # one 1x4 turn: every resample of it is 1900 / 1.9 s, so the interval is the spread of the size's own turns
+    assert bars[("brain input tokens per turn", "within 10% of 1x4")]["measured"] == "median 2,000 against 1,900 (+5.3%; 95% interval -47.4% to +57.9%)"
+    assert bars[("first token, median", "at most 150 ms above 1x4")]["measured"].endswith("(+100 ms; 95% interval -900 ms to +2100 ms)")
     nothing = score.bars(score.summarize([], FLEET), None, "10x30", [], {"share": None})
     assert {b["verdict"] for b in nothing} == {"not measured"}
 
@@ -155,3 +158,16 @@ def test_a_turn_its_run_never_reached_is_not_run_not_crashed_and_in_no_rate():
     assert (s["turns"], s["driven"], s["crashed"], s["not_run"]) == (12, 9, 1, 2)
     assert s["clear"]["wrong"]["n"] == 5 and s["ambiguous"]["asked"]["n"] == 3  # as without the two rows
     assert s["clear"]["crashed"] == 0 and s["ambiguous"]["crashed"] == 1  # a real crash keeps its count
+
+
+def test_a_request_taken_for_a_correction_is_listed_with_whether_it_came_right_after_the_send(tmp_path):
+    at = _results(tmp_path)
+    run = at / "results" / "fleet-1-turns-5x20-fleet-on-r1"
+    send = {"action": "send", "session": "a"}
+    drop = {"session": "b", "secs": 1.0, "text": "[Voice request] Drop my last request (\"x\"): it was meant for another session."}
+    later = [turn("clear_name", send, ["b"], order=0), turn("clear_name", send, ["a"], order=1),
+             {**turn("clear_name", send, ["a"], order=2), "turn": "clear_name-07", "deliveries": [drop, {"session": "a", "secs": 1.0, "text": "x"}]}]
+    (run / "rows.jsonl").write_text("".join(json.dumps(r) + "\n" for r in later))
+    text = report.write(at / "results", at / "RESULTS.md", at / "FROZEN.json", "abc", {"5x20": FLEET})
+    assert "| fleet-on, build `aaaaaaaaaa` | 5x20 | r1 | clear_name-07 | 2 | no |" in text
+    assert "fleet-on `aaaaaaaaaa` 1 of 3." in text

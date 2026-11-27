@@ -227,6 +227,31 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     else:
         out += ["None in the runs counted.", ""]
 
+    # The frozen turns hold no correction, so a "Drop my last request" delivery is always a request the voice took for one.
+    out += ["## Requests taken for a correction (\"Drop my last request\" sent)", ""]
+    taken = []
+    for r in used:
+        turns = sorted((x for x in r["rows"] if x["kind"] == "turn"), key=lambda x: x.get("order", 0))
+        for before, x in zip([None, *turns], turns):
+            dropped = [d["session"] for d in x.get("deliveries") or [] if "Drop my last request" in d.get("text", "")]
+            if dropped:
+                last = {d["session"] for d in (before or {}).get("deliveries") or []}
+                taken.append((r, x, all(s in last for s in dropped)))
+    if taken:
+        out += ["The frozen turns have no correction in them: each row here is a new request the voice took for a correction of "
+                "an earlier send, and told that earlier session to drop its work. Counted as a wrong session above. \"Right after "
+                "the send\": the session told to drop got the turn just before.", "",
+                "| Arm | Size | Run | Turn | Order | Right after the send |", "|---|---|---|---|---|---|"]
+        for r, x, after in taken:
+            out.append(f"| {r['manifest']['arm']}, build `{build(r)}` | {x['size']} | {x['run']} | {x['turn']} | {x.get('order')} | {'yes' if after else 'no'} |")
+        out.append("")
+    else:
+        out += ["None in the runs counted.", ""]
+    out += ["By build and arm, rows with such a send, of the turns driven: " + ", ".join(
+        f"{arm} `{tag}` {sum(1 for r, _, _ in taken if r['manifest']['arm'] == arm and build(r) == tag)} of "
+        f"{sum(1 for r in used if r['manifest']['what'] == 'turns' and r['manifest']['arm'] == arm and build(r) == tag for x in r['rows'] if x['kind'] == 'turn' and score.outcome(x) not in ('crashed', 'not_run'))}"
+        for tag in order for arm in ARMS if any(r["manifest"]["what"] == "turns" and r["manifest"]["arm"] == arm and build(r) == tag for r in used)) + ".", ""]
+
     probes = [(r, row) for r in used for row in r["rows"] if row["kind"] == "probe"]
     if probes:
         out += ["## Probe: \"What did I send to <session>?\" after the 60 turns", "",
