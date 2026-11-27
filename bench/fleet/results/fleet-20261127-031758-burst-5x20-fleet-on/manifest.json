@@ -1,0 +1,200 @@
+{
+ "run": "fleet-20261127-031758-burst-5x20-fleet-on",
+ "what": "burst",
+ "size": "5x20",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "71ee15b03d691ff2c36f1645a54558748ec78463",
+  "pointe_tree": "26a52ec697d7b82ed1a971878f4b3762c6ec2425",
+  "pointe_commit": "ce22955bc4f2a34e120edb55a0429866f79a8b1a",
+  "dirty_pointe": false
+ },
+ "harness_commit": "71ee15b03d691ff2c36f1645a54558748ec78463",
+ "fleet_sha256": "b67048c90aeb8dd6a4e82284b5765084875269ed71a48f3dfea4af222af08f3f",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-27T03:17:58+0200",
+ "load_start": 5.14306640625,
+ "machine": "arm64, 18 cores",
+ "notes_restored": {
+  "with_notes": 100,
+  "sessions": 100
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 165.6,
+   "cpu_secs": 1.63
+  },
+  "nodes": 4,
+  "nodes_rss_mb": 270.6,
+  "nodes_cpu_secs": 1.51,
+  "runner": {
+   "rss_mb": 40.6,
+   "cpu_secs": 0.54
+  },
+  "threads": 101
+ },
+ "timing": {
+  "voice_up_secs": 0.6,
+  "nodes_up_secs": 1.2,
+  "seed_secs": 7.5,
+  "sessions_joined_secs": 1.1
+ },
+ "sessions_with_notes": 100,
+ "names": {
+  "d13900af-7a7b-479c-b5e4-e7a56827dccd": "shop",
+  "3d8ece8b-56b2-4210-a92a-e2afab7c633d": "fjord",
+  "f94e6e0b-022d-4f4c-bcb3-44c0ff38220e": "topaz",
+  "98474771-6c87-4fe0-a583-b4cef974f881": "narwhal",
+  "6fd5cf6e-aa24-4afb-a78c-0059551927a1": "pebble",
+  "309ed4e0-15a5-4bd9-bbff-7bffd4f834f4": "avocet",
+  "ccf4bd93-4f4b-45d9-a584-953c78d42f43": "danish",
+  "226f3b3e-3ddf-4c9d-993c-ebf27c02bf41": "wheat",
+  "e89b58f8-63f7-4a36-bd17-e1c09e1bfb5c": "gecko",
+  "a703aa9c-6677-494b-a765-a1fbc1663252": "chicory",
+  "032531c6-30b2-4fbd-ada3-5fc53b6e9806": "tarn",
+  "080c4a32-b36a-42d3-b0a3-88be22da2264": "sorrel",
+  "9376242f-2d31-4a3d-a844-c91a8110bf97": "okra",
+  "1f61aac7-2c32-45cc-8b41-29bde0375300": "nozzle",
+  "19a5645e-dfdb-4b91-9508-97bbd202c946": "ermine",
+  "58ab3bd4-72cb-423a-a0ca-112531e3701b": "willow",
+  "bc84888d-d256-4883-9987-b4a62c56be39": "titan",
+  "06ad6ef9-6bbe-45e1-b6a1-3f54981f2e21": "wicker",
+  "81d8ef32-6ad7-4c0c-81b5-70c53f52e56f": "galaxy",
+  "0c5c32f0-5395-4d86-952d-d09ccb7f4506": "tulip",
+  "ff1b53ac-b3d3-46f2-8649-fd5d91469854": "shop avi-box",
+  "6e87b2d9-a8db-44dd-a208-65a8edb6a9a1": "api",
+  "13f0af07-50a1-4819-9121-ba844c5041fa": "ginger",
+  "4123d02c-8556-45d5-91cc-9fcf27cd7cb2": "poppy",
+  "2214d1a4-b66b-49f2-ab13-8d8e7cf08a9f": "neon",
+  "e93fcffe-341e-4e70-9ab8-9eae503dddbe": "yoyo",
+  "b395daa7-c178-4eed-a398-b23e1da98cc4": "oboe",
+  "e4436f99-da12-4e0e-b82b-34557bc75fe2": "tide",
+  "f928123e-b5d4-4cfb-bd25-c36da21f850a": "cove",
+  "0209f14d-4adb-41d5-b7f4-37a27ce2b35c": "pepper",
+  "735543b5-df4c-4fac-ae74-f0222c29e201": "lemur",
+  "7f21a3bc-d750-4465-905e-679daa949ff6": "rye",
+  "5366fc71-4c70-4d4c-9540-b7ed9da704d0": "sage",
+  "a440c39c-e953-464d-aa6d-03c98e9bfb0b": "ibis",
+  "2ef482e0-5bb5-4842-ad16-d7fa0dfea973": "acorn",
+  "13a15f74-1e85-436d-81df-d70c60069f30": "magpie",
+  "e18cbc36-8c6a-44f8-b05e-8f605a38718f": "pulley",
+  "0a7e99d4-68b3-46cb-acc9-44234058bfe2": "nebula",
+  "81feab58-cfea-451f-87a8-3945eaab5eb2": "panda",
+  "b9854102-4f79-4655-b490-b99e9e557af3": "peony",
+  "7d70614d-5b50-4f4a-b42f-a6015e5ebacd": "shop dana-rig",
+  "69e094b4-fbd5-4ffa-be5c-1cc592d5f543": "api dana-rig",
+  "807487db-eb56-43a1-90ab-988ac9d20558": "web",
+  "9f3de211-0c62-41b1-9bbf-319224e36f2f": "thyme",
+  "5446fa37-e567-41e9-a0af-adbede44aa67": "loom",
+  "bbee9748-43b7-4083-ae1d-417e92cd2244": "bramble",
+  "938cebf2-c8a3-4211-b05f-a89c776e6c16": "finch",
+  "0556c727-a5d7-4b0a-853c-41ac22059ee4": "ultra",
+  "91eea044-5434-481f-9490-cc1ad3f7d222": "lodge",
+  "c4982878-c3dd-413f-a497-2853339630dd": "shrike",
+  "9cc2825f-0599-47d5-8082-1743ebd165bf": "spindle",
+  "70c94cde-057e-46c2-afb1-671416c26582": "savanna",
+  "1da0cefb-e6d6-4eca-884c-0c2053fb093d": "bellows",
+  "15bddace-d520-4b52-9403-bb19f958521d": "abacus",
+  "bd6e3bc8-c202-40a0-b5b0-216341da5566": "drum",
+  "8523bcce-1fca-4105-bc04-9aeecfe3584d": "chalk",
+  "55beb5db-8643-4625-87fe-20a6d81bb5a7": "aspen",
+  "8d5bdf0f-caa8-49e8-a081-3ba489595af2": "wasabi",
+  "f61400b8-8de0-45cc-8d83-37d6ccaf9dcd": "flax",
+  "d1c41c2e-09c9-4a83-a51f-92d97f5fa918": "nectar",
+  "eba6c837-c769-4f08-a503-e050db0eec12": "shop omer-lab",
+  "a557c436-fee3-44dd-a492-4a93e53cfa9b": "api omer-lab",
+  "c2f7f68b-3e78-4067-93ca-fedad2c367a2": "web omer-lab",
+  "971e0919-9cc4-400a-ac2c-1beaa1d41c4d": "holly",
+  "c1841a6d-ea06-400a-bc10-962918427250": "dell",
+  "82bb8e66-43ea-45c1-aae5-7da320617121": "waffle",
+  "5e02b270-2ec5-4d8f-8f8c-44218ad66b7c": "zebra",
+  "d5cc09f4-cc00-49f6-b18b-fb5e2655d865": "weald",
+  "7354a5b6-edf0-4ebd-973a-64cce8f8110f": "thistle",
+  "1efa9e8f-8ecd-41a4-90a2-ef5bb5c057c9": "eagle",
+  "a48f5816-a185-4908-b44a-9b71ca6c92a5": "shuttle",
+  "d3fcd75a-1260-4b45-826e-a7d9de9b1b66": "tangram",
+  "79908325-c519-4072-8695-a546147122f9": "jay",
+  "ddce2862-9c15-459d-8c19-cf2e0907f97c": "eclair",
+  "df9fd3fa-f33d-4c08-8a06-0f6db12c2cd1": "easel",
+  "cbf1b481-10d5-4533-aa6c-f9ca1eeeeb01": "nutmeg",
+  "6a4ac8e6-c789-4f89-ade7-61b4828ea48d": "oasis",
+  "2edaab7f-4024-499c-8861-c054617354d8": "dill",
+  "11dcaa56-d1e5-4adb-8c6c-a1e9b545ae28": "walrus",
+  "55c0d011-1fc7-47b9-8bcd-5c588d11ee47": "olive",
+  "288c9cba-16d0-4f6e-befc-c16fab231c78": "web noa-mini",
+  "74361683-8c29-451a-bdf9-186fc524080d": "rook",
+  "2dbb75d6-f2c8-4076-b09f-3c4e3b82fc68": "yarrow",
+  "8659dbfa-70a8-4300-bbb2-9ac371c9128e": "rhino",
+  "b10bf227-f480-49fc-9de2-84587403825e": "treadle",
+  "9e21631d-2c26-4b63-b12d-c131266de091": "yak",
+  "425a3de1-17c6-407a-8f1f-a8e48e732ea6": "heron",
+  "0ce6c856-4b5e-4cef-ad77-be734a06342c": "outpost",
+  "811f535d-c609-4e9c-addc-37fd7c9cb836": "quokka",
+  "acd0c00d-2f9d-48bc-a5d7-1b37da224936": "puzzle",
+  "f52365a9-4c2d-4f7e-b812-8a68ddc55cbd": "cog",
+  "b819a0f9-88b4-4ca8-9000-d1a7de5d66f6": "indigo",
+  "1c0da3b7-152b-454a-9adb-77eea3e29c24": "trowel",
+  "50798461-ff30-4b70-b660-e3ffe43897fc": "brioche",
+  "6e367d75-ea11-4890-90cf-b93dd1ad8bc8": "jupiter",
+  "2ca2fbc2-fa2c-4909-9787-183153022ab7": "gizmo",
+  "0838dc29-fa76-4cd6-987c-3febc31e25d9": "jasper",
+  "a434b047-edb5-483a-bee6-4ddbd8e880a4": "canyon",
+  "a993b56d-52de-406c-8c7f-692f62b14e7c": "woad",
+  "066ae346-42c4-4a80-994a-5c0f0994984a": "cello"
+ },
+ "notes_sha256": "240474436730f4da962f0719927a883a12ae318eeb1485af2893e999f9d8bc63",
+ "setup_calls": {
+  "reader": 0,
+  "brain": 2
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='gemini', mouth='gemini:gemini-3.8-flash-lite-tts', notes=['Use headphones: on speakers Pointe can hear itself.'])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 196.8,
+   "cpu_secs": 2.07
+  },
+  "nodes": 4,
+  "nodes_rss_mb": 275.4,
+  "nodes_cpu_secs": 1.89,
+  "runner": {
+   "rss_mb": 43.9,
+   "cpu_secs": 0.66
+  },
+  "threads": 104
+ },
+ "ended": "2026-11-27T03:19:28+0200",
+ "load_end": 3.5546875,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 198.3,
+   "cpu_secs": 4.1
+  },
+  "nodes": 4,
+  "nodes_rss_mb": 284.5,
+  "nodes_cpu_secs": 5.8,
+  "runner": {
+   "rss_mb": 44.1,
+   "cpu_secs": 1.55
+  },
+  "threads": 104
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.404475,
+  "by": {
+   "anthropic:claude-sonnet-5-5 brain (vendor counts)": {
+    "calls": 5,
+    "usd": 0.032519,
+    "tokens_in": 57261,
+    "tokens_out": 467
+   },
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 64,
+    "usd": 0.371956,
+    "tokens_in": 96663,
+    "tokens_out": 17863
+   }
+  }
+ }
+}

@@ -1,0 +1,1835 @@
+{
+ "size": "5x20",
+ "seed": 20261126,
+ "hosts": 5,
+ "per_host": 20,
+ "voice_machine": "studio",
+ "machines": [
+  "studio",
+  "avi-box",
+  "dana-rig",
+  "omer-lab",
+  "noa-mini"
+ ],
+ "shared_names": {
+  "shop": [
+   "studio",
+   "avi-box",
+   "dana-rig",
+   "omer-lab"
+  ],
+  "api": [
+   "avi-box",
+   "dana-rig",
+   "omer-lab"
+  ],
+  "web": [
+   "dana-rig",
+   "omer-lab",
+   "noa-mini"
+  ]
+ },
+ "sessions": [
+  {
+   "id": "d13900af-7a7b-479c-b5e4-e7a56827dccd",
+   "machine": "studio",
+   "name": "shop",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "survey digest",
+   "twin": null,
+   "goal": "Find why the survey digest drops records under load and fix it.",
+   "files": [
+    "survey_digest.py",
+    "test_survey_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "3d8ece8b-56b2-4210-a92a-e2afab7c633d",
+   "machine": "studio",
+   "name": "fjord",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "banner ledger",
+   "twin": null,
+   "goal": "Add retries with backoff to the banner ledger and cover them with tests.",
+   "files": [
+    "banner_ledger.py",
+    "test_banner_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "f94e6e0b-022d-4f4c-bcb3-44c0ff38220e",
+   "machine": "studio",
+   "name": "topaz",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster queue",
+   "twin": null,
+   "goal": "Find why the roster queue drops records under load and fix it.",
+   "files": [
+    "roster_queue.py",
+    "test_roster_queue.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "98474771-6c87-4fe0-a583-b4cef974f881",
+   "machine": "studio",
+   "name": "narwhal",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll parser",
+   "twin": "70c94cde-057e-46c2-afb1-671416c26582",
+   "goal": "Make the payroll parser safe to run twice with the same input.",
+   "files": [
+    "payroll_parser.py",
+    "test_payroll_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "6fd5cf6e-aa24-4afb-a78c-0059551927a1",
+   "machine": "studio",
+   "name": "pebble",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "loyalty notifier",
+   "twin": null,
+   "goal": "Move the loyalty notifier off the deprecated client library.",
+   "files": [
+    "loyalty_notifier.py",
+    "test_loyalty_notifier.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 42.3,
+   "question": ""
+  },
+  {
+   "id": "309ed4e0-15a5-4bd9-bbff-7bffd4f834f4",
+   "machine": "studio",
+   "name": "avocet",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "billing validator",
+   "twin": null,
+   "goal": "Make the billing validator safe to run twice with the same input.",
+   "files": [
+    "billing_validator.py",
+    "test_billing_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "ccf4bd93-4f4b-45d9-a584-953c78d42f43",
+   "machine": "studio",
+   "name": "danish",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund importer",
+   "twin": "81feab58-cfea-451f-87a8-3945eaab5eb2",
+   "goal": "Migrate the refund importer to the new schema without downtime.",
+   "files": [
+    "refund_importer.py",
+    "test_refund_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "226f3b3e-3ddf-4c9d-993c-ebf27c02bf41",
+   "machine": "studio",
+   "name": "wheat",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "consent sampler",
+   "twin": null,
+   "goal": "Move the consent sampler off the deprecated client library.",
+   "files": [
+    "consent_sampler.py",
+    "test_consent_sampler.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 42.4,
+   "question": ""
+  },
+  {
+   "id": "e89b58f8-63f7-4a36-bd17-e1c09e1bfb5c",
+   "machine": "studio",
+   "name": "gecko",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "banner webhook",
+   "twin": null,
+   "goal": "Add retries with backoff to the banner webhook and cover them with tests.",
+   "files": [
+    "banner_webhook.py",
+    "test_banner_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "a703aa9c-6677-494b-a765-a1fbc1663252",
+   "machine": "studio",
+   "name": "chicory",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "warranty export",
+   "twin": null,
+   "goal": "Move the warranty export off the deprecated client library.",
+   "files": [
+    "warranty_export.py",
+    "test_warranty_export.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "032531c6-30b2-4fbd-ada3-5fc53b6e9806",
+   "machine": "studio",
+   "name": "tarn",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "ticket watchdog",
+   "twin": null,
+   "goal": "Find why the ticket watchdog drops records under load and fix it.",
+   "files": [
+    "ticket_watchdog.py",
+    "test_ticket_watchdog.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 47.4,
+   "question": ""
+  },
+  {
+   "id": "080c4a32-b36a-42d3-b0a3-88be22da2264",
+   "machine": "studio",
+   "name": "sorrel",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency migration",
+   "twin": null,
+   "goal": "Make the currency migration safe to run twice with the same input.",
+   "files": [
+    "currency_migration.py",
+    "test_currency_migration.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "9376242f-2d31-4a3d-a844-c91a8110bf97",
+   "machine": "studio",
+   "name": "okra",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "voucher migration",
+   "twin": null,
+   "goal": "Add retries with backoff to the voucher migration and cover them with tests.",
+   "files": [
+    "voucher_migration.py",
+    "test_voucher_migration.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "1f61aac7-2c32-45cc-8b41-29bde0375300",
+   "machine": "studio",
+   "name": "nozzle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll sampler",
+   "twin": null,
+   "goal": "Find why the payroll sampler drops records under load and fix it.",
+   "files": [
+    "payroll_sampler.py",
+    "test_payroll_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "19a5645e-dfdb-4b91-9508-97bbd202c946",
+   "machine": "studio",
+   "name": "ermine",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "shipment batcher",
+   "twin": null,
+   "goal": "Split the shipment batcher into a reader and a writer with a clear interface.",
+   "files": [
+    "shipment_batcher.py",
+    "test_shipment_batcher.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 37.0,
+   "question": ""
+  },
+  {
+   "id": "58ab3bd4-72cb-423a-a0ca-112531e3701b",
+   "machine": "studio",
+   "name": "willow",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "banner resolver",
+   "twin": null,
+   "goal": "Split the banner resolver into a reader and a writer with a clear interface.",
+   "files": [
+    "banner_resolver.py",
+    "test_banner_resolver.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "bc84888d-d256-4883-9987-b4a62c56be39",
+   "machine": "studio",
+   "name": "titan",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "catalog dashboard",
+   "twin": null,
+   "goal": "Find why the catalog dashboard drops records under load and fix it.",
+   "files": [
+    "catalog_dashboard.py",
+    "test_catalog_dashboard.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "06ad6ef9-6bbe-45e1-b6a1-3f54981f2e21",
+   "machine": "studio",
+   "name": "wicker",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "invoice queue",
+   "twin": null,
+   "goal": "Cut the invoice queue's cold start time by half.",
+   "files": [
+    "invoice_queue.py",
+    "test_invoice_queue.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "81d8ef32-6ad7-4c0c-81b5-70c53f52e56f",
+   "machine": "studio",
+   "name": "galaxy",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "inventory cache",
+   "twin": null,
+   "goal": "Move the inventory cache off the deprecated client library.",
+   "files": [
+    "inventory_cache.py",
+    "test_inventory_cache.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 4.8,
+   "question": ""
+  },
+  {
+   "id": "0c5c32f0-5395-4d86-952d-d09ccb7f4506",
+   "machine": "studio",
+   "name": "tulip",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "invoice digest",
+   "twin": null,
+   "goal": "Find why the invoice digest drops records under load and fix it.",
+   "files": [
+    "invoice_digest.py",
+    "test_invoice_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "ff1b53ac-b3d3-46f2-8649-fd5d91469854",
+   "machine": "avi-box",
+   "name": "shop",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "loyalty export",
+   "twin": null,
+   "goal": "Migrate the loyalty export to the new schema without downtime.",
+   "files": [
+    "loyalty_export.py",
+    "test_loyalty_export.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "6e87b2d9-a8db-44dd-a208-65a8edb6a9a1",
+   "machine": "avi-box",
+   "name": "api",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "currency indexer",
+   "twin": null,
+   "goal": "Make the currency indexer safe to run twice with the same input.",
+   "files": [
+    "currency_indexer.py",
+    "test_currency_indexer.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 54.9,
+   "question": ""
+  },
+  {
+   "id": "13f0af07-50a1-4819-9121-ba844c5041fa",
+   "machine": "avi-box",
+   "name": "ginger",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "catalog webhook",
+   "twin": null,
+   "goal": "Make the catalog webhook safe to run twice with the same input.",
+   "files": [
+    "catalog_webhook.py",
+    "test_catalog_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 42.2,
+   "question": ""
+  },
+  {
+   "id": "4123d02c-8556-45d5-91cc-9fcf27cd7cb2",
+   "machine": "avi-box",
+   "name": "poppy",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "dispatch queue",
+   "twin": null,
+   "goal": "Move the dispatch queue off the deprecated client library.",
+   "files": [
+    "dispatch_queue.py",
+    "test_dispatch_queue.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 26.5,
+   "question": ""
+  },
+  {
+   "id": "2214d1a4-b66b-49f2-ab13-8d8e7cf08a9f",
+   "machine": "avi-box",
+   "name": "neon",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "billing ledger",
+   "twin": null,
+   "goal": "Add structured logging to the billing ledger and remove the print calls.",
+   "files": [
+    "billing_ledger.py",
+    "test_billing_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "e93fcffe-341e-4e70-9ab8-9eae503dddbe",
+   "machine": "avi-box",
+   "name": "yoyo",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "consent importer",
+   "twin": null,
+   "goal": "Split the consent importer into a reader and a writer with a clear interface.",
+   "files": [
+    "consent_importer.py",
+    "test_consent_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "b395daa7-c178-4eed-a398-b23e1da98cc4",
+   "machine": "avi-box",
+   "name": "oboe",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "inventory validator",
+   "twin": null,
+   "goal": "Migrate the inventory validator to the new schema without downtime.",
+   "files": [
+    "inventory_validator.py",
+    "test_inventory_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "e4436f99-da12-4e0e-b82b-34557bc75fe2",
+   "machine": "avi-box",
+   "name": "tide",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll watchdog",
+   "twin": null,
+   "goal": "Add retries with backoff to the payroll watchdog and cover them with tests.",
+   "files": [
+    "payroll_watchdog.py",
+    "test_payroll_watchdog.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "f928123e-b5d4-4cfb-bd25-c36da21f850a",
+   "machine": "avi-box",
+   "name": "cove",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster batcher",
+   "twin": null,
+   "goal": "Find why the roster batcher drops records under load and fix it.",
+   "files": [
+    "roster_batcher.py",
+    "test_roster_batcher.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "0209f14d-4adb-41d5-b7f4-37a27ce2b35c",
+   "machine": "avi-box",
+   "name": "pepper",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "consent webhook",
+   "twin": null,
+   "goal": "Cut the consent webhook's cold start time by half.",
+   "files": [
+    "consent_webhook.py",
+    "test_consent_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "735543b5-df4c-4fac-ae74-f0222c29e201",
+   "machine": "avi-box",
+   "name": "lemur",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "shipment resolver",
+   "twin": null,
+   "goal": "Add structured logging to the shipment resolver and remove the print calls.",
+   "files": [
+    "shipment_resolver.py",
+    "test_shipment_resolver.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "7f21a3bc-d750-4465-905e-679daa949ff6",
+   "machine": "avi-box",
+   "name": "rye",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund scheduler",
+   "twin": null,
+   "goal": "Cut the refund scheduler's cold start time by half.",
+   "files": [
+    "refund_scheduler.py",
+    "test_refund_scheduler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "5366fc71-4c70-4d4c-9540-b7ed9da704d0",
+   "machine": "avi-box",
+   "name": "sage",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "receipt watchdog",
+   "twin": null,
+   "goal": "Split the receipt watchdog into a reader and a writer with a clear interface.",
+   "files": [
+    "receipt_watchdog.py",
+    "test_receipt_watchdog.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 17.2,
+   "question": ""
+  },
+  {
+   "id": "a440c39c-e953-464d-aa6d-03c98e9bfb0b",
+   "machine": "avi-box",
+   "name": "ibis",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund throttle",
+   "twin": null,
+   "goal": "Cut the refund throttle's cold start time by half.",
+   "files": [
+    "refund_throttle.py",
+    "test_refund_throttle.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "2ef482e0-5bb5-4842-ad16-d7fa0dfea973",
+   "machine": "avi-box",
+   "name": "acorn",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "shipment queue",
+   "twin": null,
+   "goal": "Find why the shipment queue drops records under load and fix it.",
+   "files": [
+    "shipment_queue.py",
+    "test_shipment_queue.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 12.3,
+   "question": ""
+  },
+  {
+   "id": "13a15f74-1e85-436d-81df-d70c60069f30",
+   "machine": "avi-box",
+   "name": "magpie",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "warranty webhook",
+   "twin": "11dcaa56-d1e5-4adb-8c6c-a1e9b545ae28",
+   "goal": "Split the warranty webhook into a reader and a writer with a clear interface.",
+   "files": [
+    "warranty_webhook.py",
+    "test_warranty_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 42.8,
+   "question": ""
+  },
+  {
+   "id": "e18cbc36-8c6a-44f8-b05e-8f605a38718f",
+   "machine": "avi-box",
+   "name": "pulley",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "quota webhook",
+   "twin": null,
+   "goal": "Add retries with backoff to the quota webhook and cover them with tests.",
+   "files": [
+    "quota_webhook.py",
+    "test_quota_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "0a7e99d4-68b3-46cb-acc9-44234058bfe2",
+   "machine": "avi-box",
+   "name": "nebula",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster indexer",
+   "twin": null,
+   "goal": "Move the roster indexer off the deprecated client library.",
+   "files": [
+    "roster_indexer.py",
+    "test_roster_indexer.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 41.3,
+   "question": ""
+  },
+  {
+   "id": "81feab58-cfea-451f-87a8-3945eaab5eb2",
+   "machine": "avi-box",
+   "name": "panda",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund importer",
+   "twin": "ccf4bd93-4f4b-45d9-a584-953c78d42f43",
+   "goal": "Make the refund importer safe to run twice with the same input.",
+   "files": [
+    "refund_importer.py",
+    "test_refund_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "b9854102-4f79-4655-b490-b99e9e557af3",
+   "machine": "avi-box",
+   "name": "peony",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "tariff digest",
+   "twin": null,
+   "goal": "Move the tariff digest off the deprecated client library.",
+   "files": [
+    "tariff_digest.py",
+    "test_tariff_digest.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "7d70614d-5b50-4f4a-b42f-a6015e5ebacd",
+   "machine": "dana-rig",
+   "name": "shop",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "signup throttle",
+   "twin": null,
+   "goal": "Add structured logging to the signup throttle and remove the print calls.",
+   "files": [
+    "signup_throttle.py",
+    "test_signup_throttle.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "69e094b4-fbd5-4ffa-be5c-1cc592d5f543",
+   "machine": "dana-rig",
+   "name": "api",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "receipt throttle",
+   "twin": null,
+   "goal": "Make the receipt throttle safe to run twice with the same input.",
+   "files": [
+    "receipt_throttle.py",
+    "test_receipt_throttle.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 10.3,
+   "question": ""
+  },
+  {
+   "id": "807487db-eb56-43a1-90ab-988ac9d20558",
+   "machine": "dana-rig",
+   "name": "web",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "warranty sampler",
+   "twin": null,
+   "goal": "Migrate the warranty sampler to the new schema without downtime.",
+   "files": [
+    "warranty_sampler.py",
+    "test_warranty_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "9f3de211-0c62-41b1-9bbf-319224e36f2f",
+   "machine": "dana-rig",
+   "name": "thyme",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "tenant webhook",
+   "twin": null,
+   "goal": "Make the tenant webhook safe to run twice with the same input.",
+   "files": [
+    "tenant_webhook.py",
+    "test_tenant_webhook.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "finish_at": null,
+   "question": "I can keep the old column for one release or drop it now. Which do you want?"
+  },
+  {
+   "id": "5446fa37-e567-41e9-a0af-adbede44aa67",
+   "machine": "dana-rig",
+   "name": "loom",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "inventory export",
+   "twin": null,
+   "goal": "Make the inventory export safe to run twice with the same input.",
+   "files": [
+    "inventory_export.py",
+    "test_inventory_export.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "bbee9748-43b7-4083-ae1d-417e92cd2244",
+   "machine": "dana-rig",
+   "name": "bramble",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "ticket cache",
+   "twin": null,
+   "goal": "Add retries with backoff to the ticket cache and cover them with tests.",
+   "files": [
+    "ticket_cache.py",
+    "test_ticket_cache.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "finish_at": null,
+   "question": "The fix needs either a lock or a retry. A lock is simpler, a retry is faster. Which one?"
+  },
+  {
+   "id": "938cebf2-c8a3-4211-b05f-a89c776e6c16",
+   "machine": "dana-rig",
+   "name": "finch",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "booking ledger",
+   "twin": null,
+   "goal": "Add structured logging to the booking ledger and remove the print calls.",
+   "files": [
+    "booking_ledger.py",
+    "test_booking_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "0556c727-a5d7-4b0a-853c-41ac22059ee4",
+   "machine": "dana-rig",
+   "name": "ultra",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "dispatch export",
+   "twin": null,
+   "goal": "Move the dispatch export off the deprecated client library.",
+   "files": [
+    "dispatch_export.py",
+    "test_dispatch_export.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 2.8,
+   "question": ""
+  },
+  {
+   "id": "91eea044-5434-481f-9490-cc1ad3f7d222",
+   "machine": "dana-rig",
+   "name": "lodge",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "quota validator",
+   "twin": null,
+   "goal": "Add retries with backoff to the quota validator and cover them with tests.",
+   "files": [
+    "quota_validator.py",
+    "test_quota_validator.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "c4982878-c3dd-413f-a497-2853339630dd",
+   "machine": "dana-rig",
+   "name": "shrike",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund digest",
+   "twin": null,
+   "goal": "Migrate the refund digest to the new schema without downtime.",
+   "files": [
+    "refund_digest.py",
+    "test_refund_digest.py",
+    "README.md"
+   ],
+   "state": "permission",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "9cc2825f-0599-47d5-8082-1743ebd165bf",
+   "machine": "dana-rig",
+   "name": "spindle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "quota parser",
+   "twin": null,
+   "goal": "Move the quota parser off the deprecated client library.",
+   "files": [
+    "quota_parser.py",
+    "test_quota_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "70c94cde-057e-46c2-afb1-671416c26582",
+   "machine": "dana-rig",
+   "name": "savanna",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll parser",
+   "twin": "98474771-6c87-4fe0-a583-b4cef974f881",
+   "goal": "Find why the payroll parser drops records under load and fix it.",
+   "files": [
+    "payroll_parser.py",
+    "test_payroll_parser.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 11.0,
+   "question": ""
+  },
+  {
+   "id": "1da0cefb-e6d6-4eca-884c-0c2053fb093d",
+   "machine": "dana-rig",
+   "name": "bellows",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "loyalty validator",
+   "twin": null,
+   "goal": "Migrate the loyalty validator to the new schema without downtime.",
+   "files": [
+    "loyalty_validator.py",
+    "test_loyalty_validator.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 35.1,
+   "question": ""
+  },
+  {
+   "id": "15bddace-d520-4b52-9403-bb19f958521d",
+   "machine": "dana-rig",
+   "name": "abacus",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "survey dashboard",
+   "twin": null,
+   "goal": "Migrate the survey dashboard to the new schema without downtime.",
+   "files": [
+    "survey_dashboard.py",
+    "test_survey_dashboard.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 20.0,
+   "question": ""
+  },
+  {
+   "id": "bd6e3bc8-c202-40a0-b5b0-216341da5566",
+   "machine": "dana-rig",
+   "name": "drum",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "shipment ledger",
+   "twin": null,
+   "goal": "Find why the shipment ledger drops records under load and fix it.",
+   "files": [
+    "shipment_ledger.py",
+    "test_shipment_ledger.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "8523bcce-1fca-4105-bc04-9aeecfe3584d",
+   "machine": "dana-rig",
+   "name": "chalk",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "voucher webhook",
+   "twin": null,
+   "goal": "Add structured logging to the voucher webhook and remove the print calls.",
+   "files": [
+    "voucher_webhook.py",
+    "test_voucher_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 19.6,
+   "question": ""
+  },
+  {
+   "id": "55beb5db-8643-4625-87fe-20a6d81bb5a7",
+   "machine": "dana-rig",
+   "name": "aspen",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "returns notifier",
+   "twin": null,
+   "goal": "Add retries with backoff to the returns notifier and cover them with tests.",
+   "files": [
+    "returns_notifier.py",
+    "test_returns_notifier.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "8d5bdf0f-caa8-49e8-a081-3ba489595af2",
+   "machine": "dana-rig",
+   "name": "wasabi",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "dispatch webhook",
+   "twin": "82bb8e66-43ea-45c1-aae5-7da320617121",
+   "goal": "Add retries with backoff to the dispatch webhook and cover them with tests.",
+   "files": [
+    "dispatch_webhook.py",
+    "test_dispatch_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 5.6,
+   "question": ""
+  },
+  {
+   "id": "f61400b8-8de0-45cc-8d83-37d6ccaf9dcd",
+   "machine": "dana-rig",
+   "name": "flax",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "coupon cache",
+   "twin": null,
+   "goal": "Split the coupon cache into a reader and a writer with a clear interface.",
+   "files": [
+    "coupon_cache.py",
+    "test_coupon_cache.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "d1c41c2e-09c9-4a83-a51f-92d97f5fa918",
+   "machine": "dana-rig",
+   "name": "nectar",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "invoice dashboard",
+   "twin": null,
+   "goal": "Add structured logging to the invoice dashboard and remove the print calls.",
+   "files": [
+    "invoice_dashboard.py",
+    "test_invoice_dashboard.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "eba6c837-c769-4f08-a503-e050db0eec12",
+   "machine": "omer-lab",
+   "name": "shop",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "profile export",
+   "twin": null,
+   "goal": "Find why the profile export drops records under load and fix it.",
+   "files": [
+    "profile_export.py",
+    "test_profile_export.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "a557c436-fee3-44dd-a492-4a93e53cfa9b",
+   "machine": "omer-lab",
+   "name": "api",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "delivery notifier",
+   "twin": null,
+   "goal": "Add structured logging to the delivery notifier and remove the print calls.",
+   "files": [
+    "delivery_notifier.py",
+    "test_delivery_notifier.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "c2f7f68b-3e78-4067-93ca-fedad2c367a2",
+   "machine": "omer-lab",
+   "name": "web",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "warranty ledger",
+   "twin": null,
+   "goal": "Cut the warranty ledger's cold start time by half.",
+   "files": [
+    "warranty_ledger.py",
+    "test_warranty_ledger.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "971e0919-9cc4-400a-ac2c-1beaa1d41c4d",
+   "machine": "omer-lab",
+   "name": "holly",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "audit cache",
+   "twin": null,
+   "goal": "Migrate the audit cache to the new schema without downtime.",
+   "files": [
+    "audit_cache.py",
+    "test_audit_cache.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "finish_at": null,
+   "question": "The fix needs either a lock or a retry. A lock is simpler, a retry is faster. Which one?"
+  },
+  {
+   "id": "c1841a6d-ea06-400a-bc10-962918427250",
+   "machine": "omer-lab",
+   "name": "dell",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "returns batcher",
+   "twin": null,
+   "goal": "Make the returns batcher safe to run twice with the same input.",
+   "files": [
+    "returns_batcher.py",
+    "test_returns_batcher.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "82bb8e66-43ea-45c1-aae5-7da320617121",
+   "machine": "omer-lab",
+   "name": "waffle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "dispatch webhook",
+   "twin": "8d5bdf0f-caa8-49e8-a081-3ba489595af2",
+   "goal": "Move the dispatch webhook off the deprecated client library.",
+   "files": [
+    "dispatch_webhook.py",
+    "test_dispatch_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 22.4,
+   "question": ""
+  },
+  {
+   "id": "5e02b270-2ec5-4d8f-8f8c-44218ad66b7c",
+   "machine": "omer-lab",
+   "name": "zebra",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency sampler",
+   "twin": null,
+   "goal": "Add structured logging to the currency sampler and remove the print calls.",
+   "files": [
+    "currency_sampler.py",
+    "test_currency_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "d5cc09f4-cc00-49f6-b18b-fb5e2655d865",
+   "machine": "omer-lab",
+   "name": "weald",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund dashboard",
+   "twin": null,
+   "goal": "Make the refund dashboard safe to run twice with the same input.",
+   "files": [
+    "refund_dashboard.py",
+    "test_refund_dashboard.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "7354a5b6-edf0-4ebd-973a-64cce8f8110f",
+   "machine": "omer-lab",
+   "name": "thistle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "signup indexer",
+   "twin": null,
+   "goal": "Find why the signup indexer drops records under load and fix it.",
+   "files": [
+    "signup_indexer.py",
+    "test_signup_indexer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "1efa9e8f-8ecd-41a4-90a2-ef5bb5c057c9",
+   "machine": "omer-lab",
+   "name": "eagle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster notifier",
+   "twin": null,
+   "goal": "Make the roster notifier safe to run twice with the same input.",
+   "files": [
+    "roster_notifier.py",
+    "test_roster_notifier.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 41.6,
+   "question": ""
+  },
+  {
+   "id": "a48f5816-a185-4908-b44a-9b71ca6c92a5",
+   "machine": "omer-lab",
+   "name": "shuttle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "warranty cache",
+   "twin": null,
+   "goal": "Move the warranty cache off the deprecated client library.",
+   "files": [
+    "warranty_cache.py",
+    "test_warranty_cache.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "d3fcd75a-1260-4b45-826e-a7d9de9b1b66",
+   "machine": "omer-lab",
+   "name": "tangram",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency batcher",
+   "twin": null,
+   "goal": "Migrate the currency batcher to the new schema without downtime.",
+   "files": [
+    "currency_batcher.py",
+    "test_currency_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "79908325-c519-4072-8695-a546147122f9",
+   "machine": "omer-lab",
+   "name": "jay",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "quota export",
+   "twin": null,
+   "goal": "Make the quota export safe to run twice with the same input.",
+   "files": [
+    "quota_export.py",
+    "test_quota_export.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "ddce2862-9c15-459d-8c19-cf2e0907f97c",
+   "machine": "omer-lab",
+   "name": "eclair",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "profile archive",
+   "twin": null,
+   "goal": "Move the profile archive off the deprecated client library.",
+   "files": [
+    "profile_archive.py",
+    "test_profile_archive.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "df9fd3fa-f33d-4c08-8a06-0f6db12c2cd1",
+   "machine": "omer-lab",
+   "name": "easel",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "audit archive",
+   "twin": null,
+   "goal": "Cut the audit archive's cold start time by half.",
+   "files": [
+    "audit_archive.py",
+    "test_audit_archive.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "cbf1b481-10d5-4533-aa6c-f9ca1eeeeb01",
+   "machine": "omer-lab",
+   "name": "nutmeg",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "refund migration",
+   "twin": null,
+   "goal": "Make the refund migration safe to run twice with the same input.",
+   "files": [
+    "refund_migration.py",
+    "test_refund_migration.py",
+    "README.md"
+   ],
+   "state": "permission",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "6a4ac8e6-c789-4f89-ade7-61b4828ea48d",
+   "machine": "omer-lab",
+   "name": "oasis",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll webhook",
+   "twin": null,
+   "goal": "Cut the payroll webhook's cold start time by half.",
+   "files": [
+    "payroll_webhook.py",
+    "test_payroll_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 24.2,
+   "question": ""
+  },
+  {
+   "id": "2edaab7f-4024-499c-8861-c054617354d8",
+   "machine": "omer-lab",
+   "name": "dill",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster resolver",
+   "twin": null,
+   "goal": "Make the roster resolver safe to run twice with the same input.",
+   "files": [
+    "roster_resolver.py",
+    "test_roster_resolver.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 54.0,
+   "question": ""
+  },
+  {
+   "id": "11dcaa56-d1e5-4adb-8c6c-a1e9b545ae28",
+   "machine": "omer-lab",
+   "name": "walrus",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "warranty webhook",
+   "twin": "13a15f74-1e85-436d-81df-d70c60069f30",
+   "goal": "Add retries with backoff to the warranty webhook and cover them with tests.",
+   "files": [
+    "warranty_webhook.py",
+    "test_warranty_webhook.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 16.8,
+   "question": ""
+  },
+  {
+   "id": "55c0d011-1fc7-47b9-8bcd-5c588d11ee47",
+   "machine": "omer-lab",
+   "name": "olive",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll throttle",
+   "twin": null,
+   "goal": "Move the payroll throttle off the deprecated client library.",
+   "files": [
+    "payroll_throttle.py",
+    "test_payroll_throttle.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 58.8,
+   "question": ""
+  },
+  {
+   "id": "288c9cba-16d0-4f6e-befc-c16fab231c78",
+   "machine": "noa-mini",
+   "name": "web",
+   "shared_name": true,
+   "harness": "claude-code",
+   "topic": "audit importer",
+   "twin": null,
+   "goal": "Cut the audit importer's cold start time by half.",
+   "files": [
+    "audit_importer.py",
+    "test_audit_importer.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 13.7,
+   "question": ""
+  },
+  {
+   "id": "74361683-8c29-451a-bdf9-186fc524080d",
+   "machine": "noa-mini",
+   "name": "rook",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency archive",
+   "twin": null,
+   "goal": "Cut the currency archive's cold start time by half.",
+   "files": [
+    "currency_archive.py",
+    "test_currency_archive.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "2dbb75d6-f2c8-4076-b09f-3c4e3b82fc68",
+   "machine": "noa-mini",
+   "name": "yarrow",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "quota batcher",
+   "twin": null,
+   "goal": "Find why the quota batcher drops records under load and fix it.",
+   "files": [
+    "quota_batcher.py",
+    "test_quota_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "8659dbfa-70a8-4300-bbb2-9ac371c9128e",
+   "machine": "noa-mini",
+   "name": "rhino",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll digest",
+   "twin": null,
+   "goal": "Add structured logging to the payroll digest and remove the print calls.",
+   "files": [
+    "payroll_digest.py",
+    "test_payroll_digest.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "finish_at": null,
+   "question": "Two tests fail before my change as well. Should I fix them here or leave them?"
+  },
+  {
+   "id": "b10bf227-f480-49fc-9de2-84587403825e",
+   "machine": "noa-mini",
+   "name": "treadle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "payroll indexer",
+   "twin": null,
+   "goal": "Add retries with backoff to the payroll indexer and cover them with tests.",
+   "files": [
+    "payroll_indexer.py",
+    "test_payroll_indexer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "9e21631d-2c26-4b63-b12d-c131266de091",
+   "machine": "noa-mini",
+   "name": "yak",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "audit parser",
+   "twin": null,
+   "goal": "Add retries with backoff to the audit parser and cover them with tests.",
+   "files": [
+    "audit_parser.py",
+    "test_audit_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "425a3de1-17c6-407a-8f1f-a8e48e732ea6",
+   "machine": "noa-mini",
+   "name": "heron",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "pricing validator",
+   "twin": null,
+   "goal": "Move the pricing validator off the deprecated client library.",
+   "files": [
+    "pricing_validator.py",
+    "test_pricing_validator.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 36.5,
+   "question": ""
+  },
+  {
+   "id": "0ce6c856-4b5e-4cef-ad77-be734a06342c",
+   "machine": "noa-mini",
+   "name": "outpost",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "audit validator",
+   "twin": null,
+   "goal": "Add structured logging to the audit validator and remove the print calls.",
+   "files": [
+    "audit_validator.py",
+    "test_audit_validator.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 26.8,
+   "question": ""
+  },
+  {
+   "id": "811f535d-c609-4e9c-addc-37fd7c9cb836",
+   "machine": "noa-mini",
+   "name": "quokka",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "roster parser",
+   "twin": null,
+   "goal": "Move the roster parser off the deprecated client library.",
+   "files": [
+    "roster_parser.py",
+    "test_roster_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "acd0c00d-2f9d-48bc-a5d7-1b37da224936",
+   "machine": "noa-mini",
+   "name": "puzzle",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "coupon dashboard",
+   "twin": null,
+   "goal": "Migrate the coupon dashboard to the new schema without downtime.",
+   "files": [
+    "coupon_dashboard.py",
+    "test_coupon_dashboard.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "f52365a9-4c2d-4f7e-b812-8a68ddc55cbd",
+   "machine": "noa-mini",
+   "name": "cog",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "coupon indexer",
+   "twin": null,
+   "goal": "Make the coupon indexer safe to run twice with the same input.",
+   "files": [
+    "coupon_indexer.py",
+    "test_coupon_indexer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "b819a0f9-88b4-4ca8-9000-d1a7de5d66f6",
+   "machine": "noa-mini",
+   "name": "indigo",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency digest",
+   "twin": null,
+   "goal": "Split the currency digest into a reader and a writer with a clear interface.",
+   "files": [
+    "currency_digest.py",
+    "test_currency_digest.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "1c0da3b7-152b-454a-9adb-77eea3e29c24",
+   "machine": "noa-mini",
+   "name": "trowel",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "tenant validator",
+   "twin": null,
+   "goal": "Add retries with backoff to the tenant validator and cover them with tests.",
+   "files": [
+    "tenant_validator.py",
+    "test_tenant_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "50798461-ff30-4b70-b660-e3ffe43897fc",
+   "machine": "noa-mini",
+   "name": "brioche",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "currency importer",
+   "twin": null,
+   "goal": "Make the currency importer safe to run twice with the same input.",
+   "files": [
+    "currency_importer.py",
+    "test_currency_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "6e367d75-ea11-4890-90cf-b93dd1ad8bc8",
+   "machine": "noa-mini",
+   "name": "jupiter",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "invoice notifier",
+   "twin": null,
+   "goal": "Make the invoice notifier safe to run twice with the same input.",
+   "files": [
+    "invoice_notifier.py",
+    "test_invoice_notifier.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 12.8,
+   "question": ""
+  },
+  {
+   "id": "2ca2fbc2-fa2c-4909-9787-183153022ab7",
+   "machine": "noa-mini",
+   "name": "gizmo",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "shipment validator",
+   "twin": null,
+   "goal": "Add retries with backoff to the shipment validator and cover them with tests.",
+   "files": [
+    "shipment_validator.py",
+    "test_shipment_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "0838dc29-fa76-4cd6-987c-3febc31e25d9",
+   "machine": "noa-mini",
+   "name": "jasper",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "coupon watchdog",
+   "twin": null,
+   "goal": "Split the coupon watchdog into a reader and a writer with a clear interface.",
+   "files": [
+    "coupon_watchdog.py",
+    "test_coupon_watchdog.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "a434b047-edb5-483a-bee6-4ddbd8e880a4",
+   "machine": "noa-mini",
+   "name": "canyon",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "delivery scheduler",
+   "twin": null,
+   "goal": "Migrate the delivery scheduler to the new schema without downtime.",
+   "files": [
+    "delivery_scheduler.py",
+    "test_delivery_scheduler.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "a993b56d-52de-406c-8c7f-692f62b14e7c",
+   "machine": "noa-mini",
+   "name": "woad",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "tenant digest",
+   "twin": null,
+   "goal": "Make the tenant digest safe to run twice with the same input.",
+   "files": [
+    "tenant_digest.py",
+    "test_tenant_digest.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": null,
+   "question": ""
+  },
+  {
+   "id": "066ae346-42c4-4a80-994a-5c0f0994984a",
+   "machine": "noa-mini",
+   "name": "cello",
+   "shared_name": false,
+   "harness": "claude-code",
+   "topic": "delivery cache",
+   "twin": null,
+   "goal": "Move the delivery cache off the deprecated client library.",
+   "files": [
+    "delivery_cache.py",
+    "test_delivery_cache.py",
+    "README.md"
+   ],
+   "state": "working",
+   "finish_at": 48.1,
+   "question": ""
+  }
+ ],
+ "sha256": "b67048c90aeb8dd6a4e82284b5765084875269ed71a48f3dfea4af222af08f3f"
+}

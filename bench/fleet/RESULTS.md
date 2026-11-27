@@ -316,9 +316,44 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | reader calls an hour with 80% of sessions quiet | at most 30% of all active | 4320 against 21420 (20%); models: stubbed | **pass** |
 | 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 6 spoken, 1 held, 25 lost, of 30 (fleet-20261127-015918-burst-10x30-fleet-on) | **FAIL** |
 
+### 5x20, the fleet build, POINTE_FLEET=on, build `26a52ec697`
+
+0 runs of the turn list: 0 turns driven, 0 crashed, 0 not run (their run stopped first); no 1x4 run of this arm on this build, so nothing to compare with.
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | not measured | **not measured** |
+| brain input tokens per turn | within 10% of 1x4 | not measured | **not measured** |
+| first token, median | at most 150 ms above 1x4 | not measured | **not measured** |
+| first token, p90 | at most 150 ms above 1x4 | not measured | **not measured** |
+| wrong session on clear turns | not above the 1x4 rate | not measured | **not measured** |
+| wrong session on clear turns | at most 5% | not measured | **not measured** |
+| asked first on ambiguous turns | at least 0 of 0 (10 of 14, scaled to n) | not measured | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 1920 against 9600 (20%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 5 spoken, 23 held, 0 lost, of 30 (fleet-20261127-031550-burst-5x20-fleet-on) | **FAIL** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 6 spoken, 23 held, 0 lost, of 30 (fleet-20261127-031758-burst-5x20-fleet-on) | **FAIL** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 4 spoken, 23 held, 0 lost, of 30 (fleet-20261127-031957-burst-5x20-fleet-on) | **pass** |
+
+### 10x30, the fleet build, POINTE_FLEET=on, build `26a52ec697`
+
+0 runs of the turn list: 0 turns driven, 0 crashed, 0 not run (their run stopped first); no 1x4 run of this arm on this build, so nothing to compare with.
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | not measured | **not measured** |
+| brain input tokens per turn | within 10% of 1x4 | not measured | **not measured** |
+| first token, median | at most 150 ms above 1x4 | not measured | **not measured** |
+| first token, p90 | at most 150 ms above 1x4 | not measured | **not measured** |
+| wrong session on clear turns | not above the 1x4 rate | not measured | **not measured** |
+| asked first on ambiguous turns | at least 0 of 0 (10 of 14, scaled to n) | not measured | **not measured** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all active | 4320 against 21420 (20%); models: stubbed | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 4 spoken, 23 held, 4 lost, of 30 (fleet-20261127-032202-burst-10x30-fleet-on) | **FAIL** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 4 spoken, 24 held, 3 lost, of 30 (fleet-20261127-032444-burst-10x30-fleet-on) | **FAIL** |
+| 30 sessions finish within a minute | at most 4 spoken lines, nothing lost | 4 spoken, 25 held, 1 lost, of 30 (fleet-20261127-032726-burst-10x30-fleet-on) | **FAIL** |
+
 ## The arms, as the daemon states them
 
-3146 of 3146 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
+3152 of 3152 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `26a52ec697`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
 
 Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0b98c14e3a`, not run again. Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`.
 
@@ -677,14 +712,20 @@ Not part of the frozen dataset and in no bar (`bench/fleet/probes.json`, its has
 
 ## 30 sessions end their turn within a minute
 
-| Arm | Size | Run | Finished | Spoken lines | Held items | Named in speech | Named in the held list | Lost | Reader calls | Error |
-|---|---|---|---|---|---|---|---|---|---|---|
-| fleet-on | 5x20 | fleet-20261127-015503-burst-5x20-fleet-on | 30 | 5 | 1 | 4 | 1 | 25 | 35 |  |
-| fleet-off | 5x20 | fleet-20261127-015709-burst-5x20-fleet-off | 30 | 5 | 0 | 4 | 0 | 26 | 35 |  |
-| fleet-on | 10x30 | fleet-20261127-015918-burst-10x30-fleet-on | 30 | 6 | 1 | 4 | 1 | 25 | 35 |  |
-| fleet-off | 10x30 | fleet-20261127-020207-burst-10x30-fleet-off | 30 | 5 | 0 | 5 | 0 | 25 | 35 |  |
+| Arm | Size | Run | Finished | Spoken lines | Held items | Named in speech | Named in the held list | Lost | Report lines (daemon's count) | Not read (quiet) | Reader calls | Error |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fleet-on | 5x20 | fleet-20261127-015503-burst-5x20-fleet-on | 30 | 5 | 1 | 4 | 1 | 25 | 4 | 0 | 35 |  |
+| fleet-off | 5x20 | fleet-20261127-015709-burst-5x20-fleet-off | 30 | 5 | 0 | 4 | 0 | 26 | 0 | 0 | 35 |  |
+| fleet-on | 10x30 | fleet-20261127-015918-burst-10x30-fleet-on | 30 | 6 | 1 | 4 | 1 | 25 | 4 | 0 | 35 |  |
+| fleet-off | 10x30 | fleet-20261127-020207-burst-10x30-fleet-off | 30 | 5 | 0 | 5 | 0 | 25 | 0 | 0 | 35 |  |
+| fleet-on | 5x20 | fleet-20261127-031550-burst-5x20-fleet-on | 30 | 5 | 23 | 7 | 23 | 0 | 4 | 0 | 62 |  |
+| fleet-on | 5x20 | fleet-20261127-031758-burst-5x20-fleet-on | 30 | 6 | 23 | 8 | 22 | 0 | 4 | 0 | 64 |  |
+| fleet-on | 5x20 | fleet-20261127-031957-burst-5x20-fleet-on | 30 | 4 | 23 | 8 | 22 | 0 | 4 | 0 | 63 |  |
+| fleet-on | 10x30 | fleet-20261127-032202-burst-10x30-fleet-on | 30 | 4 | 23 | 3 | 23 | 4 | 4 | 3 | 55 |  |
+| fleet-on | 10x30 | fleet-20261127-032444-burst-10x30-fleet-on | 30 | 4 | 24 | 3 | 24 | 3 (written 4) | 4 | 2 | 59 |  |
+| fleet-on | 10x30 | fleet-20261127-032726-burst-10x30-fleet-on | 30 | 4 | 25 | 4 | 25 | 1 (written 2) | 4 | 1 | 60 |  |
 
-Lost: a session that ended its turn and is named neither in a spoken line nor in the held list when the fleet went quiet. One run each: n = 1.
+Lost: a session that ended its turn and is named neither in a spoken line nor in the held list when the fleet went quiet, by its dataset name or the name the voice gave it at join (a run written before that is counted again, with the count it wrote beside it). Spoken lines: every line said in the window, approvals and their reminders included; the bar counts these. Report lines: the daemon's own count of lines about finished turns. Not read (quiet): finished turns of quiet sessions the daemon did not read.
 
 ## Reader calls
 
@@ -796,7 +837,13 @@ Stubbed models, a call held for a minute with nothing typed. Processes: one voic
 | fleet-20261127-015709-burst-5x20-fleet-off | burst | 41 | 0.3696 |
 | fleet-20261127-015918-burst-10x30-fleet-on | burst | 186 | 0.9222 |
 | fleet-20261127-020207-burst-10x30-fleet-off | burst | 183 | 1.0273 |
-| all 65 paid launches | | 9716 | 81.3706 |
+| fleet-20261127-031550-burst-5x20-fleet-on | burst | 67 | 0.4294 |
+| fleet-20261127-031758-burst-5x20-fleet-on | burst | 69 | 0.4045 |
+| fleet-20261127-031957-burst-5x20-fleet-on | burst | 66 | 0.3873 |
+| fleet-20261127-032202-burst-10x30-fleet-on | burst | 201 | 1.0239 |
+| fleet-20261127-032444-burst-10x30-fleet-on | burst | 199 | 1.0260 |
+| fleet-20261127-032726-burst-10x30-fleet-on | burst | 208 | 1.0637 |
+| all 71 paid launches | | 10526 | 85.7053 |
 
 Computed from each call's token counts at list price (`prices.json`), not metered; smoke runs included. Each run's `manifest.json` has the split by model and says which calls were estimated from sizes.
 
@@ -839,4 +886,4 @@ Runs that ended early (the turns they drove are counted; the turns they did not 
 - **The machine was shared** with other work; each row has the load at its start and end.
 - **Two scorer rules were written after the first rows were read**, and say so here: a turn whose brain steps all failed is crashed, not "asked" (the daemon's "say that again?" has a question mark); and rates are over the turns that were driven, with the crashed and not-run counts beside them, because a turn never reached lowered the wrong-session rate when it sat in the denominator.
 - **A run that stopped early drove fewer turns.** Each run types the 60 turns in its own shuffled order (the seed and the order are in its manifest), so a run that stopped at its launch's spend limit covers the first part of its own order: not the same turns as a whole run. The run list above has each stop; a stopped run that was made again whole is listed as superseded and not counted.
-- **Not run on the newest build (`271e64c1d0`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work.
+- **Not run on the newest build (`26a52ec697`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work; 1x4, the fleet build, POINTE_FLEET=off; 5x20, the fleet build, POINTE_FLEET=off; 10x30, the fleet build, POINTE_FLEET=off; 1x4, the fleet build, POINTE_FLEET=on; 5x20, the fleet build, POINTE_FLEET=on; 10x30, the fleet build, POINTE_FLEET=on.
