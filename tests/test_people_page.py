@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -559,7 +560,8 @@ def test_what_a_machine_says_shows_under_it_with_remove_next_to_removed_you():
     existing revoke route). The older-Pointe line is said the same way and offers no Remove beside it. A dialed
     machine that is offline reads as any offline machine."""
     status = with_avi()
-    since = time.time() - 1800
+    # Today, or the page says "Thu 23:40": half an hour back crosses midnight from 00:00 to 00:30 (UTC on CI).
+    since = max(time.time() - 1800, datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp())
     status["machines"][1].update(online=False, since=since, notice="avi-box removed you", removed=True)
     for x in status["sessions"][2:]:
         x.update(online=False, working=False, by=None)
