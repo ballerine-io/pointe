@@ -532,7 +532,7 @@ def cmd_burst(a) -> None:
                "spoken": [s["text"] for s in seen["said"]], "spoken_at": [round(s["at"] - t0, 1) for s in seen["said"]],
                "held": held, "held_view": status.get("held"), "fleet_stats": (fleet_view or {}).get("stats"),
                "named_in_speech": len(told), "named_in_held": len(kept),
-               "lost": lost,
+               "report_lines": score.report_lines([s["text"] for s in seen["said"]], called), "lost": lost,
                "reader_calls": sum(c["kind"] == "text" and c.get("caller") in ("_read_model",) for c in seen["calls"]),
                "brain_steps": sum(c["kind"] == "step" for c in seen["calls"]), "load_end": os.getloadavg()[0],
                "fleet_on": (fleet_view or {}).get("on"), "error": None}
@@ -549,23 +549,54 @@ def cmd_burst(a) -> None:
 # ---------- reader calls: every session active, or 80% of them quiet ----------
 
 READERS_SECS = 120.0
-READERS_EVERY = 60.0  # an active session ends a turn this often
+READERS_EVERY = 60.0  # every session ends a turn this often
+QUIET_SHARE = 0.8  # of the sessions, marked quiet by the user's words in quiet_80
+QUIET_WORDS = 9  # the longest "keep ... quiet" the daemon takes as a mark (scale.quiet_intent)
+
+
+def readers_plan(ids: list[str], names: dict[str, str], scenario: str, seed: int) -> tuple[list[tuple[float, str]], list[str]]:
+    """When each session ends a turn, and which sessions the user keeps quiet first. Both scenarios have every
+    session end a turn once a minute, on the same schedule: what differs is only that in quiet_80 the user has kept
+    80% of them quiet, so the count measures the quiet tier and not sessions that did nothing. Marked: sessions whose
+    name the voice knows as one plain word (a renamed "session 0c2a71" is not a name anybody says)."""
+    rng = random.Random(seed + 1)
+    due = sorted((rng.uniform(0, READERS_EVERY) + k * READERS_EVERY, sid) for sid in ids
+                 for k in range(int(READERS_SECS // READERS_EVERY)))
+    if scenario == "all_active":
+        return due, []
+    plain = [sid for sid in ids if len(names.get(sid, "").split()) == 1]
+    return due, sorted(random.Random(seed).sample(plain, min(len(plain), int(len(ids) * QUIET_SHARE))))
+
+
+def quiet_lines(names: list[str]) -> list[str]:
+    """The user's words that mark these sessions quiet, as few lines as the mark's nine words allow: "keep tide
+    harbor skiff quiet"."""
+    out, line = [], []
+    for name in names:
+        if line and len(line) + 3 > QUIET_WORDS:
+            out.append(f"keep {' '.join(line)} quiet")
+            line = []
+        line.append(name)
+    return out + ([f"keep {' '.join(line)} quiet"] if line else [])
 
 
 def cmd_readers(a) -> None:
     """With stubbed models: how often the daemon calls the reader is the daemon's decision, not a model's."""
     assert a.models == "stub", "reader calls are counted with stubbed models"
-    for scenario, active_share in (("all_active", 1.0), ("quiet_80", 0.2)):
+    for scenario in ("all_active", "quiet_80"):
         run = launch("readers", a, f"-{scenario}")
         error = ""
         try:
             run.up()
             w, f = run.watch, run.fleet
             ids = sorted(f.sessions)
-            active = random.Random(a.seed).sample(ids, max(1, round(len(ids) * active_share)))
-            rng = random.Random(a.seed + 1)
-            due = sorted((rng.uniform(0, READERS_EVERY) + k * READERS_EVERY, sid) for sid in active
-                         for k in range(int(READERS_SECS // READERS_EVERY)))
+            names = f.names()
+            due, marked = readers_plan(ids, names, scenario, a.seed)
+            for line in quiet_lines([names[sid] for sid in marked]):
+                f.type(line)
+                w.settle(least=0.5, most=30.0)
+            context = f.voice.call("/voice/context")[1]
+            tiers_marked = ((context.get("fleet") or {}).get("tiers") if isinstance(context, dict) else None)
             seen = {"deliveries": [], "calls": [], "said": []}
             t0 = time.time()
             for at, sid in due:
@@ -580,7 +611,8 @@ def cmd_readers(a) -> None:
             calls = sum(c["kind"] == "text" and c["choice"] == _role(run.manifest["setup_line"], "reader") for c in seen["calls"])
             context = f.voice.call("/voice/context")[1]
             run.write({"kind": "readers", "run": run.id, "arm": run.arm, "size": run.size, "scenario": scenario, "models": "stubbed",
-                       "active_sessions": len(active), "sessions": len(ids), "turns_ended": len(due), "window_secs": READERS_SECS,
+                       "active_sessions": len(ids), "sessions": len(ids), "marked_quiet": len(marked),
+                       "tiers_after_marking": tiers_marked, "turns_ended": len(due), "window_secs": READERS_SECS,
                        "reader_calls": calls, "per_hour": calls * 3600 / READERS_SECS,
                        "callers": sorted({c.get("caller", "") for c in seen["calls"] if c["kind"] == "text"}),
                        "fleet_on": (context.get("fleet") or {}).get("on") if isinstance(context, dict) else None,

@@ -96,7 +96,8 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
                 told, kept, lost = score.burst_named(x["finished"], x["spoken"], x["held"], called)
                 if lost != x["lost"]:
                     x["lost_as_written"] = len(x["lost"])
-                x.update(named_in_speech=len(told), named_in_held=len(kept), lost=lost)
+                x.update(named_in_speech=len(told), named_in_held=len(kept), lost=lost,
+                         report_lines=score.report_lines(x["spoken"], called))
     out = ["<!-- Written by bench/fleet/report.py from bench/fleet/results/. Do not edit by hand. -->", "",
            "# Fleet benchmark: one voice, many machines and sessions", "",
            "A self-evaluation: Pointe's team wrote the simulator, the turns, the labels and the scorer. Typed text, "
@@ -143,7 +144,8 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         base = score.summarize(base_rows, fleets.get("1x4")) if base_rows else None
         for size in SIZES:
             turn_rows = [x for x in rows_of(arm, size, "turns") if x["kind"] == "turn"]
-            bursts, readers = score.burst(rows_of(arm, size, "burst")), score.readers(rows_of(plain, size, "readers"))
+            bursts = score.burst(rows_of(arm, size, "burst"))
+            readers = score.readers(rows_of(plain, size, "readers"), rows_of("fleet-off@any", size, "readers"))
             if not turn_rows and not bursts:
                 continue
             measured_any = True
@@ -277,10 +279,10 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     bursts = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "burst"]
     out += ["## 30 sessions end their turn within a minute", ""]
     if bursts:
-        out += ["| Arm | Size | Run | Finished | Spoken lines | Held items | Named in speech | Named in the held list | Lost | "
-                "Report lines (daemon's count) | Not read (quiet) | Reader calls | Error |", "|" + "---|" * 13]
+        out += ["| Arm | Size | Run | Finished | Spoken lines | Report lines spoken | Held items | Named in speech | Named in the held list | Lost | "
+                "Report lines (daemon's count) | Not read (quiet) | Reader calls | Error |", "|" + "---|" * 14]
         for m, b in bursts:
-            out.append(f"| {m['arm']} | {m['size']} | {m['run']} | {len(b['finished'])} | {len(b['spoken'])} | {len(b['held'])} | "
+            out.append(f"| {m['arm']} | {m['size']} | {m['run']} | {len(b['finished'])} | {len(b['spoken'])} | {b.get('report_lines', 'n/a')} | {len(b['held'])} | "
                        f"{b.get('named_in_speech', 'n/a')} | {b.get('named_in_held', 'n/a')} | {len(b['lost'])}"
                        + (f" (written {b['lost_as_written']})" if "lost_as_written" in b else "")
                        + f" | {(b.get('fleet_stats') or {}).get('report_lines_spoken', 'n/a')} | {(b.get('fleet_stats') or {}).get('reader_skipped', 'n/a')} | "
@@ -288,21 +290,28 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         out += ["", "Lost: a session that ended its turn and is named neither in a spoken line nor in the held list when the "
                 "fleet went quiet, by its dataset name or the name the voice gave it at join (a run written before that is "
                 "counted again, with the count it wrote beside it). Spoken lines: every line said in the window, approvals and "
-                "their reminders included; the bar counts these. Report lines: the daemon's own count of lines about finished "
-                "turns. Not read (quiet): finished turns of quiet sessions the daemon did not read.", ""]
+                "their reminders included. Report lines spoken: the spoken lines that name a session that finished; the bar "
+                "counts these (the owner's reading: an approval prompt and its reminder are not reports). Report lines "
+                "(daemon's count): the daemon's own count of lines about finished turns. Not read (quiet): finished turns of quiet sessions the daemon did not read.", ""]
     else:
         out += ["Not run.", ""]
 
     readers = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "readers"]
     out += ["## Reader calls", ""]
     if readers:
-        out += ["| Arm | Size | Scenario | Sessions active | Turns ended | Reader calls in the window | An hour | Error |", "|" + "---|" * 8]
+        out += ["| Arm | Size | Scenario | Sessions active | Marked quiet | Quiet in the tiers | Turns ended | Reader calls in the window | "
+                "Not read (quiet) | An hour | Error |", "|" + "---|" * 11]
         for m, x in readers:
             out.append(f"| {m['arm']} | {m['size']} | {x.get('scenario')} | {x.get('active_sessions', 'n/a')} of {x.get('sessions', 'n/a')} | "
-                       f"{x.get('turns_ended', 'n/a')} | {x.get('reader_calls', 'n/a')} | {_num(x.get('per_hour'))} | {x.get('error') or ''} |")
+                       f"{x.get('marked_quiet', 'n/a')} | {(x.get('tiers_after_marking') or {}).get('quiet', 'n/a')} | "
+                       f"{x.get('turns_ended', 'n/a')} | {x.get('reader_calls', 'n/a')} | {(x.get('fleet_stats') or {}).get('reader_skipped', 'n/a')} | "
+                       f"{_num(x.get('per_hour'))} | {x.get('error') or ''} |")
         out += ["", "Counted with stubbed models: the count is the daemon's own decisions to call the reader, not what a "
-                "model wrote. Each active session ends a turn once a minute for two minutes; the hourly figure is the "
-                "window's count times 30. One run each: n = 1.", ""]
+                "model wrote. Every session ends a turn once a minute for two minutes; the hourly figure is the window's "
+                "count times 30. In quiet_80 the user first types \"keep tide harbor … quiet\" for 80% of the sessions. "
+                "The bar compares it with the rules-off arm's all_active, which reads every finished turn (all followed). "
+                "Rows written before that (80% of the sessions idle, none marked, \"Marked quiet\" n/a) are listed and "
+                "not counted. One run each: n = 1.", ""]
     else:
         out += ["Not run.", ""]
 

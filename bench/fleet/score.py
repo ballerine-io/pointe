@@ -7,7 +7,8 @@ A row is one line of results/<run-id>/rows.jsonl (bench/fleet/run.py writes them
                   inbox while the turn was watched: the only evidence of where a send went), `said` (what the voice
                   showed), the model steps, and `error` when the turn could not be driven.
   kind "burst"    many sessions ending their turn within a minute: what was said, what was held, what was lost.
-  kind "readers"  reader calls over a window with every session active, or with 80% of them quiet.
+  kind "readers"  reader calls over a window in which every session ends its turns, with none or 80% of them kept
+                  quiet by the user's words.
   kind "crash"    a run that ended early, with its reason.
 
 Outcomes are by rule:
@@ -201,19 +202,44 @@ def burst_named(finished: list[str], spoken: list[str], held: list[str], called:
     return told, kept, sorted(sid for sid in finished if sid not in told and sid not in kept)
 
 
+def report_lines(spoken: list[str], called: dict[str, set[str]]) -> int:
+    """The spoken lines about finished turns: those that name a session that finished. The owner's reading of the
+    burst bar's "spoken lines": an approval prompt and its "still waiting" reminder name a session at a prompt, not one
+    that finished, and are not counted."""
+    return sum(any(names(line, n) for ns in called.values() for n in ns) for line in spoken)
+
+
 def burst(rows: list[dict]) -> list[dict]:
+    """A row written before report lines were counted has every spoken line as one."""
     return [{"run": r["run"], "finished": len(r["finished"]), "spoken": len(r["spoken"]), "held": len(r["held"]),
-             "lost": len(r["lost"]), "reader_calls": r.get("reader_calls"), "error": r.get("error")}
-            for r in rows if r["kind"] == "burst"]
+             "report_lines": r.get("report_lines", len(r["spoken"])), "lost": len(r["lost"]),
+             "reader_calls": r.get("reader_calls"), "error": r.get("error")} for r in rows if r["kind"] == "burst"]
 
 
-def readers(rows: list[dict]) -> dict:
-    """Reader calls an hour with every session active and with 80% quiet, and the second as a share of the first."""
-    by = {r["scenario"]: r for r in rows if r["kind"] == "readers" and not r.get("error")}
-    active, quiet = by.get("all_active"), by.get("quiet_80")
-    share = (quiet["per_hour"] / active["per_hour"]) if active and quiet and active["per_hour"] else None
-    return {"all_active": active and active["per_hour"], "quiet_80": quiet and quiet["per_hour"], "share": share,
-            "models": (active or quiet or {}).get("models")}
+def readers(rows: list[dict], followed: list[dict]) -> dict:
+    """Reader calls an hour with 80% of the sessions quiet (`rows`, the arm measured), as a share of the all-followed
+    figure: every session ending the same turns with the rules off, which read every finished turn (`followed`, the
+    rules-off arm's all_active). The rules' own all_active is not that figure past twenty sessions on a machine: their
+    default keeps the rest quiet. A quiet_80 row is counted only when the user's words marked 80% of the sessions
+    quiet; one written before (80% of the sessions idle, none quiet) did not measure the quiet tier."""
+    def newest(of: list[dict], scenario: str) -> dict | None:  # run ids begin with their start time
+        return max((r for r in of if r["kind"] == "readers" and r["scenario"] == scenario and not r.get("error")),
+                   key=lambda r: r.get("run", ""), default=None)
+    quiet, active = newest(rows, "quiet_80"), newest(followed, "all_active")
+    out = {"all_active": active and active["per_hour"], "quiet_80": quiet and quiet["per_hour"], "share": None,
+           "models": (active or quiet or {}).get("models"), "why": ""}
+    if quiet is None or active is None or not active["per_hour"]:
+        return out
+    if "marked_quiet" not in quiet:
+        out["why"] = "not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet)"
+        return out
+    marked, n = quiet["marked_quiet"], quiet.get("sessions") or 0
+    out.update(marked=marked, sessions=n, quiet_seen=(quiet.get("tiers_after_marking") or {}).get("quiet", "n/a"))
+    if not n or marked < int(n * 0.8):
+        out["why"] = f"not counted: {marked} of {n} sessions marked quiet, the scenario needs 80%"
+        return out
+    out["share"] = quiet["per_hour"] / active["per_hour"]
+    return out
 
 
 def verdict(ok: bool | None) -> str:
@@ -279,15 +305,20 @@ def bars(at: dict, base: dict | None, size: str, bursts: list[dict], reader: dic
         f"{ask['k']} of {ask['n']} ({ask['low']:.0%} to {ask['high']:.0%})" if ask["n"] else "not measured",
         (ask["k"] >= need) if ask["n"] else None)
     share = reader.get("share")
-    bar("reader calls an hour with 80% of sessions quiet", f"at most {BARS['quiet_reader_share_max']:.0%} of all active",
+    note = "; ".join(x for x in (f"models: {reader['models']}" if reader.get("models") else "",
+                                  f"{reader['marked']} of {reader['sessions']} marked quiet, {reader.get('quiet_seen')} quiet in "
+                                  "the tiers" if reader.get("marked") is not None else "", reader.get("why") or "") if x)
+    bar("reader calls an hour with 80% of sessions quiet",
+        f"at most {BARS['quiet_reader_share_max']:.0%} of all followed (rules off, every turn read)",
         "not measured" if share is None else f"{reader['quiet_80']:.0f} against {reader['all_active']:.0f} ({share:.0%})",
-        None if share is None else share <= BARS["quiet_reader_share_max"],
-        f"models: {reader['models']}" if reader.get("models") else "")
+        None if share is None else share <= BARS["quiet_reader_share_max"], note)
     good = [b for b in bursts if not b["error"]]
+    limit = f"at most {BARS['burst_spoken_max']} spoken report lines, nothing lost"
     if not good:
-        bar("30 sessions finish within a minute", f"at most {BARS['burst_spoken_max']} spoken lines, nothing lost", "not measured", None)
+        bar("30 sessions finish within a minute", limit, "not measured", None)
     for b in good:
-        bar("30 sessions finish within a minute", f"at most {BARS['burst_spoken_max']} spoken lines, nothing lost",
-            f"{b['spoken']} spoken, {b['held']} held, {b['lost']} lost, of {b['finished']} ({b['run']})",
-            b["spoken"] <= BARS["burst_spoken_max"] and b["lost"] == 0)
+        b = {"report_lines": b["spoken"], **b}
+        bar("30 sessions finish within a minute", limit,
+            f"{b['report_lines']} report lines ({b['spoken']} spoken), {b['held']} held, {b['lost']} lost, of {b['finished']} ({b['run']})",
+            b["report_lines"] <= BARS["burst_spoken_max"] and b["lost"] == 0)
     return out

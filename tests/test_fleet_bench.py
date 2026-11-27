@@ -175,3 +175,60 @@ def test_a_burst_finds_a_session_by_the_name_the_voice_gave_it_at_join():
     called = {"a": {"pinwheel"}, "b": {"riddle", "session 0c2a71"}, "c": {"gable"}}
     told, kept, lost = score.burst_named(["a", "b", "c"], ["Pinwheel finished."], ["{'session': 'session 0c2a71', 'kind': 'report'}"], called)
     assert (told, kept, lost) == (["a"], ["b"], ["c"])
+
+
+def test_the_burst_bar_counts_report_lines_and_not_approvals_or_their_reminders():
+    """The owner's reading of "at most 4 spoken lines": lines about finished turns. A line naming no session that
+    finished (an approval prompt, its "still waiting" reminder) is not a report line."""
+    called = {"a": {"galaxy"}, "b": {"acorn"}, "c": {"wasabi"}, "d": {"ultra"}, "e": {"jupiter"}}
+    spoken = ["shrike wants to run: git status. Should it?", "Two updates: galaxy is done. Acorn changed the queue.",
+              "Four on dana-rig finished: wasabi, ultra and 2 more.", "shrike's still waiting on your yes or no.",
+              "Nutmeg, on omer-lab, is waiting on a permission.", "Jupiter finished the parser."]
+    assert score.report_lines(spoken, called) == 3
+    row = {"kind": "burst", "run": "b1", "finished": list(called), "spoken": spoken, "held": [], "lost": [], "error": None,
+           "report_lines": 3}
+    assert score.burst([row])[0]["report_lines"] == 3
+    assert score.burst([{k: v for k, v in row.items() if k != "report_lines"}])[0]["report_lines"] == 6  # written before: every line
+    out = {b["bar"]: b for b in score.bars(score.summarize([], FLEET), None, "5x20", score.burst([row]), {"share": None})}
+    burst = out["30 sessions finish within a minute"]
+    assert burst["verdict"] == "pass" and burst["limit"] == "at most 4 spoken report lines, nothing lost", burst
+    assert burst["measured"].startswith("3 report lines (6 spoken), 0 held, 0 lost, of 5"), burst
+    five = {**row, "spoken": spoken + ["Galaxy again.", "Acorn again."]}
+    five["report_lines"] = score.report_lines(five["spoken"], called)
+    assert score.bars(score.summarize([], FLEET), None, "5x20", score.burst([five]), {"share": None})[-1]["verdict"] == "FAIL"
+
+
+def test_the_reader_scenario_has_every_session_end_turns_and_the_user_keep_eighty_percent_quiet():
+    """The reader bar at 58af2eb7 measured 20% because 80% of the sessions did nothing (reader_skipped 0): it did not
+    exercise the quiet tier. Now both scenarios have every session end its turns on the same schedule, and in
+    quiet_80 the user's own words ("keep tide harbor quiet") mark 80% of them quiet first."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("fleet_rules", Path(__file__).resolve().parents[1] / "pointe" / "scale.py")
+    scale_mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(scale_mod)
+    (run,) = load("run")
+    names = {f"s{i:02d}": n for i, n in enumerate("tide harbor skiff lantern gully pelican orchard pasture cinder alder".split())}
+    names["s10"] = "session 0c2a71"  # renamed at join: two words, and not a name anyone says
+    due_all, marked_all = run.readers_plan(sorted(names), names, "all_active", seed=7)
+    due_quiet, marked = run.readers_plan(sorted(names), names, "quiet_80", seed=7)
+    assert due_all == due_quiet and sorted(sid for _, sid in due_all) == sorted(list(names) * 2)
+    assert marked_all == [] and len(marked) == 8 and "s10" not in marked  # 80% of 11, rounded down; plain names only
+    lines = run.quiet_lines([names[sid] for sid in marked])
+    assert all(len(line.split()) <= 9 for line in lines)
+    told = [scale_mod.quiet_intent(line) for line in lines]
+    assert all(t and t[0] for t in told) and sorted(" ".join(t[1] for t in told).split()) == sorted(names[sid] for sid in marked)
+
+
+def test_the_reader_bar_compares_with_the_all_followed_figure_and_refuses_a_run_that_marked_nothing():
+    followed = {"kind": "readers", "scenario": "all_active", "per_hour": 1000.0, "models": "stubbed", "sessions": 100}
+    quiet = {"kind": "readers", "scenario": "quiet_80", "per_hour": 250.0, "models": "stubbed", "sessions": 100,
+             "marked_quiet": 80, "tiers_after_marking": {"focus": 2, "background": 18, "quiet": 80}}
+    got = score.readers([quiet], [followed])
+    assert (got["all_active"], got["quiet_80"], got["share"]) == (1000.0, 250.0, 0.25)
+    old = {k: v for k, v in quiet.items() if k not in ("marked_quiet", "tiers_after_marking")}
+    refused = score.readers([old], [followed])  # written before: 80% idle, none quiet
+    assert refused["share"] is None and "none quiet" in refused["why"]
+    assert "2 of 100" in score.readers([{**quiet, "marked_quiet": 2}], [followed])["why"]
+    bar = next(b for b in score.bars(score.summarize([], FLEET), None, "5x20", [], got) if b["bar"].startswith("reader calls"))
+    assert bar["verdict"] == "pass" and bar["limit"] == "at most 30% of all followed (rules off, every turn read)", bar
+    assert "80 of 100 marked quiet, 80 quiet in the tiers" in bar["note"], bar
