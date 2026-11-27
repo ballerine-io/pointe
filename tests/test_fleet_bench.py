@@ -169,3 +169,9 @@ def test_a_request_taken_for_a_correction_is_listed_with_whether_it_came_right_a
     text = report.write(at / "results", at / "RESULTS.md", at / "FROZEN.json", "abc", {"5x20": FLEET})
     assert "| fleet-on, build `aaaaaaaaaa` | 5x20 | r1 | clear_name-07 | 2 | no |" in text
     assert "fleet-on `aaaaaaaaaa` 1 of 3." in text
+
+
+def test_a_burst_finds_a_session_by_the_name_the_voice_gave_it_at_join():
+    called = {"a": {"pinwheel"}, "b": {"riddle", "session 0c2a71"}, "c": {"gable"}}
+    told, kept, lost = score.burst_named(["a", "b", "c"], ["Pinwheel finished."], ["{'session': 'session 0c2a71', 'kind': 'report'}"], called)
+    assert (told, kept, lost) == (["a"], ["b"], ["c"])

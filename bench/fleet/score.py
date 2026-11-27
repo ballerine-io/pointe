@@ -191,6 +191,16 @@ def summarize(rows: list[dict], fleet: dict | None = None) -> dict:
     return out
 
 
+def burst_named(finished: list[str], spoken: list[str], held: list[str], called: dict[str, set[str]]) -> tuple[list, list, list]:
+    """Of the sessions that ended their turn in a burst: those named in a spoken line, those named only in the held list,
+    and the lost (neither). `called`: each session's names, the dataset's and the one the voice gave it at join when its
+    rules refused the dataset's ("session 0c2a71")."""
+    said = " ".join(spoken)
+    told = [sid for sid in finished if any(names(said, n) for n in called[sid])]
+    kept = [sid for sid in finished if sid not in told and any(names(h, n) for h in held for n in called[sid])]
+    return told, kept, sorted(sid for sid in finished if sid not in told and sid not in kept)
+
+
 def burst(rows: list[dict]) -> list[dict]:
     return [{"run": r["run"], "finished": len(r["finished"]), "spoken": len(r["spoken"]), "held": len(r["held"]),
              "lost": len(r["lost"]), "reader_calls": r.get("reader_calls"), "error": r.get("error")}

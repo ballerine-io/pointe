@@ -86,6 +86,17 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
         if r["manifest"]["what"] in ("turns", "burst") and r["manifest"]["dataset_sha256"] != dataset_sha:
             raise Refused(f"{r['manifest']['run']} was made on another dataset: no report")
     left = [r for r in runs if not counted(r)]
+    # Bursts written before a session was looked for by the name the voice gave it at join too: counted again here.
+    for r in used:
+        names = r["manifest"].get("names") or {}
+        for x in r["rows"]:
+            if x["kind"] == "burst" and not x.get("error") and r["manifest"]["size"] in fleets:
+                dataset = {s["id"]: s["name"] for s in fleets[r["manifest"]["size"]]["sessions"]}
+                called = {sid: {dataset[sid], *([names[sid]] if names.get(sid) else [])} for sid in x["finished"]}
+                told, kept, lost = score.burst_named(x["finished"], x["spoken"], x["held"], called)
+                if lost != x["lost"]:
+                    x["lost_as_written"] = len(x["lost"])
+                x.update(named_in_speech=len(told), named_in_held=len(kept), lost=lost)
     out = ["<!-- Written by bench/fleet/report.py from bench/fleet/results/. Do not edit by hand. -->", "",
            "# Fleet benchmark: one voice, many machines and sessions", "",
            "A self-evaluation: Pointe's team wrote the simulator, the turns, the labels and the scorer. Typed text, "
@@ -266,13 +277,19 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     bursts = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "burst"]
     out += ["## 30 sessions end their turn within a minute", ""]
     if bursts:
-        out += ["| Arm | Size | Run | Finished | Spoken lines | Held items | Named in speech | Named in the held list | Lost | Reader calls | Error |",
-                "|" + "---|" * 11]
+        out += ["| Arm | Size | Run | Finished | Spoken lines | Held items | Named in speech | Named in the held list | Lost | "
+                "Report lines (daemon's count) | Not read (quiet) | Reader calls | Error |", "|" + "---|" * 13]
         for m, b in bursts:
             out.append(f"| {m['arm']} | {m['size']} | {m['run']} | {len(b['finished'])} | {len(b['spoken'])} | {len(b['held'])} | "
-                       f"{b.get('named_in_speech', 'n/a')} | {b.get('named_in_held', 'n/a')} | {len(b['lost'])} | {b.get('reader_calls', 'n/a')} | {b.get('error') or ''} |")
+                       f"{b.get('named_in_speech', 'n/a')} | {b.get('named_in_held', 'n/a')} | {len(b['lost'])}"
+                       + (f" (written {b['lost_as_written']})" if "lost_as_written" in b else "")
+                       + f" | {(b.get('fleet_stats') or {}).get('report_lines_spoken', 'n/a')} | {(b.get('fleet_stats') or {}).get('reader_skipped', 'n/a')} | "
+                       f"{b.get('reader_calls', 'n/a')} | {b.get('error') or ''} |")
         out += ["", "Lost: a session that ended its turn and is named neither in a spoken line nor in the held list when the "
-                "fleet went quiet. One run each: n = 1.", ""]
+                "fleet went quiet, by its dataset name or the name the voice gave it at join (a run written before that is "
+                "counted again, with the count it wrote beside it). Spoken lines: every line said in the window, approvals and "
+                "their reminders included; the bar counts these. Report lines: the daemon's own count of lines about finished "
+                "turns. Not read (quiet): finished turns of quiet sessions the daemon did not read.", ""]
     else:
         out += ["Not run.", ""]
 

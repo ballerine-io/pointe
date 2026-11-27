@@ -525,15 +525,14 @@ def cmd_burst(a) -> None:
         fleet_view = context.get("fleet") if isinstance(context, dict) else None
         held = [str(item) for item in ((status.get("held") or {}).get("items") or [])]
         by_id = {s["id"]: s for s in run.described["sessions"]}
-        said = " ".join(s["text"] for s in seen["said"])
-        told = [sid for sid in finals if score.names(said, by_id[sid]["name"])]
-        kept = [sid for sid in finals if sid not in told and any(score.names(h, by_id[sid]["name"]) for h in held)]
+        called = {sid: {by_id[sid]["name"], *([run.manifest["names"][sid]] if run.manifest.get("names", {}).get(sid) else [])} for sid in finals}
+        told, kept, lost = score.burst_named(sorted(finals), [s["text"] for s in seen["said"]], held, called)
         row = {"kind": "burst", "run": run.id, "arm": run.arm, "size": run.size, "finished": sorted(finals),
                "window_secs": round(max(at for at, _ in due), 1), "watched_secs": round(time.time() - t0, 1), "settled": settled,
                "spoken": [s["text"] for s in seen["said"]], "spoken_at": [round(s["at"] - t0, 1) for s in seen["said"]],
                "held": held, "held_view": status.get("held"), "fleet_stats": (fleet_view or {}).get("stats"),
                "named_in_speech": len(told), "named_in_held": len(kept),
-               "lost": sorted(sid for sid in finals if sid not in told and sid not in kept),
+               "lost": lost,
                "reader_calls": sum(c["kind"] == "text" and c.get("caller") in ("_read_model",) for c in seen["calls"]),
                "brain_steps": sum(c["kind"] == "step" for c in seen["calls"]), "load_end": os.getloadavg()[0],
                "fleet_on": (fleet_view or {}).get("on"), "error": None}
