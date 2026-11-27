@@ -154,7 +154,7 @@ def test_the_wire_format_and_the_keys_are_the_daemons():
     assert "chunk = 320" in wire and phone.IN_RATE * 20 // 1000 == 320, "20 ms up"
     link = (UI / "Call.swift").read_text()  # one call for both apps
     assert "deadAfter: TimeInterval = 6" in link and "aliveEvery: Duration = .seconds(2)" in link, "phone.py: dead after 6 s, alive every 2 s"
-    assert "Wire.hello(device: link.device, resume: machine.token)" in link, "the hello is the Wire's, protocol and all"
+    assert "Wire.hello(device: link.device, resume: machine.token" in link, "the hello is the Wire's, protocol and all"
     assert 'capabilities = ["ptt", "resume", "adpcm"]' in wire and phone.ADPCM == "adpcm"
     daemon_link = (UI / "DaemonLink.swift").read_text()
     assert 'isLocal ? "Mac" : "iPhone"' in daemon_link and "hello.get(\"device\") == \"Mac\"" in (ROOT / "pointe" / "daemon.py").read_text()

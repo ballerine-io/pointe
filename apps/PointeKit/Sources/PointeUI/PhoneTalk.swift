@@ -46,13 +46,20 @@ public final class PhoneTalk: TalkLauncher, CallShell {
 
     /// The one call for this pairing. A new pairing is a new call: the old one pins the old certificate.
     func call(for pairing: Pairing) -> Call {
-        if let call, self.pairing == pairing { return call }
+        if let call, self.pairing?.connection == pairing.connection { return call }
         if let old = call, old.state != .off { Task { old.hangUp() } }
         let fresh = Call(pairing: pairing)
+        fresh.onHandoff = { [weak self] target in self?.handoff?(target) }
         call = fresh
         self.pairing = pairing
         return fresh
     }
+
+    /// "Call kite" on the call: the root switches to that machine and dials it (PointeRoot).
+    var handoff: ((String) -> Void)?
+
+    /// A call is up or on its way: a switch of machine takes it along.
+    var live: Bool { call.map { $0.state != .off } ?? false }
 
     var outside: Bool {
         get { store.outside }

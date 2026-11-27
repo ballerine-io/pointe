@@ -62,6 +62,8 @@ struct AlertNote: Equatable, Sendable {
     let kind: String
     let session: String?
     let requestId: String?
+    /// With several machines: the pairing an action on it goes to (AlertMerge).
+    var machine: String? = nil
 }
 
 /// Which notifications a status poll posts and withdraws. Pure, so it is tested without iOS.
@@ -82,6 +84,10 @@ enum AlertPlan {
     /// A session on somebody else's machine says which machine ("shop on avi-box needs approval"), and one this person
     /// may only watch raises no approval: its prompt is its owner's to answer.
     static func note(_ a: API.Attention, watchApprove: Bool, machines: MachineView = MachineView(nil)) -> AlertNote? {
+        noteAt(a, watchApprove: watchApprove, machines: machines).map { var n = $0; n.machine = a.via; return n }
+    }
+
+    private static func noteAt(_ a: API.Attention, watchApprove: Bool, machines: MachineView) -> AlertNote? {
         guard let said = a.title, !said.isEmpty, let body = a.body, !body.isEmpty else { return nil }
         let s = a.session.flatMap { name in machines.sessions.first { $0.name == name } }
         if let s, machines.watchOnly(s), a.kind == "permission" { return nil }
@@ -120,8 +126,12 @@ enum AlertPlan {
 
     /// `posted`: what this app already posted (once each per category, even if the user swiped it away); `delivered`:
     /// what is on screen now. On screen, the card is enough: an item is posted once the app leaves the screen.
+    /// With several machines (`current` set): an item from another machine is judged without the current one's
+    /// sessions (a session of the same name there is another session), and may be approved from a notification only as
+    /// that machine's own setting says (`watchApproveBy`, unknown is off).
     static func plan(_ items: [API.Attention], posted: Set<String>, delivered: Set<String>, appActive: Bool, enabled: Bool,
-                     watchApprove: Bool, machines: MachineView = MachineView(nil)) -> Result {
+                     watchApprove: Bool, machines: MachineView = MachineView(nil), current: String? = nil,
+                     watchApproveBy: [String: Bool] = [:]) -> Result {
         let shown = delivered.union(posted.map { id(ofKey: $0) })
         guard enabled else { return Result(post: [], withdraw: shown.sorted(), posted: []) }
         let ids = Set(items.map(\.id))
@@ -130,7 +140,9 @@ enum AlertPlan {
         if !appActive {
             // A quiet item is not recorded as posted: it is posted on the first poll after the user leaves the Mac.
             for a in items where a.quiet != true {
-                guard let n = note(a, watchApprove: watchApprove, machines: machines) else { continue }
+                let elsewhere = current != nil && a.via != nil && a.via != current
+                guard let n = note(a, watchApprove: elsewhere ? watchApproveBy[a.via ?? ""] ?? false : watchApprove,
+                                   machines: elsewhere ? MachineView(nil) : machines) else { continue }
                 // Once per id; again only when one posted with no actions (its machine offline) now has them.
                 if let before = kept.first(where: { id(ofKey: $0) == n.id }),
                    !(before.hasSuffix("|" + openCategory) && n.category != openCategory) { continue }
@@ -152,12 +164,13 @@ enum AlertAnswer {
         let session: String
         let requestId: String
         let allow: Bool
+        var machine: String? = nil
     }
 
     static func decision(action: String, userInfo: [AnyHashable: Any]) -> Decision? {
         guard action == approve || action == deny, let session = userInfo["session"] as? String,
               let requestId = userInfo["request_id"] as? String else { return nil }
-        return Decision(session: session, requestId: requestId, allow: action == approve)
+        return Decision(session: session, requestId: requestId, allow: action == approve, machine: userInfo["machine"] as? String)
     }
 
     /// What to tell the user afterwards; nil when the answer reached the session.
@@ -204,6 +217,27 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         #endif
     }
 
+    /// Each machine's last attention, by pairing (one entry, "here", on the Mac app and with several machines off).
+    private var latest: [String: AlertMerge.Source] = [:]
+    /// Each other machine's "Approve from notifications", read when a fresh request of its own arrives.
+    private var watchApproveBy: [String: Bool] = [:]
+
+    private var several: Bool {
+        #if os(iOS)
+        SeveralMachines.on
+        #else
+        false
+        #endif
+    }
+
+    /// The link an action goes to: the pairing it was posted for, else the current machine.
+    private func link(for machine: String?) -> DaemonLink? {
+        #if os(iOS)
+        if let machine, let p = PairingStore.all().first(where: { $0.storeKey == machine }) { return DaemonLink(p) }
+        #endif
+        return link
+    }
+
     private var appActive: Bool {
         #if os(iOS)
         UIApplication.shared.applicationState == .active
@@ -238,9 +272,30 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         return granted
     }
 
-    /// After each status poll. A failed poll (nil) changes nothing: it is not "everything was answered".
-    func sync(_ attention: [API.Attention]?, api: API?, machines: MachineView = MachineView(nil)) async {
-        guard let attention else { return }
+    /// After each status poll. A failed poll (nil) changes nothing: it is not "everything was answered". `from`: the
+    /// machine it came from, when it is not the current one (several machines); its alerts join the current one's.
+    func sync(_ attention: [API.Attention]?, api: API?, machines: MachineView = MachineView(nil), from: Pairing? = nil) async {
+        guard let incoming = attention else { return }
+        var current: String? = nil
+        let attention: [API.Attention]
+        if several {
+            let all = PairingStore.all()
+            let source = from ?? PairingStore.load()
+            current = PairingStore.load()?.storeKey
+            if let source {
+                let id = source.id ?? machines.machines.first(where: \.isHere)?.machine_id
+                latest[source.storeKey] = AlertMerge.Source(key: source.storeKey, name: source.label, machineId: id, items: incoming)
+            }
+            latest = latest.filter { key, _ in all.contains { $0.storeKey == key } }  // a machine removed posts nothing more
+            let ordered = all.compactMap { latest[$0.storeKey] }
+            attention = AlertMerge.merge(ordered)
+            if let from, from.storeKey != current, enabled, !appActive,
+               incoming.contains(where: { $0.kind == "permission" }), watchApproveBy[from.storeKey] == nil {
+                watchApproveBy[from.storeKey] = (try? await API.standalone(DaemonLink(from)).prefs())?.watchApprove ?? false
+            }
+        } else {
+            attention = incoming
+        }
         let delivered = Set(await center.deliveredNotifications().map(\.request.identifier).filter { !$0.hasPrefix(Self.resultPrefix) })
         let active = appActive
         var watchApprove = false
@@ -249,7 +304,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
             watchApprove = (try? await api.prefs())?.watchApprove ?? false
         }
         let r = AlertPlan.plan(attention, posted: posted, delivered: delivered, appActive: active, enabled: enabled,
-                               watchApprove: watchApprove, machines: machines)
+                               watchApprove: watchApprove, machines: machines, current: current, watchApproveBy: watchApproveBy)
         if !r.withdraw.isEmpty {
             center.removeDeliveredNotifications(withIdentifiers: r.withdraw)
             center.removePendingNotificationRequests(withIdentifiers: r.withdraw)
@@ -270,6 +325,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         var info = ["kind": n.kind]
         if let session = n.session { info["session"] = session }
         if let requestId = n.requestId { info["request_id"] = requestId }
+        if let machine = n.machine { info["machine"] = machine }
         c.userInfo = info
         return UNNotificationRequest(identifier: n.id, content: c, trigger: nil)
     }
@@ -292,6 +348,14 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         let api = API.standalone(link)
         let status = try? await api.status()
         await sync(status?.attention, api: api, machines: MachineView(status))
+        #if os(iOS)
+        guard several else { return }
+        let current = PairingStore.load()?.storeKey
+        for p in PairingStore.all() where p.storeKey != current {  // each other machine once; one that does not answer changes nothing
+            let other = try? await API.standalone(DaemonLink(p)).status()
+            await sync(other?.attention, api: nil, machines: MachineView(other), from: p)
+        }
+        #endif
     }
 
     // MARK: actions
@@ -319,7 +383,7 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
     }
 
     private func answer(_ d: AlertAnswer.Decision, id: String, title: String) async {
-        guard let link else { return }
+        guard let link = link(for: d.machine) else { return }
         var failure: Error?
         do {
             try await API.standalone(link).answerFromNotification(session: d.session, requestId: d.requestId, allow: d.allow)

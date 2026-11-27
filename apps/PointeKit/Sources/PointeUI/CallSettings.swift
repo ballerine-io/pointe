@@ -99,6 +99,7 @@ struct CallSettingsSheet: View, Equatable {
     @State private var permissionsWanted: String?
     @State private var outsideWanted: Bool?
     @State private var unpairAsked = false
+    @AppStorage(SeveralMachines.key) private var severalMachines = false
     #if os(macOS)
     @Environment(\.macSettings) private var macSections
     #endif
@@ -255,6 +256,12 @@ struct CallSettingsSheet: View, Equatable {
                     Section { Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() } }
                 }
                 #else
+                if !model.demo {
+                    Section {
+                        Toggle(MachineCopy.labs, isOn: Binding(get: { severalMachines }, set: { severalMachines = $0 }))
+                            .accessibilityIdentifier("severalMachines")
+                    } header: { Text("Labs") } footer: { Text(MachineCopy.labsHelp) }
+                }
                 Section {
                     if model.demo {
                         Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() }

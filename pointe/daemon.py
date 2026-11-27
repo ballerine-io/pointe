@@ -69,6 +69,7 @@ import local
 import meeting as meetings
 import modes
 import mute
+import handoff
 import progress
 import quick
 import scope
@@ -2727,6 +2728,11 @@ class SonioxEars(FrameProcessor):
         # answers" changes the setting, where "tell me more" (flow.wants_detail) lengthens one answer.
         if not _dumping() and state.meeting is None and (wanted := quick.intent(heard)) is not None:
             await _quick_by_voice(heard, *wanted)
+            return
+        # "Call kite": the call moves to another machine the client holds (handoff.py), before any session reads it.
+        if not _dumping() and state.meeting is None and (moved := handoff.intent(
+                heard, _client_machines(), {m.name for m in paired_machines()}, HUB.nodes.hub_id)) is not None:
+            await _handoff_by_voice(heard, *moved)
             return
         # Then mute: "talk again" (or "back to normal" with whisper mode off) only while Pointe is muted.
         if not _dumping() and state.meeting is None and (text_only := mute.intent(heard)) is not None \
@@ -11255,6 +11261,9 @@ async def _user_text(text: str) -> None:
         return
     if await _asked_for_held(text):
         return
+    if (moved := handoff.intent(text, _client_machines(), {m.name for m in paired_machines()}, HUB.nodes.hub_id)) is not None:
+        await _handoff_by_voice(text, *moved)  # "call kite" typed moves the call too
+        return
     if (wanted := mute.intent(text)) is not None and (wanted or state.mute):  # "talk again" typed works too
         await _mute_by_voice(text, wanted)
         return
@@ -13158,6 +13167,24 @@ async def _set_mute(on: bool, how: str) -> None:
     if sock is not None:  # the choice now, not this one: another may have landed while the mouth was being cut
         with contextlib.suppress(Exception):
             await sock.send_text(json.dumps({"type": "reading", "on": state.mute}))
+
+
+def _client_machines() -> list[dict]:
+    """The machines the device on the call holds, from its hello (handoff.machines cleans them)."""
+    return handoff.machines((getattr(state.call_client, "client", None) or {}).get("machines"))
+
+
+async def _handoff_by_voice(heard: str, kind: str, machine: dict) -> None:
+    """"Call kite": one line, then the device is told to end this call and dial kite. The line goes first, so the
+    device hangs up after it was heard (it waits for the voice to finish)."""
+    _remember("user", heard)
+    state.last_utterance = heard
+    await _say_exactly(handoff.line(kind, machine["name"]), f"handoff {kind}")
+    sock = state.call_socket
+    if kind == "move" and sock is not None:
+        logger.info(f"handoff: the call moves to {machine['name']}")
+        with contextlib.suppress(Exception):
+            await sock.send_text(json.dumps({"type": "handoff", "machine": machine}))
 
 
 async def _mute_by_voice(heard: str, on: bool) -> None:

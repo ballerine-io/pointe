@@ -114,6 +114,8 @@ struct API {
         let rtt_ms: Int?
         let key_fp: String?         // the first hex of the node key's SHA-256, as `pointe node status` prints it
         let notice: String?         // one line about its link, e.g. a takeover from another address
+        /// This machine's own lasting id, on its own entry (an older machine sends none).
+        @Tolerant var machine_id: String? = nil
         /// Whose machine it is, on one this person was invited to (docs/design/people-and-machines.md); nil on their own.
         @Tolerant var owner: String? = nil
         /// "send" or "watch", on a machine they were invited to.
@@ -365,7 +367,7 @@ struct API {
     }
 
     struct Attention: Decodable, Equatable, Identifiable {
-        let id: String
+        var id: String
         let kind: String?
         let text: String?
         let session: String?
@@ -376,6 +378,10 @@ struct API {
         var approvable: Bool? = nil
         // The user is at the Mac: post nothing for it yet (the Mac decides; an older Mac sends none).
         var quiet: Bool? = nil
+        /// Where the session really runs, `<machine id>/<session id there>` (an older machine sends none).
+        var origin: String? = nil
+        /// The paired machine this phone answers it through, set when several are merged (AlertMerge). Never sent.
+        var via: String? = nil
     }
 
     struct Note: Decodable, Equatable, Identifiable {

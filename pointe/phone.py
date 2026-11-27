@@ -240,7 +240,8 @@ class PhoneSerializer(FrameSerializer):
             elif isinstance(message, dict) and message.get("type") == "ptt" and isinstance(message.get("open"), bool):
                 return PttFrame(open=message["open"])
             elif isinstance(message, dict) and message.get("type") == "hello":  # protocol 3: who the client is
-                self.client = {k: message.get(k) for k in ("protocol", "device", "capabilities") if k in message}  # never the token
+                # never the token; "machines": the machines the client holds, names and ids only (handoff.py)
+                self.client = {k: message.get(k) for k in ("protocol", "device", "capabilities", "machines") if k in message}
         return None
 
 

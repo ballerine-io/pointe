@@ -115,6 +115,25 @@ final class Call {
     /// Where the Mac is dialled, for a reason that names it.
     var place: String { link.place }
 
+    /// "Call kite" was said: the machine to move to (its id, else its name). The phone's shell switches and dials.
+    var onHandoff: ((String) -> Void)?
+
+    /// The machines this phone holds, for the hello: only with several machines on, and never from the Mac's loopback.
+    static func handoffMachines(_ link: DaemonLink) -> [[String: String]] {
+        #if os(iOS)
+        guard SeveralMachines.on, !link.isLocal else { return [] }
+        return PairingStore.all().compactMap { p in p.id.map { ["id": $0, "name": p.label] } }
+        #else
+        return []
+        #endif
+    }
+
+    /// {"type": "handoff", "machine": {"id", "name"}}: the id, else the name.
+    static func handoff(_ message: [String: Any]) -> String? {
+        guard message["type"] as? String == "handoff", let m = message["machine"] as? [String: Any] else { return nil }
+        return (m["id"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? m["name"] as? String
+    }
+
     func start() async {
         guard state == .off || state == .reconnecting else { return }
         wanted = true
@@ -148,7 +167,7 @@ final class Call {
             Task { @MainActor in self?.wireEvent(event, from: wire) }
         }
         self.wire = wire
-        wire.start(hello: Wire.hello(device: link.device, resume: machine.token))
+        wire.start(hello: Wire.hello(device: link.device, resume: machine.token, machines: Self.handoffMachines(link)))
         trace()
     }
 
@@ -542,6 +561,7 @@ final class Call {
             if message["type"] as? String == "reading", let on = MuteChoice.message(message) {
                 MuteChoice.store(on)
             }
+            if let target = Self.handoff(message) { onHandoff?(target) }  // "call kite": this call ends, the shell dials kite
             if let phase = ThinkingRule.message(message) {  // the turn was taken: Thinking… now, not at the next status
                 toldPhase = ThinkingRule.Told(phase: phase, at: Date())
             }

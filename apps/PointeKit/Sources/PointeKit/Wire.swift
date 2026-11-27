@@ -39,9 +39,12 @@ public enum Wire {
     public static let capabilities = ["ptt", "resume", "adpcm"]
 
     /// The client's hello: who it is and what it can do, and the call it is coming back to, if any (protocol 5).
-    public static func hello(device: String, capabilities: [String] = capabilities, resume: String? = nil) -> String {
+    /// `machines`: the machines a client that holds several can be moved to by "call kite" (ids and names only).
+    public static func hello(device: String, capabilities: [String] = capabilities, resume: String? = nil,
+                             machines: [[String: String]] = []) -> String {
         var body: [String: Any] = ["type": "hello", "protocol": protocolVersion, "device": device, "capabilities": capabilities]
         if let resume { body["resume"] = resume }
+        if !machines.isEmpty { body["machines"] = machines }
         return json(body)
     }
 

@@ -44,6 +44,10 @@ public struct PointeRoot: View {
     @State private var tried: Demo?  // "Try a demo" on the pairing screen; nothing is paired or saved
     @State private var helping: ConnectionProblem?  // "How to fix" open on a pairing problem
     @State private var machineLine: String?  // a machine invite that opened the app: Add a machine opens on it
+    @State private var watch = MachinesWatch()  // how each machine on this phone answers (several machines)
+    @State private var showPaired = false
+    @AppStorage(SeveralMachines.key) private var severalSetting = false
+    private var several: Bool { severalSetting || SeveralMachines.on }
     @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // Settings' Appearance: System, Light or Dark
 
     public init() {
@@ -61,7 +65,21 @@ public struct PointeRoot: View {
                 // The call is PhoneTalk's, so a press from the Lock Screen can dial it with no screen up.
                 CallView(link: DaemonLink(pairing), call: PhoneTalk.shared.call(for: pairing), shell: PhoneTalk.shared,
                          unpair: { Task { await flow.unpair() } }, pairAgain: { flow.pairAgain() }, incoming: $machineLine)
-                    .id(pairing)  // a new pairing is a new call: the old one pins the old certificate
+                    .id(pairing.connection)  // a new pairing is a new call: the old one pins the old certificate
+                    .safeAreaInset(edge: .top) {
+                        if several { MachineBar(flow: flow, watch: watch) { showPaired = true }.padding(.top, 4) }
+                    }
+                    .sheet(isPresented: $showPaired) {
+                        PairedMachinesSheet(flow: flow, watch: watch) { p in
+                            let wasLive = PhoneTalk.shared.live
+                            flow.select(p)  // the call screen follows; the old call hangs up (PhoneTalk.call(for:))
+                            if wasLive, let now = flow.pairing { Task { await PhoneTalk.shared.call(for: now).start() } }
+                        }
+                    }
+                    .task(id: several) {
+                        PhoneTalk.shared.handoff = { target in moveCall(to: target) }
+                        if several { await watch.run(flow) }
+                    }
             } else {
                 PairView(flow: flow, tryDemo: { tried = Demo.tryIt }, help: { helping = $0 })
             }
@@ -111,7 +129,23 @@ public struct PointeRoot: View {
             if let link = ProcessInfo.processInfo.environment["POINTE_PAIR"], let p = Pairing(link: link), p != flow.pairing {
                 flow.adopt(p)
             }
+            // Several machines: more lines, space-separated, added after it; calls stay on the first.
+            if SeveralMachines.on, let first = flow.pairing, let more = ProcessInfo.processInfo.environment["POINTE_PAIR_MORE"] {
+                for line in more.split(separator: " ") { if let p = Pairing(link: String(line)) { flow.adopt(p) } }
+                flow.select(first)
+            }
             #endif
+        }
+    }
+
+    /// "Call kite": once the voice has said its line, the call moves to that machine (by its id, else its name).
+    private func moveCall(to target: String) {
+        guard let p = flow.pairings.first(where: { $0.id == target }) ?? flow.pairings.first(where: { $0.label == target }),
+              p.storeKey != flow.pairing?.storeKey else { return }
+        Task {
+            try? await Task.sleep(for: .seconds(2))  // the line "Moving you to kite." plays out first
+            flow.select(p)
+            if let now = flow.pairing { await PhoneTalk.shared.call(for: now).start() }
         }
     }
 
