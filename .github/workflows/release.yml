@@ -1,0 +1,133 @@
+name: release
+# A release's signed builds, dispatched by tools/release cut on the release tag (docs/releasing.md, step 4): the Mac app
+# and Pointe-X.Y.Z.dmg signed with Developer ID, notarized and stapled (tools/build_dmg.sh --ci), and the iPhone app
+# exported with Apple Distribution and, when asked, uploaded to App Store Connect. Both build the tag plus the install.sh
+# pin (tools/ci_signing.sh pin). The token stays read-only, so the job attaches nothing: tools/release downloads the
+# pointe-dmg artifact, checks it with spctl and stapler, and attaches it.
+#
+#   gh workflow run release.yml -R ballerine-io/pointe --ref vX.Y.Z -f install_sha256=<pinned install.sh> -f upload=true
+#
+# The secrets live in the environment "release", whose deployment rule admits only tags matching v*: a branch, a pull
+# request or a fork cannot reach them. tools/release_secrets.sh writes them; docs/releasing.md says how to rotate them.
+on:
+  workflow_dispatch:
+    inputs:
+      install_sha256:
+        description: The SHA-256 of install.sh as tools/release pinned it (a release tag vX.Y.Z needs it; a test tag does not)
+        required: false
+        default: ""
+      platforms:
+        description: What to build, of mac,iphone
+        required: false
+        default: mac,iphone
+      upload:
+        description: Upload the iPhone build to App Store Connect (never from a test tag)
+        type: boolean
+        required: false
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  mac:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(inputs.platforms, 'mac')
+    runs-on: macos-26
+    timeout-minutes: 90
+    environment: release
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The build commit (the tag, pinned)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALL_SHA256: ${{ inputs.install_sha256 }}
+          UPLOAD: ${{ inputs.upload }}
+        run: tools/ci_signing.sh pin
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: The Developer ID identity in a job keychain, the API key in the runner's temp folder
+        env:
+          P12: ${{ secrets.MAC_DEVELOPER_ID_P12 }}
+          P12_PASSWORD: ${{ secrets.MAC_DEVELOPER_ID_P12_PASSWORD }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+        run: tools/ci_signing.sh keychain
+      - name: Build, sign, notarize and staple Pointe.dmg
+        env:
+          NOTARY_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          NOTARY_ISSUER: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: tools/build_dmg.sh --ci
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
+        with:
+          name: pointe-dmg
+          path: |
+            dist/Pointe-*.dmg
+            dist/Pointe-*.dmg.sha256
+          retention-days: 14
+          if-no-files-found: error
+      - name: Remove the keychain and the key
+        if: always()
+        run: tools/ci_signing.sh cleanup
+
+  iphone:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && contains(inputs.platforms, 'iphone')
+    runs-on: macos-26
+    timeout-minutes: 90
+    environment: release
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
+      - name: The build commit (the tag, pinned)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INSTALL_SHA256: ${{ inputs.install_sha256 }}
+          UPLOAD: ${{ inputs.upload }}
+        run: tools/ci_signing.sh pin
+      - name: The newest Xcode on the runner
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | sort -V | tail -1)"
+          xcodebuild -version
+      - name: The Apple Distribution identity in a job keychain, the profiles, the API key in the runner's temp folder
+        env:
+          P12: ${{ secrets.IOS_DISTRIBUTION_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          IOS_APP_PROFILE: ${{ secrets.IOS_APP_PROFILE }}
+          IOS_WIDGET_PROFILE: ${{ secrets.IOS_WIDGET_PROFILE }}
+        run: |
+          tools/ci_signing.sh keychain
+          tools/ci_signing.sh profiles
+      - name: Archive and export Pointe.ipa (manual signing)
+        run: |
+          echo "PP445E78PD" > apps/ios/.team
+          apps/ios/release.sh --manual
+          IPA=apps/ios/build/export/Pointe.ipa
+          test -f "$IPA"
+          echo "exported: $(du -h "$IPA" | cut -f1), $(unzip -p "$IPA" 'Payload/Pointe.app/Info.plist' | plutil -extract CFBundleShortVersionString raw -o - -) ($(unzip -p "$IPA" 'Payload/Pointe.app/Info.plist' | plutil -extract CFBundleVersion raw -o - -))"
+          rm -rf "$RUNNER_TEMP/ipa" && mkdir "$RUNNER_TEMP/ipa" && unzip -q "$IPA" -d "$RUNNER_TEMP/ipa"
+          codesign -dv --verbose=2 "$RUNNER_TEMP/ipa/Payload/Pointe.app" 2>&1 | grep -E '^(Identifier|Authority|TeamIdentifier)='
+          for bundle in "$RUNNER_TEMP/ipa/Payload/Pointe.app" "$RUNNER_TEMP/ipa/Payload/Pointe.app/PlugIns/"*.appex; do
+            codesign -d --entitlements - --xml "$bundle" 2>/dev/null | grep -q group.io.ballerine.pointe || { echo "::error::$(basename "$bundle") lacks the app group"; exit 1; }
+          done
+          echo "the app and the widget carry group.io.ballerine.pointe"
+      - name: Upload to App Store Connect
+        if: inputs.upload
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          xcrun altool --upload-package apps/ios/build/export/Pointe.ipa --api-key "$ASC_API_KEY_ID" --api-issuer "$ASC_API_ISSUER_ID" --output-format normal
+      - name: Remove the keychain, the key and the profiles
+        if: always()
+        run: tools/ci_signing.sh cleanup

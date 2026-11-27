@@ -45,7 +45,8 @@ each does by hand:
 3. **The tag**, then the tag's own `test` and `apps` green (step 3).
 4. **Artifacts:** the tarball on a prerelease; `install.sh` pinned, on a commit that is the tag plus the pin (the disk
    image and the iPhone build come from it) and the same change on `main`; the disk image signed, notarized, stapled
-   and attached; the iPhone build uploaded to App Store Connect.
+   and attached; the iPhone build uploaded to App Store Connect. Both are signed in CI by the `release` workflow when its
+   environment holds the secrets ("Signing in CI" below), and on this Mac otherwise or with `--local-signing`.
 5. **Verify:** every asset downloaded anonymously against its `.sha256`, the local build and the pin; `spctl` and
    `stapler` on the image and the app, from a quarantined copy mounted as a download is; a clean standalone install from
    github.com in an empty environment on this Mac; a Linux hub (installed, started on a synthetic key, health, status
@@ -96,8 +97,9 @@ The tool asks for each before the step that needs it, and stops there; nothing i
 | The Mac app and the disk image: signing | The "Developer ID Application" identity of team PP445E78PD, in the login keychain (manual signing: no Xcode account) | The owner, once: Xcode, Settings, Apple Accounts, the team, Manage Certificates, +, Developer ID Application | login keychain |
 | Notarizing the app and the image | notarytool profile `pointe-notary` | Once: `xcrun notarytool store-credentials pointe-notary` with the App Store Connect API key (`--key/--key-id/--issuer`) or an Apple Account and an app-specific password; it needs an interactive session (the keychain refuses the write otherwise) | login keychain |
 | The iPhone export | The "Apple Distribution" identity of the team, and the App Store profiles "Pointe App Store" (io.ballerine.pointe) and "Pointe Widget App Store" (io.ballerine.pointe.widget), both with group.io.ballerine.pointe (manual signing: no Xcode account) | The owner, once a year as they expire: developer.apple.com, Certificates and Profiles | login keychain, ~/Library/MobileDevice/Provisioning Profiles |
-| The iPhone upload | The App Store Connect API key, handed to altool as a file | **Needs the owner's yes** (`--asc-key-file`): altool reads the key only from a regular file (a pipe and a named pipe are refused), so it goes in a 0600 file in a 0700 folder for the upload and is removed after; the repository's rule is that a secret never goes in a file. Without it the tool stops with the exported `.ipa` and the command | |
-| Every signing step | The login keychain unlocked (a locked one makes codesign and notarytool hang) | The owner unlocks the Mac | |
+| The iPhone upload, on this Mac (in CI the workflow uploads) | The App Store Connect API key, handed to altool as a file | **Needs the owner's yes** (`--asc-key-file`): altool reads the key only from a regular file (a pipe and a named pipe are refused), so it goes in a 0600 file in a 0700 folder for the upload and is removed after; the repository's rule is that a secret never goes in a file. Without it the tool stops with the exported `.ipa` and the command | |
+| Every signing step, on this Mac | The login keychain unlocked (a locked one makes codesign and notarytool hang) | The owner unlocks the Mac | |
+| Signing in CI | The `release` environment's secrets ("Signing in CI" below) | The owner, once and at each rotation: `tools/release_secrets.sh`, allowing each private key's export in the Keychain dialog | GitHub's encrypted environment store |
 | The site | wrangler signed in to Ballerine's Cloudflare account | The owner: `npx -y wrangler@4.166.0 login` | wrangler's own store |
 | A site preview | The owner's look, when a hand-written page changed | The owner opens the preview, then `tools/release resume --site-approved` | |
 | TestFlight external group, Beta App Review, the App Store | App Store Connect with an App Manager role or more. The keychain's API key has the Developer role: reads only | The owner, in App Store Connect, each release (the tool prints the build, the group and the What's New text) | |
@@ -118,35 +120,71 @@ openssl on a pipe, and never writes or prints it. It has the Developer role: the
 state are read with it; creating the App Store version, the external group, Beta App Review and the submission are
 refused (403), so the tool stops there with the clicks.
 
-**Recommendations.** Keep the two identities, the profiles and the notary profile on the owner's Mac until the CI path
-below is approved. Decide `--asc-key-file` (above): with it, nothing in a release needs a person until the App Store. Give the API key the App Manager role only if the owner wants
-TestFlight's external group and Beta App Review done without a click (the tool would then need those calls; not built).
-The App Store submission stays the owner's, by choice.
+**Recommendations.** The identities, the profiles and the notary profile stay on the owner's Mac as the fallback when
+CI cannot sign. Give the API key the App Manager role only if the owner wants TestFlight's external group and Beta App
+Review done without a click (the tool would then need those calls; not built). The App Store submission stays the
+owner's, by choice.
 
-## Proposed: Mac signing and notarization in CI (not done)
+## Signing in CI
 
-So that a release does not depend on the owner's Mac being awake, signed in and unlocked, `mac-release`
-(`.github/workflows/mac-release.yml`) already builds `tools/build_dmg.sh --ci` with a Developer ID `.p12` and an App
-Store Connect API key in the `mac-release` environment. Three things stand between it and a real release:
+`tools/release cut` signs the disk image and the iPhone build in GitHub Actions, so a release needs nothing from the
+owner's Mac but `gh`: not its keychain, not Xcode, not being awake and unlocked. It dispatches
+`.github/workflows/release.yml` once per version on the tag, waits for each job, and keeps the run in its state, so
+`resume` waits on the same run (a red job is re-run once, as CI's are).
 
-1. **It builds the wrong commit.** It checks out the tag, but the disk image must come from the tag plus the pin
-   (`build_dmg.sh` refuses an `install.sh` that does not pin its version, and the pin cannot be inside the tag: the
-   tarball it pins is the tag's archive). Change: the dispatch takes the build commit, and the job checks that the
-   commit's parent is the tag and that it changes only `install.sh` and `Installer.swift`. Drop the `release:
-   published` trigger, which fires on the prerelease before the pin exists.
-2. **It attaches nothing** (its token is read-only, by rule). Keep it so: `tools/release` dispatches it with the build
-   commit, waits, downloads the `pointe-dmg` artifact, verifies it (the same `spctl`, `stapler` and quarantined mount)
-   and attaches it. The tool would prefer this path when the environment holds the secrets, and fall back to the
-   owner's Mac.
-3. **The secrets.** In Settings, Environments, `mac-release`, never repository-wide: `MAC_DEVELOPER_ID_P12` and its
-   password (an export of the Developer ID Application certificate and private key), and `ASC_API_KEY_P8`,
-   `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID` (a key with the Developer role is enough to notarize). Protect the environment
-   with a required reviewer and deployment from `main` and tags only.
+- **mac** builds `tools/build_dmg.sh --ci`: the app archived and exported with Developer ID, notarized with the API key,
+  stapled; the image signed, notarized and stapled. The token is read-only, so the image comes back as the `pointe-dmg`
+  artifact; `tools/release` checks its `.sha256`, runs `spctl`, `stapler` and the quarantined mount on it, and only then
+  attaches `Pointe-X.Y.Z.dmg` and `Pointe.dmg` (a published asset is never replaced).
+- **iphone** runs `apps/ios/release.sh --manual` (archive and export signed with Apple Distribution and the two App Store
+  profiles), checks that the app and the widget carry the app group, and uploads the `.ipa` with altool and the API key.
+  It uploads only when App Store Connect does not have the build yet.
+- **The build commit.** Both jobs check out the tag and pin `install.sh` there (`tools/ci_signing.sh pin`, the same
+  `tools/release_tarball.py pin` the tool runs), then refuse unless the result's SHA-256 is the one `tools/release`
+  committed (the `install_sha256` input) and nothing but `install.sh` and `Installer.swift` changed. A tag that is not
+  `vX.Y.Z` (a test of the workflow) builds as it is and never uploads.
+- **Fallback.** When a secret is missing, or with `--local-signing`, the step signs on this Mac as before (the table
+  above). The choice is kept for the version, so a resume does not switch halfway.
 
-What the owner approves: exporting the Developer ID private key off the Mac into GitHub (anyone who can run a job in
-that environment can then sign as the team: the required reviewer is the control), creating the API key, and the
-workflow change. The iPhone upload can follow the same way later (an App Store distribution certificate and
-`xcodebuild -exportArchive` with the API key); it is not proposed here.
+**Where the secrets live.** In the GitHub environment `release` of ballerine-io/pointe (Settings, Environments), never
+repository-wide. Its deployment rule admits only tags matching `v*`: a branch, a pull request or a fork cannot run a job
+in it. The job that uses them imports the `.p12` into a keychain made for that job, installs the profiles, writes the
+API key to the runner's temp folder, and removes all three when it ends, whatever happened (GitHub's documented
+pattern for Apple signing; hosted runners are thrown away after each job).
+
+| Secret | What |
+|---|---|
+| `MAC_DEVELOPER_ID_P12`, `MAC_DEVELOPER_ID_P12_PASSWORD` | "Developer ID Application" of team PP445E78PD and its private key, base64; its passphrase |
+| `IOS_DISTRIBUTION_P12`, `IOS_DISTRIBUTION_P12_PASSWORD` | "Apple Distribution" of the team and its private key, base64; its passphrase |
+| `IOS_APP_PROFILE`, `IOS_WIDGET_PROFILE` | the App Store profiles "Pointe App Store" and "Pointe Widget App Store", base64 |
+| `ASC_API_KEY_P8`, `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID` | the App Store Connect API key (Developer role: notarizes and uploads builds) |
+
+**Why this keeps "secrets never on disk".** The repository's rule is that a secret reaches only the one process that
+needs it, never a file on a person's machine, a commit, a log or a command line. Here the values go from the login
+keychain to `gh secret set` on stdin (`tools/release_secrets.sh`, `tools/export_identity.swift`, which exports one named
+identity, not every identity in the keychain as `security export` would), and from there live only in GitHub's
+encrypted store. On the runner they reach the job's environment, are masked in its log, and touch the runner's disk only
+in its temp folder for the length of the job: the job keychain and the key file altool and notarytool read (neither
+reads a key from a pipe). `security import` takes the `.p12` passphrase on its command line, on a runner of its own.
+
+**Rotating.** Run `tools/release_secrets.sh` (or one group: `mac`, `ios`, `profiles`, `asc`) on the owner's Mac after the
+new certificate, profile or key is in its keychain; each run replaces what it sets and makes a new `.p12` passphrase.
+macOS asks, in a dialog, to allow the export of each private key: the owner enters the login keychain's password and
+allows it. Then revoke the old certificate or key at developer.apple.com or in App Store Connect. The App Store profiles
+expire once a year with the Apple Distribution certificate. `tools/release plan` reports whether the environment holds
+every secret and admits only `v*` tags.
+
+**Making the environment again** (done once, 2026-11-27):
+
+```
+gh api -X PUT repos/ballerine-io/pointe/environments/release -F 'deployment_branch_policy[protected_branches]=false' -F 'deployment_branch_policy[custom_branch_policies]=true'
+gh api -X POST repos/ballerine-io/pointe/environments/release/deployment-branch-policies -f name='v*' -f type=tag
+```
+
+**Still manual.** TestFlight's external group with Beta App Review, and the App Store submission: the API key has the
+Developer role, which Apple refuses for those writes, so the owner does them in App Store Connect (the tool prints the
+build and the What's New text). With an App Manager key they could follow; the App Store submission stays the owner's
+by choice. Anyone who can push a `v*` tag can run a job in the environment: tag creation is the control.
 
 ## 1. The version commit
 
@@ -263,9 +301,8 @@ decimal megabytes, as Finder and browsers show it (`stat -f %z` divided by 1,000
 4,572,523 bytes is "4.6 MB"); the hero, the top
 nav and the install card follow it (`tools/apps_status.py`). Deploy the site, and check its hero line.
 
-In CI the `mac-release` workflow does the same on a published release when its environment holds the signing secrets
-(`.github/workflows/mac-release.yml` lists them); its token is read-only, so attach its artifact with
-`gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256`.
+In CI the `release` workflow does the same from the tag plus the pin ("Signing in CI" above); `tools/release` checks
+its artifact and attaches it.
 
 0.8.1's disk image is not signed (its app is signed, notarized and stapled, which is what Gatekeeper judges on a
 download); 0.8.2's is the first signed and notarized image.

@@ -8,7 +8,7 @@
 #                                 Pointe.dmg, the name the site's stable link releases/latest/download/Pointe.dmg needs
 #   tools/build_dmg.sh --app P    skip the archive and use P, a Pointe.app already notarized (this script's own, in
 #                                 apps/macos/build/dmg/app): for the disk image step again, once its credentials exist
-#   tools/build_dmg.sh --ci       the mac-release workflow: see "Signing" below
+#   tools/build_dmg.sh --ci       the release workflow (.github/workflows/release.yml): see "Signing" below
 #
 # Signing, with no Xcode account: the archive and the export use manual signing with the "Developer ID Application"
 # identity in the keychain (its private key never leaves it), the app and then the image are notarized with notarytool,

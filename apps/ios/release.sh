@@ -6,10 +6,11 @@
 #   apps/ios/release.sh --bump          raise CURRENT_PROJECT_VERSION by one in the project first (commit it)
 #   apps/ios/release.sh --build 7       set CURRENT_PROJECT_VERSION to 7 in the project first (commit it)
 #   apps/ios/release.sh --upload        export straight to App Store Connect (needs an Xcode account with upload rights)
-#   apps/ios/release.sh --manual        export the .ipa with manual signing, no Xcode account: the "Apple Distribution"
-#                                       identity in the keychain and the App Store profiles named in POINTE_IOS_PROFILE
-#                                       and POINTE_WIDGET_PROFILE (default "Pointe App Store", "Pointe Widget App Store");
-#                                       tools/release uploads it with the App Store Connect API key
+#   apps/ios/release.sh --manual        archive and export the .ipa with manual signing, no Xcode account: the "Apple
+#                                       Distribution" identity in the keychain and the App Store profiles named in
+#                                       POINTE_IOS_PROFILE and POINTE_WIDGET_PROFILE (default "Pointe App Store", "Pointe
+#                                       Widget App Store"); the release workflow (or tools/release) uploads it with the
+#                                       App Store Connect API key
 #
 # Output: apps/ios/build/Pointe.xcarchive and apps/ios/build/export/ (Pointe.ipa, unless uploaded).
 set -euo pipefail
@@ -29,7 +30,7 @@ while [ $# -gt 0 ]; do
     --bump) BUMP=1; shift ;;
     --upload) DESTINATION=upload; shift ;;
     --manual) MANUAL=1; shift ;;
-    -h|--help) sed -n '2,14p' release.sh | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,15p' release.sh | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "release.sh: unknown argument $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -50,9 +51,21 @@ echo "Pointe $VERSION ($CURRENT): archiving"
 
 rm -rf "$OUT"
 mkdir -p "$OUT"
+APP_PROFILE="${POINTE_IOS_PROFILE:-Pointe App Store}"
+WIDGET_PROFILE="${POINTE_WIDGET_PROFILE:-Pointe Widget App Store}"
+if [ "$MANUAL" = 1 ]; then
+  # Manual from the archive on: a runner has no account and no development profiles. A command-line setting reaches
+  # every target, so each target's profile is looked up by its bundle identifier (io.ballerine.pointe ->
+  # POINTE_PROFILE_io_ballerine_pointe); the package targets find none and need none.
+  SIGNING=(CODE_SIGN_STYLE=Manual "CODE_SIGN_IDENTITY=Apple Distribution"
+    'PROVISIONING_PROFILE_SPECIFIER=$(POINTE_PROFILE_$(PRODUCT_BUNDLE_IDENTIFIER:c99extidentifier))'
+    "POINTE_PROFILE_io_ballerine_pointe=$APP_PROFILE" "POINTE_PROFILE_io_ballerine_pointe_widget=$WIDGET_PROFILE")
+else
+  SIGNING=(-allowProvisioningUpdates CODE_SIGN_STYLE=Automatic)
+fi
 xcodebuild archive -project "$PROJECT" -scheme Pointe -configuration Release \
   -destination 'generic/platform=iOS' -archivePath "$OUT/Pointe.xcarchive" \
-  -allowProvisioningUpdates DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic POINTE_SHARE_GROUP=YES -quiet
+  DEVELOPMENT_TEAM="$TEAM" "${SIGNING[@]}" POINTE_SHARE_GROUP=YES -quiet
 
 # Written here, not committed: it names the team.
 if [ "$MANUAL" = 1 ]; then
@@ -69,8 +82,8 @@ if [ "$MANUAL" = 1 ]; then
 	<key>signingCertificate</key><string>Apple Distribution</string>
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>io.ballerine.pointe</key><string>${POINTE_IOS_PROFILE:-Pointe App Store}</string>
-		<key>io.ballerine.pointe.widget</key><string>${POINTE_WIDGET_PROFILE:-Pointe Widget App Store}</string>
+		<key>io.ballerine.pointe</key><string>$APP_PROFILE</string>
+		<key>io.ballerine.pointe.widget</key><string>$WIDGET_PROFILE</string>
 	</dict>
 	<key>uploadSymbols</key><true/>
 	<key>manageAppVersionAndBuildNumber</key><false/>

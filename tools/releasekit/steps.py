@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 
 from . import bump as bumpmod
-from . import creds, github, notes, preflight, verify
+from . import ci, creds, github, notes, preflight, verify
 from .core import REPO, Ctx, Fail, Step, Stop, sh
 
 ORIGIN = f"https://github.com/{REPO}.git"
@@ -342,6 +342,8 @@ def dmg(ctx: Ctx) -> str:
         sh(["gh", "release", "upload", ctx.tag, "-R", REPO, str(stable), f"{stable}.sha256"])
         return "Pointe.dmg attached from the versioned image"
     given = getattr(ctx.args, "mac_app", None)
+    if not given and ci.use(ctx, "mac"):
+        return dmg_in_ci(ctx)
     if given:  # a Pointe.app notarized elsewhere (Xcode's Organizer, when xcodebuild cannot use the account)
         need(creds.keychain_unlocked())
         need(creds.notary_profile())
@@ -364,11 +366,57 @@ def dmg(ctx: Ctx) -> str:
     return f"{versioned} built from {ctx.state.fact('pin_commit')[:10]}: signed, notarized, stapled, attached with Pointe.dmg"
 
 
+def upload_wanted(ctx) -> bool:
+    """The workflow uploads the iPhone build unless the release leaves the iPhone out or App Store Connect has it."""
+    if without_iphone(ctx) or not ci.use(ctx, "iphone"):
+        return False
+    from . import asc
+
+    return not (asc.have_key() and asc.build(ctx.version, ctx.state.fact("ios_build")))
+
+
+def dmg_in_ci(ctx: Ctx) -> str:
+    """The release workflow's mac job: the image it built from the tag plus the pin, checked here (spctl, stapler, a
+    quarantined mount) before it is attached, since a published asset is never replaced."""
+    url = ci.wait_job(ctx, "mac", upload_wanted(ctx))
+    image = ci.download_dmg(ctx, ctx.work / "ci-dmg")
+    checked = verify.dmg(image, ctx.version, ctx.work)
+    dist = ctx.tree / "dist"
+    dist.mkdir(parents=True, exist_ok=True)
+    digest = github.sha256(image.read_bytes())
+    files = []
+    for name in (image.name, "Pointe.dmg"):  # the same bytes under the stable name releases/latest/download/Pointe.dmg needs
+        shutil.copyfile(image, dist / name)
+        (dist / f"{name}.sha256").write_text(f"{digest}  {name}\n")
+        files += [str(dist / name), str(dist / f"{name}.sha256")]
+    sh(["gh", "release", "upload", ctx.tag, "-R", REPO, *files])
+    ctx.state.set(dmg_sha=digest, dmg_bytes=image.stat().st_size, dmg_ci=url)
+    return f"{image.name} built in CI ({url}) from the tag plus the pin; {checked}; attached with Pointe.dmg ({digest[:12]}…)"
+
+
 def preflight_tail(text: str) -> str:
     return " / ".join(line.strip() for line in text.strip().splitlines()[-4:])[:400]
 
 
+def dry_ci(ctx: Ctx, platform: str) -> str | None:
+    """A dry run's word on the CI path: None when this release would sign on this Mac instead."""
+    if getattr(ctx.args, "local_signing", False):
+        return None
+    lacking = ci.missing(platform)
+    if lacking:
+        ctx.say(f"    CI signing for {platform}: the environment {ci.ENVIRONMENT} lacks {', '.join(lacking)}; this Mac signs")
+        return None
+    if not ci.protected():
+        raise Fail(f"the environment {ci.ENVIRONMENT} holds the signing secrets but does not admit only tags matching {ci.TAG_RULE}")
+    return (f"dry run: CI signs it ({ci.WORKFLOW} on the tag, environment {ci.ENVIRONMENT}: all {len(ci.SECRETS[platform])} "
+            f"secrets, deployments from tags {ci.TAG_RULE} only); nothing dispatched")
+
+
 def dry_dmg(ctx: Ctx) -> str:
+    sh(["bash", "-n", "tools/build_dmg.sh"], cwd=ctx.tree)
+    said = dry_ci(ctx, "mac")
+    if said:
+        return said
     probes = [p() for p in (creds.xcode_tools, creds.keychain_unlocked, creds.developer_id, creds.notary_profile)]
     sh(["bash", "-n", "tools/build_dmg.sh"], cwd=ctx.tree)
     missing = [p for p in probes if not p.ok]
@@ -388,6 +436,8 @@ def ios(ctx: Ctx) -> str:
         done = f"App Store Connect already has {ctx.version} ({ctx.state.fact('ios_build')}); not uploaded again"
         ctx.state.set(ios_uploaded=done)
         return done
+    if ci.use(ctx, "iphone"):
+        return ios_in_ci(ctx)
     need(creds.xcode_tools())
     need(creds.keychain_unlocked())
     need(creds.apple_distribution())
@@ -423,9 +473,30 @@ def ios(ctx: Ctx) -> str:
     return done
 
 
+def ios_in_ci(ctx: Ctx) -> str:
+    """The release workflow's iphone job: archived, exported with Apple Distribution and uploaded with the API key."""
+    build = ctx.state.fact("ios_build")
+    try:
+        url = ci.wait_job(ctx, "iphone", upload_wanted(ctx))
+    except Fail:
+        from . import asc
+
+        if asc.have_key() and asc.build(ctx.version, build):  # the upload went through before a later step failed
+            url = ctx.state.fact("ci_run_url")
+        else:
+            raise
+    done = (f"Pointe {ctx.version} ({build}) built, signed and uploaded to App Store Connect in CI ({url})" if ctx.state.fact("ci_upload")
+            else f"Pointe {ctx.version} ({build}) built and signed in CI ({url}); App Store Connect had it already, so not uploaded")
+    ctx.state.set(ios_uploaded=done)
+    return done
+
+
 def dry_ios(ctx: Ctx) -> str:
-    probes = [creds.xcode_tools(), creds.keychain_unlocked(), creds.apple_distribution()]
     sh(["bash", "-n", "apps/ios/release.sh"], cwd=ctx.tree)
+    said = dry_ci(ctx, "iphone")
+    if said:
+        return said.replace("nothing dispatched", f"build {ctx.state.fact('ios_build')}; nothing dispatched or uploaded")
+    probes = [creds.xcode_tools(), creds.keychain_unlocked(), creds.apple_distribution()]
     missing = [p for p in probes if not p.ok]
     if missing:
         raise Stop("dry run: a cut would stop here: " + "; ".join(p.detail for p in missing), "\n".join(p.fix for p in missing), waiting=True)

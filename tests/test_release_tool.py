@@ -267,3 +267,77 @@ def test_a_new_minor_version_opens_its_own_changelog_section_and_a_patch_joins_i
     assert patch.count("## 0.10 (beta)") == 1 and patch.index("## 0.10 (beta)") < patch.index("- **0.10.1**") < patch.index("- **0.10.0**")
     minor = bump.fold_changelog(text, "- **0.11.0** (2026-12-01, beta): Next", [])
     assert minor.index("## 0.11 (beta)") < minor.index("- **0.11.0**") < minor.index("## 0.10 (beta)")
+
+
+# ---------- signing in CI (.github/workflows/release.yml) ----------
+
+def test_the_ci_image_is_checked_before_it_is_attached_because_an_asset_is_never_replaced(tmp_path, monkeypatch):
+    from releasekit import ci, verify
+
+    ctx = ctx_for(tmp_path)
+    ctx.state.set(ci_mac=True, pin_commit="p" * 40)
+    image = tmp_path / "ci-dmg" / "Pointe-9.9.9.dmg"
+    monkeypatch.setattr(github, "release", lambda tag: {"assets": [{"name": "pointe-9.9.9.tar.gz"}]})
+    monkeypatch.setattr(steps, "upload_wanted", lambda c: False)
+    monkeypatch.setattr(ci, "wait_job", lambda c, platform, upload: "https://ci/job")
+    monkeypatch.setattr(ci, "download_dmg", lambda c, folder: (image.parent.mkdir(exist_ok=True), image.write_bytes(b"image"), image)[2])
+    ran = []
+    monkeypatch.setattr(steps, "sh", lambda cmd, **k: ran.append(cmd))
+
+    def refused(path, version, work):
+        raise Fail("Gatekeeper does not accept Pointe-9.9.9.dmg")
+
+    monkeypatch.setattr(verify, "dmg", refused)
+    with pytest.raises(Fail, match="Gatekeeper"):
+        steps.dmg(ctx)
+    assert ran == [], "nothing attached"
+    monkeypatch.setattr(verify, "dmg", lambda path, version, work: "accepted")
+    assert "built in CI" in steps.dmg(ctx)
+    upload = ran[-1]
+    assert upload[:4] == ["gh", "release", "upload", "v9.9.9"]
+    assert {Path(f).name for f in upload[6:]} == {"Pointe-9.9.9.dmg", "Pointe-9.9.9.dmg.sha256", "Pointe.dmg", "Pointe.dmg.sha256"}
+    assert ctx.state.fact("dmg_sha") == github.sha256(b"image")
+
+
+def test_ci_signing_needs_every_secret_and_the_tag_rule_and_the_choice_holds_on_resume(tmp_path, monkeypatch):
+    from releasekit import ci
+
+    every = {n for names in ci.SECRETS.values() for n in names}
+    monkeypatch.setattr(ci, "protected", lambda: True)
+    monkeypatch.setattr(ci, "secret_names", lambda: every - {"IOS_WIDGET_PROFILE"})
+    ctx = ctx_for(tmp_path)
+    assert ci.use(ctx, "mac") and not ci.use(ctx, "iphone"), "a missing iPhone secret sends only the iPhone to this Mac"
+    monkeypatch.setattr(ci, "secret_names", lambda: every)
+    assert not ci.use(ctx_for(tmp_path), "iphone"), "a resume keeps the path the release started on"
+    monkeypatch.setattr(ci, "protected", lambda: False)
+    assert not ci.use(ctx_for(tmp_path / "unprotected"), "mac"), "secrets an untagged ref could reach are not used"
+    monkeypatch.setattr(ci, "protected", lambda: True)
+    assert not ci.use(ctx_for(tmp_path / "local", local_signing=True), "mac")
+
+
+def test_the_release_workflow_runs_only_by_dispatch_in_the_protected_environment_and_cleans_up():
+    import yaml
+
+    doc = yaml.safe_load((ROOT / ".github" / "workflows" / "release.yml").read_text())
+    assert list(doc[True]) == ["workflow_dispatch"], "no push, pull_request or release trigger: tools/release dispatches it on the tag"
+    assert doc["permissions"] == {"contents": "read"}
+    for name, job in doc["jobs"].items():
+        assert job["environment"] == "release", name
+        assert "github.ref_type == 'tag'" in job["if"], name
+        last = job["steps"][-1]
+        assert last.get("if") == "always()" and "cleanup" in last["run"], f"{name}: the keychain and the key go, whatever happened"
+        for step in job["steps"]:
+            assert "secrets." not in step.get("run", ""), f"{name}: a secret reaches a step only through env"
+    text = (ROOT / ".github" / "workflows" / "release.yml").read_text()
+    assert not re.search(r"echo[^\n]*\$\{\{\s*secrets", text)
+
+
+def test_a_test_tag_never_uploads_and_a_release_tag_must_name_its_version(tmp_path):
+    script = ROOT / "tools" / "ci_signing.sh"
+    env = {"PATH": os.environ["PATH"], "HOME": str(tmp_path), "RUNNER_TEMP": str(tmp_path)}
+    out = subprocess.run([str(script), "pin"], env={**env, "TAG": "v0.0.0-ci-test", "UPLOAD": "true"}, capture_output=True, text=True)
+    assert out.returncode == 1 and "nothing built from it is uploaded" in out.stderr
+    out = subprocess.run([str(script), "pin"], env={**env, "TAG": "v0.0.0-ci-test", "UPLOAD": "false"}, capture_output=True, text=True)
+    assert out.returncode == 0 and "no upload" in out.stdout
+    out = subprocess.run([str(script), "pin"], env={**env, "TAG": "v99.0.0", "UPLOAD": "true"}, capture_output=True, text=True)
+    assert out.returncode == 1 and "not the version at the tag" in out.stderr

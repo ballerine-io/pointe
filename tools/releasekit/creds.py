@@ -147,9 +147,26 @@ def docker() -> Probe:
                  "brew install colima docker (the Linux checks run in a Colima VM of their own, profile pointe-release)")
 
 
+def ci_signing() -> Probe:
+    """The release workflow's secrets in the environment "release" (names only: GitHub never returns a value), and its
+    rule that only tags matching v* deploy to it. With them, the disk image and the iPhone build sign in CI and the
+    local identities below are the fallback (--local-signing)."""
+    from . import ci
+
+    names = ci.secret_names()
+    lacking = sorted({n for p in ci.SECRETS for n in ci.missing(p, names)})
+    ok = not lacking and ci.protected()
+    detail = (f"CI signing: environment {ci.ENVIRONMENT} holds all {len(names)} secrets, deployments from tags {ci.TAG_RULE} only" if ok
+              else f"CI signing: environment {ci.ENVIRONMENT} " + (f"lacks {', '.join(lacking)}" if lacking else f"admits more than tags {ci.TAG_RULE}"))
+    return Probe("ci-signing", ok, detail, "tools/release_secrets.sh on the owner's Mac (docs/releasing.md, \"Where the secrets live\"); "
+                 "until then this Mac signs")
+
+
 def all_probes(network: bool = True) -> list[Probe]:
     found = [gh_signed_in(), xcode_tools(), keychain_unlocked(), developer_id(), apple_distribution()]
-    if network and found[2].ok:
+    if network:
+        found.insert(1, ci_signing())
+    if network and next(p for p in found if p.name == "keychain").ok:
         found.append(notary_profile())
     found += [asc_api_key(), docker()]
     if network:

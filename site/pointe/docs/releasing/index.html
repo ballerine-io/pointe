@@ -176,7 +176,8 @@ each does by hand:</p>
 <li>
 <p><strong>Artifacts:</strong> the tarball on a prerelease; <code>install.sh</code> pinned, on a commit that is the tag plus the pin (the disk
    image and the iPhone build come from it) and the same change on <code>main</code>; the disk image signed, notarized, stapled
-   and attached; the iPhone build uploaded to App Store Connect.</p>
+   and attached; the iPhone build uploaded to App Store Connect. Both are signed in CI by the <code>release</code> workflow when its
+   environment holds the secrets ("Signing in CI" below), and on this Mac otherwise or with <code>--local-signing</code>.</p>
 </li>
 <li>
 <p><strong>Verify:</strong> every asset downloaded anonymously against its <code>.sha256</code>, the local build and the pin; <code>spctl</code> and
@@ -292,16 +293,22 @@ lock, taken over only from a run that died. A stopped step names the one thing t
 <td>login keychain, ~/Library/MobileDevice/Provisioning Profiles</td>
 </tr>
 <tr>
-<td>The iPhone upload</td>
+<td>The iPhone upload, on this Mac (in CI the workflow uploads)</td>
 <td>The App Store Connect API key, handed to altool as a file</td>
 <td><strong>Needs the owner's yes</strong> (<code>--asc-key-file</code>): altool reads the key only from a regular file (a pipe and a named pipe are refused), so it goes in a 0600 file in a 0700 folder for the upload and is removed after; the repository's rule is that a secret never goes in a file. Without it the tool stops with the exported <code>.ipa</code> and the command</td>
 <td></td>
 </tr>
 <tr>
-<td>Every signing step</td>
+<td>Every signing step, on this Mac</td>
 <td>The login keychain unlocked (a locked one makes codesign and notarytool hang)</td>
 <td>The owner unlocks the Mac</td>
 <td></td>
+</tr>
+<tr>
+<td>Signing in CI</td>
+<td>The <code>release</code> environment's secrets ("Signing in CI" below)</td>
+<td>The owner, once and at each rotation: <code>tools/release_secrets.sh</code>, allowing each private key's export in the Keychain dialog</td>
+<td>GitHub's encrypted environment store</td>
 </tr>
 <tr>
 <td>The site</td>
@@ -347,39 +354,89 @@ the key ID, holding the base64 of the <code>.p8</code>). <code>tools/release</co
 openssl on a pipe, and never writes or prints it. It has the Developer role: the build's processing and TestFlight
 state are read with it; creating the App Store version, the external group, Beta App Review and the submission are
 refused (403), so the tool stops there with the clicks.</p>
-<p><strong>Recommendations.</strong> Keep the two identities, the profiles and the notary profile on the owner's Mac until the CI path
-below is approved. Decide <code>--asc-key-file</code> (above): with it, nothing in a release needs a person until the App Store. Give the API key the App Manager role only if the owner wants
-TestFlight's external group and Beta App Review done without a click (the tool would then need those calls; not built).
-The App Store submission stays the owner's, by choice.</p>
-<h2 id="proposed-mac-signing-and-notarization-in-ci-not-done">Proposed: Mac signing and notarization in CI (not done)</h2>
-<p>So that a release does not depend on the owner's Mac being awake, signed in and unlocked, <code>mac-release</code>
-(<code>.github/workflows/mac-release.yml</code>) already builds <code>tools/build_dmg.sh --ci</code> with a Developer ID <code>.p12</code> and an App
-Store Connect API key in the <code>mac-release</code> environment. Three things stand between it and a real release:</p>
-<ol>
+<p><strong>Recommendations.</strong> The identities, the profiles and the notary profile stay on the owner's Mac as the fallback when
+CI cannot sign. Give the API key the App Manager role only if the owner wants TestFlight's external group and Beta App
+Review done without a click (the tool would then need those calls; not built). The App Store submission stays the
+owner's, by choice.</p>
+<h2 id="signing-in-ci">Signing in CI</h2>
+<p><code>tools/release cut</code> signs the disk image and the iPhone build in GitHub Actions, so a release needs nothing from the
+owner's Mac but <code>gh</code>: not its keychain, not Xcode, not being awake and unlocked. It dispatches
+<code>.github/workflows/release.yml</code> once per version on the tag, waits for each job, and keeps the run in its state, so
+<code>resume</code> waits on the same run (a red job is re-run once, as CI's are).</p>
+<ul>
 <li>
-<p><strong>It builds the wrong commit.</strong> It checks out the tag, but the disk image must come from the tag plus the pin
-   (<code>build_dmg.sh</code> refuses an <code>install.sh</code> that does not pin its version, and the pin cannot be inside the tag: the
-   tarball it pins is the tag's archive). Change: the dispatch takes the build commit, and the job checks that the
-   commit's parent is the tag and that it changes only <code>install.sh</code> and <code>Installer.swift</code>. Drop the <code>release:
-   published</code> trigger, which fires on the prerelease before the pin exists.</p>
+<p><strong>mac</strong> builds <code>tools/build_dmg.sh --ci</code>: the app archived and exported with Developer ID, notarized with the API key,
+  stapled; the image signed, notarized and stapled. The token is read-only, so the image comes back as the <code>pointe-dmg</code>
+  artifact; <code>tools/release</code> checks its <code>.sha256</code>, runs <code>spctl</code>, <code>stapler</code> and the quarantined mount on it, and only then
+  attaches <code>Pointe-X.Y.Z.dmg</code> and <code>Pointe.dmg</code> (a published asset is never replaced).</p>
 </li>
 <li>
-<p><strong>It attaches nothing</strong> (its token is read-only, by rule). Keep it so: <code>tools/release</code> dispatches it with the build
-   commit, waits, downloads the <code>pointe-dmg</code> artifact, verifies it (the same <code>spctl</code>, <code>stapler</code> and quarantined mount)
-   and attaches it. The tool would prefer this path when the environment holds the secrets, and fall back to the
-   owner's Mac.</p>
+<p><strong>iphone</strong> runs <code>apps/ios/release.sh --manual</code> (archive and export signed with Apple Distribution and the two App Store
+  profiles), checks that the app and the widget carry the app group, and uploads the <code>.ipa</code> with altool and the API key.
+  It uploads only when App Store Connect does not have the build yet.</p>
 </li>
 <li>
-<p><strong>The secrets.</strong> In Settings, Environments, <code>mac-release</code>, never repository-wide: <code>MAC_DEVELOPER_ID_P12</code> and its
-   password (an export of the Developer ID Application certificate and private key), and <code>ASC_API_KEY_P8</code>,
-   <code>ASC_API_KEY_ID</code>, <code>ASC_API_ISSUER_ID</code> (a key with the Developer role is enough to notarize). Protect the environment
-   with a required reviewer and deployment from <code>main</code> and tags only.</p>
+<p><strong>The build commit.</strong> Both jobs check out the tag and pin <code>install.sh</code> there (<code>tools/ci_signing.sh pin</code>, the same
+  <code>tools/release_tarball.py pin</code> the tool runs), then refuse unless the result's SHA-256 is the one <code>tools/release</code>
+  committed (the <code>install_sha256</code> input) and nothing but <code>install.sh</code> and <code>Installer.swift</code> changed. A tag that is not
+  <code>vX.Y.Z</code> (a test of the workflow) builds as it is and never uploads.</p>
 </li>
-</ol>
-<p>What the owner approves: exporting the Developer ID private key off the Mac into GitHub (anyone who can run a job in
-that environment can then sign as the team: the required reviewer is the control), creating the API key, and the
-workflow change. The iPhone upload can follow the same way later (an App Store distribution certificate and
-<code>xcodebuild -exportArchive</code> with the API key); it is not proposed here.</p>
+<li>
+<p><strong>Fallback.</strong> When a secret is missing, or with <code>--local-signing</code>, the step signs on this Mac as before (the table
+  above). The choice is kept for the version, so a resume does not switch halfway.</p>
+</li>
+</ul>
+<p><strong>Where the secrets live.</strong> In the GitHub environment <code>release</code> of ballerine-io/pointe (Settings, Environments), never
+repository-wide. Its deployment rule admits only tags matching <code>v*</code>: a branch, a pull request or a fork cannot run a job
+in it. The job that uses them imports the <code>.p12</code> into a keychain made for that job, installs the profiles, writes the
+API key to the runner's temp folder, and removes all three when it ends, whatever happened (GitHub's documented
+pattern for Apple signing; hosted runners are thrown away after each job).</p>
+<div class="dx-table"><table>
+<thead>
+<tr>
+<th>Secret</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MAC_DEVELOPER_ID_P12</code>, <code>MAC_DEVELOPER_ID_P12_PASSWORD</code></td>
+<td>"Developer ID Application" of team PP445E78PD and its private key, base64; its passphrase</td>
+</tr>
+<tr>
+<td><code>IOS_DISTRIBUTION_P12</code>, <code>IOS_DISTRIBUTION_P12_PASSWORD</code></td>
+<td>"Apple Distribution" of the team and its private key, base64; its passphrase</td>
+</tr>
+<tr>
+<td><code>IOS_APP_PROFILE</code>, <code>IOS_WIDGET_PROFILE</code></td>
+<td>the App Store profiles "Pointe App Store" and "Pointe Widget App Store", base64</td>
+</tr>
+<tr>
+<td><code>ASC_API_KEY_P8</code>, <code>ASC_API_KEY_ID</code>, <code>ASC_API_ISSUER_ID</code></td>
+<td>the App Store Connect API key (Developer role: notarizes and uploads builds)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why this keeps "secrets never on disk".</strong> The repository's rule is that a secret reaches only the one process that
+needs it, never a file on a person's machine, a commit, a log or a command line. Here the values go from the login
+keychain to <code>gh secret set</code> on stdin (<code>tools/release_secrets.sh</code>, <code>tools/export_identity.swift</code>, which exports one named
+identity, not every identity in the keychain as <code>security export</code> would), and from there live only in GitHub's
+encrypted store. On the runner they reach the job's environment, are masked in its log, and touch the runner's disk only
+in its temp folder for the length of the job: the job keychain and the key file altool and notarytool read (neither
+reads a key from a pipe). <code>security import</code> takes the <code>.p12</code> passphrase on its command line, on a runner of its own.</p>
+<p><strong>Rotating.</strong> Run <code>tools/release_secrets.sh</code> (or one group: <code>mac</code>, <code>ios</code>, <code>profiles</code>, <code>asc</code>) on the owner's Mac after the
+new certificate, profile or key is in its keychain; each run replaces what it sets and makes a new <code>.p12</code> passphrase.
+macOS asks, in a dialog, to allow the export of each private key: the owner enters the login keychain's password and
+allows it. Then revoke the old certificate or key at developer.apple.com or in App Store Connect. The App Store profiles
+expire once a year with the Apple Distribution certificate. <code>tools/release plan</code> reports whether the environment holds
+every secret and admits only <code>v*</code> tags.</p>
+<p><strong>Making the environment again</strong> (done once, 2026-11-27):</p>
+<div class="dx-code"><pre><code>gh api -X PUT repos/ballerine-io/pointe/environments/release -F &#x27;deployment_branch_policy[protected_branches]=false&#x27; -F &#x27;deployment_branch_policy[custom_branch_policies]=true&#x27;
+gh api -X POST repos/ballerine-io/pointe/environments/release/deployment-branch-policies -f name=&#x27;v*&#x27; -f type=tag</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
+<p><strong>Still manual.</strong> TestFlight's external group with Beta App Review, and the App Store submission: the API key has the
+Developer role, which Apple refuses for those writes, so the owner does them in App Store Connect (the tool prints the
+build and the What's New text). With an App Manager key they could follow; the App Store submission stays the owner's
+by choice. Anyone who can push a <code>v*</code> tag can run a job in the environment: tag creation is the control.</p>
 <h2 id="1-the-version-commit">1. The version commit</h2>
 <p>Patch for a fix, minor for something a user can newly do, major for a change that breaks a setup. While the major
 version is 0, Pointe is in beta: the page, the apps and the site say "beta" beside the version by that rule alone,
@@ -471,9 +528,8 @@ release's <code>.sha256</code>. Then set <code>mac</code> in
 decimal megabytes, as Finder and browsers show it (<code>stat -f %z</code> divided by 1,000,000, rounded to one decimal:
 4,572,523 bytes is "4.6 MB"); the hero, the top
 nav and the install card follow it (<code>tools/apps_status.py</code>). Deploy the site, and check its hero line.</p>
-<p>In CI the <code>mac-release</code> workflow does the same on a published release when its environment holds the signing secrets
-(<code>.github/workflows/mac-release.yml</code> lists them); its token is read-only, so attach its artifact with
-<code>gh release upload vX.Y.Z Pointe-X.Y.Z.dmg Pointe-X.Y.Z.dmg.sha256</code>.</p>
+<p>In CI the <code>release</code> workflow does the same from the tag plus the pin ("Signing in CI" above); <code>tools/release</code> checks
+its artifact and attaches it.</p>
 <p>0.8.1's disk image is not signed (its app is signed, notarized and stapled, which is what Gatekeeper judges on a
 download); 0.8.2's is the first signed and notarized image.</p>
 <p>Write the notes for someone who has never seen Pointe, in this order:</p>
@@ -536,7 +592,7 @@ with invented sessions, the iPhone images are crops of <code>docs/ios/screenshot
 <li class="dx-l2"><a href="#when-to-release-batches">When to release: batches</a></li>
 <li class="dx-l2"><a href="#the-command-toolsrelease">The command: tools/release</a></li>
 <li class="dx-l2"><a href="#what-needs-a-person">What needs a person</a></li>
-<li class="dx-l2"><a href="#proposed-mac-signing-and-notarization-in-ci-not-done">Proposed: Mac signing and notarization in CI (not done)</a></li>
+<li class="dx-l2"><a href="#signing-in-ci">Signing in CI</a></li>
 <li class="dx-l2"><a href="#1-the-version-commit">1. The version commit</a></li>
 <li class="dx-l2"><a href="#2-checks">2. Checks</a></li>
 <li class="dx-l2"><a href="#3-the-tag">3. The tag</a></li>
