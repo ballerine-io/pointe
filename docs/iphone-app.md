@@ -125,6 +125,25 @@ several machines ([design/people-and-machines.md](design/people-and-machines.md)
 A `pointe://machine` link that opens the app from outside opens Add a machine with the line in it. Nothing is sent
 until you choose Add and pass Face ID ([SECURITY.md](../SECURITY.md)).
 
+## Several machines on this phone (Labs)
+
+Off by default while it is proven: Settings → Labs → **Several machines**. With it on, the phone keeps more than one
+machine and calls any of them directly, each on its own keys
+([design/multi-machine-clients.md](design/multi-machine-clients.md)).
+
+- **Add one**: scan or paste the pairing code of another machine (`pointe pair tailscale`, `pointe pair wifi` or
+  `pointe pair host <name>` on it, or its page's Settings → Phone). Face ID first; the machines you have stay. Pairing the
+  same machine again (a new route, a new code) replaces its entry.
+- **The bar over the call** names the machine the call goes to. A tap opens the list: each machine with how the phone
+  reaches it (Tailscale, Wi-Fi, Twingate or VPN) and whether it answers ("3 sessions, 1 needs you", or "Not reachable
+  since 14:02" with the cause). A tap on another moves the call there; swipe to Remove one.
+- **By voice**: "call kite" or "move the call to kite" moves the call to kite after one line. "Go to kite" still means a
+  session on kite when the machine you are on links it.
+- **Alerts** come from every machine, one per thing even when two machines list the same session, and Approve on one
+  goes to the machine that runs it.
+- A machine somebody else owns: pair with the code its owner shows you. Your phone then acts as its owner on that
+  machine, on their keys, so they decide.
+
 ## Alerts and the Apple Watch
 
 Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS

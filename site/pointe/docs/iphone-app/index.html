@@ -362,6 +362,34 @@ several machines (<a href="https://github.com/ballerine-io/pointe/blob/main/docs
 </ul>
 <p>A <code>pointe://machine</code> link that opens the app from outside opens Add a machine with the line in it. Nothing is sent
 until you choose Add and pass Face ID (<a href="../security/">SECURITY.md</a>).</p>
+<h2 id="several-machines-on-this-phone-labs">Several machines on this phone (Labs)</h2>
+<p>Off by default while it is proven: Settings → Labs → <strong>Several machines</strong>. With it on, the phone keeps more than one
+machine and calls any of them directly, each on its own keys
+(<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine-clients.md">design/multi-machine-clients.md</a>).</p>
+<ul>
+<li>
+<p><strong>Add one</strong>: scan or paste the pairing code of another machine (<code>pointe pair tailscale</code>, <code>pointe pair wifi</code> or
+  <code>pointe pair host &lt;name&gt;</code> on it, or its page's Settings → Phone). Face ID first; the machines you have stay. Pairing the
+  same machine again (a new route, a new code) replaces its entry.</p>
+</li>
+<li>
+<p><strong>The bar over the call</strong> names the machine the call goes to. A tap opens the list: each machine with how the phone
+  reaches it (Tailscale, Wi-Fi, Twingate or VPN) and whether it answers ("3 sessions, 1 needs you", or "Not reachable
+  since 14:02" with the cause). A tap on another moves the call there; swipe to Remove one.</p>
+</li>
+<li>
+<p><strong>By voice</strong>: "call kite" or "move the call to kite" moves the call to kite after one line. "Go to kite" still means a
+  session on kite when the machine you are on links it.</p>
+</li>
+<li>
+<p><strong>Alerts</strong> come from every machine, one per thing even when two machines list the same session, and Approve on one
+  goes to the machine that runs it.</p>
+</li>
+<li>
+<p>A machine somebody else owns: pair with the code its owner shows you. Your phone then acts as its owner on that
+  machine, on their keys, so they decide.</p>
+</li>
+</ul>
 <h2 id="alerts-and-the-apple-watch">Alerts and the Apple Watch</h2>
 <p>Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
 mirrors it to an Apple Watch on your wrist while the iPhone is locked. There is no push server, so this works while the
@@ -392,6 +420,7 @@ request Pointe can read out; it needs an unlocked iPhone or a watch on the wrist
 <li class="dx-l2"><a href="#getting-the-app">Getting the app</a></li>
 <li class="dx-l2"><a href="#what-stays-on-the-mac">What stays on the Mac</a></li>
 <li class="dx-l2"><a href="#machines-and-people">Machines and people</a></li>
+<li class="dx-l2"><a href="#several-machines-on-this-phone-labs">Several machines on this phone (Labs)</a></li>
 <li class="dx-l2"><a href="#alerts-and-the-apple-watch">Alerts and the Apple Watch</a></li>
 </ul>
 </details>

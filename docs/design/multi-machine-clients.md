@@ -1,6 +1,6 @@
 # Several machines from every client: each machine a full voice, the client holds the list
 
-Status: design, phase 1 in progress (2026-11). Line numbers are from `main` at `1b6e55b2`. This revises one property
+Status: design; phase 1's iPhone part is built behind a Labs flag (see "As built" at the end) (2026-11). Line numbers are from `main` at `1b6e55b2`. This revises one property
 of [multi-machine.md](multi-machine.md) and [people-and-machines.md](people-and-machines.md): a client no longer pairs
 with one voice. Everything else in those two documents still holds, and this design reuses their link, pairing and
 people machinery.
@@ -481,3 +481,18 @@ Open:
 1. Is a phase 1 phone pairing on Avi's box, acting as Avi there, acceptable to Avi, or is phase 4 needed first?
 2. Server keys after a reboot: unlock over SSH (default), or a keyring that opens by itself?
 3. Figures on screen only for Hermes: on by default for that agent?
+
+## As built: phase 1
+
+- **Routes:** the line names its route (`via=tailscale|wifi|host`), the pairing keeps it, and the list shows it. One
+  route per machine for now: pairing the same machine again replaces its route. The machine still keeps one route in
+  `remote.json` (now with its `kind`); `routes` in the status, `--public` and the `ssh` route are not built.
+- **iPhone:** one Keychain item per machine (account `id:<machine id>`, else `fp:<fingerprint>`), the older
+  account-less item replaced once its machine is saved again; the bar over the call, the list with each machine's
+  route and state (checked every 15 s), tap to move the call, Remove, Face ID to add a second machine.
+- **By voice:** `handoff.py`; the hello's `machines`, the `handoff` message, and the same words typed.
+- **Alerts:** `origin` on each session and alert; merged by it on the phone; an action goes to the machine that runs
+  the session, and another machine's own "Approve from notifications" setting decides whether its alerts carry Approve.
+- **Not yet:** the hands-free fallback to another machine, Face ID when the app opens with several machines, the Mac
+  app's list, the page's menu, `pointe service install` and `pointe unlock` on Linux.
+
