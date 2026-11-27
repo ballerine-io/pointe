@@ -39,6 +39,18 @@ final class AgentsUITests: XCTestCase {
         }
     }
 
+    func testATapOnAReplyNotificationOpensTheAgentsReplies() {
+        for dark in [false, true] {
+            app = XCUIApplication()
+            app.launchArguments = ["-demo", "call", "-demoEnglish", "-pointe.theme", dark ? "dark" : "light", "-sheet", "agentReply"]
+            app.launch()
+            XCTAssertTrue(app.navigationBars["hermes replied"].waitForExistence(timeout: 15), "the sheet names the agent")
+            XCTAssertEqual(app.staticTexts.matching(identifier: "agentReplyText").count, 2, "each reply, as the Mac sent it")
+            shot("iphone-agent-reply-\(dark ? "dark" : "light")")
+            app.terminate()
+        }
+    }
+
     func testRemoveAsksFirst() {
         launch()
         XCTAssertTrue(any("agentRemove.hermes").waitForExistence(timeout: 15))

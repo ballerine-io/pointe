@@ -117,6 +117,7 @@ struct CallView: View {
         case "machines": _showMachines = State(initialValue: true)
         case "people": _showPeople = State(initialValue: true)
         case "agents": _showAgents = State(initialValue: true)
+        case "agentReply": AgentReplyOpener.shared.agent = AgentName(id: "hermes")  // as a tap on "hermes replied" does
         case "addMachine": _showAddMachine = State(initialValue: true)
         case "conflictSettings": _showConflictSettings = State(initialValue: true)
         case "showSettings": _showSettings = State(initialValue: true)
@@ -1659,7 +1660,7 @@ struct CallView: View {
     }
 
     private var agentReplies: ((String) async throws -> API.AgentReplies)? {
-        guard demo == nil else { return nil }
+        guard demo == nil else { return Demo.agentReplies }
         let api = call.api
         return { try await api.agentReplies($0) }
     }

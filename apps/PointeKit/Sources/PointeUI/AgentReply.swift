@@ -46,7 +46,17 @@ final class AgentReplyOpener {
     var agent: AgentName?
 }
 
-/// Sits behind the call screen and opens the replies a notification asked for. The demo has none to open.
+extension Demo {
+    /// A made-up reply, nothing sent: for screenshots and UI tests (`-sheet agentReply`).
+    static func agentReplies(_ name: String) async throws -> API.AgentReplies {
+        API.AgentReplies(agent: name, replies: [
+            API.AgentReply(text: "Friday is clear until 2 pm. Your dentist appointment moved to Monday at 9."),
+            API.AgentReply(text: "The flight to Lisbon is on time and the hotel confirmed late check-in."),
+        ])
+    }
+}
+
+/// Sits behind the call screen and opens the replies a notification asked for.
 struct AgentReplyPresenter: View {
     let load: ((String) async throws -> API.AgentReplies)?
 
