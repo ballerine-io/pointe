@@ -580,6 +580,59 @@ def test_thirty_sessions_finish_in_a_minute_four_lines_are_spoken_and_the_rest_a
     assert len(d.HELD) == 0
 
 
+def test_a_burst_from_other_machines_ends_each_report_said_or_held_and_the_plans_lines_are_said_as_planned(d, node, call,
+                                                                                                         monkeypatch):
+    """The fleet benchmark's burst: sessions on four machines, there when their machines linked, and on this one; thirty
+    finish within a minute while one session waits for a permission. A machine's sessions were not in a turn of their
+    own when the voice first heard of them, so each finished turn is news: said, counted in a said line, or held. The
+    permission goes first, and the plan's lines are said by the daemon as planned, never reworded by the brain."""
+    from types import SimpleNamespace
+
+    from brain import Brain
+    voice, _ = call
+    _reports(d, monkeypatch)
+    spoken: list[str] = []
+
+    async def speak(text, request_id=None):
+        spoken.append(text)
+    brain = Brain("fake:model", "instructions", [], lambda: "", speak)
+    d.state.front = SimpleNamespace(brain=brain, _speak=speak)
+    put(d, "h00", "sentinel")  # the active session
+    here = [put(d, f"h{i:02d}", NAMES[i]) for i in range(1, 7)]
+    conn, d.state.conn = d.state.conn, None  # on the voice before the call: no "joined" news
+    remote = []
+    for m in range(4):
+        box = machine(node, f"box-{m}")
+        for i in range(6):
+            name = NAMES[7 + m * 6 + i]
+            remote.append(asyncio.run(d.register_remote(node.machines[box].id, box, {
+                "id": f"r{m}{i}", "name": name, "name_given": True, "cwd": f"/srv/{name}", "pid": 4242,
+                "harness": "claude-code", "files": [f"{name}.py"]})))
+    d.state.conn = conn
+    everyone = here + remote
+    asker = remote[0]
+    asker.permission_id = "perm-1"
+
+    async def run():
+        for s in everyone:
+            await d.feed(s, finished(d, s.name), True)
+        voice.injector._queue_update(f"[{asker.name} is waiting for a permission, not the active session] Tell the user "
+                                     f"in one line; they can switch to it by name.")
+        for _ in range(3):  # the gaps in the conversation that follow
+            voice.injector._asked_at = 0.0
+            await voice.injector._deliver_if_free()
+    asyncio.run(run())
+    to_brain = [f.text for f in voice.frames if isinstance(f, d.InputTextRawFrame)]
+    assert "waiting for a permission" in to_brain[1] and not any("finished their turns" in t for t in to_brain), to_brain
+    assert len(spoken) == 1 and len(scale.re.findall(r"Six on box-\d finished: \S+, \S+, \S+ and 3 more\b", spoken[0])) == 3, spoken
+    told = " ".join(to_brain + spoken)
+    said = {s.name for s in everyone if scale.re.search(rf"\b{s.name}\b", told)}
+    held = {i.session for i in d.HELD.items}
+    assert said | held == {s.name for s in everyone} and not said & held, (len(said), len(held))
+    stats = d.state.fleet_stats
+    assert stats["reports_spoken"] + stats["reports_held"] == len(everyone) and stats["reports_held"] == len(held)
+
+
 def test_the_speech_plan_coalesces_per_machine_names_a_question_and_never_holds_one():
     r = scale.Report
     lines, held = scale.plan_speech([r("tide", "avi-box"), r("harbor", "avi-box"), r("skiff", "avi-box", True)], 0)

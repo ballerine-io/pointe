@@ -1284,7 +1284,7 @@ class HostSide:
                 gen = int(saved.get("gen") or 0) + (1 if saved.get("path") and saved["path"] != path else 0)
                 link.tails[sid] = Tail(path=path, gen=gen)
                 if not first:
-                    await self._about(link, sid, encode("session.joined", id=sid))
+                    await self._about(link, sid, encode("session.joined", id=sid, joining=visible[sid].joining))
             if gone or new:
                 self._save_tails(link)
             entries = [self._entry(s, link) for s in visible.values()]

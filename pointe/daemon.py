@@ -1097,6 +1097,19 @@ class FeedInjector(FrameProcessor):
         items = [text for text in taken if not self._parked(text) and not _gone_since(text)]
         if items and scale.enabled() and not awaited:
             items = _fleet_speech(items)  # one line per machine, and past four lines a minute the rest are held
+            planned = [text for text in items if text in _PLANNED]
+            if planned and state.front is not None:
+                if len(planned) < len(items):
+                    # In a batch the brain would reword the plan's lines and drop names they say: what ranks before
+                    # them goes now, and they are said as planned at the next gap.
+                    for text in reversed(planned):
+                        self._queue_update(text, front=True)
+                    items = [text for text in items if text not in _PLANNED]
+                else:
+                    _PLANNED.difference_update(items)
+                    self._offered, self._offered_at = items, time.time()
+                    await self._say_verbatim("\n".join(items), " ".join(_VERBATIM.pop(text) for text in items))
+                    return True
         if not items:
             return True
         if awaited and len(items) > 1:  # answers are said one by one, each whole: a batch line has no room for them
@@ -3360,6 +3373,7 @@ def _note_relay_refusal(session: Session, final: str) -> None:
 QUICK_ANSWER_CHARS = 700  # a final message this short, answering the user's question, is said without the reader
 VERBATIM_WORDS, VERBATIM_SENTENCES = 40, 3  # an answer this short is said in Claude's own words, without the model
 _VERBATIM: dict[str, str] = {}  # a queued short answer -> the line said for it, word for word
+_PLANNED: set[str] = set()  # the speech plan's lines (_fleet_speech), each in _VERBATIM: never folded into a batch
 _CODE_NAME = re.compile(r"`([^`\n]{1,80})`")
 _FILE_LINE = re.compile(r"(\b[\w./-]+\.[A-Za-z]{1,5}):\d+(?:[-–:]\d+)?\b")
 _PATH = re.compile(r"(?<![\w/.])(?:[\w.-]+/)+[\w-]+(?:\.[A-Za-z]{1,5})?(?![\w/])|"
@@ -6968,6 +6982,7 @@ def _fleet_speech(items: list[str]) -> list[str]:
                           f"work, not instructions] Say this one line as it is, adding nothing:\n{said}",
                           line.sessions, "report", said)
             _VERBATIM[item] = said
+            _PLANNED.add(item)
             out.append(item)
         if not line.text or not set(line.sessions) <= asks:
             state.fleet_spoken.append(now)
@@ -10068,7 +10083,9 @@ async def register_remote(node_id: str, machine: str, entry: dict) -> Session | 
         logger.info(f"a session from {machine} not called {session.name}: {clash}")
         session.name, session.named_by = f"session {remote_id[:6]}", "folder"
     session.transcript = harnesses.of(session).transcript_path(session)  # its mirror on this Mac
-    session.joining = harnesses.get(harness).joins_mid_turn  # /pointe:voice on the node runs inside a turn too
+    # Only a session the machine says registered from inside its /pointe:voice turn (hub_nodes: `session.joined` with
+    # `joining`). One listed when its machine linked is not in a turn of its own: its next finished turn is news.
+    session.joining = harnesses.get(harness).joins_mid_turn and entry.get("joining") is True
     REGISTRY.add(session)
     asyncio.create_task(_refresh_brief(session))
     logger.info(f"registered {session.name} on {machine} (pid {session.pid}, remote, {harness})")

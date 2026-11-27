@@ -247,7 +247,8 @@ end in a question, and its notes are read when it is next named, asked about or 
 **Speech.** Approvals first, then sessions that need the user, then the thread's reports, then the rest. More than two
 background reports waiting become one line per machine ("Three on avi-box finished: tide, harbor and ferry; ferry has
 a question."). Past four background lines in a minute the rest are held for the screen and for "anything from the
-others?". A report with a question for the user is never held.
+others?". A report with a question for the user is never held. The plan's lines are said by the daemon as planned,
+never folded into a batch the brain rewords: what ranks before them goes first, and they follow at the next gap.
 
 **For the benchmark.** `GET /voice/context` has `fleet`: the block and its token estimate, the count of sessions per
 tier, the candidates of the last routing decision with how each was picked, and counters of reader calls made and

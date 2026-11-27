@@ -366,12 +366,22 @@ def test_registration_is_announced_without_the_inbox_secrets(tmp_path):
     async def scenario(hub, n):
         got = await n.register(_body(tmp_path, inbox_socket="/tmp/sock", inbox_token="SECRET-INBOX"))
         assert got["name"] == "shop"
-        assert (await hub.next("session.joined"))["id"] == "sess-1"
+        joined = await hub.next("session.joined")
+        assert joined["id"] == "sess-1" and joined["joining"] is True  # from the hook, inside its /pointe:voice turn
         snap = await hub.next("sessions")
         assert "SECRET-INBOX" not in json.dumps(snap) and "/tmp/sock" not in json.dumps(snap)
         s = snap["sessions"][0]
         assert (s["id"], s["name"], s["harness"], s["pid"]) == ("sess-1", "shop", "claude-code", os.getpid())
         assert s["capabilities"]["side_questions"] is False and s["pending"] is None
+
+    run(scenario, tmp_path)
+
+
+@pytest.mark.parametrize("how", [{"attached": True}, {"start": "st-1"}])
+def test_a_session_attached_or_started_is_announced_outside_a_turn_of_its_own(tmp_path, how):
+    async def scenario(hub, n):
+        await n.register(_body(tmp_path, **how))
+        assert (await hub.next("session.joined"))["joining"] is False
 
     run(scenario, tmp_path)
 

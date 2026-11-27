@@ -114,7 +114,7 @@ NODE_FRAMES: dict[str, dict[str, Check]] = {
               "node": _has(id=_token, name=_short, os=_short, arch=_short, version=_short,
                            harnesses=_list_of(_short, MAX_FILES))},
     "sessions": {"sessions": _list_of(_session)},
-    "session.joined": {"id": _str},
+    "session.joined": {"id": _str, "joining?": _bool},  # joining: it registered inside its own turn (/pointe:voice)
     "session.left": {"id": _str, "why": _one_of("exited", "disconnected")},
     "transcript": {"id": _str, "gen": _count, "offset": _count, "next_offset": _count, "entries": _list_of(_line)},
     "transcript.repointed": {"id": _str, "gen": _count, "history?": _bool},

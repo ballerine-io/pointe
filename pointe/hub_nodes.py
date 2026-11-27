@@ -594,6 +594,7 @@ class Node:
     offline_at: float  # monotonic: when its link dropped, or this hub started
     socket: object = None
     sessions: dict[str, dict] | None = None  # its last `sessions` snapshot by its own ids; None: none since this start
+    joining: set[str] = field(default_factory=set)  # ids its `session.joined` said registered inside their own turn
     waiting: dict[str, asyncio.Future] = field(default_factory=dict)
     lock: asyncio.Lock | None = None
     backlog: dict[str, asyncio.TimerHandle] = field(default_factory=dict)
@@ -1136,6 +1137,9 @@ class Hub:
         t = frame["t"]
         if t == "sessions":
             await self._snapshot(node, frame["sessions"])
+        elif t == "session.joined":
+            if frame.get("joining") is True:
+                node.joining.add(frame["id"])  # the snapshot that follows registers it
         elif t == "session.left":
             (node.sessions or {}).pop(frame["id"], None)  # no longer alive: the next liveness check takes it off
         elif t == "transcript":
@@ -1228,12 +1232,15 @@ class Hub:
                 entry.pop("owner", None)
         register = self._hook("register_remote")
         for entry in node.sessions.values():
+            # `joining` is the hub's, from `session.joined`, never the snapshot's own field
+            entry["joining"] = entry["id"] in node.joining
             session = await register(node.id, node.name, entry) if register else None
             pending = entry.get("pending")
             if session is not None and isinstance(pending, dict):
                 request = {"t": "permission.request", **pending, "id": entry["id"]}
                 if nodelink._valid(request, NODE_FRAMES["permission.request"]):
                     await self._permission(node, request)  # put once by the daemon; `holding` so the node keeps it
+        node.joining.clear()
 
     async def _permission(self, node: Node, frame: dict) -> None:
         """Put to the user by the daemon (remote_permission, which returns before the read-out is spoken); `holding`

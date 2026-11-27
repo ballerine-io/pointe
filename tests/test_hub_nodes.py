@@ -1116,6 +1116,29 @@ def test_the_daemon_keeps_an_offline_nodes_session_for_the_grace_then_reaps_it(r
     run(go())
 
 
+def test_only_a_session_its_node_says_joined_inside_its_own_turn_has_that_turns_end_kept_quiet(real, monkeypatch):
+    """A session listed when its node linked is not running /pointe:voice: its next finished turn is news. Only one the
+    node announces as registered from inside that turn (`session.joined`, `joining`) has that turn's end kept quiet,
+    and a snapshot cannot claim it for itself."""
+    d, hub, mono = real
+    monkeypatch.setattr(d, "_add_worker", lambda s: asyncio.sleep(0))
+    monkeypatch.setattr(d, "_refresh_brief", lambda s: asyncio.sleep(0))
+    node = paired(hub)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry("s1"), entry("s2", "api", joining=True))
+        await fake.send("session.joined", id="s3", joining=True)
+        await fake.send("session.joined", id="s4", joining=False)
+        await fake.send_sessions(entry("s1"), entry("s2", "api"), entry("s3", "web"), entry("s4", "docs"))
+        joining = {s.name: s.joining for s in d.REGISTRY.sessions.values()}
+        assert joining == {"shop": False, "api": False, "web": True, "docs": False}
+        await fake.drop()
+
+    run(go())
+
+
 def test_the_daemon_reaps_a_session_its_node_says_left(real):
     d, hub, mono = real
     node = paired(hub)

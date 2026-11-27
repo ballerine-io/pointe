@@ -349,6 +349,8 @@ class Node:
             harness_data=body.get("harness_data") if isinstance(body.get("harness_data"), dict) else {})
         if body.get("name_given"):
             session.named_by = "user"
+        # As the daemon's register: a session Pointe started or attached joins outside a turn of its own
+        session.joining = adapter.joins_mid_turn and not body.get("start") and not body.get("attached")
         existing = self.registry.sessions.get(session.id)
         if existing:
             for key in ("inbox_socket", "inbox_token", "transcript", "pid", "home"):
@@ -363,7 +365,7 @@ class Node:
         logger.info(f"registered {session.name} (pid {session.pid}, inbox, {harness})")
         self._start_session(session)
         if self.linked.is_set():
-            await self._send("session.joined", id=session.id)
+            await self._send("session.joined", id=session.id, joining=session.joining)
             await self._snapshot()
             await self._apply_resume({session.id: self.hub_offsets[session.id]} if session.id in self.hub_offsets
                                      else {}, only=session.id)
@@ -741,7 +743,7 @@ class Node:
                 body = await adapter.reopen(found, "")
             else:
                 body = adapter.attach_body(found)
-            await self.register({**body, "harness": found.harness})
+            await self.register({**body, "harness": found.harness, "attached": True})
         except (harnesses.StartError, ValueError) as e:
             why = str(e)
         await self._send("attach.result", req=frame["req"], ok=why is None, **({"why": why} if why else {}))
