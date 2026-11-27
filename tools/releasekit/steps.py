@@ -426,8 +426,10 @@ def dry_dmg(ctx: Ctx) -> str:
 
 
 def ios(ctx: Ctx) -> str:
-    if without_iphone(ctx):
-        return f"skip: the iPhone app is not in {ctx.version} (--platforms {ctx.state.fact('platforms')})"
+    if without_iphone(ctx):  # pending, not done: TestFlight and the App Store wait on it, and the report says so
+        raise Stop(f"the iPhone build of {ctx.version} is pending: this run leaves it out (--platforms {ctx.state.fact('platforms')})",
+                   f"When it can be built (the release workflow's secrets, or this Mac's): tools/release resume --version {ctx.version} "
+                   "--platforms iphone,mac,linux", waiting=True)
     if ctx.state.fact("ios_uploaded"):
         return ctx.state.fact("ios_uploaded")
     from . import asc

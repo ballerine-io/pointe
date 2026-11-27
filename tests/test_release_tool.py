@@ -341,3 +341,11 @@ def test_a_test_tag_never_uploads_and_a_release_tag_must_name_its_version(tmp_pa
     assert out.returncode == 0 and "no upload" in out.stdout
     out = subprocess.run([str(script), "pin"], env={**env, "TAG": "v99.0.0", "UPLOAD": "true"}, capture_output=True, text=True)
     assert out.returncode == 1 and "not the version at the tag" in out.stderr
+
+
+def test_an_iphone_left_out_of_a_run_is_pending_not_done(tmp_path):
+    ctx = ctx_for(tmp_path)
+    ctx.state.set(platforms="linux,mac")
+    with pytest.raises(Stop, match="pending") as stop:
+        steps.ios(ctx)
+    assert stop.value.waiting and "--platforms iphone,mac,linux" in stop.value.how
