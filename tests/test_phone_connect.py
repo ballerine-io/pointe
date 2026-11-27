@@ -140,7 +140,7 @@ def world(tmp_path, pair, monkeypatch):
     app.get("/voice/status")(lambda: {"ok": True})
     clock, mono = Clock(), Clock(5000.0)
     phones = phone_pairing.Phones(tmp_path, clock=clock)
-    link = phone_pairing.PhoneLink(tmp_path, phones, monotonic=mono)
+    link = phone_pairing.PhoneLink(tmp_path, phones, monotonic=mono, machine_id=lambda: "a3f9c2d1e0b4f5a6")
     listener = Listener(remote)
     unpaired = []
 
@@ -195,6 +195,22 @@ def test_the_page_gets_a_qr_with_a_one_time_code_and_the_app_trades_it_for_the_k
     assert redeem(tls(world), made["code"]).status_code == 403  # single use
     state = page(world).get("/voice/phone/invite").json()
     assert state["paired"]["name"] == "Mira's iPhone" and state["expires_in"] == 0 and "code" not in state
+
+
+def test_the_line_names_its_route_and_the_answer_names_the_machine(world):
+    """A client that holds several machines files each by the machine's own id, and shows how it reaches it: the line
+    says the route's kind, the answer the machine's id and name (docs/design/multi-machine-clients.md, 1.1 and 1.2)."""
+    made = make(world)
+    assert parse_qs(urlparse(made["link"]).query)["via"] == ["host"]
+    got = redeem(tls(world), made["code"]).json()
+    assert got["id"] == "a3f9c2d1e0b4f5a6" and got["name"] == "studio" and got["mac"] == "studio"
+
+
+def test_a_route_chosen_in_the_terminal_is_named_in_its_lines(pair):
+    pair.setup("mac.example.internal", "127.0.0.1", kind="tailscale")
+    assert parse_qs(urlparse(pair.invite_pairing_link("ABCD-EFGH")).query)["via"] == ["tailscale"]
+    pair.setup("mac.example.internal", "127.0.0.1")  # an older caller names none: a name routed by the user
+    assert parse_qs(urlparse(pair.invite_pairing_link("ABCD-EFGH")).query)["via"] == ["host"]
 
 
 def test_the_code_comes_with_the_macs_own_check_of_the_route(world, monkeypatch):
@@ -302,7 +318,7 @@ def test_choosing_another_route_sets_it_up_and_restarts_the_listener_now(world):
     made = page(world).post("/voice/phone/invite", json={"kind": "tailscale"}).json()
     assert world.listener.restarts == 1 and world.remote.host == TS[0] and world.remote.listen == [TS[1]]
     assert parse_qs(urlparse(made["link"]).query)["host"] == [TS[0]]
-    assert json.loads((world.state / "remote.json").read_text()) == {"host": TS[0], "listen": [TS[1]]}
+    assert json.loads((world.state / "remote.json").read_text()) == {"host": TS[0], "listen": [TS[1]], "kind": "tailscale"}
 
 
 def test_an_unusable_route_is_refused_with_its_reason(world):

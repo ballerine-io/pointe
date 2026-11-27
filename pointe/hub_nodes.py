@@ -646,6 +646,7 @@ class Hub:
                           dialed=dialed, owner=str(paired.get("owner") or "") if dialed else "",
                           grant=str(paired.get("grant") or "") if dialed else "",
                           me=str(paired.get("person_name") or "") if dialed else "",
+                          host_id=str(paired.get("host_id") or "") if dialed else "",
                           removed=bool(dialed and paired.get("removed")),
                           notice=removed_line(paired["name"]) if paired.get("removed") else "")
         sessions.MACHINES[machine.name] = machine

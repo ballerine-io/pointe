@@ -305,3 +305,28 @@ def test_a_tap_reaches_a_channel_session_before_any_call_has_run(d, tmp_path, mo
     monkeypatch.setattr(d, "say", lambda text: asyncio.sleep(0))
     assert asyncio.run(run()) is True
     assert got == [{"request_id": "f00dcafe", "behavior": "deny"}]
+
+
+# ---------- one alert per thing, across the machines a client holds (docs/design/multi-machine-clients.md, 1.6) ----------
+
+def test_a_session_and_its_alert_carry_where_it_really_runs(two):
+    client, _ = two
+    ask(client, "r1", "Bash", "List files", {"command": "ls"})
+    import daemon as d
+    here = d.HUB.nodes.hub_id
+    status = client.get("/voice/status").json()
+    assert status["machines"][0]["machine_id"] == here
+    assert {s["name"]: s["origin"] for s in status["sessions"]}["river-lantern"] == f"{here}/f"
+    assert the_permission(client)["origin"] == f"{here}/f"
+
+
+def test_a_session_seen_through_a_link_names_the_machine_it_runs_on_and_its_id_there(d):
+    from sessions import MACHINES, Machine, Session
+    MACHINES["avi-box"] = Machine(name="avi-box", id="n7", dialed=True, host_id="c0ffee12")
+    MACHINES["devbox"] = Machine(name="devbox", id="n8")  # a node of one's own has no voice of its own: its link id
+    try:
+        there = Session(id="n7aaaa-s1", name="shop avi-box", cwd="/", machine="avi-box", harness_data={"remote_id": "s1"})
+        node = Session(id="n8bbbb-s2", name="api", cwd="/", machine="devbox", harness_data={"remote_id": "s2"})
+        assert d._origin(there) == "c0ffee12/s1" and d._origin(node) == "n8/s2"
+    finally:
+        del MACHINES["avi-box"], MACHINES["devbox"]

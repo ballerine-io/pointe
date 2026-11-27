@@ -1457,7 +1457,7 @@ def _status_machines() -> list[dict]:
 
     n, need = counts("")
     out = [{"id": "hub", "name": _here(), "here": True, "os": "macos" if sys.platform == "darwin" else "linux",
-            "online": True, "sessions": n, "need": need}]
+            "online": True, "sessions": n, "need": need, "machine_id": HUB.nodes.hub_id}]
     for m in paired_machines():
         n, need = counts(m.name)
         out.append({"id": m.id, "name": m.name, "here": False, "os": m.os, "online": m.online, "since": m.since,
@@ -9949,7 +9949,7 @@ async def _end_phone_call(ids: set[str] | None) -> None:
             pass
 
 
-phone_pairing.install(app, phone_pairing.PhoneLink(STATE_DIR, PHONES), page_key=PAGE_KEY, listener=REMOTE,
+phone_pairing.install(app, phone_pairing.PhoneLink(STATE_DIR, PHONES, machine_id=lambda: HUB.nodes.hub_id), page_key=PAGE_KEY, listener=REMOTE,
                       on_unpair=_end_phone_call)
 
 
@@ -11651,7 +11651,7 @@ async def _status(request: Request) -> dict:
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
-                          "machine": _machine_of(s), "online": online(s),
+                          "machine": _machine_of(s), "online": online(s), "origin": _origin(s),
                           **({"owner": s.owner} if s.owner else {}),  # whose it is, when not this person's
                           "request": s.permission_full if s.permission_id else None,  # word for word: the voice says a short form
                           "request_note": s.permission_note if s.permission_id else None,  # the agent's own words: never what runs
@@ -11669,6 +11669,16 @@ async def _status(request: Request) -> dict:
                           "mode": "channel" if s.channel_url else "inbox",
                           **(_there_status(s) if s.machine else PEOPLE.session_status(s))}
                          for s in REGISTRY.sessions.values()]}
+
+
+def _origin(s: Session) -> str:
+    """Where a session really runs, `<machine id>/<session id there>`: the same on every voice that sees it, so a client
+    holding several machines shows one alert for it (docs/design/multi-machine-clients.md, 1.6). A node of one's own
+    has no voice of its own, so its link id stands for it."""
+    if not s.machine:
+        return f"{HUB.nodes.hub_id}/{s.id}"
+    m = paired_machine(s.machine)
+    return f"{(m.host_id or m.id) if m else s.machine}/{s.harness_data.get('remote_id') or s.id}"
 
 
 def _there_status(s: Session) -> dict:
@@ -11716,21 +11726,29 @@ def _agent_unheard(s: Session) -> tuple[int, float] | None:
     return harness.unheard_reply(s) if getattr(harness, "framework", False) else None
 
 
+def _attention_of(s: Session, items: list[dict], quiet: bool) -> None:
+    """The one entry a session adds to `_attention`, if any."""
+    if s.permission_id:
+        item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
+        item["quiet"] = quiet and not _permission_urgent(s)
+        items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
+    elif since := terminal_wait_since(s, time.time()):
+        items.append(alerts.terminal_alert(s.name, terminal_wait(s), since, _alert_name(s)))
+    elif unheard := _agent_unheard(s):
+        items.append(alerts.agent_reply_alert(s.name, *unheard, _alert_name(s)))
+    elif s.idle_since and s.needs and s.needs.get("need"):
+        items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
+
+
 def _attention(quiet: bool = False) -> list[dict]:
     """What may need the user right now, for alerts on the phone, the watch and the desktop: one entry each. `quiet` on
     an item: the client posts nothing for it yet (an approval about to go back to its terminal never is)."""
     items = []
     for s in REGISTRY.sessions.values():
-        if s.permission_id:
-            item = alerts.permission_alert(s.name, s.id, s.permission_id, s.permission_since or time.time(), _alert_name(s))
-            item["quiet"] = quiet and not _permission_urgent(s)
-            items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
-        elif since := terminal_wait_since(s, time.time()):
-            items.append(alerts.terminal_alert(s.name, terminal_wait(s), since, _alert_name(s)))
-        elif unheard := _agent_unheard(s):
-            items.append(alerts.agent_reply_alert(s.name, *unheard, _alert_name(s)))
-        elif s.idle_since and s.needs and s.needs.get("need"):
-            items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
+        before = len(items)
+        _attention_of(s, items, quiet)
+        for item in items[before:]:
+            item["origin"] = _origin(s)
     for c in ALARM.conflicts:
         if c.state == "open":
             items.append(alerts.conflict_alert(c.id, c.a_name, c.b_name, c.at))

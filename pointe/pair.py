@@ -187,7 +187,8 @@ def _covers(host: str) -> bool:
         and left > datetime.timedelta(days=30) and (STATE / "tls" / "key.pem").exists()
 
 
-def setup(host: str, listen: str, also: tuple[str, ...] = ()) -> None:
+def setup(host: str, listen: str, also: tuple[str, ...] = (), kind: str | None = None) -> None:
+    """`kind` (tailscale, wifi, host) goes into the pairing lines, so a client shows how it reaches this machine."""
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     if not _covers(host):
         _certificate(host)
@@ -197,7 +198,7 @@ def setup(host: str, listen: str, also: tuple[str, ...] = ()) -> None:
         if not (STATE / "remote_token").exists():
             (STATE / "remote_token").write_text(os.urandom(32).hex())
         addresses = [listen, *(a for a in also if a != listen)]
-        (STATE / "remote.json").write_text(json.dumps({"host": host, "listen": addresses}) + "\n")
+        (STATE / "remote.json").write_text(json.dumps({"host": host, "listen": addresses, **({"kind": kind} if kind else {})}) + "\n")
     finally:
         os.umask(old)
 
@@ -212,7 +213,7 @@ def pairing_link() -> str:
     if not (STATE / "phone_key").exists():
         (STATE / UNUSED).touch(mode=0o600)
     return "pointe://pair?" + urlencode({"v": PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
-                                         "fp": fingerprint(), "key": phone_key(STATE)})
+                                         "fp": fingerprint(), "key": phone_key(STATE), "via": config.get("kind") or "host"})
 
 
 def invite_pairing_link(code: str) -> str:
@@ -220,7 +221,7 @@ def invite_pairing_link(code: str) -> str:
     the app trades the code for the phone key over the pinned listener (phone_pairing.py)."""
     config = _config()
     return "pointe://pair?" + urlencode({"v": CODE_PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
-                                         "fp": fingerprint(), "code": code})
+                                         "fp": fingerprint(), "code": code, "via": config.get("kind") or "host"})
 
 
 _HOST_NAME = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*")
@@ -492,7 +493,7 @@ def main(argv: list[str]) -> None:
     else:
         raise SystemExit(__doc__.strip())
     also = also if argv[0] == "host" else ()
-    setup(host, listen, also)
+    setup(host, listen, also, kind=argv[0])
     print(f"Listening for the phone on {', '.join([listen, *also])} port {TLS_PORT} within a few seconds if the daemon "
           "runs, else at its next start.")
     if argv[0] == "host" and not also and sys.platform != "darwin" and _to_terminal():

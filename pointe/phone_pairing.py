@@ -196,8 +196,10 @@ class Phones:
 class PhoneLink:
     """The one-time code and its redemption."""
 
-    def __init__(self, state_dir: Path, phones: Phones, monotonic: Callable[[], float] = time.monotonic):
-        self.state_dir, self.phones = state_dir, phones
+    def __init__(self, state_dir: Path, phones: Phones, monotonic: Callable[[], float] = time.monotonic,
+                 machine_id: Callable[[], str] = lambda: ""):
+        """`machine_id`: this machine's lasting id (hub_nodes' hub_id), by which a client with several machines files it."""
+        self.state_dir, self.phones, self.machine_id = state_dir, phones, machine_id
         self.invites = hub_nodes.Invites(monotonic, secs=PHONE_INVITE_SECS)
 
     def redeem(self, body, address: str) -> tuple[int, dict | str]:
@@ -216,7 +218,8 @@ class PhoneLink:
         key = self.phones.mint(name, _clean(body.get("id"), 80), address)
         invites.paired = {"name": name, "address": address, "at": time.time()}
         logger.info(f"phone paired: {name} from {address}")
-        return 200, {"key": key, "mac": hub_nodes._here(self.state_dir)}
+        here = hub_nodes._here(self.state_dir)
+        return 200, {"key": key, "mac": here, "name": here, **({"id": got} if (got := self.machine_id()) else {})}
 
 
 def _svg(link: str) -> str:
@@ -289,7 +292,7 @@ def install(app, link: PhoneLink, page_key: str, listener,
         if not route["usable"]:
             return PlainTextResponse(route["problem"] or "that route does not reach this Mac", status_code=409)
         if not route["current"]:
-            await asyncio.to_thread(pair.setup, route["host"], route["listen"])
+            await asyncio.to_thread(pair.setup, route["host"], route["listen"], (), route["kind"])
             problem = await listener.restart()
             if problem:
                 return PlainTextResponse(problem, status_code=409)

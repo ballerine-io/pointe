@@ -152,6 +152,7 @@ class Machine:
     owner: str = ""
     grant: str = ""
     me: str = ""
+    host_id: str = ""  # a machine this voice dials: its own lasting id, the one its own status and pairings give
 
 
 MACHINES: dict[str, Machine] = {}
