@@ -472,7 +472,7 @@
   #fixkey[hidden] { display: none; }
   /* Before Pointe has answered anyone on this Mac (status.first_call): Connect, the mic, Type, Settings and Sessions only. */
   body.firstrun #listen, body.firstrun #meetbtn, body.firstrun #briefbtn, body.firstrun .micmode, body.firstrun #chlbtn,
-  body.firstrun #whisperbtn, body.firstrun #polishrow, body.firstrun #ctx, body.firstrun #modesec,
+  body.firstrun #whisperbtn, body.firstrun #quickrow, body.firstrun #ctx, body.firstrun #modesec,
   body.firstrun #m-night, body.firstrun #m-add, body.firstrun #morebtn, body.firstrun #connect-phone { display: none !important; }  /* More would hold only what is hidden */
   [data-state=connecting] .top .dot, [data-state=reconnecting] .top .dot { background: var(--orange); animation: breathe 1s infinite; }
   .state { font: 400 20px/1.2 var(--display); letter-spacing: -.015em; }
@@ -1130,9 +1130,6 @@
     #hangup { position: static; transform: none; min-width: 46px; padding: 4px 2px; }
     #hangup .ic { width: 44px; height: 44px; }
     #hangup .lb { position: static; width: auto; height: auto; overflow: visible; clip-path: none; transform: none; line-height: normal; }
-    /* Clean up my words moves to More (layoutDock): a bare switch in the top bar says nothing about what it does */
-    #more-list .toggle { flex-direction: row-reverse; justify-content: space-between; min-height: 54px; padding: 6px 10px 6px 64px; font-size: 15px; color: var(--text);
-                         white-space: normal; border-top: 1px solid var(--line); margin-top: 6px; }
     /* touch: every control is at least 44 px to the finger. A real button grows; a chip, a close button and a segment keep
        their look and take the room around them (the ::after is the finger's target, not a mark). */
     select, #pref-key, input[type=time], #ph-hostform input, #ph-hostform button { min-height: 44px; }
@@ -1775,7 +1772,7 @@
       <div id="vlproblem" role="alert"></div>
       <button id="vlignored" onclick="openIgnored()"></button>
     </div>
-    <label class="toggle" id="polishrow" title="Under each thing you say, a clean version of what the voice understood"><input type="checkbox" id="polish" onchange="setPolish(this.checked)"> Clean up my words</label>
+    <div id="quickrow" role="group" aria-label="Quick settings"></div>
     <button type="button" id="topconnect" onclick="topConnect()" hidden>Connect</button>
     <button type="button" id="morebtn" onclick="openSheet('moresheet')" title="More" aria-label="More" hidden>
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
@@ -2036,6 +2033,7 @@
     followKeys(status);
     if (window.dictionaryFollow) dictionaryFollow(status);
     if (window.whisperFollow) whisperFollow(status);
+    if (window.quickFollow) quickFollow(status);
     if (window.muteFollow) muteFollow(status);
     if (window.skipFollow) skipFollow(status);
     showHeld(status);
@@ -3591,20 +3589,12 @@
     const li = el('li'); li.append(tell); list.append(li);
     $('heldnews').replaceChildren(chip, list);
   }
-  async function setPolish(on) {
-    want('polish', s => { s.polish = on; }, (async () => {
-      const r = await fetch('/voice/polish', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
-      talkShown = ''; refresh();
-      return r.ok;
-    })());
-  }
   function showCompose(s) {
     const live = !!(s && s.connected);  // any call: the phone's too
     $('typed').disabled = $('typed-send').disabled = !live;
     const want = !meetOn ? 'Type to the voice…' : (meetingOf(s) || {}).mode === 'participating' ? 'Ask Pointe (it answers the room)…' : 'Ask Pointe (the answer is a note)…';
     const placeholder = live ? want : 'Type to the voice… (connect first)';  // a placeholder set again lays the page out
     if ($('typed').placeholder !== placeholder && (!live || !$('typed').value)) $('typed').placeholder = placeholder;
-    if (document.activeElement !== $('polish')) $('polish').checked = !!(s && s.polish);
   }
   function typeNow() {  // narrow screens keep the box folded until asked for
     $('compose').classList.remove('folded');
@@ -5535,9 +5525,9 @@
     };
     for (const id of DOCK_MORE) place(id, narrow ? $('more-list') : null);
     for (const [id, side] of DOCK_PHONE) place(id, narrow ? document.querySelector(side) : null);
-    const polish = $('polishrow');  // a bare switch in the top bar says nothing: in More it keeps its words
-    if (narrow ? polish.parentElement !== $('more-list') : polish.parentElement === $('more-list'))
-      narrow ? $('more-list').append(polish) : document.querySelector('.top').insertBefore(polish, $('topconnect'));
+    const row = $('quickrow');  // narrow: the chips go to More as one Quick settings group, with their words
+    if (narrow ? row.parentElement !== $('more-list') : row.parentElement === $('more-list'))
+      narrow ? $('more-list').append(row) : document.querySelector('.top').insertBefore(row, $('topconnect'));
     $('morebtn').hidden = !narrow;
     if (!narrow && $('moresheet').classList.contains('open')) closeSheet('moresheet');
   }
@@ -5710,5 +5700,6 @@
 {{APPROVALS}}
 {{ADDRESSED}}
 {{TONES}}
+{{QUICK}}
 </body>
 </html>

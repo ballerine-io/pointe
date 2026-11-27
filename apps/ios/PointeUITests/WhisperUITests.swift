@@ -107,6 +107,44 @@ final class WhisperUITests: XCTestCase {
     }
 }
 
+extension WhisperUITests {
+    /// Quick settings (docs/features/quick-settings.md): the sliders button in the header opens a half-height sheet with
+    /// reply length and speed, each with a line on what the level does, and the two switches; whisper is one of them.
+    /// Off its defaults, the button carries a dot. Screenshots go to WHISPER_SHOTS (quick-*.png).
+    func testQuickSettingsAreOneTapAway() throws {
+        launch("call")
+        let button = app.buttons["quickButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 15), "the Quick button is in the header")
+        XCTAssertEqual(button.value as? String, "Changed", "the call demo has Clean up my words on, as the design does: the dot")
+        shot("quick-header")
+        button.tap()
+        let length = app.segmentedControls["quickLength"]
+        XCTAssertTrue(length.waitForExistence(timeout: 5), "the sheet opens on reply length")
+        XCTAssertTrue(length.buttons["Concise"].isSelected, "Concise, the length Pointe always had")
+        length.buttons["Brief"].tap()
+        XCTAssertTrue(text("One sentence: the answer only.").waitForExistence(timeout: 3), "a line says what the level does")
+        let speed = app.segmentedControls["quickSpeed"]
+        XCTAssertTrue(speed.exists && speed.buttons.count == 5, "five speeds, 0.8× to 1.2×")
+        speed.buttons["Faster"].tap()
+        XCTAssertTrue(text("1.1× normal speed.").waitForExistence(timeout: 3))
+        let polish = app.switches["quickPolish"]
+        XCTAssertTrue(polish.exists && app.switches["quickWhisper"].exists, "Clean up my words and Whisper")
+        XCTAssertTrue(text("Or say it").exists && app.buttons["quickAllSettings"].exists)
+        shot("quick-sheet")  // the design's sheet: Brief, Faster, Clean up my words on, Whisper off
+        length.buttons["Concise"].tap()
+        speed.buttons["Normal"].tap()
+        polish.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        app.buttons["Done"].tap()
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertEqual((button.value as? String) ?? "", "", "every quick setting back at its default: no dot")
+        shot("quick-header-defaults")
+        button.tap()
+        XCTAssertTrue(app.buttons["quickAllSettings"].waitForExistence(timeout: 5))
+        app.buttons["quickAllSettings"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["microphoneSetting"].waitForExistence(timeout: 5), "All settings opens Settings")
+    }
+}
+
 /// The toggle's words (WhisperCopy in the app target, which UI tests do not import).
 enum WhisperCopyWords {
     static let showNotes = "Show notes"

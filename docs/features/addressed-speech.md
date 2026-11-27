@@ -14,7 +14,7 @@ reads the recognizer's text only: no second model, no extra wait.
 |---|---|
 | The page | the switch above the mic: Always on · Say “Pointe” · Hold to talk; or Settings → Microphone → Only when I say Pointe |
 | iPhone | the same switch above the mic; or Settings (•••) → Microphone |
-| Mac | the same switch; or Settings → Microphone |
+| Mac | the microphone chip in the title strip ([quick settings](quick-settings.md)); or Settings → Microphone |
 
 It is one setting on the Mac, so every screen agrees. While it is on and nothing else holds, the state line says
 "Say “Pointe” to talk" where it said "Listening". No phrase switches it.

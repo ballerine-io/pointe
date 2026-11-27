@@ -10,6 +10,7 @@ Keychain item named here, and reach this process only when a role in use needs t
 """
 
 import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
+import dataclasses
 import json
 import os
 import re
@@ -882,10 +883,15 @@ def _mlx_ears():
     return MLXWhisperEars(settings=STTSettings(model=LOCAL_EARS_MODEL, language=None))
 
 
-def build_mouth(choice: str, rate: int, http):
-    """A text-to-speech service in the pipeline, at the transport's output rate."""
+SPEED_VENDORS = ("elevenlabs", "soniox", "openai", LOCAL)  # a speed number; Gemini's TTS has only a style prompt
+
+
+def build_mouth(choice: str, rate: int, http, speed: float = 1.0):
+    """A text-to-speech service in the pipeline, at the transport's output rate. `speed` (quick.SPEEDS) is passed only
+    when it is not 1, so a voice at normal speed is asked exactly what it always was."""
     vendor, model, *rest = choice.split(":") + [""]
     voice = rest[0] if rest and rest[0] else None
+    pace = {"speed": speed} if speed != 1.0 and vendor in SPEED_VENDORS else {}
     if vendor != LOCAL and voice_local():
         raise SystemExit(f"CLAUDE_VOICE_MOUTH={choice}: {VOICE_LOCAL} is on, so the mouth runs only on this Mac")
     if vendor == "elevenlabs":
@@ -893,7 +899,8 @@ def build_mouth(choice: str, rate: int, http):
         from pipecat.services.elevenlabs.tts import ElevenLabsHttpTTSService
 
         return ElevenLabsHttpTTSService(api_key=key("elevenlabs"), aiohttp_session=http, sample_rate=rate,
-                                        settings=ElevenLabsHttpTTSService.Settings(voice=voice or DEFAULT_ELEVENLABS_VOICE, model=model))
+                                        settings=ElevenLabsHttpTTSService.Settings(voice=voice or DEFAULT_ELEVENLABS_VOICE, model=model,
+                                                                                   **pace))
     if vendor == "gemini":
         from pipecat.services.google.tts import GeminiTTSService
 
@@ -904,19 +911,29 @@ def build_mouth(choice: str, rate: int, http):
         from pipecat.services.openai.tts import OpenAITTSService
 
         return OpenAITTSService(api_key=key("openai"), sample_rate=rate,
-                                settings=OpenAITTSService.Settings(voice=voice or "ash", model=model))
+                                settings=OpenAITTSService.Settings(voice=voice or "ash", model=model, **pace))
     if vendor == "soniox":
         from pipecat.services.soniox.tts import SonioxTTSService
 
-        return SonioxTTSService(api_key=key("soniox"), sample_rate=rate)
+        return SonioxTTSService(api_key=key("soniox"), sample_rate=rate,
+                                **({"settings": SonioxTTSService.Settings(**pace)} if pace else {}))
     if vendor == LOCAL and model == "kokoro-mlx":
         import kokoro_mlx
 
-        return kokoro_mlx.KokoroMLXTTSService(sample_rate=rate, voice=voice or kokoro_mlx.DEFAULT_VOICE)
+        return kokoro_mlx.KokoroMLXTTSService(sample_rate=rate, voice=voice or kokoro_mlx.DEFAULT_VOICE, speed=speed)
     if vendor == LOCAL:
         from pipecat.services.kokoro.tts import KokoroTTSService
 
         model_file, voices_file = assets.ensure_kokoro()  # verified by hash first: Pipecat's own download has none
         return KokoroTTSService(sample_rate=rate, model_path=str(model_file), voices_path=str(voices_file),
-                                settings=KokoroTTSService.Settings(voice=voice or "af_heart"))
+                                settings=KokoroTTSService.Settings(voice=voice or "af_heart", **pace))
     raise SystemExit(f"CLAUDE_VOICE_MOUTH: unknown vendor {vendor}")
+
+
+def speed_delta(mouth, speed: float):
+    """The settings change that sets a running mouth's speed, for a TTSUpdateSettingsFrame; None for a voice with no
+    speed number."""
+    settings = getattr(mouth, "_settings", None)
+    if settings is None or "speed" not in {f.name for f in dataclasses.fields(settings)}:
+        return None
+    return type(settings)(speed=speed)

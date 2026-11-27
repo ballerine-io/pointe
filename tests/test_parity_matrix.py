@@ -119,14 +119,14 @@ def test_removing_a_control_from_one_surface_fails_the_scan(tmp_path):
     """The scan is the guard: with the page's Clean up my words control gone, and with the Mac compiled without the
     dictionary, those two cells are no longer yes."""
     (tmp_path / "pointe").mkdir()
-    for name in ("ui.html", "ui_dictionary.html", "ui_whisper.html", "product_help.json"):
+    for name in ("ui.html", "ui_dictionary.html", "ui_whisper.html", "ui_quick.html", "product_help.json"):
         shutil.copy(ROOT / "pointe" / name, tmp_path / "pointe" / name)
     for folder in ("apps/ios/Pointe", "apps/ios/Pointe.xcodeproj", "apps/macos/PointeMac", "apps/macos/PointeMac.xcodeproj", "apps/PointeKit/Sources"):
         shutil.copytree(ROOT / folder, tmp_path / folder)
     shutil.copy(ROOT / "apps/PointeKit/Package.swift", tmp_path / "apps/PointeKit/Package.swift")
     assert parity.scan(tmp_path)["call.polish"]["web"].state == "yes"
-    page = tmp_path / "pointe" / "ui.html"
-    page.write_text(page.read_text().replace('id="polish"', 'id="gone"'))
+    page = tmp_path / "pointe" / "ui_quick.html"
+    page.write_text(page.read_text().replace("toggle('qs-polish'", "toggle('qs-gone'"))
     assert parity.scan(tmp_path)["call.polish"]["web"].state == "partial"
 
     row = parity.scan(tmp_path)["dictionary.sheet"]

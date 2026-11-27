@@ -74,6 +74,8 @@ struct CallView: View {
     @State private var showPhone = false
     @State private var wide = false  // a Mac window wide enough for the sessions column
     @State private var showCallSettings = false
+    @State private var showQuick = false  // the iPhone's Quick settings sheet (QuickSettings.swift)
+    @State private var settingsAfterQuick = false  // its "All settings" opens Settings once it has closed
     @State private var settingsNext: CallSettingsLink?  // a row's own sheet, opened once Settings has closed
     @State private var stageHeight: CGFloat = 0
     @State private var topHeight: CGFloat = 0
@@ -124,6 +126,7 @@ struct CallView: View {
         case "sessions": _showSessions = State(initialValue: true)
         case "about": _showAbout = State(initialValue: true)
         case "settings": _showCallSettings = State(initialValue: true)
+        case "quick": _showQuick = State(initialValue: true)
         default: break
         }
         #endif
@@ -172,6 +175,14 @@ struct CallView: View {
     var body: some View {
         framed
             .sheet(isPresented: $showCallSettings, onDismiss: openSettingsNext) { callSettingsSheet }
+            #if os(iOS)
+            .sheet(isPresented: $showQuick, onDismiss: {
+                if settingsAfterQuick { settingsAfterQuick = false; showCallSettings = true }
+            }) {
+                QuickSheet(model: quickModel, set: setQuick, allSettings: { settingsAfterQuick = true })
+                    .sheetSurface()
+            }
+            #endif
             .task { await growDemoTalk() }
             .sheet(isPresented: $showNewSession) {  // straight to the sheet, for a menu or a key (the Mac's New Session)
                 NewSessionSheet(actions: starter, machine: demo?.screen == .peopleStart ? "avi-box" : nil).sheetSurface()
@@ -535,6 +546,9 @@ struct CallView: View {
                     .accessibilityValue(driving ? "On" : "Off")
                 }
                 #endif
+                #if os(iOS)  // first, as in the design; the Mac shows them as chips in its title strip
+                QuickButton(offDefault: QuickRule.offDefault(quickModel)) { showQuick = true }
+                #endif
                 Button { openMeetingStart() } label: {
                     Image(systemName: "person.3.fill").font(.brand(.subheadline, .semibold))
                         .frame(width: 36, height: 36).background(Brand.raised, in: Circle())
@@ -760,9 +774,11 @@ struct CallView: View {
                 TypeBar(send: say) { withAnimation(.snappy) { typing = false } }
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
+            #if os(iOS)  // the Mac's microphone is a chip in its title strip (QuickRow)
             if !typing && !driving {
                 MicModeSwitch(mode: call.talk.mode, style: call.talkStyle, set: setMicrophone)
             }
+            #endif
             BottomBar(phase: phase, muted: muted, dump: dumping && dump == nil ? API.BrainDump(id: "want", state: "dumping", since: nil, thoughts: []) : dump,
                       typing: typing, mic: micTapped, listen: dumpButton, type: { withAnimation(.snappy) { typing.toggle() } },
                       sessions: { showSessions = true }, hangUp: { call.hangUp() }, talk: ringTalk,
@@ -1696,6 +1712,19 @@ struct CallView: View {
     private func setPolish(_ on: Bool) async {
         if demo != nil { status?.polish = on; return }
         await act { try await call.api.polish(on) }
+    }
+
+    private var quickModel: QuickModel { QuickModel(status: status, microphone: call.talk.mode) }
+
+    /// A quick setting from the iPhone's sheet: the demo changes its own copy; otherwise the Mac keeps it.
+    private func setQuick(_ change: QuickChange) {
+        if case .microphone(let mode) = change { setMicrophone(mode); return }
+        change.apply(to: &status)
+        guard demo == nil else { return }
+        Task {
+            if !(await savePrefs(change.prefs)) { problem = "The Mac did not take the setting. Is Pointe on the Mac up to date?" }
+            await refreshStatus()
+        }
     }
 
     /// Whisper mode is the Mac's setting, shared with the page; the demo flips its own copy.

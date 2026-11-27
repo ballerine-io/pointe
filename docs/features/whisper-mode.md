@@ -10,10 +10,12 @@ The rules live in `pointe/whisper.py` (phrases, gains, the voice-detector profil
 - **Voice:** "whisper mode", "let's whisper", "מצב לחישה" turn it on. "Back to normal", "normal voice", "stop
   whispering", "חזרה לרגיל" turn it off, only while it is on. A bare "normal" is not a phrase. The voice model never gets
   these words.
-- **Page:** a Whisper button in the dock. A card shows what the mode does, "Whisper recognition is limited; type when it
+- **Page:** a Whisper button in the dock, and the Whisper chip in the top bar ([quick settings](quick-settings.md)). A card shows what the mode does, "Whisper recognition is limited; type when it
   matters.", a push-to-talk suggestion, and Back to normal. The compose box opens and takes focus.
-- **iPhone app:** a Whisper toggle in the Settings (⋯) menu, the same card and copy, and the keyboard up.
-- **Mac app:** the iPhone app's screens: Settings (••• at the top, or ⌘,) → Whisper, and the same card.
+- **iPhone app:** a Whisper switch in Quick settings (the sliders button at the top) and in the Settings (⋯) menu, the
+  same card and copy, and the keyboard up.
+- **Mac app:** the Whisper chip in the title strip, Voice → Whisper, or Settings (••• at the top, or ⌘,) → Whisper, and
+  the same card.
 
 It is one setting for both clients, kept across calls and reconnects, so a dropped call does not come back loud in an
 open office.

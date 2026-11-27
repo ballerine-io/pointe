@@ -256,6 +256,40 @@ public final class MacSession: CallShell {
         request = ShellRequest(id: requests, command: wanted)
     }
 
+    // MARK: quick settings (QuickSettings.swift)
+
+    /// What the title strip's row shows.
+    var quick: QuickModel { QuickModel(status: status, microphone: call.talk.mode) }
+
+    /// A chip, or the Voice menu: the row moves at once, and the daemon keeps it. A demo changes its own copy only.
+    public func setQuick(_ change: QuickChange) {
+        if case .microphone(let mode) = change {
+            let before = call.talk.mode
+            call.setMicrophone(mode)
+            guard demo == nil else { return }
+            let call = call
+            Task {
+                do { try await call.api.setPrefs(change.prefs) } catch { call.setMicrophone(before) }  // the Mac's gate is the rule
+            }
+            return
+        }
+        change.apply(to: &status)
+        guard demo == nil else { return }
+        let api = call.api
+        Task { [weak self] in
+            try? await api.setPrefs(change.prefs)
+            await self?.refresh()
+        }
+    }
+
+    /// The Voice menu's state: reply length, this Mac's speed, and whether the voice takes a speed at all.
+    public var quickLength: String { quick.length }
+    public var quickSpeed: Double { quick.speed }
+    public var quickAvailable: Bool { quick.available }
+    public var quickSpeedShown: Bool { quick.speedShown }
+    public var quickPolish: Bool { quick.polish }
+    public var quickWhisper: Bool? { quick.whisper }
+
     // MARK: the demo
 
     /// "Try a demo", from the setup panel: invented sessions, with a request waiting. Nothing is fetched or sent.

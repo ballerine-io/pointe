@@ -89,29 +89,87 @@ def asks(text: str) -> bool:
     return bool(re.search(r"[?？][\"'”’)\s]*$", text or ""))
 
 
-def limit_for(trigger: str | None, asked: str, status: bool = False, drive_words: int | None = None) -> Limit | None:
+# ---------- the reply-length setting (quick.py: "replies.length") ----------
+
+
+@dataclass(frozen=True)
+class Lengths:
+    """One level of the reply-length setting: the limit of each kind of turn, and what the brain is told."""
+    reply: Limit
+    report: Limit
+    status: Limit
+    overview: Limit
+    detail: Limit  # "tell me more": one answer, longer
+    rule: str
+
+
+# Concise is the length Pointe always had: its limits are the constants above, and the brain is told nothing new.
+LENGTHS = {
+    "brief": Lengths(Limit(12, 1, 2), Limit(20, 2, 2), Limit(30, 2, 2), Limit(40, 5, 2), Limit(60, 4, None),
+                     "One short sentence: the answer and nothing else. A reason or caveat only if it reverses the answer."),
+    "concise": Lengths(REPLY, REPORT, STATUS, OVERVIEW, DETAIL,
+                       "One or two short sentences, answering only what was asked."),
+    "detailed": Lengths(Limit(60, 4), Limit(70, 4), Limit(90, 5), Limit(90, 6), Limit(160, 10, None),
+                        "The answer first, then why, then the one caveat that changes what it means, then the next step "
+                        "if there is one."),
+    "thorough": Lengths(Limit(120, 8, 5), Limit(100, 6, 5), Limit(120, 6, 5), Limit(120, 8, 5), Limit(200, 12, None),
+                        "The answer first, then what happened and why, how it was done, and what to watch. Still spoken."),
+}
+MODE_SENTENCES, MODE_ITEMS = 2, 3  # drive and whisper mode: at most this, whatever the level
+
+
+def length_rule(level: str) -> str | None:
+    """The brain's line for a level other than Concise; None for Concise, whose rule is the prompt's own."""
+    lengths = LENGTHS.get(level)
+    if lengths is None or lengths is LENGTHS["concise"]:
+        return None
+    return (f"[reply length: {level}] The user set replies to {level.capitalize()}. {lengths.rule} At most "
+            f"{lengths.reply.words} words and {lengths.reply.sentences} sentences; a session's report at most "
+            f"{lengths.report.words} words; a status at most {lengths.status.words}. This replaces the length rule above. "
+            "It is still heard, not read: the answer first, one idea per sentence, no paths, no closing offer. Only when "
+            f"they ask for more for one answer (\"tell me more\") may it reach {lengths.detail.words} words.")
+
+
+def _at_least(a: Limit, b: Limit) -> Limit:
+    """`a`, widened to `b` where `b` is longer: a comparison or an urgent report never gets less room than a reply."""
+    items = None if a.items is None or b.items is None else max(a.items, b.items)
+    wider = Limit(words=max(a.words, b.words), sentences=max(a.sentences, b.sentences), items=items)
+    return a if wider == a else wider
+
+
+def limit_for(trigger: str | None, asked: str, status: bool = False, drive_words: int | None = None,
+              level: str = "concise", whisper_words: int | None = None) -> Limit | None:
     """The limit for the turn that `trigger` started (the user's words, or a bracketed item from the daemon), given the
-    user's latest own words. None: said as it is."""
+    user's latest own words and the reply-length level. Drive and whisper mode always win: the limit is the smaller of
+    the level's and the mode's. None: said as it is."""
     trigger = (trigger or "").lstrip()
     if trigger.startswith(_AT_LENGTH):
         return None
-    if drive_words is not None:
-        return Limit(words=drive_words, sentences=2)
+    limit = _level_limit(trigger, asked, status, LENGTHS.get(level, LENGTHS["concise"]))
+    caps = [w for w in (drive_words, whisper_words) if w is not None]
+    if not caps:
+        return limit
+    return Limit(words=min(min(caps), limit.words), sentences=min(MODE_SENTENCES, limit.sentences),
+                 items=MODE_ITEMS if limit.items is None else min(MODE_ITEMS, limit.items))
+
+
+def _level_limit(trigger: str, asked: str, status: bool, lengths: Lengths) -> Limit:
     if trigger.startswith("[overview:"):
-        return OVERVIEW  # every session's own answer, a sentence each (daemon._overview)
+        return lengths.overview  # every session's own answer, a sentence each (daemon._overview)
     if BATCH_HEAD.match(trigger):
         return BATCH
     if trigger.startswith("["):
         if is_update(trigger):
             if awaited(trigger):  # the answer to what the user asked: a reply's length, or detail when they asked for it
-                return DETAIL if wants_detail(asked) else REPLY
-            return URGENT_REPORT if "and this is urgent]" in trigger or said_alone(trigger) else REPORT
-        return STATUS if trigger.startswith("[voice connected]") else REPLY
+                return lengths.detail if wants_detail(asked) else lengths.reply
+            urgent = "and this is urgent]" in trigger or said_alone(trigger)
+            return _at_least(URGENT_REPORT, lengths.report) if urgent else lengths.report
+        return lengths.status if trigger.startswith("[voice connected]") else lengths.reply
     if wants_detail(asked):
-        return DETAIL
+        return lengths.detail
     if _COMPARE.search(asked or ""):
-        return COMPARE
-    return STATUS if status else REPLY
+        return _at_least(COMPARE, lengths.reply)
+    return lengths.status if status else lengths.reply
 
 
 _ORDINALS = (r"(?:one|two|three|four|five|six|seven|eight|nine|ten|first|second|third|fourth|fifth|sixth|seventh|eighth|"

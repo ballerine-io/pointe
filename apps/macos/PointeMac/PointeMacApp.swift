@@ -71,6 +71,38 @@ struct PointeCommands: Commands {
             Button(MacMenu.title(MacCopy.openPage)) { model.openPage() }.keyboardShortcut("p", modifiers: [.command, .shift])
                 .disabled(model.daemon != .running)
         }
+        // Quick settings (QuickSettings.swift), the chips of the title strip with keys: ⌘1–⌘4 reply length, ⌥⌘1–⌥⌘5 this
+        // Mac's speaking speed, ⇧⌘K clean up my words. None of these keys was taken.
+        CommandMenu(MacMenu.voice) {
+            let session = model.session
+            let quick = model.ready && session.quickAvailable
+            Section(QuickMenu.length) {
+                ForEach(Array(QuickMenu.levels.enumerated()), id: \.offset) { index, level in
+                    Toggle(level.name, isOn: Binding(get: { session.quickLength == level.value },
+                                                     set: { if $0 { session.setQuick(.length(level.value)) } }))
+                        .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
+                }
+            }
+            .disabled(!quick)
+            if session.quickSpeedShown {
+                Section(QuickMenu.speed) {
+                    ForEach(Array(QuickMenu.speeds.enumerated()), id: \.offset) { index, speed in
+                        Toggle(speed.name, isOn: Binding(get: { abs(session.quickSpeed - speed.value) < 0.01 },
+                                                         set: { if $0 { session.setQuick(.speed(speed.value)) } }))
+                            .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [.command, .option])
+                    }
+                }
+                .disabled(!quick)
+            }
+            Divider()
+            Toggle(MacMenu.title(QuickMenu.polish), isOn: Binding(get: { session.quickPolish }, set: { session.setQuick(.polish($0)) }))
+                .keyboardShortcut("k", modifiers: [.command, .shift])
+                .disabled(!model.ready)
+            if let whisper = session.quickWhisper {
+                Toggle(QuickMenu.whisper, isOn: Binding(get: { whisper }, set: { session.setQuick(.whisper($0)) }))
+                    .disabled(!model.ready)
+            }
+        }
         CommandGroup(replacing: .help) {  // macOS's own item looked for a help book the app does not have
             Button(MacMenu.help) { NSWorkspace.shared.open(MacMenu.helpURL) }.keyboardShortcut("?")
         }
@@ -94,6 +126,7 @@ enum MacMenu {
     static let mute = "Turn Mic Off"
     static let unmute = "Turn Mic On"
     static let help = "Pointe Help"
+    static let voice = "Voice"
     /// `pointe uninstall`, from the app menu: its list first, one question, keys only on their own box.
     static let uninstall = "Uninstall Pointe…"
     /// Help → Pointe Help (⌘?): the Mac app's guide. Without it macOS said "Help isn't available for Pointe."

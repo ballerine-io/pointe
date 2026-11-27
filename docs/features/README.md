@@ -33,6 +33,7 @@ from any voice denies a pending request, in every mode.
 | [Add sessions](add-sessions.md) | "Connect to the session about the pentest", "reopen yesterday's session about billing": found, read back, joined on your yes; no typing in the session |
 | [Night shift](night-shift.md) | "Tonight: billing fixes the retry tests": the sessions work while you sleep, nothing is approved for you, and the morning briefing leads with it |
 | [Clean up my words](clean-up-my-words.md) | Under each thing you say, a clean version of what the voice understood |
+| [Quick settings](quick-settings.md) | Reply length, speaking speed, Clean up my words and Whisper, one tap away and by voice; speed is each device's own |
 | [Voice stays on your Mac](voice-stays-local.md) | Ears and mouth on your Mac, no audio to any vendor; the cloud brain gets text only |
 | [Fully local](local.md) | Every model on your Mac, no keys, nothing sent out; slower and less accurate, by measure |
 | [OpenAI models from another host](openai-url.md) | Azure OpenAI or another OpenAI-compatible host for the text models, with the key in the Keychain; not measured |
@@ -44,13 +45,13 @@ Where each one works, and how to reach it:
 | [Voice lock](voice-lock.md#use-it) | no phrase; enrolment listens to you read lines on the call | Settings → Voice lock | Settings → Voice lock | Settings → Voice lock |
 | [Self-learning vocabulary](vocabulary.md#use-it) | no: a fix is typed | click a line you said; Settings → Dictionary | tap a line you said; Settings → Dictionary | click a line you said; Settings → Dictionary |
 | [Drive & walk mode](drive-mode.md#use-it) | "drive mode", "I've stopped" | no Drive button (for a phone in a car); shows it, "I've stopped" | Drive (the car) at the top | no Drive button, as on the page; shows it, "I've stopped" |
-| [Push to talk](push-to-talk.md#use-it) | no: a setting | the switch above the mic; Space | the switch above the mic; Talk to Pointe: the Action button, a Control, a widget | the switch above the mic; the talk shortcut |
+| [Push to talk](push-to-talk.md#use-it) | no: a setting | the switch above the mic; Space | the switch above the mic; Talk to Pointe: the Action button, a Control, a widget | the microphone chip at the top; the talk shortcut |
 | [Audio briefings](briefings.md#use-it) | "brief me on the night" | Briefing in the dock | Settings → Briefing | Settings → Briefing; Call → Briefing |
 | [Brain dump](brain-dump.md#use-it) | "brain dump", then "done" | Brain dump in the dock | Brain dump in the bottom bar | Brain dump in the bottom bar; Call → Brain Dump |
 | [Challenge me](challenge.md#use-it) | "challenge me", then "verdict" | Challenge in the dock | Settings → Challenge | Settings → Challenge |
 | [Wrist approvals and desktop alerts](alerts.md#use-it) | no: a setting | Settings → Alerts | Settings → Alerts | Settings → Alerts |
 | [Show while it says](show-while-it-says.md#use-it) | nothing to say: it follows the voice | the Showing pane, always on | the Showing card, after Settings → Show while it says | the Showing card, always on |
-| [Whisper mode](whisper-mode.md#use-it) | "whisper mode", "back to normal" | Whisper in the dock | Settings → Whisper | Settings → Whisper |
+| [Whisper mode](whisper-mode.md#use-it) | "whisper mode", "back to normal" | Whisper in the dock or the top bar | Quick settings; Settings → Whisper | the Whisper chip at the top; Settings → Whisper |
 | [Mute](mute.md#use-it) | "stop talking, I'll read", "talk again" | the speaker button beside the status line | the speaker button beside the status line | the speaker button beside the status line |
 | [Skip](skip.md#use-it) | "skip", "next" | the skip button beside the status line, while Pointe speaks | the same button | the same button, and ⌃⌥S from any app |
 | [Thinking and the waiting sound](thinking.md#turn-it-off) | nothing to say: it follows the call | the status line; Settings → Turn taking → Waiting sound | the status line; Settings → Waiting sound | the status line, the bubble and the menu bar; Settings → Waiting sound |
@@ -63,7 +64,8 @@ Where each one works, and how to reach it:
 | [Start a new session](new-session.md#use-it) | "start a new Codex session in shop" | New session under the sessions | Sessions → New session | New session under the sessions; File → New Session |
 | [Add sessions](add-sessions.md#use-it) | "connect to the session about the pentest" | Add sessions under the sessions | Sessions → Add sessions | Add sessions under the sessions; File → Add Sessions |
 | [Night shift](night-shift.md#use-it) | "tonight: billing fixes the retry tests" | Night shift under the sessions | Settings → Night shift | Settings → Night shift; Call → Night Shift |
-| [Clean up my words](clean-up-my-words.md#use-it) | no: a switch | Clean up my words at the top | Settings → Clean up my words | Settings → Clean up my words |
+| [Clean up my words](clean-up-my-words.md#use-it) | "clean up my words", "stop cleaning my words" | Clean words at the top | Quick settings; Settings → Clean up my words | the Clean words chip at the top (⇧⌘K); Settings → Clean up my words |
+| [Quick settings](quick-settings.md#use-it) | "be more concise", "more detail from now on", "speak faster", "slow down" | the chips at the top (under More when narrow) | the sliders button at the top | the chips in the title strip; the Voice menu |
 | [Voice stays on your Mac](voice-stays-local.md#use-it) | no | Settings → Model keys → Use this setup, on the Mac | no: chosen on the Mac; Settings shows it | Settings → Model keys → Setup |
 | [Fully local](local.md#use-it) | no | Settings → Model keys → Use this setup, on the Mac | no: chosen on the Mac; Settings shows it | Settings → Model keys → Setup |
 | [OpenAI models from another host](openai-url.md#turn-it-on) | no | no: set in `config.json` | no | no |

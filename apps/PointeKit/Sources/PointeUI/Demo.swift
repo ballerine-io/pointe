@@ -56,6 +56,7 @@ struct Demo {
         let json = english ? inEnglish(source(screen)) : source(screen)
         guard var status = try? JSONDecoder().decode(API.Status.self, from: Data(json.utf8)) else { return nil }
         if status.reading == nil { status.reading = API.ReadingStatus(on: false) }  // every screen: a Mac with the mute button
+        if status.quick == nil { status.quick = .demo }  // and with quick settings
         let notes = (try? JSONDecoder().decode([API.Note].self, from: Data(notesJSON.utf8))) ?? []
         return Demo(screen: screen, status: status, notes: [.meeting, .meetingHand, .meetingEnd].contains(screen) ? notes : [])
     }

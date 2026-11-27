@@ -930,15 +930,93 @@
     "polish",
     "לנקות את המילים"
    ],
-   "how": "Clean up my words shows, under each thing you say, a clean version of what the voice understood.",
+   "how": "Clean up my words shows, under each thing you say, a clean version of what the voice understood. It is saved, so it stays on across calls and restarts.",
+   "about": "Under each thing you say, a clean version of what the voice understood",
    "iphone": [
+    "Quick settings button at the top",
     "Settings (••• at the top) → Clean up my words"
    ],
    "page": [
-    "Clean up my words at the top"
+    "Quick settings at the top"
    ],
+   "page_note": "It is the Clean words switch in that row; on a narrow screen the row is under More.",
    "mac": [
     "Settings (••• at the top, or ⌘,) → Clean up my words"
+   ],
+   "mac_note": "Or the Clean words chip at the top of the window, or Voice → Clean Up My Words (⇧⌘K).",
+   "voice": [
+    "clean up my words",
+    "stop cleaning my words"
+   ]
+  },
+  {
+   "id": "reply-length",
+   "title": "Reply length",
+   "ask": [
+    "reply length",
+    "answer length",
+    "shorter answers",
+    "longer answers",
+    "shorter replies",
+    "more detail",
+    "less detail",
+    "be more concise",
+    "verbosity",
+    "verbose",
+    "too long",
+    "too short",
+    "תשובות קצרות",
+    "תשובות ארוכות",
+    "אורך תשובה",
+    "יותר תמציתי",
+    "יותר מפורט"
+   ],
+   "how": "Reply length sets how long every answer is: Brief, Concise (the default), Detailed or Thorough. \"Tell me more\" still makes one answer longer, and drive and whisper mode stay short whatever you choose.",
+   "about": "Reply length, speaking speed, Clean up my words and Whisper, one tap away and by voice; speed is each device's own",
+   "iphone": [
+    "Quick settings button at the top"
+   ],
+   "page": [
+    "Quick settings at the top"
+   ],
+   "mac_note": "The reply length chip at the top of the window, or Voice → Brief to Thorough (⌘1 to ⌘4).",
+   "voice": [
+    "be more concise",
+    "more detail from now on",
+    "brief answers",
+    "תהיה יותר תמציתי"
+   ]
+  },
+  {
+   "id": "speaking-speed",
+   "title": "Speaking speed",
+   "ask": [
+    "speaking speed",
+    "speak faster",
+    "talk faster",
+    "speak slower",
+    "slow down",
+    "voice speed",
+    "speed of the voice",
+    "too fast",
+    "too slow",
+    "תדבר מהר יותר",
+    "תדבר לאט יותר",
+    "מהירות דיבור"
+   ],
+   "how": "Speaking speed is 0.8× to 1.2×, and each device keeps its own: the iPhone, the Mac and the page. A voice that takes no speed number (Gemini) has no speed control.",
+   "about": "Reply length, speaking speed, Clean up my words and Whisper, one tap away and by voice; speed is each device's own",
+   "iphone": [
+    "Quick settings button at the top"
+   ],
+   "page": [
+    "Quick settings at the top"
+   ],
+   "mac_note": "The speed chip at the top of the window, or Voice → Slowest to Fastest (⌥⌘1 to ⌥⌘5).",
+   "voice": [
+    "speak faster",
+    "slow down",
+    "normal speed"
    ]
   },
   {
@@ -1774,6 +1852,7 @@
    "header": [
     "Drive",
     "Start a meeting",
+    "Quick settings",
     "Connect"
    ],
    "status": [
@@ -1940,7 +2019,7 @@
     "Settings"
    ],
    "top": [
-    "Clean up my words",
+    "Quick settings",
     "Connect",
     "More"
    ],

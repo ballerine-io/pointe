@@ -46,25 +46,16 @@ struct MainWindow: View {
         }
         .overlay(alignment: .topTrailing) {  // in the title bar's row, beside nothing: a row of its own floated over the header
             if model.ready {
-                HStack(spacing: 14) {
-                    if let airPods = model.session.airPodsHint {  // during a call: what a stem press does now
-                        Label(airPods, systemImage: AirPodsPress.glyph)
-                            .help("During a call an AirPods press turns the mic off and on, with the system's chime; in push to talk it talks. Play/pause from other headsets and the keyboard does what Settings, This Mac, says.")
-                            .accessibilityIdentifier("airPodsHint")
-                    }
-                    if let skip = model.skipHint {  // beside the talk mode, said the same way
-                        Label(skip, systemImage: BubbleRule.skipGlyph)
-                            .help("The skip shortcut skips what Pointe is saying, from any app. Set it in Settings, This Mac.")
-                            .accessibilityIdentifier("skipShortcut")
-                    }
-                    Label(model.talkMode, systemImage: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk))
-                        .help(model.session.pushToTalk ? "Push to talk: the shortcut talks from any app. Set it in Settings, This Mac."
-                              : model.session.addressed ? AddressedCopy.hint : "Always on: Pointe hears you while the call is up.")
-                        .accessibilityIdentifier("talkMode")
+                // The widest that fits beside the window buttons (QuickRow.Fit): a narrow window drops words, never a chip.
+                ViewThatFits(in: .horizontal) {
+                    strip(.full)
+                    strip(.compact)
+                    strip(.tight)
                 }
                 .font(PointeLook.font(.footnote)).foregroundStyle(PointeLook.muted)
                 .frame(height: 28)
-                .padding(.horizontal, 14)
+                .padding(.leading, 84)  // the close, minimise and zoom buttons
+                .padding(.trailing, 14)
                 .ignoresSafeArea(edges: .top)
             }
         }
@@ -73,6 +64,42 @@ struct MainWindow: View {
     }
 }
 
+extension MainWindow {
+    /// The title strip: what an AirPods press does, the skip shortcut, then the quick settings row (QuickSettings.swift).
+    @ViewBuilder func strip(_ fit: QuickRow.Fit) -> some View {
+        HStack(spacing: fit == .tight ? 8 : 14) {
+            if let airPods = model.session.airPodsHint {  // during a call: what a stem press does now
+                Label(airPods, systemImage: AirPodsPress.glyph)
+                    .labelStyle(StripLabelStyle(iconOnly: fit != .full))
+                    .help("During a call an AirPods press turns the mic off and on, with the system's chime; in push to talk it talks. Play/pause from other headsets and the keyboard does what Settings, This Mac, says.")
+                    .accessibilityLabel(airPods)
+                    .accessibilityIdentifier("airPodsHint")
+            }
+            if let skip = model.skipHint {  // beside the microphone chip, said the same way
+                Label(skip, systemImage: BubbleRule.skipGlyph)
+                    .labelStyle(StripLabelStyle(iconOnly: fit == .tight))
+                    .help("The skip shortcut skips what Pointe is saying, from any app. Set it in Settings, This Mac.")
+                    .accessibilityLabel(skip)
+                    .accessibilityIdentifier("skipShortcut")
+            }
+            // The microphone first, where the talk mode was said, then reply length, speed, clean words and whisper.
+            // The switch above the mic is gone on the Mac.
+            QuickRow(session: model.session, micLabel: model.talkMode,
+                     micGlyph: BubbleRule.talkModeGlyph(pushToTalk: model.session.pushToTalk), fit: fit)
+        }
+    }
+}
+
+/// A title-strip label with its words, or its icon alone in a narrow window (its words stay its accessibility label).
+private struct StripLabelStyle: LabelStyle {
+    let iconOnly: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if iconOnly { configuration.icon } else { HStack(spacing: 4) { configuration.icon; configuration.title } }
+    }
+}
+
+// MARK: setup
 // MARK: setup
 
 /// Pointe on this Mac is not ready: each step with its state, and the one thing to do about it.

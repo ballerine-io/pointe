@@ -9,10 +9,10 @@ without a reason. What the rows mean, how the scan works and the component spec:
 
 | Surface | yes | partial | no | n/a (bound to another surface) |
 |---|---|---|---|---|
-| Page | 121 | 0 | 0 | 23 |
-| iPhone | 131 | 0 | 0 | 13 |
-| Mac | 135 | 0 | 0 | 9 |
-| Linux hub | 121 | 0 | 0 | 23 |
+| Page | 126 | 0 | 0 | 25 |
+| iPhone | 135 | 0 | 0 | 16 |
+| Mac | 141 | 0 | 0 | 10 |
+| Linux hub | 126 | 0 | 0 | 25 |
 
 Before this work (a pre-release build (2026-11-21)), by the same scan:
 
@@ -27,88 +27,100 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Connect, Try again, Cancel and Hang up, with the reason a call did not start <br>`call.connect` | yes `ui.html:1802` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes (the page) |
-| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2953` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:108` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:108` | yes (the page) |
-| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2925` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:151` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:151` | yes (the page) |
-| The state line: listening, speaking, muted, holding, reconnecting <br>`call.state` | yes `ui.html:1767` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2006` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2006` | yes (the page) |
-| Mute and unmute the microphone <br>`call.mute` | yes `ui.html:1892` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:171` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:171` | yes (the page) |
+| Connect, Try again, Cancel and Hang up, with the reason a call did not start <br>`call.connect` | yes `ui.html:1799` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes `apps/PointeKit/Sources/PointeUI/Connect.swift:138` | yes (the page) |
+| A dropped call is redialled; a refused or idle-ended one is not, and says why <br>`call.redial` | yes `ui.html:2951` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:108` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:108` | yes (the page) |
+| A dropped link comes back on the same call: its token in the hello, the copy while it does <br>`call.resume` | yes `ui.html:2923` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:151` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:151` | yes (the page) |
+| The state line: listening, speaking, muted, holding, reconnecting <br>`call.state` | yes `ui.html:1764` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2035` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2035` | yes (the page) |
+| Mute and unmute the microphone <br>`call.mute` | yes `ui.html:1889` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:171` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:171` | yes (the page) |
 | An AirPods press talks or mutes <br>`ios.airpods` | n/a | yes `apps/PointeKit/Sources/PointeUI/AirPods.swift:11` | yes `apps/PointeKit/Sources/PointeUI/AirPods.swift:9` | n/a |
-| The conversation, newest line followed <br>`call.transcript` | yes `ui.html:1220` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:466` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:466` | yes (the page) |
-| A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1809` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:489` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:489` | yes (the page) |
-| Your words as you speak them <br>`call.hearing` | yes `ui.html:1869` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes (the page) |
-| Type instead of talking <br>`call.type` | yes `ui.html:1870` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:246` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:246` | yes (the page) |
-| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3567` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:275` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:251` | yes (the page) |
-| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3526` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes (the page) |
-| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3517` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes (the page) |
-| Clean up my words <br>`call.polish` | yes `ui.html:1778` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:181` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:181` | yes (the page) |
-| The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1773` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:168` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:168` | yes (the page) |
-| Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1263` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes (the page) |
-| How full the voice model's context is <br>`call.context` | yes `ui.html:1235` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:513` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:513` | yes (the page) |
-| Recent requests and where each went <br>`call.recent` | yes `ui.html:1230` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:377` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:377` | yes (the page) |
-| A line while the Mac keeps itself awake for a call from another device <br>`call.keep-awake` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:572` | n/a | n/a |
+| The conversation, newest line followed <br>`call.transcript` | yes `ui.html:1217` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:477` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:477` | yes (the page) |
+| A New pill when lines arrive while you read further up <br>`call.new-pill` | yes `ui.html:1806` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:500` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:500` | yes (the page) |
+| Your words as you speak them <br>`call.hearing` | yes `ui.html:1866` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:153` | yes (the page) |
+| Type instead of talking <br>`call.type` | yes `ui.html:1867` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:246` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:246` | yes (the page) |
+| A new line in a typed message: Enter sends; Shift+Enter, Option+Enter, or New line on the iPhone <br>`call.newline` | yes `ui.html:3565` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:275` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:251` | yes (the page) |
+| A typed line shows at once, Sending then Sent; one the Mac did not take can be sent again <br>`call.type-sending` | yes `ui.html:3524` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Outbox.swift:71` | yes (the page) |
+| Fix what was heard in a line of yours <br>`call.correct` | yes `ui.html:3515` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:217` | yes (the page) |
+| Clean up my words <br>`call.polish` | yes `ui_quick.html:115` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:181` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:181` | yes (the page) |
+| The daemon's last problem (a refused key, a vendor down) on screen <br>`call.problem` | yes `ui.html:1770` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:168` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:168` | yes (the page) |
+| Hebrew lines read right to left <br>`call.rtl` | yes `ui.html:1260` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes `apps/PointeKit/Sources/PointeUI/TextDirection.swift:6` | yes (the page) |
+| How full the voice model's context is <br>`call.context` | yes `ui.html:1232` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:513` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:513` | yes (the page) |
+| Recent requests and where each went <br>`call.recent` | yes `ui.html:1227` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:377` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:377` | yes (the page) |
+| A line while the Mac keeps itself awake for a call from another device <br>`call.keep-awake` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:586` | n/a | n/a |
 
 ## Push to talk and turn taking
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1562` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:118` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:118` | yes (the page) |
-| The Always on / Push to talk switch over the mic <br>`talk.switch` | yes `ui.html:1889` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:128` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:128` | yes (the page) |
-| Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1564` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes (the page) |
-| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1796` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:205` | yes `apps/macos/PointeMac/AppModel.swift:505` | yes (the page) |
-| A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1869` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:452` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:452` | yes (the page) |
-| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:5367` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes (the page) |
-| Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1565` | yes `apps/ios/PointeShared/TalkIntents.swift:13` | yes `apps/macos/PointeMac/HotKey.swift:5` | yes (the page) |
+| Microphone: Always on or Push to talk <br>`talk.mode` | yes `ui.html:1559` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:118` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:118` | yes (the page) |
+| The microphone at hand: the switch over the mic, or on the Mac a chip in the quick row <br>`talk.switch` | yes `ui.html:1886` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:128` | yes `apps/macos/PointeMac/Panels.swift:87` | yes (the page) |
+| Talk button: Hold to talk or Tap to talk <br>`talk.style` | yes `ui.html:1561` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:127` | yes (the page) |
+| The mic is the talk button: hold it, or tap it <br>`talk.ring` | yes `ui.html:1793` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:205` | yes `apps/macos/PointeMac/AppModel.swift:505` | yes (the page) |
+| A draft of what a press has heard so far <br>`talk.draft` | yes `ui.html:1866` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:463` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:463` | yes (the page) |
+| Why the Mac closed a press by itself (held too long, no audio) <br>`talk.closed-why` | yes `ui.html:5357` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:29` | yes (the page) |
+| Talk without touching the screen: a key, a system-wide shortcut, or the Action button <br>`talk.key` | yes `ui.html:1562` | yes `apps/ios/PointeShared/TalkIntents.swift:13` | yes `apps/macos/PointeMac/HotKey.swift:5` | yes (the page) |
 | Skip from any app: a system-wide shortcut, set in Settings <br>`skip.key` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:88` | n/a |
-| Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1585` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:133` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:133` | yes (the page) |
-| Hold mode ("don't interrupt me"): quiet until you release it <br>`talk.hold` | yes `ui.html:2888` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes (the page) |
+| Wait before answering: Quick, Normal or Patient <br>`talk.patience` | yes `ui.html:1582` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:133` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:133` | yes (the page) |
+| Hold mode ("don't interrupt me"): quiet until you release it <br>`talk.hold` | yes `ui.html:2886` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:22` | yes (the page) |
+
+## Quick settings
+
+| Feature | Page | iPhone | Mac | Linux hub |
+|---|---|---|---|---|
+| Reply length: Brief, Concise, Detailed or Thorough, a tap away, with a line on what each does <br>`quick.length` | yes `ui_quick.html:104` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:234` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:376` | yes (the page) |
+| Speaking speed, 0.8× to 1.2×, this device's own; hidden on a voice with no speed number <br>`quick.speed` | yes `ui_quick.html:107` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:244` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:396` | yes (the page) |
+| Clean up my words and Whisper as switches in the row, their state never colour alone <br>`quick.toggles` | yes `ui_quick.html:115` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:254` | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:400` | yes (the page) |
+| A change by voice glows on its chip <br>`quick.glow` | yes `ui_quick.html:173` | n/a | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:335` | yes (the page) |
+| On a narrow screen the row keeps its values: the page moves it to More, the Mac drops the words <br>`quick.narrow` | yes `ui.html:5529` | n/a | yes `apps/macos/PointeMac/Bubble.swift:186` | yes (the page) |
+| A Quick button in the iPhone's header, with a dot while a quick setting is off its default <br>`quick.button` | n/a | yes `apps/PointeKit/Sources/PointeUI/QuickSettings.swift:208` | n/a | n/a |
+| The Voice menu: ⌘1 to ⌘4 reply length, ⌥⌘1 to ⌥⌘5 speed, ⇧⌘K clean up my words <br>`quick.keys` | n/a | n/a | yes `apps/macos/PointeMac/PointeMacApp.swift:76` | n/a |
 
 ## Sessions and machines
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Sessions, grouped by machine, with each one's agent and state <br>`sessions.list` | yes `ui.html:1204` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:185` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:185` | yes (the page) |
-| Focus on a session <br>`sessions.switch` | yes `ui.html:3364` | yes `apps/PointeKit/Sources/PointeUI/API.swift:629` | yes `apps/PointeKit/Sources/PointeUI/API.swift:629` | yes (the page) |
-| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1211` | yes `apps/PointeKit/Sources/PointeUI/API.swift:667` | yes `apps/PointeKit/Sources/PointeUI/API.swift:667` | yes (the page) |
-| Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1772` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes (the page) |
-| Rename a session <br>`sessions.rename` | yes `ui.html:3346` | yes `apps/PointeKit/Sources/PointeUI/API.swift:635` | yes `apps/PointeKit/Sources/PointeUI/API.swift:635` | yes (the page) |
-| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3632` | yes `apps/PointeKit/Sources/PointeUI/API.swift:632` | yes `apps/PointeKit/Sources/PointeUI/API.swift:632` | yes (the page) |
-| Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1219` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:717` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:717` | yes (the page) |
-| Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1697` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:78` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:78` | yes (the page) |
-| The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1861` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:220` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:220` | yes (the page) |
-| Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1712` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes (the page) |
-| The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1862` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes (the page) |
-| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1613` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:95` | yes (the page) |
-| Permissions for new sessions: Skip permission prompts (default) or Ask before actions <br>`sessions.new.permissions` | yes `ui.html:1609` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:203` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:203` | yes (the page) |
-| The risk line under a start, the first time a session skips permission prompts <br>`sessions.new.notice` | yes `ui.html:2357` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:153` | yes (the page) |
-| Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1380` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes (the page) |
-| Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1392` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes (the page) |
-| Add a machine somebody invited you to, from its owner's line: paste it (the iPhone also scans it) <br>`machines.add` | yes `ui.html:1398` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:133` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:133` | yes (the page) |
-| Once after a machine is added: which services your voice sends its transcripts to, until OK <br>`machines.disclosure` | yes `ui.html:1408` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes (the page) |
-| Agents built on agent frameworks on this voice: kind, address, whether each answers <br>`agents.list` | yes `ui.html:1453` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:162` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:162` | yes (the page) |
-| Connect an agent: OpenClaw, Hermes, any A2A or OpenAI-compatible agent; its credential goes to the Keychain <br>`agents.add` | yes `ui.html:1457` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:286` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:286` | yes (the page) |
-| Remove an agent and its saved credential, after a confirm <br>`agents.remove` | yes `ui.html:4651` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:219` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:219` | yes (the page) |
-| Once after an agent is added: which services hear what it says, until OK <br>`agents.disclosure` | yes `ui.html:1466` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:181` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:181` | yes (the page) |
-| Whose a machine and a session is, shown only where it is not yours <br>`machines.owner` | yes `ui.html:2112` | yes `apps/PointeKit/Sources/PointeUI/People.swift:383` | yes `apps/PointeKit/Sources/PointeUI/People.swift:383` | yes (the page) |
-| Mine: show only your own sessions, while somebody else's are in your voice <br>`sessions.mine` | yes `ui.html:2073` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:725` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:725` | yes (the page) |
-| Invite a person to this machine: a name, talk or watch only, a one-time line and its code; cancel it <br>`people.invite` | yes `ui.html:1432` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:155` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:155` | yes (the page) |
-| Change what a person may do: talk to the sessions, or watch only <br>`people.grant` | yes `ui.html:5078` | yes `apps/PointeKit/Sources/PointeUI/People.swift:185` | yes `apps/PointeKit/Sources/PointeUI/People.swift:185` | yes (the page) |
-| Remove a person from this machine, after a confirm <br>`people.remove` | yes `ui.html:5087` | yes `apps/PointeKit/Sources/PointeUI/People.swift:187` | yes `apps/PointeKit/Sources/PointeUI/People.swift:187` | yes (the page) |
-| Private: keep a session of this machine to yourself, or share it with people again <br>`sessions.private` | yes `ui.html:1754` | yes `apps/PointeKit/Sources/PointeUI/People.swift:200` | yes `apps/PointeKit/Sources/PointeUI/People.swift:200` | yes (the page) |
-| What people can do on this machine: approve requests, start sessions, how their sessions start <br>`people.settings` | yes `ui.html:1440` | yes `apps/PointeKit/Sources/PointeUI/People.swift:190` | yes `apps/PointeKit/Sources/PointeUI/People.swift:190` | yes (the page) |
-| Start a session on a machine somebody invited you to: its folders, whose it is, how it starts sessions <br>`sessions.new.there` | yes `ui.html:2413` | yes `apps/PointeKit/Sources/PointeUI/API.swift:677` | yes `apps/PointeKit/Sources/PointeUI/API.swift:677` | yes (the page) |
+| Sessions, grouped by machine, with each one's agent and state <br>`sessions.list` | yes `ui.html:1201` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:185` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:185` | yes (the page) |
+| Focus on a session <br>`sessions.switch` | yes `ui.html:3362` | yes `apps/PointeKit/Sources/PointeUI/API.swift:630` | yes `apps/PointeKit/Sources/PointeUI/API.swift:630` | yes (the page) |
+| Orchestrator or Session mode <br>`sessions.mode` | yes `ui.html:1208` | yes `apps/PointeKit/Sources/PointeUI/API.swift:668` | yes `apps/PointeKit/Sources/PointeUI/API.swift:668` | yes (the page) |
+| Session mode holds the other sessions' news: a quiet count, the list, Tell me <br>`sessions.held` | yes `ui.html:1769` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes `apps/PointeKit/Sources/PointeUI/Held.swift:62` | yes (the page) |
+| Rename a session <br>`sessions.rename` | yes `ui.html:3344` | yes `apps/PointeKit/Sources/PointeUI/API.swift:636` | yes `apps/PointeKit/Sources/PointeUI/API.swift:636` | yes (the page) |
+| Disconnect a session from the voice <br>`sessions.disconnect` | yes `ui.html:3622` | yes `apps/PointeKit/Sources/PointeUI/API.swift:633` | yes `apps/PointeKit/Sources/PointeUI/API.swift:633` | yes (the page) |
+| Show only one machine's sessions <br>`sessions.filter` | yes `ui.html:1216` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:717` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:717` | yes (the page) |
+| Start a new session: agent, folder, machine, name, first prompt <br>`sessions.new` | yes `ui.html:1694` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:78` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:78` | yes (the page) |
+| The read-back card of a session asked for by voice: Start or Cancel <br>`sessions.new.readback` | yes `ui.html:1858` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:220` | yes `apps/PointeKit/Sources/PointeUI/NewSession.swift:220` | yes (the page) |
+| Add sessions already open, or reopen one from this week: search, by machine and agent <br>`sessions.add` | yes `ui.html:1709` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:14` | yes (the page) |
+| The read-back card of sessions asked for by voice: Join, Reopen or Cancel <br>`sessions.add.readback` | yes `ui.html:1859` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes `apps/PointeKit/Sources/PointeUI/AddSessions.swift:130` | yes (the page) |
+| Which folders a new session may start in <br>`sessions.new.folders` | yes `ui.html:1610` | n/a | yes `apps/macos/PointeMac/MacSettings.swift:95` | yes (the page) |
+| Permissions for new sessions: Skip permission prompts (default) or Ask before actions <br>`sessions.new.permissions` | yes `ui.html:1606` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:203` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:203` | yes (the page) |
+| The risk line under a start, the first time a session skips permission prompts <br>`sessions.new.notice` | yes `ui.html:2355` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:153` | yes `apps/PointeKit/Sources/PointeKit/NewSession.swift:153` | yes (the page) |
+| Machines on this voice: online, sessions, round trip, key fingerprint <br>`machines.list` | yes `ui.html:1377` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:10` | yes (the page) |
+| Invite a machine with a one-time code, cancel it, revoke a machine <br>`machines.invite` | yes `ui.html:1389` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Settings.swift:187` | yes (the page) |
+| Add a machine somebody invited you to, from its owner's line: paste it (the iPhone also scans it) <br>`machines.add` | yes `ui.html:1395` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:133` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:133` | yes (the page) |
+| Once after a machine is added: which services your voice sends its transcripts to, until OK <br>`machines.disclosure` | yes `ui.html:1405` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes `apps/PointeKit/Sources/PointeUI/AddMachine.swift:112` | yes (the page) |
+| Agents built on agent frameworks on this voice: kind, address, whether each answers <br>`agents.list` | yes `ui.html:1450` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:162` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:162` | yes (the page) |
+| Connect an agent: OpenClaw, Hermes, any A2A or OpenAI-compatible agent; its credential goes to the Keychain <br>`agents.add` | yes `ui.html:1454` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:286` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:286` | yes (the page) |
+| Remove an agent and its saved credential, after a confirm <br>`agents.remove` | yes `ui.html:4641` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:219` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:219` | yes (the page) |
+| Once after an agent is added: which services hear what it says, until OK <br>`agents.disclosure` | yes `ui.html:1463` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:181` | yes `apps/PointeKit/Sources/PointeUI/Agents.swift:181` | yes (the page) |
+| Whose a machine and a session is, shown only where it is not yours <br>`machines.owner` | yes `ui.html:2110` | yes `apps/PointeKit/Sources/PointeUI/People.swift:383` | yes `apps/PointeKit/Sources/PointeUI/People.swift:383` | yes (the page) |
+| Mine: show only your own sessions, while somebody else's are in your voice <br>`sessions.mine` | yes `ui.html:2071` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:725` | yes `apps/PointeKit/Sources/PointeUI/Sessions.swift:725` | yes (the page) |
+| Invite a person to this machine: a name, talk or watch only, a one-time line and its code; cancel it <br>`people.invite` | yes `ui.html:1429` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:155` | yes `apps/PointeKit/Sources/PointeUI/PeopleSheet.swift:155` | yes (the page) |
+| Change what a person may do: talk to the sessions, or watch only <br>`people.grant` | yes `ui.html:5068` | yes `apps/PointeKit/Sources/PointeUI/People.swift:185` | yes `apps/PointeKit/Sources/PointeUI/People.swift:185` | yes (the page) |
+| Remove a person from this machine, after a confirm <br>`people.remove` | yes `ui.html:5077` | yes `apps/PointeKit/Sources/PointeUI/People.swift:187` | yes `apps/PointeKit/Sources/PointeUI/People.swift:187` | yes (the page) |
+| Private: keep a session of this machine to yourself, or share it with people again <br>`sessions.private` | yes `ui.html:1751` | yes `apps/PointeKit/Sources/PointeUI/People.swift:200` | yes `apps/PointeKit/Sources/PointeUI/People.swift:200` | yes (the page) |
+| What people can do on this machine: approve requests, start sessions, how their sessions start <br>`people.settings` | yes `ui.html:1437` | yes `apps/PointeKit/Sources/PointeUI/People.swift:190` | yes `apps/PointeKit/Sources/PointeUI/People.swift:190` | yes (the page) |
+| Start a session on a machine somebody invited you to: its folders, whose it is, how it starts sessions <br>`sessions.new.there` | yes `ui.html:2411` | yes `apps/PointeKit/Sources/PointeUI/API.swift:678` | yes `apps/PointeKit/Sources/PointeUI/API.swift:678` | yes (the page) |
 
 ## Approvals and alerts
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| A permission request as a card with the exact request, Deny and Approve <br>`approve.card` | yes `ui.html:1860` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2022` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2022` | yes (the page) |
-| A request somebody else is asked first for: who and how long, Approve only once it is yours, and who answered <br>`approve.asked` | yes `ui.html:4816` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:149` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:149` | yes (the page) |
-| Any request can be approved by a spoken yes: read out short or word for word; the card says which (a secret is never said: tap) <br>`approve.voice` | yes `ui.html:2786` | yes `apps/PointeKit/Sources/PointeUI/API.swift:497` | yes `apps/PointeKit/Sources/PointeUI/API.swift:497` | yes (the page) |
-| Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1221` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1221` | n/a |
-| How many more requests wait <br>`approve.more` | yes `ui.html:2772` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:742` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:742` | yes (the page) |
-| A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:2075` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2063` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2063` | yes (the page) |
-| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:5576` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:182` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:182` | yes (the page) |
-| Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1631` | yes `apps/PointeKit/Sources/PointeUI/API.swift:433` | yes `apps/PointeKit/Sources/PointeUI/API.swift:433` | yes (the page) |
+| A permission request as a card with the exact request, Deny and Approve <br>`approve.card` | yes `ui.html:1857` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2051` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2051` | yes (the page) |
+| A request somebody else is asked first for: who and how long, Approve only once it is yours, and who answered <br>`approve.asked` | yes `ui.html:4806` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:149` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:149` | yes (the page) |
+| Any request can be approved by a spoken yes: read out short or word for word; the card says which (a secret is never said: tap) <br>`approve.voice` | yes `ui.html:2784` | yes `apps/PointeKit/Sources/PointeUI/API.swift:498` | yes `apps/PointeKit/Sources/PointeUI/API.swift:498` | yes (the page) |
+| Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac <br>`approve.owner` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1237` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1237` | n/a |
+| How many more requests wait <br>`approve.more` | yes `ui.html:2770` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:756` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:756` | yes (the page) |
+| A request whose machine went offline says it is back in its terminal <br>`approve.offline` | yes `ui.html:2073` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2092` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2092` | yes (the page) |
+| A notification when a session needs you and you are not looking <br>`alerts.notify` | yes `ui.html:5566` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:182` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:182` | yes (the page) |
+| Approve from notifications, as a setting <br>`alerts.approve` | yes `ui.html:1628` | yes `apps/PointeKit/Sources/PointeUI/API.swift:434` | yes `apps/PointeKit/Sources/PointeUI/API.swift:434` | yes (the page) |
 | Deny and Approve on the notification itself <br>`alerts.actions` | n/a | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:224` | yes `apps/PointeKit/Sources/PointeUI/Alerts.swift:224` | n/a |
 | Alerts keep arriving while the app is in the background <br>`alerts.background` | n/a | yes `apps/ios/Pointe/PointeApp.swift:13` | yes `apps/macos/PointeMac/PointeMacApp.swift:16` | n/a |
 
@@ -116,88 +128,88 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Brain dump: think aloud, the thoughts listed, Done or Discard <br>`dump.panel` | yes `ui.html:1840` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes (the page) |
-| Review the structured prompt: edit, pick who gets it, send <br>`dump.review` | yes `ui.html:1294` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` | yes (the page) |
-| Add more, or have it read back, before sending <br>`dump.more` | yes `ui.html:1305` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` | yes (the page) |
-| Challenge the plan from the review <br>`dump.challenge` | yes `ui.html:1307` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` | yes (the page) |
-| Challenge (devil's advocate): the items, the plan, End <br>`challenge.panel` | yes `ui.html:1829` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes (the page) |
+| Brain dump: think aloud, the thoughts listed, Done or Discard <br>`dump.panel` | yes `ui.html:1837` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:127` | yes (the page) |
+| Review the structured prompt: edit, pick who gets it, send <br>`dump.review` | yes `ui.html:1291` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:300` | yes (the page) |
+| Add more, or have it read back, before sending <br>`dump.more` | yes `ui.html:1302` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:302` | yes (the page) |
+| Challenge the plan from the review <br>`dump.challenge` | yes `ui.html:1304` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` | yes `apps/PointeKit/Sources/PointeUI/BrainDump.swift:304` | yes (the page) |
+| Challenge (devil's advocate): the items, the plan, End <br>`challenge.panel` | yes `ui.html:1826` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes `apps/PointeKit/Sources/PointeUI/Challenge.swift:76` | yes (the page) |
 
 ## Meetings
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Start a meeting: mode, context, sessions that may be asked, consent <br>`meeting.start` | yes `ui.html:1254` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:130` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:130` | yes (the page) |
-| Listening or Participating, switched during the meeting <br>`meeting.mode` | yes `ui.html:1789` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:229` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:229` | yes (the page) |
-| The notes feed, filtered by kind, and the transcript <br>`meeting.notes` | yes `ui.html:1826` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:417` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:417` | yes (the page) |
-| A raised hand: let it speak, later, or type it <br>`meeting.hand` | yes `ui.html:1813` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:371` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:371` | yes (the page) |
-| Name the speakers; "that was me" <br>`meeting.speakers` | yes `ui.html:1787` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:701` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:701` | yes (the page) |
-| Ask or add context during the meeting, and look a note up <br>`meeting.ask` | yes `ui.html:1827` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:631` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:631` | yes (the page) |
-| End: the summary, export notes (with the transcript), send the action items, discard <br>`meeting.end` | yes `ui.html:1279` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:749` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:749` | yes (the page) |
-| Meeting settings: default mode, lookups, consent, notes language <br>`meeting.settings` | yes `ui.html:1530` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:872` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:872` | yes (the page) |
+| Start a meeting: mode, context, sessions that may be asked, consent <br>`meeting.start` | yes `ui.html:1251` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:130` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:130` | yes (the page) |
+| Listening or Participating, switched during the meeting <br>`meeting.mode` | yes `ui.html:1786` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:229` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:229` | yes (the page) |
+| The notes feed, filtered by kind, and the transcript <br>`meeting.notes` | yes `ui.html:1823` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:417` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:417` | yes (the page) |
+| A raised hand: let it speak, later, or type it <br>`meeting.hand` | yes `ui.html:1810` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:371` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:371` | yes (the page) |
+| Name the speakers; "that was me" <br>`meeting.speakers` | yes `ui.html:1784` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:701` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:701` | yes (the page) |
+| Ask or add context during the meeting, and look a note up <br>`meeting.ask` | yes `ui.html:1824` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:631` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:631` | yes (the page) |
+| End: the summary, export notes (with the transcript), send the action items, discard <br>`meeting.end` | yes `ui.html:1276` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:749` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:749` | yes (the page) |
+| Meeting settings: default mode, lookups, consent, notes language <br>`meeting.settings` | yes `ui.html:1527` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:872` | yes `apps/PointeKit/Sources/PointeUI/Meeting.swift:872` | yes (the page) |
 
 ## Briefings, whisper, drive
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Briefing: what happened since, play, stop, length <br>`briefing.sheet` | yes `ui.html:1670` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` | yes (the page) |
-| A ready briefing offers itself; playing, it has its own bar <br>`briefing.ready` | yes `ui.html:1865` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes (the page) |
-| A scheduled briefing: days, time, length, skip when empty <br>`briefing.schedule` | yes `ui.html:1521` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` | yes (the page) |
-| Night shift: tasks for the sessions, the hours and the message budget, Start <br>`night.start` | yes `ui.html:1723` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` | yes (the page) |
-| The read-back card of a night shift asked for by voice: Start or Cancel <br>`night.readback` | yes `ui.html:1863` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes (the page) |
-| A running night shift: tasks done, the blocked count, Stop <br>`night.status` | yes `ui.html:1864` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes (the page) |
-| The night's ledger: decisions, questions, done, blocked with the exact request, in flight <br>`night.ledger` | yes `ui.html:1739` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` | yes (the page) |
-| Alerts about a night shift's blockers: off unless asked for <br>`night.notify` | yes `ui.html:1734` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` | yes (the page) |
-| Whisper: short quiet replies, with the notes it held back <br>`whisper` | yes `ui.html:1907` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes (the page) |
-| Mute Pointe: one button beside the status line, every reply as text, each device's own choice <br>`mute` | yes `ui.html:1767` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` | yes (the page) |
-| Muted, the state line says Writing… where it would say Speaking… <br>`mute.writing` | yes `ui.html:3226` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` | yes (the page) |
+| Briefing: what happened since, play, stop, length <br>`briefing.sheet` | yes `ui.html:1667` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:187` | yes (the page) |
+| A ready briefing offers itself; playing, it has its own bar <br>`briefing.ready` | yes `ui.html:1862` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:166` | yes (the page) |
+| A scheduled briefing: days, time, length, skip when empty <br>`briefing.schedule` | yes `ui.html:1518` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` | yes `apps/PointeKit/Sources/PointeUI/Briefing.swift:312` | yes (the page) |
+| Night shift: tasks for the sessions, the hours and the message budget, Start <br>`night.start` | yes `ui.html:1720` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:16` | yes (the page) |
+| The read-back card of a night shift asked for by voice: Start or Cancel <br>`night.readback` | yes `ui.html:1860` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:216` | yes (the page) |
+| A running night shift: tasks done, the blocked count, Stop <br>`night.status` | yes `ui.html:1861` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:168` | yes (the page) |
+| The night's ledger: decisions, questions, done, blocked with the exact request, in flight <br>`night.ledger` | yes `ui.html:1736` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:253` | yes (the page) |
+| Alerts about a night shift's blockers: off unless asked for <br>`night.notify` | yes `ui.html:1731` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` | yes `apps/PointeKit/Sources/PointeUI/NightShift.swift:116` | yes (the page) |
+| Whisper: short quiet replies, with the notes it held back <br>`whisper` | yes `ui.html:1904` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes `apps/PointeKit/Sources/PointeUI/Whisper.swift:61` | yes (the page) |
+| Mute Pointe: one button beside the status line, every reply as text, each device's own choice <br>`mute` | yes `ui.html:1764` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` | yes `apps/PointeKit/Sources/PointeUI/Mute.swift:71` | yes (the page) |
+| Muted, the state line says Writing… where it would say Speaking… <br>`mute.writing` | yes `ui.html:3224` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:25` | yes (the page) |
 | Muting mid-reply stops what the device still holds to play <br>`mute.cut` | yes `ui_mute.html:46` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:174` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:174` | yes (the page) |
 | The status line says Thinking… from the end of the turn until the reply <br>`thinking` | yes `ui_thinking.html:20` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:27` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:27` | yes (the page) |
 | The status line names the session that has the request: "billing is working…" <br>`thinking.working` | yes `ui_thinking.html:21` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` | yes `apps/PointeKit/Sources/PointeUI/CallTitle.swift:36` | yes (the page) |
-| The call's own link says the turn was taken: Thinking… without waiting for a status <br>`thinking.link` | yes `ui.html:2938` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:545` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:545` | yes (the page) |
+| The call's own link says the turn was taken: Thinking… without waiting for a status <br>`thinking.link` | yes `ui.html:2936` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:545` | yes `apps/PointeKit/Sources/PointeUI/Call.swift:545` | yes (the page) |
 | The state's dot tells thinking, speaking and working apart by motion, and Reduce Motion stops it <br>`thinking.motion` | yes `ui_thinking.html:13` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` | yes `apps/PointeKit/Sources/PointeUI/Thinking.swift:60` | yes (the page) |
-| Session tones: a setting, off by default, and a session's row names its tone <br>`tones` | yes `ui.html:1599` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:159` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:159` | yes (the page) |
-| Only when I say Pointe: the microphone setting between Always on and push to talk, and the state line says how to talk <br>`mic.addressed` | yes `ui.html:1888` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` | yes (the page) |
-| The approvals record: each answer that went through Pointe, when, by voice or tap, the exact request, the voice lock's score <br>`approvals.record` | yes `ui.html:1640` | yes `apps/PointeKit/Sources/PointeUI/Approvals.swift:90` | yes `apps/PointeKit/Sources/PointeUI/Approvals.swift:90` | yes (the page) |
-| Reduce Motion: no animation runs, no symbol pulses and no scroll glides <br>`a11y.motion` | yes `ui.html:1198` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes (the page) |
-| A screen reader hears the state line as one element, with the line under it <br>`a11y.state` | yes `ui.html:1770` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2005` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2005` | yes (the page) |
-| A session's agent is its name in plain text, read as "runs on Codex" <br>`a11y.agent` | yes `ui.html:2248` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` | yes (the page) |
+| Session tones: a setting, off by default, and a session's row names its tone <br>`tones` | yes `ui.html:1596` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:159` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:159` | yes (the page) |
+| Only when I say Pointe: the microphone setting between Always on and push to talk, and the state line says how to talk <br>`mic.addressed` | yes `ui.html:1885` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` | yes `apps/PointeKit/Sources/PointeUI/BottomBar.swift:121` | yes (the page) |
+| The approvals record: each answer that went through Pointe, when, by voice or tap, the exact request, the voice lock's score <br>`approvals.record` | yes `ui.html:1637` | yes `apps/PointeKit/Sources/PointeUI/Approvals.swift:90` | yes `apps/PointeKit/Sources/PointeUI/Approvals.swift:90` | yes (the page) |
+| Reduce Motion: no animation runs, no symbol pulses and no scroll glides <br>`a11y.motion` | yes `ui.html:1195` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes `apps/PointeKit/Sources/PointeUI/Motion.swift:30` | yes (the page) |
+| A screen reader hears the state line as one element, with the line under it <br>`a11y.state` | yes `ui.html:1767` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2034` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:2034` | yes (the page) |
+| A session's agent is its name in plain text, read as "runs on Codex" <br>`a11y.agent` | yes `ui.html:2246` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:181` | yes (the page) |
 | The call bubble and the menu bar item show thinking <br>`thinking.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:276` | n/a |
-| The waiting sound: a setting, on by default <br>`thinking.cue` | yes `ui.html:1591` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:143` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:143` | yes (the page) |
-| Progress updates while a session works: a setting, off by default <br>`progress` | yes `ui.html:1595` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:151` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:151` | yes (the page) |
-| Skip what Pointe is saying: one button beside the status line, after the mute button, only while it speaks <br>`skip` | yes `ui.html:1768` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` | yes (the page) |
-| Skipping stops what the device still holds to play <br>`skip.cut` | yes `ui_skip.html:24` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1740` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1740` | yes (the page) |
+| The waiting sound: a setting, on by default <br>`thinking.cue` | yes `ui.html:1588` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:143` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:143` | yes (the page) |
+| Progress updates while a session works: a setting, off by default <br>`progress` | yes `ui.html:1592` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:151` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:151` | yes (the page) |
+| Skip what Pointe is saying: one button beside the status line, after the mute button, only while it speaks <br>`skip` | yes `ui.html:1765` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` | yes `apps/PointeKit/Sources/PointeUI/Skip.swift:18` | yes (the page) |
+| Skipping stops what the device still holds to play <br>`skip.cut` | yes `ui_skip.html:24` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1769` | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:1769` | yes (the page) |
 | The conversation's text can be selected and copied <br>`talk.copy` | yes `ui.html:505` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:93` | yes `apps/PointeKit/Sources/PointeUI/Conversation.swift:93` | yes (the page) |
-| Drive mode on screen: the one line, the request, Stop <br>`drive.screen` | yes `ui.html:1854` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes (the page) |
-| Turn drive mode on from the screen <br>`drive.start` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:534` | n/a | n/a |
+| Drive mode on screen: the one line, the request, Stop <br>`drive.screen` | yes `ui.html:1851` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:87` | yes (the page) |
+| Turn drive mode on from the screen <br>`drive.start` | n/a | yes `apps/PointeKit/Sources/PointeUI/CallView.swift:545` | n/a | n/a |
 | Offer drive mode when the phone is in a car <br>`drive.suggest` | n/a | yes `apps/PointeKit/Sources/PointeUI/Drive.swift:229` | n/a | n/a |
 
 ## Voice lock, dictionary, conflicts, show
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Voice lock: which actions only your voice may do <br>`lock.level` | yes `ui.html:1369` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:181` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:181` | yes (the page) |
-| Enrol your voice, per device, and delete a voiceprint <br>`lock.enrol` | yes `ui.html:1361` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:122` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:122` | yes (the page) |
-| What the lock ignored, and the note after three unsure yeses <br>`lock.ignored` | yes `ui.html:1690` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes (the page) |
-| Dictionary: the terms, add, edit, delete, suggestions, learn from fixes <br>`dictionary.sheet` | yes `ui.html:1515` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes (the page) |
+| Voice lock: which actions only your voice may do <br>`lock.level` | yes `ui.html:1366` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:181` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:181` | yes (the page) |
+| Enrol your voice, per device, and delete a voiceprint <br>`lock.enrol` | yes `ui.html:1358` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:122` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:122` | yes (the page) |
+| What the lock ignored, and the note after three unsure yeses <br>`lock.ignored` | yes `ui.html:1687` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes `apps/PointeKit/Sources/PointeUI/VoiceLock.swift:219` | yes (the page) |
+| Dictionary: the terms, add, edit, delete, suggestions, learn from fixes <br>`dictionary.sheet` | yes `ui.html:1512` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:139` | yes (the page) |
 | A term learned during the call shows, with Undo <br>`dictionary.toast` | yes `ui_dictionary.html:29` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:120` | yes `apps/PointeKit/Sources/PointeUI/Vocabulary.swift:120` | yes (the page) |
-| Two sessions disagree: the card, ask either, dismiss <br>`conflicts.card` | yes `ui.html:1853` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes (the page) |
-| Conflict alarm settings: on, spoken <br>`conflicts.settings` | yes `ui.html:1620` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` | yes (the page) |
-| Show while it says: the file, the diff or the test the voice is talking about <br>`show.card` | yes `ui.html:1919` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes (the page) |
-| Also show on the phone, as a setting <br>`show.setting` | yes `ui.html:1555` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` | yes (the page) |
+| Two sessions disagree: the card, ask either, dismiss <br>`conflicts.card` | yes `ui.html:1850` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:80` | yes (the page) |
+| Conflict alarm settings: on, spoken <br>`conflicts.settings` | yes `ui.html:1617` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` | yes `apps/PointeKit/Sources/PointeUI/Conflicts.swift:169` | yes (the page) |
+| Show while it says: the file, the diff or the test the voice is talking about <br>`show.card` | yes `ui.html:1916` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:86` | yes (the page) |
+| Also show on the phone, as a setting <br>`show.setting` | yes `ui.html:1552` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` | yes `apps/PointeKit/Sources/PointeUI/Show.swift:325` | yes (the page) |
 
 ## Pairing, appearance, about, help
 
 | Feature | Page | iPhone | Mac | Linux hub |
 |---|---|---|---|---|
-| Show the code that pairs a phone, list the paired phones, unpair <br>`pair.show` | yes `ui.html:1472` | n/a | yes `apps/PointeKit/Sources/PointeUI/PhoneSheet.swift:235` | yes (the page) |
+| Show the code that pairs a phone, list the paired phones, unpair <br>`pair.show` | yes `ui.html:1469` | n/a | yes `apps/PointeKit/Sources/PointeUI/PhoneSheet.swift:235` | yes (the page) |
 | Pair with the Mac: scan or paste the code in the app, then confirm; unpair this phone <br>`pair.read` | n/a | yes `apps/PointeKit/Sources/PointeUI/PairView.swift:6` | n/a | n/a |
-| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1649` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:246` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:246` | yes (the page) |
-| About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1656` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes (the page) |
-| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1205` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` | yes (the page) |
-| Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1540` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:58` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:58` | yes (the page) |
-| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (49 topics)` | yes `product_help.json (49 topics)` | yes `product_help.json (48 topics)` | yes (the page) |
+| Appearance: System, Light or Dark <br>`appearance` | yes `ui.html:1646` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:246` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:246` | yes (the page) |
+| About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1653` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes (the page) |
+| The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1202` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` | yes (the page) |
+| Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1537` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:58` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:58` | yes (the page) |
+| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (51 topics)` | yes `product_help.json (51 topics)` | yes `product_help.json (48 topics)` | yes (the page) |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | n/a |
-| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3564` | n/a | yes `apps/macos/PointeMac/Panels.swift:175` | yes (the page) |
+| Keyboard: a key for every main action <br>`keys` | yes `ui.html:3562` | n/a | yes `apps/macos/PointeMac/Panels.swift:202` | yes (the page) |
 
 ## The Mac shell
 
@@ -209,7 +221,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:218` | n/a |
 | Open at login <br>`mac.login` | n/a | n/a | yes `apps/macos/PointeMac/Platform.swift:4` | n/a |
 | Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:215` | n/a |
-| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1544` | n/a | yes `apps/macos/PointeMac/AppModel.swift:401` | yes (the page) |
+| Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1541` | n/a | yes `apps/macos/PointeMac/AppModel.swift:401` | yes (the page) |
 | Which vendor keys are in the Keychain, and Add… <br>`mac.keys` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:395` | n/a |
 
 ## The phone alone
@@ -236,6 +248,14 @@ A feature a surface cannot have, and why. Everything else is on all four.
 | Skip from any app: a system-wide shortcut, set in Settings | Page | A page hears keys only while its tab has the focus: it has the button, and no key from another app. |
 | Skip from any app: a system-wide shortcut, set in Settings | iPhone | An iPhone has no system-wide key: it has the button. |
 | Skip from any app: a system-wide shortcut, set in Settings | Linux hub | A page hears keys only while its tab has the focus: it has the button, and no key from another app. |
+| A change by voice glows on its chip | iPhone | the iPhone's quick settings are in a sheet, closed while you talk; the dot on its button and the sheet show the new value |
+| On a narrow screen the row keeps its values: the page moves it to More, the Mac drops the words | iPhone | the iPhone shows quick settings in a sheet of its own, the width of the screen |
+| A Quick button in the iPhone's header, with a dot while a quick setting is off its default | Page | the page shows the chips themselves in its top bar |
+| A Quick button in the iPhone's header, with a dot while a quick setting is off its default | Mac | the Mac shows the chips themselves in its title strip |
+| A Quick button in the iPhone's header, with a dot while a quick setting is off its default | Linux hub | the page shows the chips themselves in its top bar |
+| The Voice menu: ⌘1 to ⌘4 reply length, ⌥⌘1 to ⌥⌘5 speed, ⇧⌘K clean up my words | Page | a browser keeps ⌘1 to ⌘9 for its own tabs |
+| The Voice menu: ⌘1 to ⌘4 reply length, ⌥⌘1 to ⌥⌘5 speed, ⇧⌘K clean up my words | iPhone | an iPhone has no menu bar; a hardware keyboard is rare on it |
+| The Voice menu: ⌘1 to ⌘4 reply length, ⌥⌘1 to ⌥⌘5 speed, ⇧⌘K clean up my words | Linux hub | a browser keeps ⌘1 to ⌘9 for its own tabs |
 | Which folders a new session may start in | iPhone | the daemon takes this setting at the Mac only (daemon.py: voice/prefs refuses sessions.folders off the Mac) |
 | Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac | Page | a browser page cannot ask for Touch ID without WebAuthn enrolment; the page is on the unlocked Mac beside the terminal |
 | Approve asks that it is you: Face ID on the phone, Touch ID or the password on the Mac | Linux hub | a browser page cannot ask for Touch ID without WebAuthn enrolment; the page is on the unlocked Mac beside the terminal |

@@ -70,6 +70,7 @@ import meeting as meetings
 import modes
 import mute
 import progress
+import quick
 import scope
 import skip
 import thinking
@@ -157,6 +158,7 @@ from pipecat.adapters.llm.schemas.function_schema import FunctionSchema
 from pipecat.adapters.llm.schemas.tools_schema import ToolsSchema
 from pipecat.frames.frames import (
     OutputAudioRawFrame,
+    TTSUpdateSettingsFrame,
     BotStartedSpeakingFrame,
     BotStoppedSpeakingFrame,
     CancelFrame,
@@ -1304,6 +1306,8 @@ def _brain_context() -> str:
         parts.append(drives.RULES)
     if names := vocabulary.brain_line(DICTIONARY):
         parts.append(names)
+    if (length := flow.length_rule(PREFS.get("replies.length"))) is not None:
+        parts.append(length)
     if _whispering():
         parts.append(whisper.REPLY_RULE)
     if _muted():
@@ -1998,7 +2002,8 @@ def _reply_limit(trigger: str | None, asked: str) -> flow.Limit | None:
     if state.challenge is not None or state.meeting is not None:
         return None
     return flow.limit_for(trigger, asked, status=status_intent(asked),
-                                  drive_words=drives.MAX_WORDS if current_mode() is modes.DRIVE else None)
+                          drive_words=drives.MAX_WORDS if current_mode() is modes.DRIVE else None,
+                          level=PREFS.get("replies.length"), whisper_words=whisper.MAX_WORDS if _whispering() else None)
 
 
 NAME_ONCE_SECS = 20.0
@@ -2319,7 +2324,8 @@ def _foreseeable(heard: str) -> bool:
     return (current_mode() in (modes.CONVERSATION, modes.DRIVE) and state.dump is None and state.briefing_play is None
             and not any(s.permission_id for s in REGISTRY.sessions.values()) and not unfinished(heard)
             and not (turns.hold_intent(heard) or briefing.briefing_intent(heard) is not None or drives.intent(heard)
-                     or whisper.intent(heard) is not None or meeting_intent(heard) or challenge.start_intent(heard)
+                     or whisper.intent(heard) is not None or quick.intent(heard) is not None or meeting_intent(heard)
+                     or challenge.start_intent(heard)
                      or braindump.start_intent(heard) or progress.intent(heard) is not None))
 
 
@@ -2713,6 +2719,11 @@ class SonioxEars(FrameProcessor):
                 and not (state.challenge is not None and challenge.end_intent(heard)):
             await _whisper_by_voice(heard, quiet)
             return
+        # Reply length, speaking speed and clean-up (quick.py), before anything reads the words as a request: "longer
+        # answers" changes the setting, where "tell me more" (flow.wants_detail) lengthens one answer.
+        if not _dumping() and state.meeting is None and (wanted := quick.intent(heard)) is not None:
+            await _quick_by_voice(heard, *wanted)
+            return
         # Then mute: "talk again" (or "back to normal" with whisper mode off) only while Pointe is muted.
         if not _dumping() and state.meeting is None and (text_only := mute.intent(heard)) is not None \
                 and (text_only or state.mute) and not (state.challenge is not None and challenge.end_intent(heard)):
@@ -2876,7 +2887,7 @@ def _remember(who: str, text: str) -> None:
         dropped = len(state.conversation) - 24
         del state.conversation[:dropped]
         state.conversation_base += dropped
-    if who == "user" and state.polish:
+    if who == "user" and PREFS.get("polish"):
         _polish_later(state.conversation_base + len(state.conversation) - 1, text)
 
 
@@ -3041,8 +3052,10 @@ class State:
     understood: dict[int, str] = field(default_factory=dict)  # user turn id -> the cleaned-up wording ("clean up my words")
     typed: set[int] = field(default_factory=set)  # user turns typed in an app, not spoken
     corrected: set[int] = field(default_factory=set)  # user turns the user fixed in an app
-    polish: bool = False  # show a cleaned-up wording under each thing the user says
     meeting: object = None  # meetings.Meeting while one is on
+    mouth: object = None  # the call's text-to-speech service (brain front only)
+    speed: float = 1.0  # the speed the mouth speaks at now
+    by_voice: tuple[str, float] | None = None  # (key, when): the quick setting the user changed by voice last
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
     meeting_ears: object = None
     mic_gate: object = None  # the MicGate in the call's pipeline
@@ -11405,8 +11418,9 @@ async def held_news(request: Request):
 
 @app.post("/voice/polish")
 async def polish_switch(request: Request):
-    state.polish = bool((await request.json()).get("on"))
-    return {"polish": state.polish}
+    """Clean up my words, from an older app: the setting is "polish" in /voice/prefs now."""
+    PREFS.update({"polish": bool((await request.json()).get("on"))})
+    return {"polish": PREFS.get("polish")}
 
 
 @app.post("/voice/mode")
@@ -11597,7 +11611,8 @@ async def _status(request: Request) -> dict:
             # The conversation as the phone and page show it: the last turns, and the user's words while they speak.
             "call": _call_health(),
             "talk": _talk(),
-            "polish": state.polish,
+            "polish": PREFS.get("polish"),
+            "quick": _quick_status(),
             "hearing": state.ptt.draft() if state.ptt.collecting  # a press's words, kept until it is sent
             else state.hearing[1] if time.time() - state.hearing[0] < HEARING_SECS else "",
             "machines": _status_machines(),
@@ -11890,10 +11905,15 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=403, detail="Change the folders new sessions may start in on the Mac itself.")
     if {"sessions.skip_ok", "sessions.skip_told"} & set(body):  # the daemon's record of a yes and of a line said
         raise HTTPException(status_code=400, detail="Set by Pointe when a session starts, never by a request.")
+    if isinstance(body.get("voice.speed"), dict):  # each device sends its own speed: the others' stay
+        body["voice.speed"] = PREFS.get("voice.speed") | body["voice.speed"]
     try:
-        return PREFS.update(body)
+        prefs = PREFS.update(body)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    if "voice.speed" in body:
+        await _apply_speed()
+    return prefs
 
 
 def _owner_heard_recently() -> bool:
@@ -12113,7 +12133,8 @@ async def page():
             .replace("{{THINKING}}", (here / "ui_thinking.html").read_text())
             .replace("{{APPROVALS}}", (here / "ui_approvals.html").read_text())
             .replace("{{ADDRESSED}}", (here / "ui_addressed.html").read_text())
-            .replace("{{TONES}}", (here / "ui_tones.html").read_text()))
+            .replace("{{TONES}}", (here / "ui_tones.html").read_text())
+            .replace("{{QUICK}}", (here / "ui_quick.html").read_text()))
     return HTMLResponse(html, headers={"Content-Security-Policy": page_csp(html)})
 
 
@@ -12584,7 +12605,8 @@ async def run_call(transport) -> None:
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
-        mouth = vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http)
+        mouth = vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http, speed=_call_speed())
+        state.mouth, state.speed = mouth, _call_speed()
 
         @mouth.event_handler("on_tts_request")
         async def on_tts_request(_mouth, _context_id, _text):
@@ -12617,6 +12639,7 @@ async def run_call(transport) -> None:
         logger.info(f"client connected, front={FRONT} {setup() if FRONT == 'brain' else ''} model={MODEL or 'default'}, "
                     f"sessions: {_names()}")
         await _on_connect(Connection(injector=injector, voice=voice, runner=runner, workers={}, ptt=gate[0]))
+        await _apply_speed()  # the device is known now: its own speed, if it is not the one the voice was built at
 
     @transport.event_handler("on_client_disconnected")
     async def on_disconnected(transport, client):
@@ -12797,7 +12820,7 @@ async def _whisper_by_voice(heard: str, on: bool) -> None:
     call sounds: it never reaches the approval check, and the voice lock stays as set."""
     _remember("user", heard)
     state.last_utterance = heard  # its language; not fresh speech for a send
-    PREFS.update({"whisper": on})
+    PREFS.update({"whisper": on}, by="voice")
     logger.info(f"whisper mode {'on' if on else 'off'} (by voice)")
     if on and state.drive.on():
         await say("[whisper mode on, held] The user asked for whisper mode while drive mode is on. Say in a few words that "
@@ -12805,6 +12828,71 @@ async def _whisper_by_voice(heard: str, on: bool) -> None:
         return
     await say("[whisper mode on] The user turned whisper mode on. Say in at most four words that it is on." if on else
               "[whisper mode off] The user turned whisper mode off. Say in at most four words that you are back to normal.")
+
+
+# ---------- quick settings: reply length, speaking speed, clean up my words (quick.py) ----------
+
+def _speed_shown() -> bool:
+    try:
+        mouth = setup().mouth or ""
+    except (Exception, SystemExit):
+        mouth = ""
+    return quick.speed_shown(FRONT, mouth)
+
+
+def _call_speed() -> float:
+    """The speed of the device on the call (the Mac app, the iPhone app or the page); 1 where it has none."""
+    return quick.speed_for(PREFS.get("voice.speed"), _surface()) if _speed_shown() else 1.0
+
+
+async def _apply_speed() -> None:
+    """The call's voice at its device's speed from the next sentence on: a settings frame, queued behind what is
+    already being said."""
+    speed, mouth = _call_speed(), state.mouth
+    if state.conn is None or mouth is None or state.front is None or speed == state.speed:
+        return
+    delta = vendors.speed_delta(mouth, speed)
+    if delta is None:
+        return
+    state.speed = speed
+    logger.info("speaking speed applied to the call")
+    await state.front.push_frame(TTSUpdateSettingsFrame(delta=delta, service=mouth))
+
+
+def _quick_status() -> dict:
+    """What the quick-settings row shows on every surface. Speed is per device: each shows its own entry."""
+    by = state.by_voice
+    return {"length": PREFS.get("replies.length"), "speeds": PREFS.get("voice.speed"), "speed_shown": _speed_shown(),
+            "by_voice": {"key": by[0], "at": by[1]} if by else None}
+
+
+async def _quick_by_voice(heard: str, key: str, wanted) -> None:
+    """"Be more concise", "speak faster", "clean up my words": the setting by voice, caught in code like whisper mode's
+    phrases, and confirmed in four words at most. A speed is said at the new speed."""
+    _remember("user", heard)
+    state.last_utterance = heard  # its language; not fresh speech for a send
+    hebrew = bool(re.search(r"[\u0590-\u05ff]", heard))
+    if key == "replies.length":
+        before = PREFS.get(key)
+        after = quick.step(quick.LEVELS, before, wanted)
+        PREFS.update({key: after}, by="voice")
+        line = quick.length_line(before, after, hebrew)
+    elif key == "voice.speed":
+        if not _speed_shown():
+            await _say_exactly(quick.NO_SPEED_LINE[hebrew], "speed not changed")
+            return
+        surface = _surface()
+        before = quick.speed_for(PREFS.get(key), surface)
+        after = quick.step(quick.SPEEDS, before, wanted)
+        PREFS.update({key: PREFS.get(key) | {surface: after}}, by="voice")
+        await _apply_speed()
+        line = quick.speed_line(before, after, wanted, hebrew)
+    else:
+        PREFS.update({key: bool(wanted)}, by="voice")
+        line = quick.polish_line(bool(wanted), hebrew)
+    state.by_voice = (key, time.time())
+    logger.info(f"quick setting changed by voice: {key}")
+    await _say_exactly(line, "quick setting changed")
 
 
 # ---------- the wait for a reply (thinking.py) and spoken progress (progress.py) ----------
@@ -12898,7 +12986,7 @@ async def _progress_by_voice(heard: str, on: bool) -> None:
     yes can do."""
     _remember("user", heard)
     state.last_utterance = heard  # its language; not fresh speech for a send
-    PREFS.update({"progress.spoken": on})
+    PREFS.update({"progress.spoken": on}, by="voice")
     logger.info(f"progress updates {'on' if on else 'off'} (by voice)")
     await _say_exactly(progress.ON_LINE if on else progress.OFF_LINE, f"progress updates {'on' if on else 'off'}")
 

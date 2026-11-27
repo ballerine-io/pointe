@@ -143,8 +143,9 @@ class Swift:
         top = _braced(view, view.index("private var top: some View"))
         connect = [self.consts["ConnectCopy.connect"]] if "ConnectPill(" in top else []
         top = top[:top.index("SessionChips(")]
+        quick = [self.consts["QuickCopy.title"]] if "QuickButton(" in top else []  # its label is the button's own (QuickSettings.swift)
         return list(dict.fromkeys([x for expr in re.findall(r"\.accessibilityLabel\((.+?)\)\n", top) for x in self.resolve(expr)]
-                                  + connect))
+                                  + quick + connect))
 
     def status(self) -> list[str]:
         """The mute button beside the status line: what it says a tap does."""
@@ -234,6 +235,7 @@ class Page:
     def top(self) -> list[str]:
         top = _between(self.html, '<div class="top">', '<div id="meetbar"')
         return list(dict.fromkeys([_text(t) for t in re.findall(r'<label class="toggle"[^>]*><input[^>]*>([^<]+)</label>', top)]
+                                  + re.findall(r'id="quickrow"[^>]*aria-label="([^"]+)"', top)
                                   + re.findall(r'id="topconnect"[^>]*>([^<]+)<', top)
                                   + re.findall(r'id="morebtn"[^>]*aria-label="([^"]+)"', top)))
 
@@ -573,8 +575,29 @@ TOPICS = (
           doc="show-while-it-says.md"),
     Topic("polish", "Clean up my words", ("clean up my words", "clean version", "what it understood", "polish",
                                           "לנקות את המילים"),
-          "Clean up my words shows, under each thing you say, a clean version of what the voice understood.",
-          iphone=(("menu", "Clean up my words"),), page=(("top", "Clean up my words"),)),
+          "Clean up my words shows, under each thing you say, a clean version of what the voice understood. It is saved, "
+          "so it stays on across calls and restarts.",
+          iphone=(("header", "Quick settings"), ("menu", "Clean up my words")), page=(("top", "Quick settings"),),
+          page_note="It is the Clean words switch in that row; on a narrow screen the row is under More.",
+          mac_note="Or the Clean words chip at the top of the window, or Voice → Clean Up My Words (⇧⌘K).",
+          voice=("clean up my words", "stop cleaning my words"), doc="clean-up-my-words.md"),
+    Topic("reply-length", "Reply length", ("reply length", "answer length", "shorter answers", "longer answers",
+                                           "shorter replies", "more detail", "less detail", "be more concise", "verbosity",
+                                           "verbose", "too long", "too short", "תשובות קצרות", "תשובות ארוכות", "אורך תשובה",
+                                           "יותר תמציתי", "יותר מפורט"),
+          "Reply length sets how long every answer is: Brief, Concise (the default), Detailed or Thorough. \"Tell me "
+          "more\" still makes one answer longer, and drive and whisper mode stay short whatever you choose.",
+          iphone=(("header", "Quick settings"),), page=(("top", "Quick settings"),),
+          mac_note="The reply length chip at the top of the window, or Voice → Brief to Thorough (⌘1 to ⌘4).",
+          voice=("be more concise", "more detail from now on", "brief answers", "תהיה יותר תמציתי"), doc="quick-settings.md"),
+    Topic("speaking-speed", "Speaking speed", ("speaking speed", "speak faster", "talk faster", "speak slower", "slow down",
+                                               "voice speed", "speed of the voice", "too fast", "too slow", "תדבר מהר יותר",
+                                               "תדבר לאט יותר", "מהירות דיבור"),
+          "Speaking speed is 0.8× to 1.2×, and each device keeps its own: the iPhone, the Mac and the page. A voice "
+          "that takes no speed number (Gemini) has no speed control.",
+          iphone=(("header", "Quick settings"),), page=(("top", "Quick settings"),),
+          mac_note="The speed chip at the top of the window, or Voice → Slowest to Fastest (⌥⌘1 to ⌥⌘5).",
+          voice=("speak faster", "slow down", "normal speed"), doc="quick-settings.md"),
     Topic("routing-mode", "Orchestrator or session mode", ("orchestrator mode", "session mode", "routing mode",
                                                            "orchestrator", "pin a session", "talk to one session",
                                                            "מצב תזמורת", "מצב סשן", "אורקסטרייטור"),

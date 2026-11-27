@@ -1,10 +1,15 @@
 """The user's settings, owned by the daemon so the page and the phone show and change the same thing.
-~/.claude-voice/prefs.json, 0600. Only known keys, with their types; anything else is refused."""
+~/.claude-voice/prefs.json, 0600. Only known keys, with their types; anything else is refused.
+
+Each change is noted in settings-changes.log beside it: the time, the key and where the change came from, never a value
+and never words. It stays on this Mac: nothing reads it but the owner, and no log or report carries it anywhere."""
 
 import json
 import os
+import time
 from pathlib import Path
 
+import quick
 from briefing import valid_days, valid_time
 from newsession import valid_folders
 from nightshift import HOURS, MESSAGES, valid_hours, valid_messages
@@ -48,12 +53,17 @@ SCHEMA: dict[str, tuple] = {
     "thinking.cue": (True, bool),  # the waiting sound: one soft tone when a reply takes long (thinking.py)
     "progress.spoken": (False, bool),  # say how a session is doing while it works on a request (progress.py)
     "turns.patience": ("normal", ("quick", "normal", "patient")),  # wait before answering (turns.LEVELS): how long a pause ends a sentence
+    "replies.length": (quick.DEFAULT_LEVEL, quick.LEVELS),  # conversation.LENGTHS: Concise is the length Pointe always had
+    "voice.speed": ({}, quick.valid_speeds),  # per device: {"mac" | "iphone" | "page": 0.8 … 1.2}; a device not in it speaks at 1
+    "polish": (False, bool),  # Clean up my words: a cleaned line under each thing the user says, on the screen only
 }
+CHANGES_MAX_BYTES = 256_000  # the change log keeps its newer half past this
 
 
 class Prefs:
     def __init__(self, path: Path) -> None:
         self.path = path
+        self.changes_path = path.with_name("settings-changes.log")
         self.values: dict = {}
         try:
             loaded = json.loads(path.read_text())
@@ -63,22 +73,54 @@ class Prefs:
 
     def get(self, key: str):
         value = self.values.get(key, SCHEMA[key][0])
-        return list(value) if isinstance(value, list) else value  # never the schema's own default list
+        if isinstance(value, dict):
+            return dict(value)
+        return list(value) if isinstance(value, list) else value  # never the schema's own default list or dict
 
     def all(self) -> dict:
         return {k: self.get(k) for k in SCHEMA}
 
-    def update(self, changes: dict) -> dict:
+    def update(self, changes: dict, by: str = "app") -> dict:
+        """`by`: where the change came from ("app", "voice", "pointe"), for the change log."""
         bad = [k for k, v in changes.items() if k not in SCHEMA or not _ok(k, v)]
         if bad:
             raise ValueError(f"not a setting, or a wrong value: {', '.join(sorted(bad))}")
+        changed = _changed_keys(self.all(), changes)
         self.values.update(changes)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self.path.with_suffix(".tmp")
         tmp.touch(mode=0o600)
         tmp.write_text(json.dumps(self.values, indent=1))
         os.replace(tmp, self.path)
+        if changed:
+            self._note(changed, by)
         return self.all()
+
+    def _note(self, keys: list[str], by: str) -> None:
+        """One line per changed key: when, which, and from where. Never the value."""
+        stamp = time.strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            if self.changes_path.exists() and self.changes_path.stat().st_size > CHANGES_MAX_BYTES:
+                lines = self.changes_path.read_text().splitlines(keepends=True)
+                self.changes_path.write_text("".join(lines[len(lines) // 2:]))
+            if not self.changes_path.exists():
+                self.changes_path.touch(mode=0o600)
+            with self.changes_path.open("a") as f:
+                f.writelines(f"{stamp} {key} {by}\n" for key in keys)
+        except OSError:
+            pass
+
+
+def _changed_keys(before: dict, changes: dict) -> list[str]:
+    """The keys whose value changes; a per-device setting names the device ("voice.speed.iphone")."""
+    keys = []
+    for key, value in changes.items():
+        if isinstance(value, dict):
+            old = before.get(key) or {}
+            keys += [f"{key}.{k}" for k in sorted(set(old) | set(value)) if old.get(k) != value.get(k)]
+        elif before.get(key) != value:
+            keys.append(key)
+    return keys
 
 
 def _ok(key: str, value) -> bool:

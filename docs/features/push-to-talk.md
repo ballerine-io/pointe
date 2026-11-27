@@ -12,7 +12,7 @@ only words that say Pointe's name or a session's are acted on.
 ## Use it
 
 The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
-the page, in the iPhone app and in the Mac app; or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
+the page and in the iPhone app; on the Mac the microphone chip in the title strip ([quick settings](quick-settings.md)); or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
 Settings is the ••• button at the top (on the Mac also ⌘,). It is one daemon setting, so every client agrees. No
 spoken phrase switches it: a press is what opens the microphone. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
 send) or **Tap to talk** (tap to start, the microphone stays open, tap again to send).

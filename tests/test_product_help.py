@@ -201,6 +201,9 @@ def _voice_checks(daemon):
         "night-shift": lambda p: nightshift.shift_intent(p) is not None or nightshift.stop_intent(p),
         # "talk to hermes" is a switch; "give hermes's answer to openclaw" a relay, sent only on a spoken yes (agent_relay.py)
         "agents": lambda p: guards.switch_intent(p) or __import__("agent_relay").asks_relay(p),
+        "polish": lambda p: (daemon.quick.intent(p) or ("",))[0] == "polish",
+        "reply-length": lambda p: (daemon.quick.intent(p) or ("",))[0] == "replies.length",
+        "speaking-speed": lambda p: (daemon.quick.intent(p) or ("",))[0] == "voice.speed",
     }
 
 

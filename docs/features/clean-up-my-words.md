@@ -9,13 +9,14 @@ against your words.
 
 ## Use it
 
-- **Voice:** no phrase. It is a switch.
-- **Page:** the Clean up my words switch at the top. In a narrow window it is under More (the ••• at the top).
-- **iPhone app:** Settings (••• at the top) → Clean up my words, under Your words. Your newest line shows "cleaning up"
-  while it waits.
-- **Mac app:** Settings (••• at the top, or ⌘,) → Clean up my words, the same as the iPhone app.
+- **Voice:** "clean up my words" turns it on; "stop cleaning my words" or "clean my words off" turns it off
+  ([quick settings](quick-settings.md#use-it)).
+- **Page:** the Clean words chip at the top. In a narrow window it is under More (the ••• at the top), with its words.
+- **iPhone app:** the Quick settings button at the top, or Settings (••• at the top) → Clean up my words, under Your
+  words. Your newest line shows "cleaning up" while it waits.
+- **Mac app:** the Clean words chip in the title strip, Voice → Clean Up My Words (⇧⌘K), or Settings → Clean up my words.
 
-It is one daemon switch, so every client agrees. It stays on across calls until Pointe restarts.
+It is one daemon setting (`polish`), so every client agrees, and it is saved: it stays on across calls and restarts.
 
 ## Rules
 
@@ -37,6 +38,6 @@ It is one daemon switch, so every client agrees. It stays on across calls until 
 
 | | |
 |---|---|
-| `POST /voice/polish` | `{on: true\|false}` → `{polish}`. Page cookie, bearer token, phone key |
+| `POST /voice/polish` | `{on: true\|false}` → `{polish}`, for older apps; the same as `POST /voice/prefs {"polish": …}`. Page cookie, bearer token, phone key |
 | status `polish` | the switch |
 | status `talk[].understood` | the clean version of a line you said, when there is one |

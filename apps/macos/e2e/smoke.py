@@ -208,7 +208,8 @@ def main() -> int:
         app.wait("statusLine")
         mode = app.ax("label", "bubble.mode").stdout.strip()
         check("on a call the bubble shows the state and the talk mode", app.wait("bubble.state") and app.has("bubble.talk") and app.has("bubble.close"), mode)
-        check("the window names the same talk mode", mode != "" and mode == app.ax("label", "talkMode").stdout.strip(), mode)
+        check("the window names the same talk mode, on its microphone chip", mode != "" and mode == app.ax("value", "talkMode").stdout.strip()
+              and app.ax("label", "talkMode").stdout.strip() == "Microphone", mode)
         app.shot("bubble", "dark")
         check("× hides the bubble", app.press("bubble.close") and app.wait("bubble.state", 4, gone=True))
     finally:
@@ -333,7 +334,7 @@ def main() -> int:
         check("while Pointe speaks the skip button sits beside the mute button", shown and app.has("muteButton")
               and app.ax("label", "skipButton").stdout.strip() == "Skip this message")
         hint = app.ax("label", "skipShortcut").stdout.strip()
-        check("the window names the skip shortcut beside the talk mode", hint.startswith("Skip ") and app.has("talkMode"), hint)
+        check("the window names the skip shortcut beside the microphone chip", hint.startswith("Skip ") and app.has("talkMode"), hint)
         check("the bubble names it too while Pointe speaks, and has a skip button", app.wait("bubble.skip")
               and app.ax("label", "bubble.mode").stdout.strip() == hint, app.ax("label", "bubble.mode").stdout.strip())
         app.shot("skip", "dark")
@@ -473,18 +474,44 @@ def main() -> int:
         finally:
             app.quit()
 
-    # addressed speech (docs/features/addressed-speech.md): "Only when I say Pointe" is the switch's middle choice, and
-    # with it on the state line says how to talk where it said "Listening".
+    # addressed speech (docs/features/addressed-speech.md): "Only when I say Pointe" is the microphone's middle choice, and
+    # with it on the state line says how to talk where it said "Listening". On the Mac the microphone is the first chip
+    # of the quick row in the title strip (docs/features/quick-settings.md): the switch above the mic is gone.
     for look in ("dark", "light"):
         app = start("-demo", "addressed", "-demoEnglish", look=look)
         try:
-            shown = app.wait("micModeSwitch") and app.wait("statusLine")
+            shown = app.wait("talkMode") and app.wait("statusLine")
             app.shot("addressed", look)
             if look == "dark":
                 check("addressed: the line says how to talk", shown and line(app).startswith("Say “Pointe” to talk"), line(app))
-                check("addressed: the switch has the mode between Always on and Hold to talk",
-                      "Say “Pointe”" in app.ax("texts", "micModeSwitch").stdout or app.ax("button", "Say “Pointe”").returncode == 0,
-                      app.ax("texts", "micModeSwitch").stdout[:120])
+                check("addressed: the microphone chip says the mode, and there is no switch above the mic",
+                      app.ax("value", "talkMode").stdout.strip() == "Say “Pointe”" and not app.has("micModeSwitch"),
+                      app.ax("value", "talkMode").stdout.strip())
+        finally:
+            app.quit()
+
+    # quick settings (docs/features/quick-settings.md): the chips in the title strip show their values, a toggle chip
+    # flips on one press, the Voice menu sets the reply length, and a narrow window keeps every chip.
+    for look in ("dark", "light"):
+        app = start("-demo", "call", "-demoEnglish", look=look)
+        try:
+            shown = app.wait("quickLength")
+            app.shot("quick-row", look)
+            if look == "dark":
+                values = {i: app.ax("value", i).stdout.strip() for i in ("talkMode", "quickLength", "quickSpeed", "quickPolish", "quickWhisper")}
+                check("the quick row: microphone, reply length, speed, clean words and whisper, each with its value", shown and values ==
+                      {"talkMode": "Always on", "quickLength": "Concise", "quickSpeed": "1×", "quickPolish": "On", "quickWhisper": "Off"}, str(values))
+                check("each chip has a name a screen reader says", [app.ax("label", i).stdout.strip() for i in ("quickLength", "quickSpeed", "quickPolish")]
+                      == ["Reply length", "Speaking speed", "Clean up my words"])
+                # the call demo has Clean up my words on, as the mockup does: one press turns it off
+                check("Clean words flips on one press", app.press("quickPolish") and wait_for(lambda: app.ax("value", "quickPolish").stdout.strip() == "Off"),
+                      app.ax("value", "quickPolish").stdout.strip())
+                app.shot("quick-row-clean-off", look)
+                check("the Voice menu sets the reply length", app.ax("menu", "Brief").returncode == 0
+                      and wait_for(lambda: app.ax("value", "quickLength").stdout.strip() == "Brief"), app.ax("value", "quickLength").stdout)
+                app.ax("size", "460", "640")
+                check("a narrow window keeps every chip", wait_for(lambda: all(app.has(i) for i in ("talkMode", "quickLength", "quickSpeed", "quickPolish")), 3))
+                app.shot("quick-row-narrow", look)
         finally:
             app.quit()
     app = start("-demo", "call", "-demoEnglish")

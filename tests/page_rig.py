@@ -42,6 +42,7 @@ def page_html() -> str:
         .replace("{{APPROVALS}}", (ROOT / "pointe" / "ui_approvals.html").read_text())
         .replace("{{ADDRESSED}}", (ROOT / "pointe" / "ui_addressed.html").read_text())
         .replace("{{TONES}}", (ROOT / "pointe" / "ui_tones.html").read_text())
+        .replace("{{QUICK}}", (ROOT / "pointe" / "ui_quick.html").read_text())
     )
 
 
@@ -100,7 +101,8 @@ def fixture(sessions: int = 1, machines: int = 1, talk: int = 0, approval: bool 
         "tokens": {"context": 48210, "at": "15:04"}, "router": "orchestrator: named session → auto (gate) → active session",
         "recent": [{"said": f"what is {names[i % max(1, len(names))] if names else 'shop'} doing", "at": f"15:0{i}:12",
                     "to": [names[i % len(names)]] if names else [], "how": "named"} for i in range(min(8, max(1, sessions)))],
-        "call": {}, "talk": turns, "polish": False, "hearing": "", "machines": machine_rows, "invite": None, "can_invite": True,
+        "call": {}, "talk": turns, "polish": False,
+        "quick": {"length": "concise", "speeds": {}, "speed_shown": True, "by_voice": None}, "hearing": "", "machines": machine_rows, "invite": None, "can_invite": True,
         "invite_ended": None, "phones": {"paired": []}, "sessions": rows,
     }
 
@@ -267,6 +269,13 @@ class StubMac:
             s["addressed"] = {"on": True, "open": False, "dropped": 0} if body["microphone"] == "addressed" else None  # as addressed.status
         elif path == "/voice/polish":
             s["polish"] = bool(body.get("on"))
+        elif path == "/voice/prefs" and {"replies.length", "voice.speed", "polish", "whisper"} & set(body):  # as daemon.prefs_set
+            q = s.setdefault("quick", {"length": "concise", "speeds": {}, "speed_shown": True, "by_voice": None})
+            q["length"] = body.get("replies.length", q["length"])
+            q["speeds"] = {**q["speeds"], **body.get("voice.speed", {})}
+            s["polish"] = body.get("polish", s["polish"])
+            if "whisper" in body:
+                s["whisper"]["on"] = body["whisper"]
         elif path == "/voice/new-session":  # as daemon.new_session: a start shows as a row; a tap answers the read-back
             pending = s.get("start_pending")
             if "confirm" in body or "cancel" in body:

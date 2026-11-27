@@ -483,7 +483,7 @@ def test_the_clean_up_rewrite_is_given_the_names(voc, monkeypatch):
     monkeypatch.setattr(d.vendors, "text", text)
 
     async def go():
-        d.state.polish = True
+        d.PREFS.update({"polish": True})
         d._remember("user", "open quill feather")
         await asyncio.sleep(0.05)
     asyncio.run(go())

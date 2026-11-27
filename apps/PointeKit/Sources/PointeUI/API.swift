@@ -49,6 +49,7 @@ struct API {
         let hearing: String?    // the user's words while they speak
         var mode: String?       // "orchestrator" or "session"
         var polish: Bool?       // "clean up my words" is on
+        var quick: QuickStatus? // quick settings (QuickSettings.swift); nil from a Mac before them
         let meeting: Meeting?   // on, or ended and not yet discarded; nil otherwise
         let notes: NotesVersion?
         let attention: [Attention]?

@@ -10,6 +10,7 @@ import concurrent.futures
 import threading
 import time
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 
 import numpy as np
 from loguru import logger
@@ -17,6 +18,7 @@ from pipecat.audio.utils import create_stream_resampler
 from pipecat.frames.frames import ErrorFrame, Frame, TTSAudioRawFrame
 from pipecat.services.settings import TTSSettings
 from pipecat.services.tts_service import TTSService
+from pipecat.utils.types import NOT_GIVEN, NotGiven
 
 import assets
 
@@ -66,13 +68,18 @@ def warm(voice: str = DEFAULT_VOICE) -> str | None:
     return None
 
 
+@dataclass
+class KokoroMLXSettings(TTSSettings):
+    speed: float | NotGiven = field(default_factory=lambda: NOT_GIVEN)  # the speaking speed (quick.SPEEDS); a call may change it
+
+
 class KokoroMLXTTSService(TTSService):
     """Speaks each sentence as Kokoro makes it: a segment is sent as soon as it exists, not after the whole reply."""
 
     def __init__(self, *, voice: str = DEFAULT_VOICE, speed: float = 1.0, **kwargs):
         super().__init__(push_start_frame=True, push_stop_frames=True,
-                         settings=TTSSettings(model=MODEL, voice=voice, language=None), **kwargs)
-        self._voice, self._speed = voice, speed
+                         settings=KokoroMLXSettings(model=MODEL, voice=voice, language=None, speed=speed), **kwargs)
+        self._voice = voice
         self._resampler = create_stream_resampler()
 
     def can_generate_metrics(self) -> bool:
@@ -86,7 +93,7 @@ class KokoroMLXTTSService(TTSService):
         def make():
             try:
                 for result in _model().generate(text, voice=self._voice, lang_code=lang_code(self._voice),
-                                                 speed=self._speed, verbose=False):
+                                                 speed=self._settings.speed, verbose=False):
                     if stop.is_set():
                         break
                     loop.call_soon_threadsafe(queue.put_nowait, np.asarray(result.audio, dtype=np.float32))

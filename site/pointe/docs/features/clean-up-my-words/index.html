@@ -105,6 +105,7 @@
 <li><a href="../add-sessions/">Add sessions</a></li>
 <li><a href="../night-shift/">Night shift</a></li>
 <li><a href="./" aria-current="page">Clean up my words</a></li>
+<li><a href="../quick-settings/">Quick settings</a></li>
 <li><a href="../voice-stays-local/">Voice stays on your Mac</a></li>
 <li><a href="../local/">Fully local</a></li>
 <li><a href="../openai-url/">OpenAI models from another host</a></li>
@@ -127,17 +128,22 @@ the voice hears or does.</p>
 against your words.</p>
 <h2 id="use-it">Use it</h2>
 <ul>
-<li><strong>Voice:</strong> no phrase. It is a switch.</li>
-<li><strong>Page:</strong> the Clean up my words switch at the top. In a narrow window it is under More (the ••• at the top).</li>
 <li>
-<p><strong>iPhone app:</strong> Settings (••• at the top) → Clean up my words, under Your words. Your newest line shows "cleaning up"
-  while it waits.</p>
+<p><strong>Voice:</strong> "clean up my words" turns it on; "stop cleaning my words" or "clean my words off" turns it off
+  (<a href="../quick-settings/#use-it">quick settings</a>).</p>
 </li>
 <li>
-<p><strong>Mac app:</strong> Settings (••• at the top, or ⌘,) → Clean up my words, the same as the iPhone app.</p>
+<p><strong>Page:</strong> the Clean words chip at the top. In a narrow window it is under More (the ••• at the top), with its words.</p>
+</li>
+<li>
+<p><strong>iPhone app:</strong> the Quick settings button at the top, or Settings (••• at the top) → Clean up my words, under Your
+  words. Your newest line shows "cleaning up" while it waits.</p>
+</li>
+<li>
+<p><strong>Mac app:</strong> the Clean words chip in the title strip, Voice → Clean Up My Words (⇧⌘K), or Settings → Clean up my words.</p>
 </li>
 </ul>
-<p>It is one daemon switch, so every client agrees. It stays on across calls until Pointe restarts.</p>
+<p>It is one daemon setting (<code>polish</code>), so every client agrees, and it is saved: it stays on across calls and restarts.</p>
 <h2 id="rules">Rules</h2>
 <ul>
 <li>
@@ -171,7 +177,7 @@ against your words.</p>
 <tbody>
 <tr>
 <td><code>POST /voice/polish</code></td>
-<td><code>{on: true\|false}</code> → <code>{polish}</code>. Page cookie, bearer token, phone key</td>
+<td><code>{on: true\|false}</code> → <code>{polish}</code>, for older apps; the same as <code>POST /voice/prefs {"polish": …}</code>. Page cookie, bearer token, phone key</td>
 </tr>
 <tr>
 <td>status <code>polish</code></td>
@@ -185,7 +191,7 @@ against your words.</p>
 </table></div>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/clean-up-my-words.md">docs/features/clean-up-my-words.md</a> in the repository.</p>
-<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../night-shift/"><span class="pg-small">Previous</span>Night shift</a><a class="dx-next" href="../voice-stays-local/"><span class="pg-small">Next</span>Voice stays on your Mac</a></nav>
+<nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../night-shift/"><span class="pg-small">Previous</span>Night shift</a><a class="dx-next" href="../quick-settings/"><span class="pg-small">Next</span>Quick settings</a></nav>
 </main>
 <aside class="dx-toc" aria-label="On this page">
 <details class="dx-fold" open data-fold="1080"><summary>On this page</summary>

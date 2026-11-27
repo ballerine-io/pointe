@@ -1,0 +1,223 @@
+<!-- Quick settings (quick.py, docs/features/quick-settings.md): reply length, speaking speed, clean up my words and
+     whisper, as four chips in the top bar where "Clean up my words" sat. Each chip shows its value; a menu chip opens a
+     menu with a line on each level, a toggle chip flips on a click and shows a small switch, so its state is never colour
+     alone. On narrow screens the row moves to More (layoutDock) as one group with its words. The speed is this page's own
+     ("voice.speed".page): the apps keep theirs. Served inside ui.html at {{QUICK}}; the apps have the same words
+     (QuickCopy in QuickSettings.swift). -->
+<style>
+  #quickrow { display: flex; align-items: center; gap: 6px; flex: none; }
+  #quickrow .qhead { display: none; }
+  .qchip { height: 28px; border-radius: 14px; padding: 0 10px 0 9px; display: inline-flex; align-items: center; gap: 6px;
+           font: 500 12.5px var(--font); color: var(--text); background: var(--raised); border: 1px solid var(--line);
+           white-space: nowrap; cursor: pointer; transition: box-shadow .3s; }
+  .qchip[hidden] { display: none; }
+  .qchip svg { flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .qchip svg.i { width: 14px; height: 14px; color: var(--muted); }
+  .qchip svg.chev { width: 8px; height: 10px; color: var(--dim); stroke-width: 1.6; }
+  .qchip.on { background: var(--tint); border-color: var(--orange-line); color: var(--accent); }
+  .qchip.on svg.i { color: var(--accent); }
+  .qchip[aria-expanded=true] { background: var(--line-strong); }
+  .qchip:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(255,90,1,.35); }
+  .qchip.glow { box-shadow: 0 0 0 3px rgba(255,90,1,.30), 0 0 0 1px var(--orange-line); }
+  .qmini { width: 22px; height: 13px; border-radius: 7px; background: var(--line-strong); position: relative; flex: none; margin-left: 2px; }
+  .qmini::after { content: ""; position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--text); }
+  .qchip.on .qmini { background: var(--orange); }
+  .qchip.on .qmini::after { left: 11px; background: #fff; }
+  /* A tight top bar (a narrow window, or the call beside the showing pane): the toggles keep their icon and switch. */
+  .top { container: topbar / inline-size; }
+  @container topbar (max-width: 900px) { .qchip .qw { display: none; } }
+  #qs-pop { position: fixed; z-index: 80; width: 320px; max-width: calc(100vw - 16px); background: var(--card); color: var(--text);
+            border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 14px 40px rgba(0,0,0,.28); padding: 6px; }
+  #qs-pop[hidden] { display: none; }
+  #qs-pop h4 { margin: 6px 8px 4px; font: 600 11px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .qopt { display: grid; grid-template-columns: 18px 1fr; column-gap: 8px; width: 100%; text-align: left; border: 0; background: none;
+          color: inherit; font: inherit; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+  .qopt b { font-weight: 500; font-size: 13.5px; grid-column: 2; }
+  .qopt span { grid-column: 2; font-size: 12px; color: var(--muted); line-height: 1.3; }
+  .qopt svg { grid-row: 1; width: 14px; height: 14px; margin-top: 2px; fill: none; stroke: var(--accent); stroke-width: 2.2;
+              stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+  .qopt[aria-checked=true] svg { visibility: visible; }
+  .qopt:hover, .qopt:focus-visible { background: var(--orange); color: #fff; outline: none; }
+  .qopt:hover span, .qopt:focus-visible span, .qopt:hover svg, .qopt:focus-visible svg { color: rgba(255,255,255,.92); stroke: #fff; }
+  .qfoot { border-top: 1px solid var(--line); margin: 5px 4px 0; padding: 8px 6px 3px; font-size: 12px; color: var(--muted); line-height: 1.35; }
+  #more-list #quickrow { flex-wrap: wrap; gap: 8px; padding: 10px 10px 12px; border-top: 1px solid var(--line); margin-top: 6px; }
+  #more-list #quickrow .qhead { display: block; width: 100%; font: 600 11px var(--font); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  #more-list .qchip { height: 44px; border-radius: 22px; padding: 0 14px; font-size: 14px; }  /* 44 px to the finger */
+</style>
+<script>
+  // The words, word for word quick.COPY and QuickCopy in the apps (tests/test_quick_page.py).
+  const QUICK_COPY = {
+    title: 'Quick settings',
+    length: 'Reply length',
+    speed: 'Speaking speed',
+    polish: 'Clean up my words',
+    polishChip: 'Clean words',
+    polishHint: 'Under each thing you say, a clean version of what the voice understood',
+    whisper: 'Whisper',
+    microphone: 'Microphone',
+    brief: 'Brief',
+    concise: 'Concise',
+    detailed: 'Detailed',
+    thorough: 'Thorough',
+    briefHint: 'One sentence: the answer only.',
+    conciseHint: 'One or two short sentences.',
+    detailedHint: 'The answer, then why, and the caveat that matters.',
+    thoroughHint: 'Explains: what, why, how, and what to watch.',
+    slowest: 'Slowest',
+    slower: 'Slower',
+    normal: 'Normal',
+    faster: 'Faster',
+    fastest: 'Fastest',
+    slowestHint: '0.8× normal speed.',
+    slowerHint: '0.9× normal speed.',
+    normalHint: 'Normal speed.',
+    fasterHint: '1.1× normal speed.',
+    fastestHint: "1.2×, the voice's top speed.",
+    lengthSay: 'Or say it: “be more concise”, “more detail from now on”. “Tell me more” still makes one answer longer.',
+    speedSay: 'Or say it: “speak faster”, “slow down”. The next sentence takes the new speed.',
+    sheetSay: 'Or say it: “be more concise”, “speak faster”, “clean up my words”, “whisper mode”.',
+    allSettings: 'All settings',
+  };
+  const QS_LEVELS = ['brief', 'concise', 'detailed', 'thorough'];
+  const QS_SPEEDS = [[0.8, 'slowest'], [0.9, 'slower'], [1, 'normal'], [1.1, 'faster'], [1.2, 'fastest']];
+  const QS_ICONS = {
+    length: '<path d="M4 6.5h16M4 11.5h11M4 16.5h6"/>',
+    speed: '<path d="M3.5 16.5a8.5 8.5 0 1 1 17 0"/><path d="M12 16.5l4.2-5.2"/>',
+    polish: '<path d="M4 20l11-11M13.5 7.5l3 3"/><path d="M17.5 2.5v3M16 4h3M20.5 8.5v2.4M19.3 9.7h2.4M9.5 3v2.2M8.4 4.1h2.2"/>',
+    whisper: '<path d="M3 10v4M6 8v8M9 5.5v13M12 9v6"/><path d="M15.5 12h6"/>',
+  };
+  const qsSvg = (cls, viewBox, paths) => `<svg class="${cls}" viewBox="${viewBox}" aria-hidden="true">${paths}</svg>`;
+  const QS_CHEV = qsSvg('chev', '0 0 8 10', '<path d="M1.5 3.8L4 1.5l2.5 2.3M1.5 6.2L4 8.5l2.5-2.3"/>');
+  const QS_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const qsSpeedLabel = v => `${Number(v.toFixed(1))}×`;
+  const qs = {key: '', glowSeen: null, open: null, view: null};
+
+  // The row: built once, then only its values change (a chip rebuilt under the pointer swallows the click).
+  (function buildQuickRow() {
+    const row = $('quickrow');
+    const head = el('div', 'qhead', QUICK_COPY.title);
+    const chip = (id, icon, label) => {
+      const b = el('button', 'qchip'); b.type = 'button'; b.id = id; b.title = label;
+      b.innerHTML = qsSvg('i', '0 0 24 24', QS_ICONS[icon]);
+      return b;
+    };
+    const length = chip('qs-length', 'length', QUICK_COPY.length);
+    length.setAttribute('aria-haspopup', 'menu'); length.setAttribute('aria-expanded', 'false');
+    length.append(el('span', 'qv')); length.insertAdjacentHTML('beforeend', QS_CHEV);
+    const speed = chip('qs-speed', 'speed', QUICK_COPY.speed);
+    speed.setAttribute('aria-haspopup', 'menu'); speed.setAttribute('aria-expanded', 'false');
+    speed.append(el('span', 'qv')); speed.insertAdjacentHTML('beforeend', QS_CHEV);
+    const toggle = (id, icon, words, label, hint) => {
+      const b = chip(id, icon, hint); b.setAttribute('role', 'switch'); b.setAttribute('aria-label', label);
+      b.append(el('span', 'qw', words), el('span', 'qmini'));
+      return b;
+    };
+    const polish = toggle('qs-polish', 'polish', QUICK_COPY.polishChip, QUICK_COPY.polish, QUICK_COPY.polishHint);
+    const whisper = toggle('qs-whisper', 'whisper', QUICK_COPY.whisper, QUICK_COPY.whisper, 'Short, quiet replies for an open office');
+    length.addEventListener('click', () => qsMenu('length'));
+    speed.addEventListener('click', () => qsMenu('speed'));
+    polish.addEventListener('click', () => qsSet('polish', polish.getAttribute('aria-checked') !== 'true'));
+    whisper.addEventListener('click', () => qsSet('whisper', whisper.getAttribute('aria-checked') !== 'true'));
+    row.replaceChildren(head, length, speed, polish, whisper);
+    const pop = el('div'); pop.id = 'qs-pop'; pop.hidden = true; pop.setAttribute('role', 'menu');
+    document.body.append(pop);
+  })();
+
+  function qsView(s) {
+    const q = (s && s.quick) || {};
+    return {length: QS_LEVELS.includes(q.length) ? q.length : 'concise', speed: Number((q.speeds || {}).page || 1),
+            speedShown: !!q.speed_shown, polish: !!(s && s.polish), whisper: !!(s && s.whisper && s.whisper.on), byVoice: q.by_voice || null};
+  }
+
+  function qsSet(key, value) {
+    const body = key === 'voice.speed' ? {'voice.speed': {page: value}} : {[key]: value};
+    want('qs:' + key, s => {
+      const q = s.quick = s.quick || {length: 'concise', speeds: {}, speed_shown: true, by_voice: null};
+      if (key === 'replies.length') q.length = value;
+      else if (key === 'voice.speed') q.speeds = {...(q.speeds || {}), page: value};
+      else if (key === 'polish') s.polish = value;
+      else if (key === 'whisper') s.whisper = {...(s.whisper || {}), on: value};
+    }, (async () => {
+      const r = await fetch('/voice/prefs', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify(body)});
+      if (!r.ok) $('problem').textContent = `${key === 'voice.speed' ? QUICK_COPY.speed : key === 'replies.length' ? QUICK_COPY.length
+        : key === 'polish' ? QUICK_COPY.polish : QUICK_COPY.whisper} did not change: the voice is not reachable.`;
+      if (key === 'polish') talkShown = '';
+      refresh();
+      return r.ok;
+    })());
+  }
+
+  function quickFollow(s) {
+    const v = qsView(s);
+    qs.view = v;
+    const key = JSON.stringify([v.length, v.speed, v.speedShown, v.polish, v.whisper]);
+    if (key !== qs.key) {
+      qs.key = key;
+      const length = $('qs-length'), speed = $('qs-speed');
+      length.querySelector('.qv').textContent = QUICK_COPY[v.length];
+      length.setAttribute('aria-label', `${QUICK_COPY.length}, ${QUICK_COPY[v.length]}`);
+      speed.hidden = !v.speedShown;
+      speed.querySelector('.qv').textContent = qsSpeedLabel(v.speed);
+      speed.setAttribute('aria-label', `${QUICK_COPY.speed}, ${qsSpeedLabel(v.speed)}`);
+      for (const [id, on] of [['qs-polish', v.polish], ['qs-whisper', v.whisper]]) {
+        $(id).classList.toggle('on', on); $(id).setAttribute('aria-checked', String(on));
+      }
+      if (qs.open === 'speed' && !v.speedShown) qsClose();
+    }
+    // A change by voice: its chip glows for a moment, on every screen that sees it.
+    const at = v.byVoice && v.byVoice.at;
+    if (qs.glowSeen === null) qs.glowSeen = at || 0;  // the page opening is not a change
+    else if (at && at > qs.glowSeen) {
+      qs.glowSeen = at;
+      const id = {'replies.length': 'qs-length', 'voice.speed': 'qs-speed', polish: 'qs-polish'}[v.byVoice.key];
+      if (id && Date.now() / 1000 - at < 6) { $(id).classList.add('glow'); setTimeout(() => $(id).classList.remove('glow'), 1600); }
+    }
+  }
+
+  function qsMenu(which) {
+    if (qs.open === which) return qsClose();
+    const v = qs.view || qsView(status);
+    const pop = $('qs-pop'), chip = $(which === 'length' ? 'qs-length' : 'qs-speed');
+    const options = which === 'length'
+      ? QS_LEVELS.map(level => [level, QUICK_COPY[level], QUICK_COPY[level + 'Hint'], level === v.length])
+      : QS_SPEEDS.map(([value, name]) => [value, QUICK_COPY[name], QUICK_COPY[name + 'Hint'], Math.abs(value - v.speed) < 0.01]);
+    pop.replaceChildren(el('h4', '', which === 'length' ? QUICK_COPY.length : QUICK_COPY.speed));
+    pop.setAttribute('aria-label', which === 'length' ? QUICK_COPY.length : QUICK_COPY.speed);
+    for (const [value, name, hint, checked] of options) {
+      const b = el('button', 'qopt'); b.type = 'button'; b.setAttribute('role', 'menuitemradio');
+      b.setAttribute('aria-checked', String(checked)); b.id = `qs-opt-${which}-${String(value).replace('.', '_')}`;
+      b.innerHTML = QS_CHECK; b.append(el('b', '', name), el('span', '', hint));
+      b.addEventListener('click', () => { qsClose(); qsSet(which === 'length' ? 'replies.length' : 'voice.speed', value); });
+      pop.append(b);
+    }
+    pop.append(el('div', 'qfoot', which === 'length' ? QUICK_COPY.lengthSay : QUICK_COPY.speedSay));
+    pop.hidden = false;
+    const r = chip.getBoundingClientRect(), w = pop.offsetWidth;
+    pop.style.left = `${Math.max(8, Math.min(r.left, innerWidth - w - 8))}px`;
+    pop.style.top = `${Math.min(r.bottom + 6, innerHeight - pop.offsetHeight - 8)}px`;
+    qs.open = which; chip.setAttribute('aria-expanded', 'true');
+    (pop.querySelector('[aria-checked=true]') || pop.querySelector('.qopt')).focus();
+  }
+
+  function qsClose(focusChip) {
+    if (!qs.open) return;
+    const chip = $(qs.open === 'length' ? 'qs-length' : 'qs-speed');
+    chip.setAttribute('aria-expanded', 'false');
+    $('qs-pop').hidden = true; qs.open = null;
+    if (focusChip) chip.focus();
+  }
+
+  $('qs-pop').addEventListener('keydown', e => {
+    const items = [...$('qs-pop').querySelectorAll('.qopt')], i = items.indexOf(document.activeElement);
+    const go = n => { e.preventDefault(); items[(n + items.length) % items.length].focus(); };
+    if (e.key === 'ArrowDown') go(i + 1);
+    else if (e.key === 'ArrowUp') go(i - 1);
+    else if (e.key === 'Home') go(0);
+    else if (e.key === 'End') go(items.length - 1);
+    else if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); qsClose(true); }
+  });
+  document.addEventListener('pointerdown', e => {
+    if (qs.open && !e.target.closest('#qs-pop') && !e.target.closest('#qs-length, #qs-speed')) qsClose();
+  });
+  addEventListener('resize', () => qsClose());
+</script>
