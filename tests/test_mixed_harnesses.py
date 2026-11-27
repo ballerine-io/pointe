@@ -395,7 +395,8 @@ def test_a_remote_session_joins_with_its_machine_and_a_hub_side_id(d, node):
     assert rows["shop"]["machine"] == "studio" and rows["shop"]["online"] is True
     assert rows["api"]["capabilities"]["side_questions"] is False  # no forked copy on the node
     here, devbox, laptop = status["machines"]
-    assert here == {"id": "hub", "name": "studio", "here": True, "os": here["os"], "online": True, "sessions": 1, "need": 0}
+    assert here == {"id": "hub", "name": "studio", "here": True, "os": here["os"], "online": True, "sessions": 1, "need": 0,
+                    "machine_id": d.HUB.nodes.hub_id}
     assert devbox["name"] == "devbox" and devbox["here"] is False and devbox["sessions"] == 1 and devbox["rtt_ms"] == 23
     assert devbox["os"] == "linux" and devbox["key_fp"] == "3f2a9c" and devbox["online"] is True
     assert laptop["sessions"] == 0

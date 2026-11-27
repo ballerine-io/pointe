@@ -82,7 +82,7 @@ def test_pair_host_listen_adds_the_docker_bridge_address(pair, tmp_path, monkeyp
     monkeypatch.setattr(pair.subprocess, "run", lambda *a, **k: None)
     pair.main(["host", "pointe.example.internal", "--listen", "172.17.0.1"])
     remote = json.loads((tmp_path / "remote.json").read_text())
-    assert remote == {"host": "pointe.example.internal", "listen": ["127.0.0.1", "172.17.0.1"]}
+    assert remote == {"host": "pointe.example.internal", "listen": ["127.0.0.1", "172.17.0.1"], "kind": "host"}
 
 
 def test_pair_host_listen_docker_finds_the_bridge_address_itself(pair, tmp_path, monkeypatch):
