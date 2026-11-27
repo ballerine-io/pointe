@@ -31,7 +31,7 @@ final class AgentsUITests: XCTestCase {
                           "an agent that does not answer says so")
             shot("iphone-agents-\(dark ? "dark" : "light")")
             any("agentAdd").tap()
-            let connect = any("agentConnect")
+            let connect = app.buttons.matching(identifier: "agentConnect").firstMatch  // the button, not its toolbar container
             XCTAssertTrue(connect.waitForExistence(timeout: 10), "the form opens")
             XCTAssertFalse(connect.isEnabled, "nothing to connect until address and token are filled")
             shot("iphone-agents-add-\(dark ? "dark" : "light")")
