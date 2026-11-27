@@ -10,7 +10,8 @@ Behind a flag while it is proven: start Pointe with `POINTE_AGENTS=on` (for exam
 
 - "Talk to hermes": every turn goes to that agent, and its replies are read back. "Orchestrator mode" leaves it.
 - "Ask openclaw to check my calendar for Friday": one request. The reply comes when the agent is done, and waits in
-  "what needs me" if you are busy or not on a call.
+  "what needs me" if you are busy or not on a call. With no call up and alerts on, your phone (or the Mac, or the page)
+  shows "openclaw replied", once until you hear or read it; a tap opens the reply.
 - "What did hermes say?"
 - "Give hermes's answer to openclaw": Pointe reads back what it will pass on and sends it only after your spoken yes.
   Every hop asks. The receiving agent sees it marked as another agent's output.

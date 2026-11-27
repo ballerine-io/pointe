@@ -96,7 +96,7 @@ class AgentHarness(Harness):
         if session.followed and session.followed_to and session.followed_to[0] == str(self.mirror_path(session.id)):
             session.harness_data["heard"] = session.followed_to[1]
         elif self._unheard(session) and not session.needs:
-            session.needs = {"need": UNHEARD, "unblock": f"what did {session.name} say"}
+            _wait_unheard(session)
         checked = self._health.get(session.id)
         if checked and time.time() - checked[0] < HEALTH_EVERY_SECS:
             return
@@ -269,7 +269,7 @@ class AgentHarness(Harness):
                               "pointeTurn": (handle or {}).get("turn", ""), "pointeRelay": int((handle or {}).get("relay") or 0),
                               **({"pointeError": True} if error else {}), **({} if handle else {"pointeUnasked": True})})
         if not session.followed:
-            session.needs = {"need": UNHEARD, "unblock": f"what did {session.name} say"}
+            _wait_unheard(session)
             notes = getattr(HOST, "refresh_notes", None)
             if notes:  # read now, so the next call's greeting knows the reply instead of the notes from before it
                 notes(session)
@@ -281,6 +281,31 @@ class AgentHarness(Harness):
         with path.open("a") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
         path.chmod(0o600)
+
+    def unheard_reply(self, session: Session) -> tuple[int, float] | None:
+        """With no call up, a reply waits unheard: (how far the user heard its record, since when it waits), for the
+        alert (alerts.agent_reply_alert). None during a call: its watcher says the reply there, and `reply` sets none."""
+        if not session.needs or session.needs.get("need") != UNHEARD:
+            return None
+        return int((session.harness_data or {}).get("heard") or 0), float(session.needs.get("at") or time.time())
+
+    def read_replies(self, session: Session, keep: int = 20) -> list[dict]:
+        """The replies not heard yet, for the screen a notification opens; the last reply when none waits. Read on a
+        screen counts as heard: the next call does not say them again, and the next reply notifies again. During a
+        call its watcher owns how far the record was heard."""
+        path = self.mirror_path(session.id)
+        try:
+            data = path.read_bytes()
+        except OSError:
+            return []
+        heard = min(int((session.harness_data or {}).get("heard") or 0), len(data))
+        unheard = _replies(data[heard:])
+        if not session.followed:
+            session.harness_data["heard"] = len(data)
+            if session.needs and session.needs.get("need") == UNHEARD:
+                session.needs = None
+            _save()
+        return (unheard or _replies(data)[-1:])[-keep:]
 
     def _unheard(self, session: Session) -> bool:
         path = self.mirror_path(session.id)
@@ -307,6 +332,22 @@ class AgentHarness(Harness):
             return None
         tool_input = {"command": command, "description": description} if command else {"description": description}
         return await HOST.hold_permission(session, "Bash" if command else "Agent action", tool_input, gone)
+
+
+def _wait_unheard(session: Session) -> None:
+    """"What needs me" lists the agent; `at` stays the first unheard reply's while more arrive."""
+    if not (session.needs and session.needs.get("need") == UNHEARD):
+        session.needs = {"need": UNHEARD, "unblock": f"what did {session.name} say", "at": time.time()}
+
+
+def _replies(data: bytes) -> list[dict]:
+    """The finished replies in a stretch of the record, oldest first: {text, at} (`at` as the record wrote it)."""
+    out = []
+    for line in data.decode("utf-8", "replace").splitlines():
+        text = _final_text(line)
+        if text is not None:
+            out.append({"text": text, "at": (_entry(line) or {}).get("timestamp") or ""})
+    return out
 
 
 def _entry(line: str) -> dict | None:

@@ -11694,6 +11694,13 @@ def _quiet_here(request: Request) -> bool:
     return _off_the_mac(request) and IDLE.in_use()
 
 
+def _agent_unheard(s: Session) -> tuple[int, float] | None:
+    """An agent's reply waits unheard with no call up. Only on the machine the agent is connected to: another machine's
+    copy of it (a node, a machine somebody invited this voice to) has the remote harness, never a framework's."""
+    harness = harnesses.of(s)
+    return harness.unheard_reply(s) if getattr(harness, "framework", False) else None
+
+
 def _attention(quiet: bool = False) -> list[dict]:
     """What may need the user right now, for alerts on the phone, the watch and the desktop: one entry each. `quiet` on
     an item: the client posts nothing for it yet (an approval about to go back to its terminal never is)."""
@@ -11705,6 +11712,8 @@ def _attention(quiet: bool = False) -> list[dict]:
             items.append(item if online(s) else {**item, "approvable": False})  # answered in its terminal now
         elif since := terminal_wait_since(s, time.time()):
             items.append(alerts.terminal_alert(s.name, terminal_wait(s), since, _alert_name(s)))
+        elif unheard := _agent_unheard(s):
+            items.append(alerts.agent_reply_alert(s.name, *unheard, _alert_name(s)))
         elif s.idle_since and s.needs and s.needs.get("need"):
             items.append(alerts.question_alert(s.name, s.needs["need"], s.idle_since))
     for c in ALARM.conflicts:

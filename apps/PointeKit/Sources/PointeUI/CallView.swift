@@ -322,6 +322,7 @@ struct CallView: View {
                 .sheetSurface()
         }
         .background(machineSheets)
+        .background(AgentReplyPresenter(load: agentReplies))
         .sheet(item: $editing) { turn in
             EditTurnSheet(turn: turn) { text in await correct(turn, text) }
                 .presentationDetents([.medium])
@@ -1655,6 +1656,12 @@ struct CallView: View {
                              add: { try await api.addAgent(kind: $0, name: $1, url: $2, secret: $3, agent: $4) },
                              remove: { try await api.removeAgent($0) },
                              seen: { name in try? await api.agentSeen(name) })
+    }
+
+    private var agentReplies: ((String) async throws -> API.AgentReplies)? {
+        guard demo == nil else { return nil }
+        let api = call.api
+        return { try await api.agentReplies($0) }
     }
 
     private func disclosureOK(_ d: API.Disclosure) {

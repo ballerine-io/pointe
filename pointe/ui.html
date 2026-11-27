@@ -876,6 +876,8 @@
                                             font: 400 20px/1 var(--font); cursor: pointer; display: grid; place-items: center; flex: none; padding: 0; }
   .sheetbox h2 button.x:hover, .shead button.x:hover { background: var(--raised2); color: var(--text); }
   .sheetbox .lede { color: var(--muted); font-size: 13.5px; margin-top: -6px; line-height: 1.45; }
+  #reply-list p { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 12px; line-height: 1.45; }
+  #reply-list p.dim { color: var(--muted); }
   .choice { display: flex; flex-direction: column; gap: 8px; }
   .choice label { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; cursor: pointer; background: var(--card); }
   .choice label:has(input:checked) { border-color: var(--orange-line); background: var(--tint); }
@@ -1689,6 +1691,12 @@
     <h2 id="ign-h">Ignored<button class="x" onclick="closeSheet('ignoredsheet')" aria-label="Close">×</button></h2>
     <div class="lede">Speech the voice lock kept from Pointe because it was not your voice.</div>
     <ul id="ignoredlist"></ul>
+  </div>
+</div>
+<div class="sheetbg" id="replysheet" onclick="if (event.target === this) closeSheet('replysheet')">
+  <div class="sheetbox" role="dialog" aria-modal="true" aria-labelledby="reply-h">
+    <h2 id="reply-h"><span id="reply-name" dir="auto"></span><button class="x" onclick="closeSheet('replysheet')" aria-label="Close">×</button></h2>
+    <div id="reply-list"></div>
   </div>
 </div>
 <div class="sheetbg" id="newsheet" onclick="if (event.target === this) closeSheet('newsheet')">
@@ -3857,7 +3865,7 @@
     const back = sheetOpener[id]; sheetOpener[id] = null;
     if (back && back.isConnected && back.offsetParent !== null) back.focus();
   }
-  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'addsheet', 'nightsheet'].find(id => $(id).classList.contains('open'));
+  const openSheetId = () => ['dictsheet', 'endsheet', 'dumpsheet', 'meetsheet', 'settingssheet', 'ignoredsheet', 'briefsheet', 'moresheet', 'rowsheet', 'newsheet', 'addsheet', 'nightsheet', 'replysheet'].find(id => $(id).classList.contains('open'));
   const trapBox = () => { const id = openSheetId(); return id ? $(id) : ['ctxmodal', 'ctxpanel'].map($).find(x => x.classList.contains('open')); };
   document.addEventListener('keydown', e => {  // Tab cycles inside an open sheet or the context panel
     const box = e.key === 'Tab' && trapBox();
@@ -5565,9 +5573,27 @@
       if (!away || !deskWanted() || !deskAllowed()) continue;
       const n = new Notification(a.title || 'Pointe wants to speak', {body: a.body || a.text || '', tag: a.id,
                                                                      requireInteraction: a.kind === 'permission'});
-      n.onclick = () => { window.focus(); n.close(); };
+      n.onclick = () => { window.focus(); n.close(); if (a.kind === 'agent_reply' && a.session) openAgentReply(a.session); };
       desk.shown.set(a.id, n);
     }
+  }
+  // "<agent> replied" (docs/design/agents.md): the click opens its replies, which the Mac then counts as heard.
+  // Shared with the apps (AgentReplyCopy in AgentReply.swift).
+  const REPLY_COPY = {title: name => `${name} replied`, reading: 'Reading the reply\u2026', none: 'No reply waits.',
+                      unreachable: 'The Mac did not answer. Try again in a moment.'};
+  async function openAgentReply(name) {
+    const line = (text, dim) => Object.assign(document.createElement('p'), {textContent: text, dir: 'auto', className: dim ? 'dim' : ''});
+    $('reply-name').textContent = REPLY_COPY.title(name);
+    $('reply-list').replaceChildren(line(REPLY_COPY.reading, true));
+    openSheet('replysheet');
+    let replies = null;
+    try {
+      const r = await fetch(`/voice/agents/${encodeURIComponent(name)}/replies`,
+                            {method: 'POST', headers: {'content-type': 'application/json'}, body: '{}'});
+      if (r.ok) replies = (await r.json()).replies || [];
+    } catch (e) {}
+    $('reply-list').replaceChildren(...(replies === null ? [line(REPLY_COPY.unreachable, true)]
+      : replies.length ? replies.map(x => line(String(x.text || ''))) : [line(REPLY_COPY.none, true)]));
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;

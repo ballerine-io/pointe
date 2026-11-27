@@ -329,6 +329,8 @@ GROUPS: list[tuple[str, list[Feature]]] = [
           web=['id="pref-watch"'], swift=[r"watchApprove"]),
         F("alerts.actions", "Deny and Approve on the notification itself",
           swift=[r"UNNotificationAction\("], web="a web notification has no authenticated action; the click opens the page"),
+        F("alerts.agent-reply", "An agent replied with no call up: one notification, and a tap opens its replies",
+          web=[r"openAgentReply\(a\.session\)", 'id="replysheet"'], swift=[r"AlertOpen\.agentReply\(", r"struct AgentReplySheet\b"]),
         F("alerts.background", "Alerts keep arriving while the app is in the background",
           ios=[r"BGAppRefreshTask|backgroundTask\(\.appRefresh"], mac=[r"MenuBarExtra"],
           web="a background tab keeps its timer; there is nothing to schedule"),

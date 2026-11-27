@@ -309,9 +309,11 @@ final class AlertCenter: NSObject, UNUserNotificationCenterDelegate {
         let id = response.notification.request.identifier, title = content.title
         nonisolated(unsafe) let done = completionHandler
         let clicked = response.actionIdentifier == UNNotificationDefaultActionIdentifier
+        let reply = AlertOpen.agentReply(action: response.actionIdentifier, userInfo: content.userInfo)
         Task { @MainActor in
             if let decision { await self.answer(decision, id: id, title: title) }
             if clicked { self.opened() }
+            if let reply { AgentReplyOpener.shared.agent = AgentName(id: reply) }
             done()
         }
     }

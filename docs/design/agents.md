@@ -68,6 +68,11 @@ waits for an agent. The reply is written to the mirror as a finished turn when i
   finished turn: said when the user is free (the daemon's conversation flow), one line in orchestrator mode.
 - **With no call up** the reply sets the session's `needs` ("a reply you have not heard"). "What needs me" lists it.
   At the next call the watcher feeds the replies written since the last one heard, then follows live.
+- **A notification** (docs/features/alerts.md): the first unheard reply is an `agent_reply` attention item, "hermes
+  replied", the agent's name only. Its id holds how far the record was heard, so later replies share it and the phone
+  posts one notification until the user hears or reads them. A tap opens the replies (`POST /voice/agents/{name}/replies`),
+  and reading them counts as hearing them: the next call does not read them again. The same quiet rules as every alert
+  apply (at the Mac, a night shift, a dismissed item), and only this machine's owner is told.
 - **Unsolicited replies** (an OpenClaw cron job announcing into the conversation) arrive on the same socket and are
   treated the same way.
 - **A restart mid-turn:** the pending run (Hermes run id, A2A task id) is kept in the session's `harness_data` and

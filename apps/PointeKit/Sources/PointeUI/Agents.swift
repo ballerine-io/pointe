@@ -73,6 +73,13 @@ extension API {
     }
 
     func agentSeen(_ name: String) async throws { _ = try await agentsCall("voice/agents/seen", method: "POST", body: ["name": name]) }
+
+    /// What a tap on "<agent> replied" opens (AgentReply.swift): the replies not heard yet, or the last one when none
+    /// waits. The Mac counts them as heard once read.
+    func agentReplies(_ name: String) async throws -> AgentReplies {
+        let escaped = name.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? name
+        return try JSONDecoder().decode(AgentReplies.self, from: try await agentsCall("voice/agents/\(escaped)/replies", method: "POST", body: [:]))
+    }
 }
 
 enum AgentsCopy {

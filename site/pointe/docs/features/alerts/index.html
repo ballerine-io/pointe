@@ -156,7 +156,8 @@ an Approve that comes from a notification.</p>
 <p>What raises an alert: a permission request, a Claude Code session stopped for 15 seconds at a prompt of its own in its
 terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
 up), a session that ended its turn waiting on you, a raised hand in a
-<a href="../meeting-mode/">meeting</a>, a <a href="../conflict-alarm/">conflict</a>, and a scheduled <a href="../briefings/">briefing</a> that is ready.</p>
+<a href="../meeting-mode/">meeting</a>, a <a href="../conflict-alarm/">conflict</a>, a scheduled <a href="../briefings/">briefing</a> that is ready, and
+an <a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">agent</a> that replied while no call was up.</p>
 <h2 id="rules">Rules</h2>
 <ul>
 <li>
@@ -188,6 +189,14 @@ up), a session that ended its turn waiting on you, a raised hand in a
   read, or is over 15 seconds old, counts as away.</p>
 </li>
 <li>
+<p><strong>An agent's reply</strong> with no call up is one notification, "hermes replied", and only the agent's name: its words may
+  hold anything, so they stay in the app and the page, as a conflict's claims do. More replies from that agent add no
+  notification until you hear the first on a call or read it. A tap (a click on the page) opens its replies; reading
+  them counts as hearing them, so the next call does not read them again. Only the machine the agent is connected to
+  alerts, and only its owner: an agent is private (people you invite never see it), and the replies route answers this
+  Mac's page and the owner's phone alone.</p>
+</li>
+<li>
 <p>A stale request answers "Already answered"; a refused Approve answers "Approve it in the app"; anything else answers
   "Mac not reachable", and the notification is posted again on the next check.</p>
 </li>
@@ -208,14 +217,20 @@ up), a session that ended its turn waiting on you, a raised hand in a
 <h2 id="api">API</h2>
 <ul>
 <li>
-<p>Status <code>attention: [{id, kind: permission|terminal|question|hand|conflict|briefing, session?, request_id?, title, body,
+<p>Status <code>attention: [{id, kind: permission|terminal|question|hand|conflict|briefing|agent_reply, session?, request_id?, title, body,
   text, approvable, quiet, at}]</code>. <code>quiet</code>: the user is at this Mac and the client asking is not on it, so it posts
   nothing for the item yet. Status <code>mac_idle_secs</code>: seconds since the Mac's last input, or null when unknown. A <code>terminal</code> item is a prompt in the session's own terminal, id <code>terminal:&lt;session&gt;:&lt;since&gt;</code>. <code>title</code> and <code>body</code> are what a notification may show. <code>approvable</code>: a notification may offer
   Approve. A <code>question</code> is a session that ended its turn waiting on you, id <code>question:&lt;session&gt;:&lt;since&gt;</code>.</p>
 </li>
 <li>
 <p><code>POST /voice/approve</code> takes <code>via: "notification"</code>: an Allow is refused (403) unless the setting is on and the request
-  is <code>approvable</code>; a stale <code>request_id</code> is 409. Deny needs neither.</p>
+  is <code>approvable</code>; a stale <code>request_id</code> is 409. Deny needs neither.
+An <code>agent_reply</code> is an agent's unheard reply with no call up, id <code>agent_reply:&lt;session&gt;:&lt;how far its record was
+  heard&gt;</code>: every later reply shares it until the user hears or reads them.</p>
+</li>
+<li>
+<p><code>POST /voice/agents/{name}/replies</code> (owner only): <code>{agent, replies: [{text, at}]}</code>, the replies not heard yet, or the
+  last one when none waits. They count as heard once read.</p>
 </li>
 <li>
 <p><code>POST /voice/attention {id}</code> dismisses one item for this call.</p>

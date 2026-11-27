@@ -156,6 +156,21 @@ def install(app, host) -> Agents:
         hub.disclose.discard(str((await body_of(request)).get("name") or ""))
         return {"ok": True}
 
+    @app.post("/voice/agents/{name}/replies")
+    async def agents_replies(name: str, request: Request):
+        """What a tap on "<agent> replied" opens: the replies not heard yet, which count as heard once read here. By the
+        agent's name or its session's (a renamed one)."""
+        if not owner(request):
+            return refused
+        if not agents.enabled():
+            return off
+        agent = hub.store.get(name) or next((a for a in hub.store.agents.values()
+                                             if (s := hub.session(a)) is not None and s.name == name), None)
+        session = hub.session(agent) if agent is not None else None
+        if session is None:
+            return PlainTextResponse(f"No agent is called {name}.", status_code=404)
+        return {"agent": session.name, "replies": harnesses.of(session).read_replies(session)}
+
     @app.delete("/voice/agents/{name}")
     async def agents_remove(name: str, request: Request):
         if not owner(request):

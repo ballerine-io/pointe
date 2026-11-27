@@ -91,5 +91,15 @@ def conflict_alert(conflict_id: str, a: str, b: str, at: float) -> dict:
             "text": body, "approvable": False, "at": at}
 
 
+def agent_reply_alert(session: str, heard: int, at: float, title: str = "") -> dict:
+    """An agent (docs/design/agents.md) replied while no call was up. Its name only, as for a conflict: the reply is the
+    agent's own words, which may hold anything, so they stay in the app and the page. `heard`: how far the user had
+    heard its record. Every reply after that shares the id, so a client posts one notification until the user hears or
+    reads them; the next reply after that is a new id."""
+    body = "Open Pointe to read it."
+    return {"id": f"agent_reply:{session}:{heard}", "kind": "agent_reply", "session": session,
+            "title": f"{title or session} replied", "body": body, "text": body, "approvable": False, "at": at}
+
+
 def _hidden(text: str) -> bool:
     return readout._hidden(text.replace("\n", " "))

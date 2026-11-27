@@ -27,7 +27,8 @@ an Approve that comes from a notification.
 What raises an alert: a permission request, a Claude Code session stopped for 15 seconds at a prompt of its own in its
 terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
 up), a session that ended its turn waiting on you, a raised hand in a
-[meeting](meeting-mode.md), a [conflict](conflict-alarm.md), and a scheduled [briefing](briefings.md) that is ready.
+[meeting](meeting-mode.md), a [conflict](conflict-alarm.md), a scheduled [briefing](briefings.md) that is ready, and
+an [agent](../agents.md) that replied while no call was up.
 
 ## Rules
 
@@ -49,6 +50,12 @@ up), a session that ended its turn waiting on you, a raised hand in a
   keystrokes and lets the next alert through soon after you walk away; a missed approval costs more than one extra buzz.
   The page on this Mac is never held: its desktop alerts are for the person at the Mac. An idle time that could not be
   read, or is over 15 seconds old, counts as away.
+- **An agent's reply** with no call up is one notification, "hermes replied", and only the agent's name: its words may
+  hold anything, so they stay in the app and the page, as a conflict's claims do. More replies from that agent add no
+  notification until you hear the first on a call or read it. A tap (a click on the page) opens its replies; reading
+  them counts as hearing them, so the next call does not read them again. Only the machine the agent is connected to
+  alerts, and only its owner: an agent is private (people you invite never see it), and the replies route answers this
+  Mac's page and the owner's phone alone.
 - A stale request answers "Already answered"; a refused Approve answers "Approve it in the app"; anything else answers
   "Mac not reachable", and the notification is posted again on the next check.
 
@@ -63,11 +70,15 @@ up), a session that ended its turn waiting on you, a raised hand in a
 
 ## API
 
-- Status `attention: [{id, kind: permission|terminal|question|hand|conflict|briefing, session?, request_id?, title, body,
+- Status `attention: [{id, kind: permission|terminal|question|hand|conflict|briefing|agent_reply, session?, request_id?, title, body,
   text, approvable, quiet, at}]`. `quiet`: the user is at this Mac and the client asking is not on it, so it posts
   nothing for the item yet. Status `mac_idle_secs`: seconds since the Mac's last input, or null when unknown. A `terminal` item is a prompt in the session's own terminal, id `terminal:<session>:<since>`. `title` and `body` are what a notification may show. `approvable`: a notification may offer
   Approve. A `question` is a session that ended its turn waiting on you, id `question:<session>:<since>`.
 - `POST /voice/approve` takes `via: "notification"`: an Allow is refused (403) unless the setting is on and the request
   is `approvable`; a stale `request_id` is 409. Deny needs neither.
+An `agent_reply` is an agent's unheard reply with no call up, id `agent_reply:<session>:<how far its record was
+  heard>`: every later reply shares it until the user hears or reads them.
+- `POST /voice/agents/{name}/replies` (owner only): `{agent, replies: [{text, at}]}`, the replies not heard yet, or the
+  last one when none waits. They count as heard once read.
 - `POST /voice/attention {id}` dismisses one item for this call.
 - Pref `alerts.watch_approve` (default false) in `GET/POST /voice/prefs`.
