@@ -2,6 +2,8 @@
 
 Status: design, not built; revised after an independent review. Line numbers are from a pre-release `main` (2026-11).
 
+A client now pairs with several machines, each a full voice: [multi-machine-clients.md](multi-machine-clients.md).
+
 Owner decisions taken into this revision: one hub per node in v1; transcripts (credentials masked on the node) may
 reach the hub's vendors; the machine is said aloud only when ambiguous, on a switch across machines, and in
 "everywhere" answers; `bin/voice-remote` is deleted in its own small PR; the iPhone app keeps full parity with the page.
