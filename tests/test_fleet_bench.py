@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "bench" / "fleet"))
-import report  # noqa: E402
-import score  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bench_fleet import load  # noqa: E402
+
+report, score, turns = load("report", "score", "turns")
 
 FLEET = {"sessions": [{"id": "a", "name": "pinwheel", "machine": "studio"}, {"id": "b", "name": "gable", "machine": "studio"},
                       {"id": "c", "name": "shop", "machine": "studio"}, {"id": "d", "name": "shop", "machine": "avi-box"}]}
@@ -131,8 +131,6 @@ def test_the_report_refuses_when_the_dataset_is_not_the_frozen_one(tmp_path):
 
 
 def test_the_dataset_on_disk_is_the_generators_and_the_frozen_one():
-    import turns
-
     assert turns.check() == []
     for size in turns.SIZES:
         fleet, listed = turns.load(size)

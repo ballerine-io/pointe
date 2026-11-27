@@ -12,12 +12,11 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "bench" / "fleet"))
-import gen  # noqa: E402
-import run as bench  # noqa: E402
-import sim  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bench_fleet import load  # noqa: E402
 from fleet import until  # noqa: E402
+
+gen, bench, sim = load("gen", "run", "sim")
 
 
 @pytest.mark.slow
