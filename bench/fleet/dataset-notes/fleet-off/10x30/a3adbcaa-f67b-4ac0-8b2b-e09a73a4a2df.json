@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the ticket parser to the new schema without downtime.",
+ "state": "Just started. Claude has read the ticket parser file and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime (constraint stays until the owner lifts it).",
+  "Owner chose to start with the ticket parser file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the parser must change is not yet recorded.",
+  "How zero downtime will be achieved is not yet settled.",
+  "Whether the parser's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the ticket parser for the new schema and runs its tests.",
+ "people_and_names": [
+  "titan",
+  "ticket parser"
+ ]
+}

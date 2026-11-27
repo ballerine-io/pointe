@@ -1,0 +1,17 @@
+{
+ "goal": "Make the billing sampler safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the billing sampler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What change makes the sampler idempotent is not yet determined",
+  "Whether the existing tests pass and cover a double run"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the billing sampler for idempotency and runs its tests, ideally including a run-twice check.",
+ "people_and_names": [
+  "billing sampler"
+ ]
+}

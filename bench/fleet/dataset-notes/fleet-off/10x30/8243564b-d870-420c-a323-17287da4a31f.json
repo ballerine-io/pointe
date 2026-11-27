@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the signup indexer drops records under load and fix it.",
+ "state": "Just started: Claude read the signup indexer source and is about to change it and run its tests. No root cause identified yet and no fix made.",
+ "decisions": [
+  "Owner directed starting the investigation with the signup indexer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Root cause of dropped records under load is not yet identified.",
+  "Whether the fix holds under load is untested; only the indexer's own tests are planned."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude identifies the cause of the dropped records, makes the change, and runs the indexer tests.",
+ "people_and_names": [
+  "signup indexer"
+ ]
+}

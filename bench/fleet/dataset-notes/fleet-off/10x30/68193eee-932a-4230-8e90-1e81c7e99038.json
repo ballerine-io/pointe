@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the delivery ledger drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the delivery ledger and all 14 tests pass. The record does not say what the root cause was or whether it was tested under load.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records is not stated in the record",
+  "Not confirmed that the fix was tested under real load; only the 14 tests are reported passing"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load.",
+ "people_and_names": [
+  "delivery ledger",
+  "14 tests"
+ ]
+}

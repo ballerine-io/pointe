@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the delivery resolver drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the delivery resolver and all 14 tests pass. The root cause was not stated in the record, and behavior under real load was not reported as tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record",
+  "Whether the fix was verified under actual load, beyond the 14 passing tests"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "delivery resolver",
+  "falcon"
+ ]
+}

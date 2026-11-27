@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the currency watchdog to the new schema without downtime.",
+ "state": "Claude Code reports the change to the currency watchdog is done and all 14 tests pass. Whether the migration has run live without downtime is not stated in the record.",
+ "decisions": [
+  "Owner directed starting the migration with the currency watchdog module; the requirement is no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Not stated whether the migration was deployed or run against live data; only the code change and tests are reported.",
+  "Downtime-free behavior was not shown to be tested, only that 14 tests pass."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the schema migration will be rolled out without downtime and whether it has been deployed.",
+ "people_and_names": [
+  "currency watchdog",
+  "ferret",
+  "14 tests"
+ ]
+}

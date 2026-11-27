@@ -1,0 +1,20 @@
+{
+ "goal": "Move the payroll queue off the deprecated client library.",
+ "state": "Just started: Claude has read the payroll queue file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the payroll queue module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library to use is not stated in the record.",
+  "Whether the payroll queue tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the change to the payroll queue module and run its tests.",
+ "people_and_names": [
+  "urchin",
+  "payroll queue"
+ ]
+}

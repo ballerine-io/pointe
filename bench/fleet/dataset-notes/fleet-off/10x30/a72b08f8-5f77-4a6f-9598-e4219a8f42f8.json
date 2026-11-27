@@ -1,0 +1,15 @@
+{
+ "goal": "Make the booking migration safe to run twice with the same input.",
+ "state": "Claude Code reports the change to the booking migration is done and all 14 tests pass. Nothing was reported as tested beyond those tests, and no deployment is mentioned.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm idempotency by running the migration twice on the same input before relying on it.",
+ "people_and_names": [
+  "booking migration",
+  "14 tests"
+ ]
+}

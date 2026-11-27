@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the ticket throttle to the new schema without downtime.",
+ "state": "Just started: Claude has read the ticket throttle module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner: the migration must happen without downtime (stated constraint).",
+  "Owner: start with the ticket throttle module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the migration will avoid downtime is not yet recorded.",
+  "Test results for the throttle changes are not yet available."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the ticket throttle for the new schema and run its tests.",
+ "people_and_names": [
+  "sextant",
+  "ticket throttle"
+ ]
+}

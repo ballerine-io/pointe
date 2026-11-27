@@ -1,0 +1,19 @@
+{
+ "goal": "Move the audit scheduler off the deprecated client library.",
+ "state": "Just started. Claude Code has read the audit scheduler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the audit scheduler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library to use is not stated in the record.",
+  "Whether other files besides the audit scheduler also use the deprecated library is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the audit scheduler to the new library and runs its tests.",
+ "people_and_names": [
+  "audit scheduler"
+ ]
+}

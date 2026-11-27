@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the ticket notifier to the new schema without downtime.",
+ "state": "Claude Code reports the change to the ticket notifier is done and all 14 tests pass. No deployment or downtime check is recorded.",
+ "decisions": [
+  "Owner directed starting the migration with the ticket notifier module; the requirement is no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the no-downtime requirement was actually verified; the record only shows unit tests passing.",
+  "Whether the change has been deployed; not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the zero-downtime rollout will be done and whether the change is deployed, since only the 14 tests are reported.",
+ "people_and_names": [
+  "ticket notifier",
+  "14 tests"
+ ]
+}

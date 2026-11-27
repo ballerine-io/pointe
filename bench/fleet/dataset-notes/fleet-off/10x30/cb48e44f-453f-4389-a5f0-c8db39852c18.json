@@ -1,0 +1,17 @@
+{
+ "goal": "Make the billing dashboard safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the billing dashboard file and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What currently makes a repeat run unsafe is not yet identified",
+  "Whether the dashboard's tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the billing dashboard to be idempotent and run its tests.",
+ "people_and_names": [
+  "billing dashboard"
+ ]
+}

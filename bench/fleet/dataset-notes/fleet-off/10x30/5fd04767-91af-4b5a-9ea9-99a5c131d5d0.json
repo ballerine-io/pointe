@@ -1,0 +1,18 @@
+{
+ "goal": "Move the billing cache off the deprecated client library.",
+ "state": "Done: the change in billing_cache.py is made and all 14 tests pass, per Claude Code. Nothing was reported as deployed or tested beyond those tests.",
+ "decisions": [
+  "Owner asked to start the migration with billing_cache.py."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change, then check whether other files still use the deprecated client library.",
+ "people_and_names": [
+  "billing_cache.py",
+  "billing cache",
+  "deprecated client library"
+ ]
+}

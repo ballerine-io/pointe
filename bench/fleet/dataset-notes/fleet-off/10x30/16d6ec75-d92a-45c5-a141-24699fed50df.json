@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the wishlist importer's cold start time by half.",
+ "state": "Claude Code reports the change to the importer is done and all 14 tests pass. The record shows no measured cold start time, so the halving is not confirmed.",
+ "decisions": [
+  "Owner asked to start with the wishlist importer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Has cold start time actually been cut by half? No before/after measurement is in the record.",
+  "Change is not shown as deployed or reviewed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code for before and after cold start measurements to confirm the 50% reduction.",
+ "people_and_names": [
+  "wishlist importer",
+  "14 tests"
+ ]
+}

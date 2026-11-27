@@ -1,0 +1,12 @@
+{
+ "goal": "Split the refund export into a reader and a writer with a clear interface.",
+ "state": "Done: the split is made in the refund export file and all 14 tests pass, according to Claude Code.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": []
+}

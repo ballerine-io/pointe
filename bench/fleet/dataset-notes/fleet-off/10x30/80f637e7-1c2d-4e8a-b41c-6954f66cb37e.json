@@ -1,0 +1,17 @@
+{
+ "goal": "Make the warranty ledger safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the warranty ledger script and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the ledger should detect input it has already processed is not yet decided.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the warranty ledger so repeated runs with the same input produce no duplicate entries, then run its tests.",
+ "people_and_names": [
+  "warranty ledger"
+ ]
+}

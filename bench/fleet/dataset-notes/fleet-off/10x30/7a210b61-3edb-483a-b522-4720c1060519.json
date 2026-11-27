@@ -1,0 +1,19 @@
+{
+ "goal": "Add structured logging to the profile migration and remove its print calls.",
+ "state": "Just started: Claude has read the profile migration module but has not yet made changes or run tests.",
+ "decisions": [
+  "Owner asked to add structured logging and remove the print calls, starting with the profile migration module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration tests pass after the logging change.",
+  "Whether other modules also have print calls to convert beyond the starting file."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the profile migration with structured logging, then run its tests.",
+ "people_and_names": [
+  "profile_migration"
+ ]
+}

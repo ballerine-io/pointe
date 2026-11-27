@@ -1,0 +1,19 @@
+{
+ "goal": "Add retries with backoff to the survey sampler and cover them with tests.",
+ "state": "Just started. Claude has read the survey sampler module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (max attempts, delay, jitter) not yet specified",
+  "Which errors should trigger a retry is not yet decided",
+  "Tests for the retry behavior still to be written"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the survey sampler, then write and run the tests.",
+ "people_and_names": [
+  "gizmo",
+  "survey sampler"
+ ]
+}

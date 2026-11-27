@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the voucher resolver to the new schema without downtime.",
+ "state": "Claude Code reports the voucher resolver change is done and all 14 tests pass. Nothing beyond the resolver has been reported, and downtime-free behavior was not mentioned as verified.",
+ "decisions": [
+  "Owner directed starting the migration with the voucher resolver."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration works without downtime was not confirmed in the record.",
+  "Any remaining parts of the migration beyond the voucher resolver are not mentioned."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm the zero-downtime behavior of the migrated resolver, then decide what part of the migration to tackle next.",
+ "people_and_names": [
+  "voucher resolver",
+  "new schema",
+  "14 tests"
+ ]
+}

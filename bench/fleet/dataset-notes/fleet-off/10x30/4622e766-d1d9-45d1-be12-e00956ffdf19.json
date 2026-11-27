@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the booking webhook's cold start time by half.",
+ "state": "Just started. Claude has read the booking webhook file and is about to change it and run its tests. No changes or test results recorded yet.",
+ "decisions": [
+  "Owner asked to start with the booking webhook file; target is a 50% cut in cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline recorded yet).",
+  "Which changes will actually reduce cold start.",
+  "Whether the webhook's tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the booking webhook and run its tests.",
+ "people_and_names": [
+  "booking webhook"
+ ]
+}

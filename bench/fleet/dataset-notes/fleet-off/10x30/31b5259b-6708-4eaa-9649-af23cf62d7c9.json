@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the banner indexer, covered by tests.",
+ "state": "Done: the retry-with-backoff change is in the banner indexer and all 14 tests pass, per Claude Code's report.",
+ "decisions": [
+  "Owner asked to start with banner_indexer.py and add retries with backoff plus tests."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "nectar",
+  "banner indexer",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Add retries with backoff to the payroll archive and cover them with tests.",
+ "state": "Just started. Claude has read the payroll archive module, which the owner asked to start with, and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the payroll archive module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which operations in the payroll archive should be retried, and the backoff parameters (attempt count, delays), have not been specified.",
+  "Retry tests have not been written or run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the payroll archive, then add tests and run them.",
+ "people_and_names": [
+  "payroll archive",
+  "wren"
+ ]
+}

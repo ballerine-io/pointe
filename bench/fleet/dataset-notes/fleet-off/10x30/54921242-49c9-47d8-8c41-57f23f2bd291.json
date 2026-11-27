@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the quota scheduler drops records under load and fix it.",
+ "state": "Claude Code reports the quota scheduler change is done and all 14 tests pass. The record doesn't show the root cause or whether the fix was tested under load.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records is not stated in the record",
+  "Not confirmed whether the fix was tested under real load, only that 14 tests pass"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was exercised under load.",
+ "people_and_names": [
+  "quota scheduler",
+  "atlas"
+ ]
+}

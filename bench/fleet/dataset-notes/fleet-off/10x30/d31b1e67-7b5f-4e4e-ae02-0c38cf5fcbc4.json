@@ -1,0 +1,20 @@
+{
+ "goal": "Add retries with backoff to the delivery export and cover them with tests.",
+ "state": "Just started: Claude Code has read the delivery export module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with the delivery export module (delivery_export.py)."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Retry and backoff parameters (attempt count, delay, jitter, which errors to retry) are not yet specified.",
+  "Tests for the retry behavior are not yet written."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the delivery export, then add and run tests covering them.",
+ "people_and_names": [
+  "bellows",
+  "delivery_export.py"
+ ]
+}

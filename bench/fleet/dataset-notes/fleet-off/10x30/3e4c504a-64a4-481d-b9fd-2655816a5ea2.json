@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the audit webhook's cold start time by half.",
+ "state": "Just starting. Claude has read the audit webhook code and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner wants cold start time cut by half, starting with the audit webhook code."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What is the current cold start baseline, and what does half of it come to?",
+  "What is causing the slow cold start?",
+  "Do the webhook's tests pass after the changes?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make changes to the audit webhook and run its tests.",
+ "people_and_names": [
+  "iodine",
+  "audit webhook"
+ ]
+}

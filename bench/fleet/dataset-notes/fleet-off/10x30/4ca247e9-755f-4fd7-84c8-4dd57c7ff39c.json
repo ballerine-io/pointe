@@ -1,0 +1,17 @@
+{
+ "goal": "Split the profile importer into a reader and a writer with a clear interface.",
+ "state": "Done: Claude Code reports the split is made in the profile importer and all 14 tests pass. This is Claude's report; no independent check is recorded.",
+ "decisions": [
+  "Owner asked to split the profile importer into a reader and a writer with a clear interface, starting with the profile importer module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "profile importer",
+  "14 tests"
+ ]
+}

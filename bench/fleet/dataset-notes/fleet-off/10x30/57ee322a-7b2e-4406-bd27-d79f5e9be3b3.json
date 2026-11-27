@@ -1,0 +1,20 @@
+{
+ "goal": "Make the dispatch archive safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the dispatch archive script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner asked to start with the dispatch archive script and make repeat runs with the same input safe."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What approach will make repeat runs safe is not yet chosen.",
+  "Test results are not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the dispatch archive so a second run with the same input has no extra effect, then run its tests.",
+ "people_and_names": [
+  "dispatch archive",
+  "fern"
+ ]
+}

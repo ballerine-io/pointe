@@ -1,0 +1,15 @@
+{
+ "goal": "Make the pricing dashboard safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the pricing dashboard is done and all 14 tests pass. This is Claude's own report; nothing in the record shows the owner verified it.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally confirm by running the dashboard twice with the same input and checking the results match.",
+ "people_and_names": [
+  "pricing dashboard",
+  "14 tests"
+ ]
+}

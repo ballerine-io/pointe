@@ -1,0 +1,19 @@
+{
+ "goal": "Make the consent importer safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the importer and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner directed starting with the consent importer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the importer should detect already-imported records is not yet decided",
+  "Whether existing tests cover running the import twice is unknown"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the consent importer to be idempotent and run its tests, including a case that runs the same input twice.",
+ "people_and_names": [
+  "consent importer"
+ ]
+}

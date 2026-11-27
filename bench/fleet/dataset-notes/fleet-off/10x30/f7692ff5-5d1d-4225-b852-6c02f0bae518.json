@@ -1,0 +1,18 @@
+{
+ "goal": "Make the roster watchdog safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the roster watchdog is done and all 14 tests pass. That is Claude's own report; nothing in the record shows a separate check of running it twice on the same input.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether a double run on identical input was actually verified, since only the 14 passing tests are reported"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally ask Claude to confirm a test covers running twice with the same input and produces the same result.",
+ "people_and_names": [
+  "roster watchdog",
+  "roster_watchdog.py",
+  "session f7692f"
+ ]
+}

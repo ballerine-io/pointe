@@ -1,0 +1,18 @@
+{
+ "goal": "Make the delivery notifier safe to run twice with the same input (idempotent), starting with the delivery notifier module.",
+ "state": "Claude has read the delivery notifier module and proposed two approaches, a lock or a retry. No change has been made yet; it is waiting on the owner's choice.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry: which approach to use for making the notifier safe to run twice",
+  "Whether a lock or a retry actually covers the duplicate-input case is not yet verified"
+ ],
+ "waiting_on_user": "Choose between a lock (simpler) and a retry (faster) for making the delivery notifier safe to run twice.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner picks lock or retry, then Claude implements it in the delivery notifier.",
+ "people_and_names": [
+  "delivery notifier",
+  "delivery_notifier.py"
+ ]
+}

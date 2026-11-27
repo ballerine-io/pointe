@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the receipt parser's cold start time by half.",
+ "state": "Just started. Claude has read the receipt parser source and is about to make changes and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the receipt parser module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start baseline is; not yet measured in the record.",
+  "Which parts of the parser cause the slow cold start.",
+  "Whether the tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to set a baseline, then change the parser and run its tests.",
+ "people_and_names": [
+  "receipt parser"
+ ]
+}

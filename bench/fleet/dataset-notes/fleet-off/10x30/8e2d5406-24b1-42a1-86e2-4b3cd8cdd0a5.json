@@ -1,0 +1,21 @@
+{
+ "goal": "Add structured logging to the coupon queue and remove the print calls, starting with coupon_queue.py.",
+ "state": "Done per Claude Code: the change is made in coupon_queue.py and all 14 tests pass. Not independently verified beyond Claude Code's report.",
+ "decisions": [
+  "Owner directed starting with coupon_queue.py for the structured logging change and print call removal."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether print calls remain elsewhere in the coupon queue beyond coupon_queue.py is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether to extend the logging work to other coupon queue files.",
+ "people_and_names": [
+  "avocet",
+  "coupon queue",
+  "coupon_queue.py",
+  "14 tests"
+ ]
+}

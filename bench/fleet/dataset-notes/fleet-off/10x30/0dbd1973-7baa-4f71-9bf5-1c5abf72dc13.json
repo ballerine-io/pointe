@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the returns resolver, covered by tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made and all 14 tests pass. No independent verification beyond Claude Code's report is on record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "returns resolver",
+  "14 tests"
+ ]
+}

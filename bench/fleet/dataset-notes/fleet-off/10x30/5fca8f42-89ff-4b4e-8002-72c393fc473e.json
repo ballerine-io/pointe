@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the dispatch export to the new schema without downtime.",
+ "state": "Just started. Claude has read the dispatch export script and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [
+  "Owner: migrate to the new schema without downtime (constraint stays until lifted).",
+  "Owner: start with the dispatch export script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the migration will avoid downtime is not yet recorded.",
+  "Test results for the dispatch export are not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the dispatch export to the new schema and runs its tests.",
+ "people_and_names": [
+  "dispatch export",
+  "brioche"
+ ]
+}

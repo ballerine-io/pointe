@@ -1,0 +1,17 @@
+{
+ "goal": "Make the currency queue safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the currency queue module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How duplicate runs with the same input should be detected and skipped is not yet decided.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code edits the currency queue to be idempotent, then runs its tests.",
+ "people_and_names": [
+  "currency_queue.py"
+ ]
+}

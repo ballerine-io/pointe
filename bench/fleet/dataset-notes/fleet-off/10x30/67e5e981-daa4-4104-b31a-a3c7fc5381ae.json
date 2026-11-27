@@ -1,0 +1,20 @@
+{
+ "goal": "Move the tenant scheduler off the deprecated client library.",
+ "state": "Just started. Claude has read the tenant scheduler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the tenant scheduler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library or version to use is not stated in the record.",
+  "Whether other files besides the tenant scheduler also use the deprecated library is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the tenant scheduler to the new client library and runs its tests.",
+ "people_and_names": [
+  "tenant scheduler",
+  "dynamo"
+ ]
+}

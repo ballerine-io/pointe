@@ -1,0 +1,22 @@
+{
+ "goal": "Split the warranty resolver into a separate reader and writer with a clear interface between them.",
+ "state": "Just started. Claude Code has read the warranty resolver file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the warranty resolver into a reader and a writer with a clear interface, starting with the warranty resolver file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the resolver's existing tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the split in the warranty resolver and runs its tests.",
+ "people_and_names": [
+  "warranty resolver",
+  "reader",
+  "writer",
+  "session pewter"
+ ]
+}

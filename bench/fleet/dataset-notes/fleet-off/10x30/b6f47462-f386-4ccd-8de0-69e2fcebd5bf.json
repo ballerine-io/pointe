@@ -1,0 +1,19 @@
+{
+ "goal": "Cut the booking queue's cold start time by half.",
+ "state": "Claude reports the change in booking_queue.py is done and all 14 tests pass. No measurement of the actual cold start time is recorded, so the halving is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually measured and cut by half; the record only shows tests passing",
+  "Whether the change is deployed; nothing in the record says it is"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude for before and after cold start numbers to confirm the halving target was met.",
+ "people_and_names": [
+  "booking queue",
+  "booking_queue.py",
+  "14 tests"
+ ]
+}

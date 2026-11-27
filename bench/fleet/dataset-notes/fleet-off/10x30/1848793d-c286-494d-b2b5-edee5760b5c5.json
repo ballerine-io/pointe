@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the delivery parser and remove its print calls.",
+ "state": "Just started: Claude Code has read the delivery parser file and is about to make the changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with the delivery parser module, adding structured logging and removing the print calls."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the delivery parser's tests pass after the change.",
+  "Whether print calls exist in other modules; the owner only said to start with the delivery parser."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the delivery parser with structured logging, then run its tests.",
+ "people_and_names": [
+  "barley",
+  "delivery parser"
+ ]
+}

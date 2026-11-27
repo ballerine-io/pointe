@@ -1,0 +1,14 @@
+{
+ "goal": "Make the receipt batcher safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the receipt batcher is done and all 14 tests pass. No independent verification is recorded beyond Claude's own report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Optionally run the batcher twice on the same input to confirm the second run changes nothing; otherwise the task is complete.",
+ "people_and_names": [
+  "receipt batcher"
+ ]
+}

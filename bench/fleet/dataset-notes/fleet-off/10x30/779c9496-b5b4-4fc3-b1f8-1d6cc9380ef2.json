@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the tariff parser's cold start time by half.",
+ "state": "Just started. Claude Code has read the tariff parser source and is about to make changes and run its tests. No changes, measurements or test results are recorded yet.",
+ "decisions": [
+  "Owner directed starting with the tariff parser module to halve cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start baseline is; not yet measured.",
+  "Which parts of the parser account for the startup time.",
+  "Whether the existing tests pass after changes."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then change the parser and run its tests.",
+ "people_and_names": [
+  "tariff parser"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the shipment webhook and remove the print calls.",
+ "state": "Just started: Claude has read the shipment webhook file and is about to make the logging changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner asked to start with the shipment webhook file, add structured logging, and remove the print calls."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Are there print calls in other files beyond the shipment webhook? Not yet checked.",
+  "Which tests cover the shipment webhook, and do they pass after the change?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the shipment webhook with structured logging, then run its tests.",
+ "people_and_names": [
+  "shipment webhook",
+  "glacier"
+ ]
+}

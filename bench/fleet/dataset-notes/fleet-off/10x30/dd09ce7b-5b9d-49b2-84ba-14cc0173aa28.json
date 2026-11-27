@@ -1,0 +1,20 @@
+{
+ "goal": "Move the tenant notifier off the deprecated client library, starting with tenant_notifier.py.",
+ "state": "Claude Code reports the change to the tenant notifier is done and all 14 tests pass. This is Claude Code's own report; nothing else in the record confirms it.",
+ "decisions": [
+  "Owner directed starting the migration with tenant_notifier.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other modules still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner could review the change and say whether to continue the migration in other files that use the deprecated library.",
+ "people_and_names": [
+  "wharf",
+  "tenant notifier",
+  "tenant_notifier.py"
+ ]
+}

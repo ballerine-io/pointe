@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the survey throttle's cold start time by half.",
+ "state": "Just started: Claude has read the survey throttle file and has asked a question before making changes. No changes or measurements recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now?",
+  "What the current cold start time is, to define the halved target"
+ ],
+ "waiting_on_user": "Choose whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner picks keep or drop for the old column, then Claude begins on the cold start work in the survey throttle.",
+ "people_and_names": [
+  "survey throttle",
+  "millet"
+ ]
+}

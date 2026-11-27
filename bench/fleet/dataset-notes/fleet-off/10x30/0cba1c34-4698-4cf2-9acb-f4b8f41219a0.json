@@ -1,0 +1,16 @@
+{
+ "goal": "Move the dispatch importer off the deprecated client library.",
+ "state": "The change to the dispatch importer is done and all 14 tests pass, per Claude Code's report. Nothing was reported as deployed or tested beyond those tests.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change to the dispatch importer and check whether other files still use the deprecated client library.",
+ "people_and_names": [
+  "dispatch importer",
+  "deprecated client library",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the catalog resolver drops records under load and fix it.",
+ "state": "Claude Code reports the catalog resolver change is done and all 14 tests pass. The root cause and any load testing were not described in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not stated in the record.",
+  "Not stated whether the fix was verified under real load; only the 14 tests are reported passing."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "catalog resolver",
+  "endive"
+ ]
+}

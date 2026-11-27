@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the voucher digest to the new schema without downtime.",
+ "state": "Claude Code reports the voucher_digest.py change is done and all 14 tests pass. Whether it is deployed, or the migration actually ran without downtime, is not stated.",
+ "decisions": [
+  "Owner asked to start the migration with voucher_digest.py; the constraint is no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Zero-downtime behavior and deployment were not confirmed in the record; only the 14 tests were reported."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Verify the zero-downtime rollout plan and deployment status before treating the migration as complete.",
+ "people_and_names": [
+  "voucher_digest.py",
+  "voucher digest",
+  "wicker"
+ ]
+}

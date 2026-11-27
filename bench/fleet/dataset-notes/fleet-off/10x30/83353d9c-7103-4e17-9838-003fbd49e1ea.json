@@ -1,0 +1,15 @@
+{
+ "goal": "Add retries with backoff to the tariff sampler and cover them with tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made in the tariff sampler and all 14 tests pass. No independent verification or deployment is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "tariff sampler",
+  "canyon"
+ ]
+}

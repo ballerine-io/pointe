@@ -1,0 +1,20 @@
+{
+ "goal": "Move the inventory indexer off the deprecated client library, starting with the main indexer module.",
+ "state": "Claude Code reports the migration change to the inventory indexer is done and all 14 tests pass. This is Claude's report only; no owner confirmation or deployment is recorded.",
+ "decisions": [
+  "Owner directed that the migration start with the inventory indexer module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other parts of the indexer still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change, then decides whether to continue migrating any remaining code off the deprecated library.",
+ "people_and_names": [
+  "inventory indexer",
+  "inventory_indexer.py",
+  "14 tests"
+ ]
+}

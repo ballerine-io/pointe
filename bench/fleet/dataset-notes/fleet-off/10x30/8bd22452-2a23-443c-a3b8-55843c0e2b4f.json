@@ -1,0 +1,19 @@
+{
+ "goal": "Move the delivery dashboard off the deprecated client library.",
+ "state": "Claude Code reports the migration of the delivery dashboard module is done and all 14 tests pass. This is Claude's own report; nothing independent confirms it, and it is unclear whether other files still use the old library.",
+ "decisions": [
+  "Owner asked to start the migration with the delivery dashboard module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other parts of the delivery dashboard still use the deprecated client library is not stated.",
+  "Whether the change has been deployed or reviewed is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether any other files still depend on the deprecated client library and migrate them if so.",
+ "people_and_names": [
+  "delivery dashboard"
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the dispatch validator's cold start time by half.",
+ "state": "Just started. Claude has read the dispatch validator source and is about to make changes and run its tests. No changes or measurements are recorded yet.",
+ "decisions": [
+  "Owner directed starting with the dispatch validator file; target is halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline recorded yet)",
+  "Which parts of the validator cause the slow start",
+  "Whether the tests pass after changes"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then change the validator and run its tests.",
+ "people_and_names": [
+  "dispatch validator"
+ ]
+}

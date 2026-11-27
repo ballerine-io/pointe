@@ -1,0 +1,17 @@
+{
+ "goal": "Make the delivery queue safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the delivery queue module and is about to change it and run its tests; no changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How duplicate runs with the same input should be detected and skipped is not yet decided.",
+  "Whether the existing tests cover running twice is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the change to the delivery queue and run its tests, including a case that runs the same input twice.",
+ "people_and_names": [
+  "schist"
+ ]
+}

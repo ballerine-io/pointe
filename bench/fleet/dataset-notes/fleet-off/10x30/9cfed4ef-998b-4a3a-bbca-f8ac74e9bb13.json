@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the banner parser to the new schema without downtime.",
+ "state": "Just starting: Claude has read the banner parser file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner directed that the migration must happen without downtime and should start with the banner parser file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the parser must change is not yet recorded.",
+  "How zero downtime will be ensured during the migration is not yet defined.",
+  "Test results for the parser after the change are pending."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the banner parser to the new schema and run its tests.",
+ "people_and_names": [
+  "banner parser",
+  "tern"
+ ]
+}

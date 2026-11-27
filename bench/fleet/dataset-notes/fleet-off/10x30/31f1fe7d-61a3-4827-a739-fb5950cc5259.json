@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the invoice sampler and remove its print calls.",
+ "state": "Just started: Claude Code has read the invoice sampler file and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner directed: add structured logging and remove the print calls, starting with the invoice sampler file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the invoice sampler's tests pass after the change.",
+  "Whether other files beyond the invoice sampler also need the same logging change (owner said 'start with' it)."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code replaces the print calls with structured logging in the invoice sampler and runs its tests.",
+ "people_and_names": [
+  "invoice sampler",
+  "rye"
+ ]
+}

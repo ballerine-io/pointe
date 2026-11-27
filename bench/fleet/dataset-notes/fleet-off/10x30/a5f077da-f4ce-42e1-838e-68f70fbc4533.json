@@ -1,0 +1,17 @@
+{
+ "goal": "Make the delivery migration safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the delivery migration is done and all 14 tests pass. Not independently verified; the record does not show a double-run test specifically.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests include a run-twice case with identical input is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that one of the 14 tests runs the migration twice with the same input and checks the result is unchanged.",
+ "people_and_names": [
+  "linnet",
+  "delivery migration"
+ ]
+}

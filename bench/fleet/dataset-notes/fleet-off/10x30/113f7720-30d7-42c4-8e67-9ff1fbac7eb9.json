@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the ticket digest to the new schema without downtime.",
+ "state": "Just started: Claude has read the ticket digest script and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime and should start with the ticket digest script."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the digest must change to fit it",
+  "How to keep the migration free of downtime (approach not yet chosen)",
+  "Whether the digest's tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the ticket digest for the new schema and runs its tests.",
+ "people_and_names": [
+  "ticket digest",
+  "noodle"
+ ]
+}

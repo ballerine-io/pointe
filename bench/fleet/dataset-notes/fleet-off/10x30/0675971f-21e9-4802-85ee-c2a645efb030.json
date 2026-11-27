@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the roster notifier to the new schema without downtime.",
+ "state": "Claude Code reports the change to the roster notifier is done and all 14 tests pass. Zero-downtime behavior and deployment are not confirmed in the record.",
+ "decisions": [
+  "Owner directed starting the migration with the roster notifier module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the migration actually avoids downtime was not stated or tested in the record.",
+  "Deployment or rollout of the change is not mentioned."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check how the zero-downtime requirement was verified and plan the rollout of the schema change.",
+ "people_and_names": [
+  "roster notifier",
+  "mallow"
+ ]
+}

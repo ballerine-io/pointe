@@ -1,0 +1,16 @@
+{
+ "goal": "Move the consent ledger off the deprecated client library, starting with consent_ledger.py.",
+ "state": "Done per Claude Code: the change is in consent_ledger.py and all 14 tests pass. Nothing further was reported as pending.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change if desired; check whether other files besides consent_ledger.py still use the deprecated client library.",
+ "people_and_names": [
+  "consent ledger",
+  "consent_ledger.py",
+  "14 tests"
+ ]
+}

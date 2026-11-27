@@ -1,0 +1,17 @@
+{
+ "goal": "Add structured logging to the billing batcher and remove the print calls, starting with the main batcher module.",
+ "state": "Claude has read the batcher module but has made no changes yet. It is paused on a question about the old column.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now? Claude asked and no answer is recorded.",
+  "Structured logging has not been added and the print calls have not been removed yet."
+ ],
+ "waiting_on_user": "Decide whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Get the owner's answer on the old column, then start adding structured logging and removing the print calls.",
+ "people_and_names": [
+  "billing batcher"
+ ]
+}

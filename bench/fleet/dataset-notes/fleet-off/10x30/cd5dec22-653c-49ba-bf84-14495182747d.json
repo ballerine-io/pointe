@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the profile ledger drops records under load and fix it.",
+ "state": "Just started: Claude has read the profile ledger source and is about to change it and run its tests. No root cause identified or fix made yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "What causes the profile ledger to drop records under load",
+  "Whether the fix passes the ledger's tests",
+  "Whether the fix holds under load, which has not been tested"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude identifies the cause of the dropped records, makes the change, and runs the ledger tests.",
+ "people_and_names": [
+  "profile ledger"
+ ]
+}

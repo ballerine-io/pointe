@@ -1,0 +1,18 @@
+{
+ "goal": "Make the payroll throttle safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude has read the payroll throttle module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How the throttle should detect a repeated input is not yet established.",
+  "Whether the existing tests cover running twice with the same input is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the payroll throttle to be idempotent, then run its tests.",
+ "people_and_names": [
+  "payroll throttle",
+  "agate"
+ ]
+}

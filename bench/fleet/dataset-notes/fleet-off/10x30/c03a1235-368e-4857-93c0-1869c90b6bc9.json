@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the returns ledger's cold start time by half.",
+ "state": "Claude reports the change in the returns ledger is done and all 14 tests pass. The record shows no measured cold start time, so the halving is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually measured and cut by half; no before/after numbers in the record"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure cold start time before and after the change to confirm it is cut by half.",
+ "people_and_names": [
+  "returns ledger",
+  "returns_ledger.py"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Make the billing ledger safe to run twice with the same input (idempotent), starting with the billing ledger module.",
+ "state": "Claude Code reports the change to the billing ledger is done and all 14 tests pass. That is Claude's own report; nothing in the record shows the owner has reviewed it.",
+ "decisions": [
+  "Owner directed starting with billing_ledger.py to make the ledger idempotent."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner may review the change and, if desired, confirm a double run with the same input produces no duplicate entries.",
+ "people_and_names": [
+  "billing_ledger.py",
+  "14 tests"
+ ]
+}

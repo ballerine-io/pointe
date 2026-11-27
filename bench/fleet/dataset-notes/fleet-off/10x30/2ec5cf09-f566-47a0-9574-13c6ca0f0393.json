@@ -1,0 +1,20 @@
+{
+ "goal": "Split the invoice dashboard into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude Code has read the invoice dashboard module and is about to make the changes and run its tests. Nothing has been changed or tested yet.",
+ "decisions": [
+  "Owner decided to split the invoice dashboard into a reader and a writer with a clear interface, starting with the invoice dashboard module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the split in the invoice dashboard module and runs its tests.",
+ "people_and_names": [
+  "dolomite",
+  "invoice dashboard"
+ ]
+}

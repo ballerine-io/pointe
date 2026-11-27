@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the roster throttle and remove the print calls.",
+ "state": "Done in the roster throttle module: structured logging added and print calls removed. All 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "roster throttle",
+  "14 tests"
+ ]
+}

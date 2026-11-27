@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the wishlist ledger's cold start time by half.",
+ "state": "Just started. Claude has read the wishlist ledger module and is about to change it and run its tests. No changes or measurements are recorded yet.",
+ "decisions": [
+  "Owner directed starting with the wishlist ledger module, with the target of halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "Where the startup time is actually spent",
+  "Whether the tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change and run the ledger tests.",
+ "people_and_names": [
+  "wishlist ledger",
+  "yucca"
+ ]
+}

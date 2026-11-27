@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the payroll webhook drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the payroll webhook and all 14 tests pass. The root cause and any load testing are not described in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The record does not say what caused the dropped records.",
+  "Not stated whether the fix was tested under real load, or whether it is deployed."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code to explain the root cause and confirm whether the fix was tested under load before deploying.",
+ "people_and_names": [
+  "payroll webhook",
+  "payroll_webhook.py",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,17 @@
+{
+ "goal": "Split the tenant export into a reader and a writer with a clear interface, starting with the tenant export module.",
+ "state": "Claude Code reports the split is done in the tenant export module and all 14 tests pass. This is Claude's own report; nothing independent confirms it.",
+ "decisions": [
+  "Owner decided to split the tenant export into a reader and a writer with a clear interface, starting with the tenant export module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner can review the change, then continue with any remaining parts of the export if wanted.",
+ "people_and_names": [
+  "tenant export",
+  "poppy"
+ ]
+}

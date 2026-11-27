@@ -1,0 +1,15 @@
+{
+ "goal": "Add structured logging to the survey archive and remove the print calls, starting with survey_archive.py.",
+ "state": "Done: the change is in survey_archive.py and all 14 tests pass, per Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "survey archive",
+  "survey_archive.py"
+ ]
+}

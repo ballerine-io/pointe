@@ -1,0 +1,21 @@
+{
+ "goal": "Split the refund notifier into a reader and a writer with a clear interface between them.",
+ "state": "Just started. Claude Code has read the refund notifier module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the refund notifier into a reader and a writer with a clear interface, starting with the refund notifier module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing refund notifier tests pass after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the reader/writer split in the refund notifier module and runs its tests.",
+ "people_and_names": [
+  "refund notifier",
+  "reader",
+  "writer"
+ ]
+}

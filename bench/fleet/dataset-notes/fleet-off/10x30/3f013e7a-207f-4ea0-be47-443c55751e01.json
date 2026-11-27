@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the inventory validator's cold start time by half.",
+ "state": "Just started. Claude Code has read the inventory validator file and is about to change it and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the inventory validator file; target is halving cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start baseline is and where the time goes",
+  "Whether the validator's tests pass after changes",
+  "Whether the halving target is actually reached"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make the change and run the tests.",
+ "people_and_names": [
+  "banjo",
+  "inventory validator"
+ ]
+}

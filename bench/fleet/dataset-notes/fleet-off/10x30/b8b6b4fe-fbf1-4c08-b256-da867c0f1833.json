@@ -1,0 +1,20 @@
+{
+ "goal": "Add structured logging to the profile scheduler and remove its print calls.",
+ "state": "Just starting: Claude has read the profile scheduler file and is about to make the changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with the profile scheduler file, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the scheduler's tests pass after the change.",
+  "Whether other files besides the scheduler also need logging changes (owner said 'start with', implying more may follow)."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Edit the profile scheduler to use structured logging, remove the print calls, then run its tests.",
+ "people_and_names": [
+  "profile scheduler",
+  "matrix"
+ ]
+}

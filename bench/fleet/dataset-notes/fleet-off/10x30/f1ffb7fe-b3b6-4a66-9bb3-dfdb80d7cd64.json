@@ -1,0 +1,20 @@
+{
+ "goal": "Split the warranty watchdog into a reader and a writer with a clear interface, starting with warranty_watchdog.py.",
+ "state": "Claude Code reports the split is done in warranty_watchdog.py and all 14 tests pass. The owner has not yet confirmed or reviewed it.",
+ "decisions": [
+  "Owner asked to split the warranty watchdog into a reader and a writer with a clear interface, starting with warranty_watchdog.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Owner has not reviewed the change; only Claude Code's own report of completion and passing tests is on record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the reader/writer split and its interface, then decides whether to extend the split beyond warranty_watchdog.py.",
+ "people_and_names": [
+  "warranty watchdog",
+  "warranty_watchdog.py",
+  "14 tests"
+ ]
+}

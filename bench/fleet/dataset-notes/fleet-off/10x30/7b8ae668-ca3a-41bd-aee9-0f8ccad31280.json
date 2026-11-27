@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the currency export's cold start time by half.",
+ "state": "Claude reports the change to the currency export is done and all 14 tests pass. No measurement of the actual cold start improvement is recorded.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually cut by half is not confirmed in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the cold start time before and after to confirm the halving target was met.",
+ "people_and_names": [
+  "tangram",
+  "currency export"
+ ]
+}

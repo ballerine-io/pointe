@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the wishlist archive and cover them with tests.",
+ "state": "Just started: Claude has read the wishlist archive module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Backoff parameters (attempt count, delays, which errors to retry) have not been specified or decided",
+  "Retry implementation and tests not yet written"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the wishlist archive, add tests, and run them.",
+ "people_and_names": [
+  "citadel",
+  "wishlist archive"
+ ]
+}

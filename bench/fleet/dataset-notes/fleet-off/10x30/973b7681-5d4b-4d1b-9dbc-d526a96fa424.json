@@ -1,0 +1,19 @@
+{
+ "goal": "Add structured logging to the payroll resolver and remove its print calls.",
+ "state": "Just started: Claude has read the payroll resolver file and is about to make the changes and run its tests. No edits or test results yet.",
+ "decisions": [
+  "Owner asked to start with the payroll resolver file, replacing print calls with structured logging."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging format or library to use for structured logging has not been stated.",
+  "Whether print calls exist in other files beyond the resolver is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the payroll resolver to use structured logging, removes the print calls, and runs its tests.",
+ "people_and_names": [
+  "payroll resolver"
+ ]
+}

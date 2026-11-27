@@ -1,0 +1,17 @@
+{
+ "goal": "Make the loyalty indexer safe to run twice with the same input (idempotent).",
+ "state": "Claude Code reports the change to the loyalty indexer is done and all 14 tests pass. No independent verification is recorded, and nothing indicates a double-run test was specifically done.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the tests cover running the indexer twice with the same input is not stated."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm that a test runs the indexer twice on identical input and gets the same result, then review the change.",
+ "people_and_names": [
+  "loyalty indexer",
+  "dana-rig"
+ ]
+}

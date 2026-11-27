@@ -1,0 +1,20 @@
+{
+ "goal": "Split the tariff cache into a reader and a writer with a clear interface.",
+ "state": "Just started: Claude has read the tariff cache file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the tariff cache into a reader and a writer with a clear interface, starting with the tariff cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader and writer interface should look like is not yet defined.",
+  "Whether the existing tariff cache tests pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the reader/writer split in the tariff cache module and runs its tests.",
+ "people_and_names": [
+  "tariff cache",
+  "hazel"
+ ]
+}

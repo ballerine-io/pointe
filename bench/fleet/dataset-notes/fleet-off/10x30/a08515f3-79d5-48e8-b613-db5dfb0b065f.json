@@ -1,0 +1,18 @@
+{
+ "goal": "Find why the tariff resolver drops records under load and fix it.",
+ "state": "Claude Code reports the fix is made in the tariff resolver and all 14 tests pass. Whether it holds under real load was not stated as tested.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records was not described in the record",
+  "No stated load test confirming the fix under real load"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was checked under load.",
+ "people_and_names": [
+  "tariff resolver",
+  "14 tests"
+ ]
+}

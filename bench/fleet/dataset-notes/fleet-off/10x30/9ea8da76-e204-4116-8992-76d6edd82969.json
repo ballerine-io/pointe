@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the quota importer drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the quota importer source and is about to change it and run its tests. No root cause identified, no fix made, no tests run yet.",
+ "decisions": [
+  "Owner directed starting the investigation with the quota importer source file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What causes the quota importer to drop records under load (not yet identified)",
+  "Whether the fix holds under load, since nothing has been tested yet"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Identify the root cause of the dropped records, make the change in the quota importer, and run its tests.",
+ "people_and_names": [
+  "quota importer"
+ ]
+}

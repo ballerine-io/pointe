@@ -1,0 +1,22 @@
+{
+ "goal": "Migrate the payroll importer to the new schema without downtime.",
+ "state": "Claude reports the payroll importer change is done in the importer file and all 14 tests pass. Deployment and a zero-downtime check are not mentioned in the record.",
+ "decisions": [
+  "Owner asked to start the migration with the payroll importer file; the constraint is no downtime."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was verified is not recorded.",
+  "Whether the change is deployed is not recorded.",
+  "Whether other parts of the payroll system still need migration is not recorded."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude whether the no-downtime requirement was verified and what remains to migrate beyond the importer.",
+ "people_and_names": [
+  "payroll importer",
+  "nickel",
+  "14 tests"
+ ]
+}

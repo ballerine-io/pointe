@@ -1,0 +1,21 @@
+{
+ "goal": "Cut the roster ledger's cold start time by half.",
+ "state": "Just started. Claude Code has read the roster ledger module and is about to make changes and run its tests. No baseline measurement or changes are recorded yet.",
+ "decisions": [
+  "Owner directed starting with the roster ledger module; target is a 50% reduction in cold start time."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What is the current cold start time baseline?",
+  "Where does the cold start time go?",
+  "How will the halved target be verified?"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then change the roster ledger and run its tests.",
+ "people_and_names": [
+  "roster ledger",
+  "omer-lab"
+ ]
+}

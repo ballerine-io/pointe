@@ -1,0 +1,21 @@
+{
+ "goal": "Move the warranty queue off the deprecated client library.",
+ "state": "Just started. Claude has read the warranty queue file and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner chose to start the migration with the warranty queue file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement library or client to use is not stated in the record.",
+  "Whether other code besides the warranty queue still uses the deprecated library is unknown.",
+  "Test results for the warranty queue have not been seen yet."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude make the change to the warranty queue and run its tests, then review the results.",
+ "people_and_names": [
+  "waffle",
+  "warranty queue"
+ ]
+}

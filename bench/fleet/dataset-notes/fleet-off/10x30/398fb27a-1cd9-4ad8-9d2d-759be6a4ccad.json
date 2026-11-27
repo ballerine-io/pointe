@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the receipt dashboard to the new schema without downtime.",
+ "state": "Just started. Claude Code has read the dashboard's main file and is about to change it and run its tests; no changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime.",
+  "Owner decided to start with the receipt dashboard file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the migration will avoid downtime is not yet described.",
+  "Whether the dashboard's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code changes the receipt dashboard for the new schema and runs its tests.",
+ "people_and_names": [
+  "receipt dashboard",
+  "gasket"
+ ]
+}

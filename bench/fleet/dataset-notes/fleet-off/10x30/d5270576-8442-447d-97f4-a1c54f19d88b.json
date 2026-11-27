@@ -1,0 +1,21 @@
+{
+ "goal": "Split the quota throttle into a reader and a writer with a clear interface.",
+ "state": "Just started. Claude has read the quota throttle module and is about to change it and run its tests; no changes or test results reported yet.",
+ "decisions": [
+  "Owner wants the quota throttle split into a reader and a writer with a clear interface, starting with the quota throttle module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the reader/writer interface should look like is not yet defined.",
+  "Whether the existing tests pass before and after the split is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude makes the split in the quota throttle module and runs its tests.",
+ "people_and_names": [
+  "quota throttle",
+  "reader",
+  "writer"
+ ]
+}

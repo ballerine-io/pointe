@@ -1,0 +1,20 @@
+{
+ "goal": "Move the invoice webhook off the deprecated client library, starting with the invoice webhook module.",
+ "state": "Claude Code reports the change to the invoice webhook module is done and all 14 tests pass. This is Claude Code's own report; no deployment or other verification is recorded.",
+ "decisions": [
+  "Owner decided to start the migration off the deprecated client library with the invoice webhook module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other modules still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether other modules still depend on the deprecated client library and decide whether to continue the migration.",
+ "people_and_names": [
+  "invoice webhook",
+  "deprecated client library",
+  "14 tests"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Add retries with backoff to the refund throttle, covered by tests.",
+ "state": "Just started: Claude has read the refund throttle module and is about to make the change and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Backoff parameters (attempt count, delay, jitter) not specified yet",
+  "Which tests exist and what new ones are needed"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Implement retries with backoff in the refund throttle, add tests, and run them.",
+ "people_and_names": [
+  "walrus",
+  "refund throttle"
+ ]
+}

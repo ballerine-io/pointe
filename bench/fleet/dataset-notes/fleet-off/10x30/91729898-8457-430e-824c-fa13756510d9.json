@@ -1,0 +1,20 @@
+{
+ "goal": "Move the tenant resolver off the deprecated client library, starting with tenant_resolver.py.",
+ "state": "Claude Code reports the tenant resolver migration is done and all 14 tests pass. This is Claude's own report; nothing in the record shows the owner has verified it.",
+ "decisions": [
+  "Owner decided to start the migration with tenant_resolver.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other files still use the deprecated client library is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change, then decide whether to continue migrating the remaining users of the deprecated client library.",
+ "people_and_names": [
+  "tenant resolver",
+  "tenant_resolver.py",
+  "deprecated client library"
+ ]
+}

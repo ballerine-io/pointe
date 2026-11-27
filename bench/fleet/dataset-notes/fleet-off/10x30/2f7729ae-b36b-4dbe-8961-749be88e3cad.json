@@ -1,0 +1,17 @@
+{
+ "goal": "Make the inventory queue safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the inventory queue module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How to detect and skip duplicate input is not yet chosen",
+  "Whether the existing tests pass before and after the change is unknown"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the inventory queue to be idempotent, then run its tests.",
+ "people_and_names": [
+  "inventory queue"
+ ]
+}

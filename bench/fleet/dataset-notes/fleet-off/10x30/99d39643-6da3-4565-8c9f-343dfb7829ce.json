@@ -1,0 +1,20 @@
+{
+ "goal": "Move the banner resolver off the deprecated client library.",
+ "state": "Just started: Claude has read the banner resolver file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the banner resolver module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement client library to use is not stated in the record.",
+  "Whether the resolver's tests pass after the change is not yet known."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the banner resolver to use the non-deprecated client and run its tests.",
+ "people_and_names": [
+  "banner resolver",
+  "comet"
+ ]
+}

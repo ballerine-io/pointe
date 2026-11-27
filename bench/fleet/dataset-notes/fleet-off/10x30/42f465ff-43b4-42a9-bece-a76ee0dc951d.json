@@ -1,0 +1,17 @@
+{
+ "goal": "Find why the warranty queue drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the warranty queue module and is about to change it and run its tests. No root cause found, no fix made, no test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Root cause of the dropped records under load is not yet identified",
+  "Whether the planned change fixes the problem and passes the queue's tests"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Let Claude Code make the change to the warranty queue and run its tests, then check whether dropped records under load are explained and fixed.",
+ "people_and_names": [
+  "warranty queue"
+ ]
+}

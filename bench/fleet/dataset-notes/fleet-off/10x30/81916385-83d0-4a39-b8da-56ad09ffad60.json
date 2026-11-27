@@ -1,0 +1,16 @@
+{
+ "goal": "Find why the returns scheduler drops records under load and fix it.",
+ "state": "Claude Code reports the fix is done in the returns scheduler and all 14 tests pass. The root cause and any load testing were not described in the record.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "The record does not say what caused the dropped records or whether the fix was tested under real load."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude Code what the root cause was and whether the fix was verified under load, not just by the 14 unit tests.",
+ "people_and_names": [
+  "returns scheduler"
+ ]
+}

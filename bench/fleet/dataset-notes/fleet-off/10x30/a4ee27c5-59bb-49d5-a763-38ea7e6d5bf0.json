@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the survey scheduler's cold start time by half.",
+ "state": "Just started: Claude Code has read the scheduler module and is about to make changes and run its tests. No changes, measurements or test results are recorded yet.",
+ "decisions": [
+  "Owner chose to start the cold start work with the survey scheduler module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is; no baseline has been recorded.",
+  "Where the cold start time goes; not yet identified.",
+  "Whether the tests pass after the change; not yet run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the current cold start time to get a baseline, then make the change and run the scheduler tests.",
+ "people_and_names": [
+  "survey scheduler"
+ ]
+}

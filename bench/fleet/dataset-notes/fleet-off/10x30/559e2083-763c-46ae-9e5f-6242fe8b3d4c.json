@@ -1,0 +1,19 @@
+{
+ "goal": "Move the loyalty validator off the deprecated client library.",
+ "state": "Done for the starting file: the change is made in the loyalty validator and all 14 tests pass, per Claude Code. Nothing is reported as remaining.",
+ "decisions": [
+  "Owner directed starting the migration with the loyalty validator file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other files still use the deprecated client library was not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Check whether any other files still depend on the deprecated client library.",
+ "people_and_names": [
+  "loyalty validator",
+  "14 tests"
+ ]
+}

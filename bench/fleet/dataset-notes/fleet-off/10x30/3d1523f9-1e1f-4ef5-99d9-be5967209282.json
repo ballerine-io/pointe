@@ -1,0 +1,18 @@
+{
+ "goal": "Split the consent migration into a reader and a writer with a clear interface, starting with the consent migration module.",
+ "state": "Claude Code reports the split is done in the consent migration module and all 14 tests pass. This is Claude Code's own report; the owner has not confirmed it.",
+ "decisions": [
+  "Owner decided to split the consent migration into a reader and a writer with a clear interface, starting with the consent migration module."
+ ],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the change and decides whether the split is acceptable or whether other files need the same treatment.",
+ "people_and_names": [
+  "lemur",
+  "consent migration",
+  "14 tests"
+ ]
+}

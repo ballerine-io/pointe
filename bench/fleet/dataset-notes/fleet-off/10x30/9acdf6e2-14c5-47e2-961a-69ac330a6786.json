@@ -1,0 +1,20 @@
+{
+ "goal": "Split the survey digest into a separate reader and writer with a clear interface between them.",
+ "state": "Just starting: Claude has read the survey digest module and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided to split the survey digest into a reader and a writer with a clear interface, starting with the survey digest module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the interface between reader and writer should look like is not yet defined.",
+  "Whether the existing tests still pass after the split is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the split in the survey digest module, then run its tests.",
+ "people_and_names": [
+  "magpie",
+  "survey digest"
+ ]
+}

@@ -1,0 +1,19 @@
+{
+ "goal": "Migrate the voucher export to the new schema without downtime.",
+ "state": "Claude reports the voucher export change is done and all 14 tests pass. Not stated whether it has been deployed or verified for zero downtime.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether the zero-downtime requirement was actually verified; the record only shows tests passing",
+  "Whether the change has been deployed"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Confirm how the migration will be rolled out without downtime and whether it has been deployed.",
+ "people_and_names": [
+  "voucher export",
+  "new schema",
+  "14 tests"
+ ]
+}

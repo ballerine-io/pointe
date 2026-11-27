@@ -1,0 +1,22 @@
+{
+ "goal": "Split the tariff dashboard into a reader and a writer with a clear interface.",
+ "state": "Claude Code reports the split is done in the tariff dashboard module and all 14 tests pass. This is Claude's own report; nothing in the record shows the owner has reviewed it.",
+ "decisions": [
+  "Owner asked to split the tariff dashboard into a reader and a writer with a clear interface, starting with the tariff dashboard module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Owner has not yet reviewed or confirmed the reader/writer split.",
+  "The record does not say whether the interface was checked beyond the 14 passing tests."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner reviews the reader/writer interface and confirms it, or asks for changes.",
+ "people_and_names": [
+  "tariff dashboard",
+  "reader",
+  "writer",
+  "14 tests"
+ ]
+}

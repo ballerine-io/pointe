@@ -1,0 +1,21 @@
+{
+ "goal": "Migrate the catalog watchdog to the new schema without downtime.",
+ "state": "Just started: Claude has read the watchdog's main file and is about to change it and run its tests. No changes or test results are recorded yet.",
+ "decisions": [
+  "Owner decided the migration must happen without downtime, and to start with the catalog watchdog's main file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema changes for the watchdog is not yet recorded.",
+  "How the no-downtime requirement will be met (migration approach) is not yet recorded.",
+  "Test results after the change are pending."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Make the schema change in the watchdog's main file and run its tests.",
+ "people_and_names": [
+  "catalog watchdog",
+  "pulley"
+ ]
+}

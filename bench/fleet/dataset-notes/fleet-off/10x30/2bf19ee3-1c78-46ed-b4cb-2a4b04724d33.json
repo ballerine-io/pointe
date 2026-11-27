@@ -1,0 +1,18 @@
+{
+ "goal": "Make the warranty scheduler safe to run twice with the same input (idempotent).",
+ "state": "Just started: Claude has read the scheduler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How to detect a repeat run with the same input is not yet decided",
+  "Whether the existing tests cover running twice is unknown"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude edits the warranty scheduler to be idempotent, then runs its tests, including a run-twice check.",
+ "people_and_names": [
+  "wasabi",
+  "warranty scheduler"
+ ]
+}

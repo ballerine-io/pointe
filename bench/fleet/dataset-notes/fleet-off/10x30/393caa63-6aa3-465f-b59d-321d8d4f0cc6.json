@@ -1,0 +1,16 @@
+{
+ "goal": "Add retries with backoff to the ticket resolver and cover them with tests.",
+ "state": "Done per Claude Code: the retry-with-backoff change is made in the ticket resolver and all 14 tests pass. No independent verification beyond Claude Code's report.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "shrike",
+  "ticket resolver",
+  "14 tests"
+ ]
+}

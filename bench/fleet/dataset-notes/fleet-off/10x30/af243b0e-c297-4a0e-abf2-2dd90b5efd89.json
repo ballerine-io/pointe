@@ -1,0 +1,17 @@
+{
+ "goal": "Cut the billing validator's cold start time by half.",
+ "state": "Just started: Claude Code has read the billing validator and asked a question about an old column. No changes or measurements are recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Keep the old column for one release or drop it now?",
+  "What is the current cold start time baseline, and how will the halving be measured? Not yet recorded."
+ ],
+ "waiting_on_user": "Choose whether to keep the old column for one release or drop it now.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Owner answers the old column question so Claude Code can proceed with the cold start work.",
+ "people_and_names": [
+  "billing validator"
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the billing throttle's cold start time by half.",
+ "state": "Claude reports the change in the billing throttle is done and all 14 tests pass. The record does not show a measured cold start time, so the halving is not confirmed.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Whether cold start time was actually measured and cut by half is not stated in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask Claude for the before and after cold start numbers to confirm the halving target was met.",
+ "people_and_names": [
+  "billing throttle",
+  "billing_throttle.py",
+  "14 tests"
+ ]
+}

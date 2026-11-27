@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the shipment sampler to the new schema without downtime.",
+ "state": "Just started: Claude Code has read the shipment sampler file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner wants the migration done without downtime (stated constraint, stays until lifted)."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the new schema looks like and how the sampler must change to match it is not yet recorded.",
+  "How the no-downtime requirement will be met (the rollout approach) is not yet decided."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the shipment sampler for the new schema and run its tests.",
+ "people_and_names": [
+  "flange (session name)",
+  "shipment sampler"
+ ]
+}

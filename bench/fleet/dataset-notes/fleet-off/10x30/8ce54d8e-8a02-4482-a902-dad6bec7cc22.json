@@ -1,0 +1,20 @@
+{
+ "goal": "Cut the shipment cache's cold start time by half.",
+ "state": "Just started. Claude Code has read the shipment cache module and is about to change it and run its tests. No changes or results yet.",
+ "decisions": [
+  "Owner directed starting with the shipment cache module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "What the current cold start time is (no baseline measured yet)",
+  "Which changes will achieve a 50% reduction",
+  "Whether the cache tests pass after the change"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Measure the baseline cold start time, then make the change in the shipment cache and run its tests.",
+ "people_and_names": [
+  "shipment cache"
+ ]
+}

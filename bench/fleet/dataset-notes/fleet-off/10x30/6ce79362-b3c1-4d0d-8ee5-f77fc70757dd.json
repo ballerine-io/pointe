@@ -1,0 +1,21 @@
+{
+ "goal": "Add structured logging to the warranty dashboard and remove its print calls.",
+ "state": "Just started: Claude has read the main dashboard module and is about to make the changes and run its tests. No edits or test results are recorded yet.",
+ "decisions": [
+  "Owner asked to start with the main warranty dashboard module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which logging approach and format to use is not yet stated.",
+  "Whether the tests pass after the change is unknown.",
+  "Whether other modules besides the main dashboard module contain print calls is unchecked."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Replace the print calls in the dashboard module with structured logging, then run its tests.",
+ "people_and_names": [
+  "warranty dashboard",
+  "session heron"
+ ]
+}

@@ -1,0 +1,16 @@
+{
+ "goal": "Move the banner batcher off the deprecated client library, starting with banner_batcher.py.",
+ "state": "Claude Code reports the banner batcher change is done in banner_batcher.py and all 14 tests pass. This is Claude's own report; nothing else is recorded as verified.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "",
+ "people_and_names": [
+  "banner batcher",
+  "banner_batcher.py",
+  "14 tests"
+ ]
+}

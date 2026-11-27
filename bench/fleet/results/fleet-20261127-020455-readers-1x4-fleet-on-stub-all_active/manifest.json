@@ -1,0 +1,91 @@
+{
+ "run": "fleet-20261127-020455-readers-1x4-fleet-on-stub-all_active",
+ "what": "readers",
+ "size": "1x4",
+ "arm": "fleet-on",
+ "models": "stub",
+ "pointe": {
+  "commit": "9722cb2992a7415c4ac2a9e3ff3ef81feabb4188",
+  "pointe_tree": "271e64c1d03c52e417822f4ce27d6581daadf4f4",
+  "pointe_commit": "58af2eb7b662015993e060eed7b212e413ed183b",
+  "dirty_pointe": false
+ },
+ "harness_commit": "9722cb2992a7415c4ac2a9e3ff3ef81feabb4188",
+ "fleet_sha256": "f9280647a063e18d1344d6885ad90a39e04f996652b81c09517eb1b35c48cedf",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-27T02:04:55+0200",
+ "load_start": 9.8466796875,
+ "machine": "arm64, 18 cores",
+ "notes_restored": {
+  "with_notes": 0,
+  "sessions": 4
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 93.2,
+   "cpu_secs": 0.46
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 35.2,
+   "cpu_secs": 0.09
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 0.8,
+  "nodes_up_secs": 0.0,
+  "seed_secs": 0.5,
+  "sessions_joined_secs": 0.0
+ },
+ "sessions_with_notes": 4,
+ "names": {
+  "4b726291-e39e-4dbe-960f-fadf19f2229c": "beacon",
+  "96e1a48c-42c4-49fd-a68f-8bcf52d447c6": "meteor",
+  "956e7361-d357-4203-8bbd-5949866a57c1": "harbor",
+  "d447c8ee-e734-458d-bd40-bdd6d4ebe07f": "finch"
+ },
+ "notes_sha256": "8cc8d7a56e976d0f464720e41403247a6b9dfeddb34e807fa4612d8c717e756d",
+ "setup_calls": {
+  "reader": 4,
+  "brain": 1
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='soniox', mouth='elevenlabs:eleven_v4_turbo', notes=[])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 101.5,
+   "cpu_secs": 0.58
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 37.3,
+   "cpu_secs": 0.18
+  },
+  "threads": 7
+ },
+ "ended": "2026-11-27T02:07:11+0200",
+ "load_end": 6.0341796875,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 101.9,
+   "cpu_secs": 1.34
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 37.5,
+   "cpu_secs": 0.76
+  },
+  "threads": 7
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.0,
+  "by": {}
+ }
+}

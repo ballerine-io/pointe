@@ -1,0 +1,19 @@
+{
+ "goal": "Move the invoice notifier off the deprecated client library.",
+ "state": "Just started: Claude has read the invoice notifier file and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner decided to start the migration with the invoice notifier file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Which replacement library or client to use is not stated in the record.",
+  "Whether the notifier's tests pass after the change is unknown."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Change the invoice notifier to use the replacement client and run its tests.",
+ "people_and_names": [
+  "invoice notifier"
+ ]
+}

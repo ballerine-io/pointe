@@ -1,0 +1,18 @@
+{
+ "goal": "Cut the dispatch ledger's cold start time by half, starting with the dispatch ledger module.",
+ "state": "Claude has read the dispatch ledger module and proposed two approaches, a lock or a retry. No changes made yet; waiting on the owner's choice.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "Lock or retry for the fix: lock is simpler, retry is faster",
+  "Baseline cold start time and how the halving will be measured are not yet stated in the record"
+ ],
+ "waiting_on_user": "Choose between a lock (simpler) and a retry (faster) for the fix.",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Ask the owner to pick lock or retry, then implement it and measure cold start against the baseline.",
+ "people_and_names": [
+  "dispatch ledger",
+  "argon"
+ ]
+}

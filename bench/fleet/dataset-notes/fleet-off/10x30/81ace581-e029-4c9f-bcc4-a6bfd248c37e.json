@@ -1,0 +1,20 @@
+{
+ "goal": "Migrate the catalog throttle to the new schema without downtime.",
+ "state": "Just started: Claude has read the catalog throttle module and is about to change it and run its tests. No changes or test results yet.",
+ "decisions": [
+  "Owner: migrate with no downtime (a standing constraint); start with the catalog throttle module."
+ ],
+ "ruled_out": [],
+ "open": [
+  "How the zero-downtime migration will be done is not yet specified.",
+  "Test results for the throttle change are not yet available."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude changes the catalog throttle for the new schema and runs its tests.",
+ "people_and_names": [
+  "catalog throttle",
+  "catalog_throttle.py"
+ ]
+}

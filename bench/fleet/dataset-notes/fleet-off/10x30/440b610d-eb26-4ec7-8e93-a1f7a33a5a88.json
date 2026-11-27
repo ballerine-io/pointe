@@ -1,0 +1,19 @@
+{
+ "goal": "Find why the survey importer drops records under load and fix it.",
+ "state": "Just started: Claude Code has read the survey importer but has not yet found a cause, changed anything, or run tests.",
+ "decisions": [
+  "Owner directed starting the investigation with the survey importer file."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Root cause of records being dropped under load is not yet identified.",
+  "Fix has not been made and tests have not been run."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code confirms the root cause of the dropped records under load, then changes the survey importer and runs its tests.",
+ "people_and_names": [
+  "survey importer"
+ ]
+}

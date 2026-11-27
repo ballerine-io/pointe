@@ -1,0 +1,20 @@
+{
+ "goal": "Move the ticket scheduler off the deprecated client library, starting with the scheduler module.",
+ "state": "Claude Code reports the scheduler change is done and all 14 tests pass. Not independently verified beyond Claude's report, and no other files were mentioned.",
+ "decisions": [
+  "Owner decided to migrate the ticket scheduler off the deprecated client library, starting with ticket_scheduler.py."
+ ],
+ "ruled_out": [],
+ "open": [
+  "Whether other modules still use the deprecated client library was not addressed in the record."
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Review the change and decide whether to migrate the remaining modules that use the deprecated library.",
+ "people_and_names": [
+  "ticket scheduler",
+  "ticket_scheduler.py",
+  "manor"
+ ]
+}

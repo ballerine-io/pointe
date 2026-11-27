@@ -1,0 +1,18 @@
+{
+ "goal": "Make the dispatch notifier safe to run twice with the same input (idempotent).",
+ "state": "Just started. Claude Code has read the notifier file and is about to change it and run its tests. No changes or test results recorded yet.",
+ "decisions": [],
+ "ruled_out": [],
+ "open": [
+  "How duplicate runs will be detected (not yet decided or recorded)",
+  "Whether the notifier's tests pass after the change (not yet run)"
+ ],
+ "waiting_on_user": "",
+ "waiting_on_others": [],
+ "owner_promised": [],
+ "next_move": "Claude Code makes the idempotency change to the dispatch notifier and runs its tests.",
+ "people_and_names": [
+  "pulsar",
+  "dispatch notifier"
+ ]
+}
