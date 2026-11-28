@@ -6,6 +6,7 @@ here, never by their voice: which sessions cross, who may send, and whose name a
 
   pointe people                              the people invited to this machine
   pointe people invite <name> [--watch]      a one-time line for that person's voice (--watch: they see and hear only)
+  pointe people invite <name> --another-voice  a line for that person's second voice (another machine of theirs): the same person
   pointe people invite <name> --mine         a line for another machine of your own: its voice reaches this one as you
                                              (pointe machines link <name> is the same)
   pointe people grant <name> send|watch      change what a person may do
@@ -235,13 +236,14 @@ class People:
     def names(self) -> list[str]:
         return [p["name"] for p in self.people.values()]
 
-    def add(self, name: str, grant: str, address: str, vendors: list[str], now: float) -> dict:
+    def add(self, name: str, grant: str, address: str, vendors: list[str], now: float, of: str | None = None) -> dict:
+        """`of`: another voice of a person already here (their id): the same person, with a key of its own."""
         self.refresh()
         person_id = secrets.token_hex(8)
         while person_id in self.people:
             person_id = secrets.token_hex(8)
         person = {"id": person_id, "name": name, "key": nodelink.new_key(), "grant": grant, "added": now,
-                  "address": address, "vendors": vendors}
+                  "address": address, "vendors": vendors, **({"of": of} if of else {})}
         self.people[person_id] = person
         self.save()
         return person
@@ -358,7 +360,7 @@ class HostSide:
         self._clock, self._mono = clock, monotonic
         self.people = People(state_dir / "people.json")
         self.invites = Invites(monotonic)
-        self.invite_grant = "send"
+        self.invite_grant, self.invite_of = "send", None
         self.links = nodelink.Links()
         self.live: dict[str, Link] = {}
         self.offline_since: dict[str, float] = {p: clock() for p in self.people.people}
@@ -549,7 +551,12 @@ class HostSide:
     def name_problem(self, name: str) -> str | None:
         return name_problem(name, self.people.names(), self.owner)
 
-    def invite(self, name: str, grant: str, line: Callable[[str, str], str]) -> dict:
+    def _who(self, person_id: str | None) -> str | None:
+        """The person behind a link: one person's other voices (`of`) are that person (docs/design/multi-machine-clients.md, 2.3)."""
+        person = self.people.get(person_id) if person_id else None
+        return (person or {}).get("of") or person_id
+
+    def invite(self, name: str, grant: str, line: Callable[[str, str], str], of: str | None = None) -> dict:
         """A one-time code for one person, replacing any other. `line(code, machine name)` builds the invite line
         (SystemExit with the fix when no address is paired)."""
         code = self.invites.make(name=name)
@@ -559,6 +566,7 @@ class HostSide:
             self.invites.cancel()
             raise
         self.invite_grant = grant
+        self.invite_of = of
         return {"code": code, "link": self.invites.link, "svg": qr(self.invites.link), "expires_in": INVITE_SECS,
                 "name": name, "grant": grant}
 
@@ -581,12 +589,15 @@ class HostSide:
                 logger.warning(f"a person's pairing from {address}: {refused[1]}")
             return refused if refused[0] == 429 else (403, NO_SUCH_INVITE)
         name = " ".join(str(invites.name or "").split())
-        problem = self.name_problem(name)
+        of = getattr(self, "invite_of", None)
+        same = self.people.get(of) if of else None
+        problem = None if same is not None and same["name"].lower() == name.lower() else self.name_problem(name)
         if problem:
             return 409, problem
         invites.cancel()
         vendors = _vendors(body.get("vendors"))
-        person = self.people.add(name, self.invite_grant, address, vendors, self._clock())
+        person = self.people.add(name, same["grant"] if same else self.invite_grant, address, vendors, self._clock(),
+                                 of=same["id"] if same else None)
         self.offline_since[person["id"]] = self._clock()
         invites.paired = {"name": name, "address": address, "network": network(address), "grant": person["grant"],
                           "key_fp": nodelink.fingerprint(person["key"]), "vendors": vendors}
@@ -864,7 +875,7 @@ class HostSide:
         person's own."""
         ask = self._current_ask(session)
         if ask is not None:
-            return None if ask.by_id == person_id else {"by": ask.by, "since": ask.since}
+            return None if self._who(ask.by_id) == self._who(person_id) else {"by": ask.by, "since": ask.since}
         if not self._working(session):
             return None
         since = self._owner_ask(session) if self._owner_ask is not None else None
@@ -1536,11 +1547,14 @@ def install(app, host: HostSide, link: Callable[[str, str], str] | None = None, 
         grant = body.get("grant", "send")
         if grant not in GRANTS:
             return PlainTextResponse("A person may send or watch: say which.", status_code=409)
-        problem = host.name_problem(name)
+        same = host.people.by_name(name) if body.get("another_voice") is True else None
+        if body.get("another_voice") is True and same is None:
+            return PlainTextResponse(f"Nobody called {name} is on this machine yet: invite them first.", status_code=409)
+        problem = None if same else host.name_problem(name)
         if problem:
             return PlainTextResponse(f"{problem}.", status_code=409)
         try:
-            return host.invite(name, grant, link)
+            return host.invite(name, same["grant"] if same else grant, link, of=same["id"] if same else None)
         except SystemExit as e:
             from pair import NOT_SET_UP
             return PlainTextResponse(str(e), status_code=409,
@@ -1636,7 +1650,8 @@ def _people(argv: list[str]) -> None:
     elif command == "invite" and len(argv) > 1:
         name = " ".join(a for a in argv[1:] if not a.startswith("--"))
         grant = "mine" if "--mine" in argv else "watch" if "--watch" in argv else "send"
-        made = _daemon("POST", "/voice/people/invite", {"name": name, "grant": grant})
+        made = _daemon("POST", "/voice/people/invite", {"name": name, "grant": grant,
+                                                        **({"another_voice": True} if "--another-voice" in argv else {})})
         print(made["link"])
         print(f"Valid once, for ten minutes. {name} adds this machine with it: pointe machine add '<the line above>'",
               flush=True)

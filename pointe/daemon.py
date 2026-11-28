@@ -10165,6 +10165,13 @@ async def remote_sent(session: Session, by: str, text: str, at: float) -> None:
         return
     who = _clean_name(by) or "Somebody"
     asked = " ".join(mask(text).split())[:300]
+    m = paired_machine(session.machine) if session.machine else None
+    if m is not None and m.me and who.lower() == m.me.lower():
+        # The user sent it, from another of their own voices: their turn, so its report is theirs to hear here too.
+        session.turn_mine = True
+        NOTES.add("session_news", f"You asked {session.name}, from another of your voices: {asked}", session=session.name, dedup=False)
+        logger.info(f"sent by the user from another voice: {session.name}")
+        return
     kept = state.others_asked.setdefault(session.id, [])
     kept.append(f"{who}, at {time.strftime('%H:%M', time.localtime(at))}: {asked}")
     del kept[:-OTHERS_ASKED_KEPT]
