@@ -720,6 +720,19 @@ def test_the_speech_plan_coalesces_per_machine_names_a_question_and_never_holds_
     assert scale.coalesced("", [r("a"), r("b"), r("c")], several=False).text == "Three finished: a, b and c."
 
 
+
+@pytest.mark.xfail(strict=True, reason="a line names three sessions; a fourth with a question is held (scale.plan_speech): "
+                   "the fleet track owns the fix, and this mark comes off with it")
+@pytest.mark.parametrize("room", [0, 3])
+def test_no_report_with_a_question_is_held_however_many_one_machine_has(room):
+    """The rule in plan_speech's own words: a report with a question for the user is never held. Four questions from one
+    machine and a fifth report: a coalesced line names three sessions, and the fourth question went to `held`."""
+    r = scale.Report
+    reports = [r(f"q{i}", "box", True) for i in range(4)] + [r("a", "box")]
+    lines, held = scale.plan_speech(reports, spoken_lately=room)
+    assert not [h.session for h in held if h.question], (lines, held)
+    assert {s for x in lines for s in x.sessions} | {h.session for h in held} == {x.session for x in reports}
+
 def test_approvals_then_sessions_that_need_the_user_then_the_thread_then_the_rest(d, node, call):
     voice, _ = call
     here = build(d, node, 1, 6, here=1)
