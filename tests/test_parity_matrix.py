@@ -148,3 +148,44 @@ def test_the_design_doc_states_the_counts_the_scan_finds():
         assert row, f"docs/design/parity.md has no row for {parity.NAMES[surface]}"
         cells = [x.strip() for x in row.strip("|").split("|")]
         assert cells[-3:] == [str(c["yes"]), str(c["no"]), str(c["n/a"])], f"{row}: the scan says {c}"
+
+
+# Cells the scan would still call yes with the line it found blanked: the pattern matches elsewhere too (a shared
+# PointeKit source the iPhone and the Mac both list, a word that is also in other text). Measured 2026-11-28 (72 of 528).
+# Make one of these stronger and drop it from here; a new one fails the test below.
+STILL_YES_WITHOUT_THEIR_LINE = {
+    "about.version/mac", "alerts.actions/ios", "alerts.actions/mac", "alerts.approve/ios", "alerts.approve/mac",
+    "alerts.background/ios", "alerts.notify/ios", "alerts.notify/mac", "appearance/mac", "approve.asked/ios",
+    "approve.asked/mac", "approve.more/ios", "approve.more/linux", "approve.more/mac", "approve.more/web",
+    "approve.offline/linux", "approve.offline/web", "approve.owner/ios", "approve.owner/mac", "approve.voice/ios",
+    "approve.voice/linux", "approve.voice/mac", "approve.voice/web", "call.mute/mac", "call.new-pill/ios",
+    "call.new-pill/mac", "call.polish/ios", "call.polish/mac", "call.problem/ios", "call.problem/mac",
+    "call.recent/ios", "call.recent/mac", "call.redial/ios", "call.redial/mac", "call.rtl/linux", "call.rtl/web",
+    "call.type-sending/linux", "call.type-sending/web", "drive.suggest/ios", "ios.airpods/ios", "ios.airpods/mac",
+    "keys/linux", "keys/mac", "keys/web", "mac.keys/mac", "mac.login/mac", "machines.owner/linux",
+    "machines.owner/web", "mute.writing/ios", "mute.writing/linux", "mute.writing/mac", "mute.writing/web",
+    "night.readback/ios", "night.readback/mac", "people.settings/ios", "people.settings/mac", "quick.narrow/mac",
+    "talk.closed-why/ios", "talk.closed-why/linux", "talk.closed-why/mac", "talk.closed-why/web", "talk.copy/ios",
+    "talk.copy/mac", "talk.hold/ios", "talk.hold/mac", "talk.key/mac", "talk.ring/ios", "talk.ring/linux",
+    "talk.ring/mac", "talk.ring/web", "thinking/ios", "thinking/mac"
+}
+
+
+def test_the_scan_notices_each_controls_line_removed_beyond_the_cells_known_to_match_twice():
+    """docs/design/parity.md: the scan is the guard, so it must notice a control taken out. For every yes cell the line
+    its first pattern found is blanked and the cell scanned again; it must no longer be yes, except the cells listed
+    above. test_removing_a_control_from_one_surface_fails_the_scan holds two cells by hand; this holds every one."""
+    files = {s: parity.sources(s) for s in parity.SURFACES}
+    still_yes = set()
+    for f in parity.FEATURES:
+        for s in (s for s in parity.SURFACES if s not in f.bound and f.id != "help"):
+            needs = f.needs(s)
+            found = [parity._find(p, files[s]) for p in needs]
+            if not all(found):
+                continue
+            path, line = found[0].rsplit(":", 1)
+            lines = files[s][path].split("\n")
+            lines[int(line) - 1] = ""
+            if all(parity._find(p, {**files[s], path: "\n".join(lines)}) for p in needs):
+                still_yes.add(f"{f.id}/{s}")
+    assert still_yes <= STILL_YES_WITHOUT_THEIR_LINE, sorted(still_yes - STILL_YES_WITHOUT_THEIR_LINE)
