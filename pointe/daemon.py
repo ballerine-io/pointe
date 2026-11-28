@@ -1324,8 +1324,32 @@ def _brain_context() -> str:
         parts.append(mute.RULE)
     if machines := _machines_line():
         parts.append(machines)
+    if others := _other_goals():
+        parts.append(others)
     parts.append(_needs_now())
     return "\n".join(parts)
+
+
+OTHER_GOALS_MAX = 8  # past this many other sessions the block names none and points to list_sessions (input tokens)
+OTHER_GOAL_CHARS = 90
+
+
+def _other_goals() -> str | None:
+    """What each other session works on, from its notes, so a request for "the session working on X" finds it once
+    notes arrived after the call opened with "no notes yet" (W4's fleet dialogue: orchid's goal was known for 44 s
+    and the brain said no session was about it). Orchestrator mode only: session mode speaks about one session."""
+    if _routing_mode() == "session":
+        return None
+    active = REGISTRY.active
+    others = [s for s in REGISTRY.sessions.values() if s is not active]
+    if not others:
+        return None
+    if len(others) > OTHER_GOALS_MAX:
+        return (f"{len(others)} other sessions: for one the user describes by its work, call list_sessions; never say "
+                f"none fits without it.")
+    goals = [f"{s.name}: {' '.join(str((_brief_of(s) or {}).get('goal') or '').split())[:OTHER_GOAL_CHARS] or 'no notes yet'}"
+             for s in others]
+    return "What the other sessions work on, by their notes: " + "; ".join(goals) + "."
 
 
 async def _translate(said: str) -> str:
