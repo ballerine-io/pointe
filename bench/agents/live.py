@@ -10,7 +10,10 @@ never the live Pointe's. The scenario:
   1 orchestrated: "ask openclaw ..." -> its reply is reported
   2 async: "ask hermes ..." and the call hangs up before the reply; the reply waits in "what needs me"; the next call
     hears it, and "what did hermes say?" is answered
-  3 1:1: "talk to hermes", two turns go there, "orchestrator mode"
+  0 the Labs setting: agents start off in a fresh state folder (unless on by default) and are turned on through
+    /voice/prefs, as the page and the apps do; both agents join without a restart
+  3 1:1: "talk to hermes", two turns go there, "orchestrator mode"; then the same in Hebrew ("דבר עם הרמס",
+    "תחזור למצב מתזמר")
   4 relay with a spoken yes: "give hermes's answer to openclaw" -> read back -> "yes" -> openclaw gets it, marked
   5 relay refused: "send openclaw's answer to hermes" -> read back -> "no" -> nothing reaches hermes
   6 an approval: openclaw asks to run a command -> read out -> "no" -> denied
@@ -41,7 +44,8 @@ class Voice(Daemon):
     def env(self) -> dict:
         env = super().env()
         env.pop("GOOGLE_API_KEY", None)
-        env.update(CLAUDE_VOICE_FRONT="brain", CLAUDE_VOICE_NO_BROWSER="1", POINTE_AGENTS="on",
+        env.pop("POINTE_AGENTS", None)
+        env.update(CLAUDE_VOICE_FRONT="brain", CLAUDE_VOICE_NO_BROWSER="1",
                    POINTE_AGENTS_KEY_HOME=str(Path.home()), POINTE_AGENTS_CALLS=str(self.calls),
                    POINTE_AGENTS_SECRETS=",".join(f"{k}={v}" for k, v in self.secrets.items()))
         return env
@@ -191,7 +195,10 @@ def main() -> None:
     call = None
     try:
         voice.start()
+        results["0_setting_at_start"] = voice.status().get("agents_setting")
+        voice.post("/voice/prefs", {"agents.on": True})
         until("both agents are sessions", lambda: {"openclaw", "hermes"} <= {s["name"] for s in voice.status()["sessions"]}, 60)
+        results["0_setting_after"] = voice.status().get("agents_setting")
         call = Call(voice).open()
         tr.mark("call 1 opens")
         tr.wait_bot(-1, secs=60)
@@ -235,6 +242,13 @@ def main() -> None:
         since = tr.say("Orchestrator mode.")
         tr.wait_bot(since, secs=60)
         results["3_mode_after"] = voice.status().get("mode")
+        tr.mark("3b. one to one with hermes, in Hebrew")
+        since = tr.say("דבר עם הרמס")
+        results["3b_switch_he"] = tr.wait_bot(since, secs=60)
+        results["3b_mode_he"], results["3b_active_he"] = voice.status().get("mode"), voice.status().get("active")
+        since = tr.say("תחזור למצב מתזמר")
+        results["3b_back_he"] = tr.wait_bot(since, secs=60)
+        results["3b_mode_after_he"] = voice.status().get("mode")
 
         # 4. relay with a spoken yes
         tr.mark("4. relay, confirmed")
@@ -284,17 +298,19 @@ def main() -> None:
             except Exception:
                 pass
         voice.stop()
-        (out / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False))
         log = (voice.state.parent / "studio.log")
         if log.exists():
             shutil.copy(log, out / "daemon.log")
             text = log.read_text(errors="replace")
             results["brain_failures"] = text.count("brain failed")  # a step that raised: the voice said a fallback line
             results["unexpected_exceptions"] = text.count("unexpected exception")
+            results["readback_repeat_cuts"] = sum(1 for line in text.splitlines()
+                                                  if "repeat cut:" in line and "last reply to" in line)
         for sid in ("agent-openclaw", "agent-hermes"):
             src = voice.state / "harness" / "agents" / f"{sid}.jsonl"
             if src.exists():
                 shutil.copy(src, out / f"{sid}.mirror.jsonl")
+        (out / "results.json").write_text(json.dumps(results, indent=1, ensure_ascii=False))  # with the log's counts
         shutil.rmtree(root, ignore_errors=True)
     print(json.dumps(results, indent=1, ensure_ascii=False)[:6000])
 

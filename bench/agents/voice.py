@@ -1,6 +1,7 @@
 """The voice daemon of the agents proof (docs/design/agents.md): daemon.py as it runs, on a throwaway state folder and
-ports the run chose, with POINTE_AGENTS=on, the real brain, reader and checker, and two changes for a run with no
-microphone. bench/agents/live.py starts it; nothing else should.
+ports the run chose, the real brain, reader and checker, and two changes for a run with no microphone. Agents are on
+through the saved setting, as the screens turn them on (live.py posts it), not POINTE_AGENTS. bench/agents/live.py
+starts it; nothing else should.
 
     python -I bench/agents/voice.py <port>      CLAUDE_VOICE_STATE, CLAUDE_VOICE_TLS_PORT and POINTE_AGENTS_* set by the run
 
@@ -43,7 +44,7 @@ def write(row: dict) -> None:
 
 def install():
     assert ".claude-voice" not in str(STATE) and str(STATE).startswith(("/tmp/", "/private/tmp/")), "never the live state"
-    os.environ["POINTE_AGENTS"] = "on"
+    os.environ.pop("POINTE_AGENTS", None)  # the saved setting decides, as on the owner's Mac
     sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
     import vendors
 
