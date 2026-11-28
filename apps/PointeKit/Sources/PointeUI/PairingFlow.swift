@@ -29,7 +29,7 @@ extension PairingKeeping {
 
 /// The Keychain and this device's choice of machine.
 struct KeychainPairing: PairingKeeping {
-    private var machines: PairedMachines { PairedMachines(vault: KeychainVault(), choice: DefaultsChoice()) }
+    private var machines: PairedMachines { PairedMachines(vault: PairingStore.vault, choice: DefaultsChoice()) }
     func load() -> Pairing? { machines.current }
     func save(_ pairing: Pairing) { machines.only(pairing) }
     func forget() { machines.removeAll() }

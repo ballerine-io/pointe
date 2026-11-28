@@ -16,6 +16,7 @@ final class MachinesUITests: XCTestCase {
     private func launch(several: Bool) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchEnvironment["POINTE_FORGET"] = "1"
+        app.launchEnvironment["POINTE_MEMORY_VAULT"] = "1"  // unsigned in CI: the Simulator's Keychain keeps nothing
         app.launchEnvironment["POINTE_PAIR"] = line("studio.invalid", "a", via: "tailscale")
         app.launchEnvironment["POINTE_PAIR_MORE"] = line("kite.invalid", "b", via: "host")
         if several { app.launchEnvironment["POINTE_MACHINES"] = "1" }

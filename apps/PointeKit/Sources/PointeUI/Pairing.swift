@@ -170,7 +170,27 @@ enum PairingStore {
     static func forget() { KeychainPairing().forget() }
     /// Every machine, in the list's order.
     static func all() -> [Pairing] { KeychainPairing().all() }
+
+    /// The Keychain. A Debug build's UI tests in CI run unsigned, where the Simulator's Keychain keeps nothing:
+    /// POINTE_MEMORY_VAULT=1 keeps the pairings in memory for that run instead.
+    static let vault: PairingVault = {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["POINTE_MEMORY_VAULT"] == "1" { return MemoryVault() }
+        #endif
+        return KeychainVault()
+    }()
 }
+
+#if DEBUG
+/// The pairings of one run, for UI tests (PairingStore.vault).
+final class MemoryVault: PairingVault, @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [String: Pairing] = [:]
+    func rows() -> [VaultRow] { lock.withLock { stored.map { VaultRow(account: $0.key, pairing: $0.value, ref: nil) } } }
+    func put(_ pairing: Pairing, account: String) -> Bool { lock.withLock { stored[account] = pairing }; return true }
+    func delete(_ row: VaultRow) { lock.withLock { stored[row.account] = nil } }
+}
+#endif
 
 /// The Keychain under `PairedMachines`: generic passwords of one service, found again by their persistent reference.
 struct KeychainVault: PairingVault {
