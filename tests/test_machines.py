@@ -85,7 +85,7 @@ class FakeMachine:
             return web.Response(status=403, text=hub_nodes.NO_SUCH_INVITE)
         self.used = True
         return web.json_response({"person": self.person, "key": self.key, "owner": self.owner,
-                                  "host": {k: self.HOST[k] for k in ("id", "name", "os")}})
+                                  "host": {k: self.HOST[k] for k in ("id", "name", "os")}, **getattr(self, "padding", {})})
 
     async def _ws(self, request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse()
@@ -265,6 +265,17 @@ def test_a_machine_already_added_is_not_added_twice(world, tmp_path):
 def test_an_answer_that_is_not_a_pairing_stores_nothing(world, tmp_path):
     async def scenario(machine, dialer, hub, host):
         machine.key = "../../.ssh/authorized_keys"
+        assert await dialer.add(machine.invite()) == (502, machines.NOT_A_PAIRING)
+        assert not hub.nodes.nodes
+    go(world, scenario, tmp_path)
+
+
+
+def test_a_pairing_answer_past_sixteen_kilobytes_is_not_read_whole(world, tmp_path):
+    """SECURITY.md: the voice reads at most MAX_ANSWER_BYTES of a machine's pairing answer, before it trusts the machine.
+    A valid answer with 20 kB more in it is cut there, is no pairing, and stores nothing."""
+    async def scenario(machine, dialer, hub, host):
+        machine.padding = {"note": "x" * (20 << 10)}
         assert await dialer.add(machine.invite()) == (502, machines.NOT_A_PAIRING)
         assert not hub.nodes.nodes
     go(world, scenario, tmp_path)
