@@ -488,6 +488,9 @@ MEETING_REPLY_SECS = 45.0  # after the owner asks in participating, the bot's on
 MEETING_WITHOUT_CALL_SECS = 300.0  # a meeting whose call dropped ends after this, unless the call comes back
 REPORT_TIMEOUT_SECS = 10.0  # a report late by more than this goes out from an excerpt instead
 BRIEF_TIMEOUT_SECS = 60.0
+# A session's record not written yet when it is read (a Codex or OpenCode mirror its watcher writes, a remote one that
+# arrives over the link): read again this often, for about a minute, while it has no notes.
+BRIEF_RETRY_SECS, BRIEF_RETRIES = 5.0, 12
 NOTES_EVERY_TURNS = 5
 BRIEF_RECORD_CHARS = 400_000  # first read of a session; later reads add to the notes
 BRIEF_UPDATE_CHARS = 30_000
@@ -3758,14 +3761,19 @@ def _brief_of(session: Session) -> dict | None:
     return session.brief
 
 
-async def _refresh_brief(session: Session) -> None:
+async def _refresh_brief(session: Session, tries: int = BRIEF_RETRIES) -> None:
     """Update the notes on a session in the background. Nothing waits for this: the call goes on with what it has."""
     session.transcript = current_transcript(session)
     try:
         size = Path(session.transcript).stat().st_size
     except OSError:
-        return
+        size = 0
     known = _brief_of(session)
+    if not size:
+        if not known and tries > 0 and session.id in REGISTRY.sessions:
+            await asyncio.sleep(BRIEF_RETRY_SECS)
+            await _refresh_brief(session, tries - 1)
+        return
     if session.id in state.briefing:
         state.brief_again.add(session.id)  # something new arrived while reading: read again after
         return

@@ -846,3 +846,33 @@ def test_the_real_remote_adapter_keeps_why_its_machine_refused_for_the_next_call
     s = SimpleNamespace(id="s9", name="api", machine="devbox")
     assert asyncio.run(RemoteHarness(Hub(), harnesses.get("claude-code")).answer(s, "r1", "allow", "voice", "run: ls")) is False
     assert RemoteHarness(Hub(), harnesses.get("claude-code")).refusals == {"s9": "mismatch"}
+
+
+def test_a_session_whose_record_is_not_written_yet_is_read_once_it_is(d, tmp_path, monkeypatch):
+    """Fleet dialogues, 2026-11-28: a Codex or OpenCode mirror is written by its watcher, and a remote one arrives over
+    the link, both after the session registers. The one read at register found no file and never tried again, so the
+    overview said "none need you" of two sessions that had asked the user something."""
+    monkeypatch.setattr(d, "BRIEF_RETRY_SECS", 0.05)
+    record = tmp_path / "harness" / "codex" / "late.jsonl"
+    s = Session(id="late", name="harbor", cwd="/repos/harbor", transcript=str(record), harness="codex")
+    d.REGISTRY.add(s)
+    monkeypatch.setattr(d, "current_transcript", lambda session: session.transcript)
+    monkeypatch.setattr(d, "session_record", lambda session, chars: record.read_text())
+    read = []
+
+    async def reader(*a, **k):
+        read.append(1)
+        return {"goal": "Fix the refund cache.", "state": "Asked the user.", "waiting_on_user": "keep the old rows?"}
+
+    monkeypatch.setattr(d, "_read_model", reader)
+
+    async def scenario():
+        task = asyncio.create_task(d._refresh_brief(s))
+        await asyncio.sleep(0.12)
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(json.dumps({"type": "assistant", "message": {"role": "assistant", "content": "Keep the old rows?"}}) + "\n")
+        await asyncio.wait_for(task, 2)
+
+    asyncio.run(scenario())
+    assert read == [1] and s.brief["waiting_on_user"] == "keep the old rows?"
+    assert d._waiting_items(s) == ["keep the old rows?"]
