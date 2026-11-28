@@ -127,14 +127,14 @@ until you choose Add and pass Face ID ([SECURITY.md](../SECURITY.md)).
 
 ## Several machines on this phone (Labs)
 
-Off by default while it is proven: Settings → Labs → **Several machines**. With it on, the phone keeps more than one
-machine and calls any of them directly, each on its own keys
+On by default (Settings → Labs → **Several machines** turns it off). The phone keeps more than one machine and calls any
+of them directly, each on its own keys
 ([design/multi-machine-clients.md](design/multi-machine-clients.md)).
 
 - **Add one**: scan or paste the pairing code of another machine (`pointe pair tailscale`, `pointe pair wifi` or
   `pointe pair host <name>` on it, or its page's Settings → Phone). Face ID first; the machines you have stay. Pairing the
   same machine again (a new route, a new code) replaces its entry.
-- **The bar over the call** names the machine the call goes to. A tap opens the list: each machine with how the phone
+- **Settings → Add a machine** adds one. Once the phone holds two, **the bar over the call** names the machine the call goes to. A tap opens the list: each machine with how the phone
   reaches it (Tailscale, Wi-Fi, Twingate or VPN) and whether it answers ("3 sessions, 1 needs you", or "Not reachable
   since 14:02" with the cause). A tap on another moves the call there; swipe to Remove one.
 - **By voice**: "call kite" or "move the call to kite" moves the call to kite after one line. "Go to kite" still means a

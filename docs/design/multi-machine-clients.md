@@ -488,7 +488,7 @@ Open:
   list; `pointe pair <method> --add` adds one with the same certificate; `--public`; `pointe pair ssh <user@host>`
   (the line then points at `127.0.0.1` and carries `ssh=<target>`). The listener answers every route's name, a
   tunnel's as loopback. The status lists `routes` (never a listen address) to the phone and the page on the machine.
-- **iPhone (1.1 to 1.7):** behind Settings, Labs, Several machines. One Keychain item per machine (account
+- **iPhone (1.1 to 1.7):** on by default since CI's full iPhone and Mac UI suites passed with it on (Settings, Labs, Several machines turns it off); the bar shows once a phone holds two machines, and Settings has Add a machine. One Keychain item per machine (account
   `id:<machine id>`, else `fp:<fingerprint>`); the item an older app kept is read the old way and replaced once saved
   again. Listing reads each item's data by its persistent reference. The bar over the call and the list (route and
   state, checked every 15 s), tap to move the call, Remove, Face ID to add a second machine; learnt routes, tried in
@@ -496,7 +496,7 @@ Open:
   answered through the machine that runs the session, each machine's own "Approve from notifications" deciding.
   CI runs the app unsigned, where the Simulator's Keychain keeps nothing: the UI tests use `POINTE_MEMORY_VAULT=1`
   (Debug only), so the real Keychain path for several items is proven by unit tests on its logic, not on a device.
-- **Mac app (1.8):** the same flag; a menu over the call screen (this Mac first), Add a machine (paste, Touch ID or
+- **Mac app (1.8):** the same setting; a menu over the call screen (this Mac first), Add a machine (paste, Touch ID or
   the password), SSH routes through `/usr/bin/ssh -N -L` to a free local port.
 - **Page (1.8):** Settings, Machines offers "Open its page" for each of the user's own linked machines.
 - **Own machines (2.1, 2.3, 2.4):** grant `mine` (`pointe machines link <name>`); `pointe people invite <name>
