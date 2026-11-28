@@ -445,8 +445,10 @@ is not tested.
   their call, with their own model keys. A phone or a browser paired with a voice acts as that voice's owner; a
   second call to the same voice is refused while one is up.
 - **One link per person.** A person's key links one voice at a time to the machine.
-- **No fleet size is claimed.** How many machines one voice holds well, and how many people one machine serves well,
-  is not measured yet.
+- **Fleet size is measured with typed words and stand-in sessions only.** The fleet benchmark
+  ([bench/fleet/RESULTS.md](../bench/fleet/RESULTS.md)) puts up to 10 machines with 30 sessions each on one voice,
+  and two machines with Claude Code, Codex and OpenCode sessions together, on one host: no speech, no real agents, no
+  machines on other networks. How many people one machine serves well is not measured.
 - **Not isolation.** People on a shared machine act as one OS account ([SECURITY.md](../SECURITY.md#people-on-a-machine)).
 - **Held reports need a call.** A report of a turn somebody else started is held for "anything from the others?"
   only while a call is up.

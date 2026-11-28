@@ -781,11 +781,12 @@ def test_approvals_then_sessions_that_need_the_user_then_the_thread_then_the_res
     assert order == [" line.", "needs", "thread", "rest"]
 
 
-def test_the_fleet_rules_are_off_until_somebody_switches_them_on(monkeypatch):
-    """Released off: nothing about routing, the brain's context or what is spoken changes before the benchmark has
-    measured the rules."""
+def test_the_fleet_rules_are_on_unless_somebody_switches_them_off(monkeypatch):
+    """On since the fleet benchmark measured them (bench/fleet/RESULTS.md, build 04d6850645). They change nothing up to
+    twelve sessions (test_up_to_twelve_sessions_the_brain_is_told_exactly_what_it_is_told_with_the_rules_off), and
+    POINTE_FLEET=off brings back the behaviour from before them."""
     monkeypatch.delenv("POINTE_FLEET", raising=False)
-    assert not scale.enabled()
+    assert scale.enabled()
     monkeypatch.setenv("POINTE_FLEET", "on")
     assert scale.enabled()
     monkeypatch.setenv("POINTE_FLEET", "off")

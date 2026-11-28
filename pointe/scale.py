@@ -15,8 +15,8 @@ Three tiers. Every session is in exactly one at a time:
 The budget: "what needs me" is at most BUDGET_TOKENS at any fleet size (fit). Routing sees at most CANDIDATES_MAX
 sessions (candidates). Background reports past REPORTS_PER_MIN lines a minute are held for the screen (plan_speech).
 
-Off unless POINTE_FLEET=on, until the fleet benchmark has measured it (bench/fleet): off, the daemon tells the brain,
-routes and reports as it did before.
+On unless POINTE_FLEET=off, since the fleet benchmark measured it (bench/fleet/RESULTS.md). Up to SMALL_FLEET
+sessions it changes nothing; off, the daemon tells the brain, routes and reports as it did before at every size.
 """
 
 import math
@@ -51,7 +51,7 @@ FOCUS, BACKGROUND, QUIET = "focus", "background", "quiet"
 
 
 def enabled() -> bool:
-    return os.environ.get("POINTE_FLEET", "off").strip().lower() in ("on", "1", "true", "yes")
+    return os.environ.get("POINTE_FLEET", "on").strip().lower() not in ("off", "0", "false", "no")
 
 
 def big(sessions: int) -> bool:

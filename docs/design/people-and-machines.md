@@ -195,8 +195,9 @@ hold) stay. They keep the machines this voice dials
 
 ## A big fleet
 
-The rules are in `pointe/scale.py` and the tests in `tests/test_fleet_scale.py`. They are off unless the daemon
-starts with `POINTE_FLEET=on`, until the fleet benchmark has measured them: one build is measured with and without them.
+The rules are in `pointe/scale.py` and the tests in `tests/test_fleet_scale.py`. They are on since the fleet benchmark
+measured them ([bench/fleet/RESULTS.md](../../bench/fleet/RESULTS.md)); `POINTE_FLEET=off` turns them off. Up to twelve
+sessions they change nothing.
 
 **Tiers.** Every session is in one tier at a time. In focus: the active session, the thread, sessions that wait on the
 user, urgent ones, sessions sent to with no report yet, and sessions named or asked about in the last ten minutes;
