@@ -216,7 +216,7 @@ def test_a_machine_i_may_only_watch_never_offers_approve():
     async def steps(page, stub):
         first = await page.eval("document.getElementById('attention').childElementCount")
         stub.status["sessions"] = opened["sessions"]
-        await asyncio.sleep(1.4)
+        await stub.polled(2)
         return first, await page.eval("document.getElementById('attention').childElementCount"), await page.eval("document.title")
     assert asyncio.run(on_page(status, steps)) == (0, 0, "Pointe")
 

@@ -48,7 +48,7 @@ async def _page(status):
     browser = Browser()
     await browser.__aenter__()
     page = await browser.open(stub.url)
-    await asyncio.sleep(1.2)
+    await stub.polled(2)
     return stub, browser, page
 
 

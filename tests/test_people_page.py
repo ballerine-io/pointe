@@ -288,11 +288,12 @@ def test_a_pasted_line_adds_the_machine_and_says_once_where_its_transcripts_go()
         assert await until(page, "document.querySelector('#mach-disclosure .ask')")
         out["card"] = await page.eval("[...document.querySelectorAll('#mach-disclosure .ask > div')].map(d => d.textContent)")
         out["talk"] = await page.eval("document.querySelector('#disclosure .need').textContent")
-        await asyncio.sleep(1.3)  # the next poll carries the same card: it is not drawn twice, nor dropped
+        await stub.polled(2)  # the next polls carry the same card: it is not drawn twice, nor dropped
         out["cards"] = await page.eval("document.querySelectorAll('#mach-disclosure .ask').length")
         await page.eval("document.querySelector('#mach-disclosure button').click()")
         assert await until(page, "!document.querySelector('#mach-disclosure .ask') && !document.querySelector('#disclosure .ask')")
-        await asyncio.sleep(1.3)
+        await stub.posted("/voice/machines/add", 2)  # OK is sent as a second add: {"seen": ...}
+        await stub.polled(2)
         out["after"] = [await page.eval("document.querySelectorAll('.ask').length"), posts(stub, "/voice/machines/add")[-1], stub.status.get("disclosure")]
         return out
     got = asyncio.run(on_page(fixture(sessions=2), steps, settings=True))
@@ -394,7 +395,7 @@ def test_inviting_a_person_shows_the_line_and_lists_them_once_they_pair():
                          "copy": await page.eval(f"{TEXT}('people-copy')"), "left": await page.eval(f"{TEXT}('people-left')"),
                          "qr": await page.eval("document.querySelectorAll('#people-qr svg path').length"),
                          "shown": [await page.eval(f"{SEEN}('{i}')") for i in ("people-qrtile", "people-form", "people-invitebtn", "people-cancel")]}
-        await asyncio.sleep(1.5)  # the code still waits: the polls keep the invite up
+        await stub.polled(2)  # the code still waits: the polls keep the invite up
         out["waiting"] = await page.eval(f"{SEEN}('people-invite')")
         stub.pair()
         assert await until(page, f"!{SEEN}('people-invite') && document.querySelectorAll('#people-list li').length === 1")
@@ -433,7 +434,7 @@ def test_a_watch_only_invite_can_be_cancelled_and_a_taken_name_keeps_the_form():
         qr = await page.eval(f"{SEEN}('people-qrtile')")
         await page.eval("document.getElementById('people-cancel').click()")
         assert await until(page, f"!{SEEN}('people-invite')")
-        await asyncio.sleep(1.3)
+        await stub.polled(2)  # the page's next polls: it stays so
         return taken, qr, await page.eval(f"{SEEN}('people-invite')"), await page.eval(f"{SEEN}('people-invitebtn')"), posts(stub, "/voice/people/invite")
     taken, qr, still, button, sent = asyncio.run(on_page(with_people(), steps, settings=True))
     assert taken == ["A person called dana is already on this machine.", True, "dana"]
@@ -454,7 +455,7 @@ def test_a_persons_grant_changes_in_one_click_each_way():
         for want in ("Watch only", "Can talk"):
             await page.eval(f"{grant}.click()")
             assert await until(page, f"{grant}.textContent === '{want}'", 1.0)  # at once, before the Mac's next status
-            await asyncio.sleep(1.4)
+            await stub.polled(2)  # the page's next polls: it stays so
             out.append(await page.eval(f"{grant}.textContent"))
         return out, posts(stub, "/voice/people/grant"), stub.gets
     status = with_people()
@@ -609,7 +610,7 @@ def test_a_session_i_own_goes_private_and_back_on_a_machine_that_has_people():
         await page.cdp("Input.dispatchKeyEvent", {"type": "keyDown", "key": "p", "code": "KeyP", "windowsVirtualKeyCode": 80, "text": "p"})
         await page.cdp("Input.dispatchKeyEvent", {"type": "keyUp", "key": "p", "code": "KeyP", "windowsVirtualKeyCode": 80})
         assert await until(page, f"{row % 's0-shop'}.querySelector('.marks .lock')", 1.0)  # at once
-        await asyncio.sleep(1.3)
+        await stub.polled(2)  # the page's next polls: it stays so
         out["private"] = [await page.eval(ROWS), await page.eval(f"{row % 's0-shop'}.querySelector('.marks .lock').getAttribute('aria-label')"),
                           await page.eval("document.activeElement.classList.contains('nm')")]
         sheet = "[...document.querySelectorAll('#row-acts button')].filter(b => !b.hidden).map(b => b.textContent)"
@@ -617,7 +618,7 @@ def test_a_session_i_own_goes_private_and_back_on_a_machine_that_has_people():
         out["sheet"] = await page.eval(sheet)
         await page.eval("document.getElementById('row-private').click()")
         assert await until(page, f"!{row % 's0-shop'}.querySelector('.marks .lock')")
-        await asyncio.sleep(1.3)
+        await stub.polled(2)  # the page's next polls: it stays so
         out["shared"] = [await page.eval(f"!!{row % 's0-shop'}.querySelector('.marks .lock')"), await page.eval("document.getElementById('rowsheet').classList.contains('open')")]
         await page.eval("openRowSheet('s1-api')")
         out["sheet2"] = await page.eval(sheet)
