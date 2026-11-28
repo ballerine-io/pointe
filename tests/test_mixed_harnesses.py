@@ -596,6 +596,32 @@ def test_a_verdict_for_a_remote_prompt_goes_to_its_node_with_how_and_the_spoken_
     assert api.permission_id is None
 
 
+
+def test_a_newer_machines_wording_is_read_out_and_sent_back_as_it_came(d, node):
+    """Cross-version: the machine owns the read-out (multi-machine.md, "Version skew": the node's `readable` is the
+    only read-out text). A newer machine words a request differently from this voice's readout.py: the voice says the
+    machine's words and its yes carries them back unchanged, never its own rebuild from the masked preview, so a newer
+    machine's exact check (node.recheck) matches."""
+    from guards import spoken_request
+
+    newer = "run: git status, read only"
+    assert spoken_request("Bash", {"command": "git status"}) != newer  # what this voice would have built itself
+    api, put = _remote_prompt(d, node, readable=newer)
+    assert put is True and api.permission_spoken == newer and not api.permission_cut
+    assert asyncio.run(d._apply_answer(api, "r1", "allow", "user said: 'yes'")) is True
+    assert node.answers[-1][3:] == ("voice", newer)
+
+
+@pytest.mark.parametrize("readable", ["run: " + " ".join(["step"] * 30), "run - word for word: git status \u202e"])
+def test_an_older_voice_that_cannot_read_a_newer_form_makes_it_tap_only_and_sends_no_spoken_yes(d, node, readable):
+    """Cross-version, the other way: a form this voice's checks refuse (too long for a short form, a marker it does
+    not know with a hidden character) is not read out at all; a spoken yes approves nothing, the screen still can."""
+    api, put = _remote_prompt(d, node, readable=readable)
+    assert put is True and api.permission_cut and api.permission_spoken == ""
+    assert "a yes will not count here" in spoken(d.state.conn)
+    asyncio.run(d.on_user_utterance("yes"))
+    assert node.answers == [] and api.permission_id == "r1"
+
 def test_a_verdict_the_node_refuses_is_the_did_not_reach_line(d, node):
     api, _ = _remote_prompt(d, node)
     node.ok = False

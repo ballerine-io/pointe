@@ -527,6 +527,42 @@ def test_a_voice_too_old_or_too_new_is_a_notice_on_its_person_until_it_links(wor
     assert sum("link refused: Dana's voice runs an older Pointe" in e for e in world.events) == 1
 
 
+
+def test_links_waiting_to_prove_a_key_are_capped_per_address_and_in_all(world, monkeypatch):
+    """/voice/host is open before any proof and waits for the hello (SECURITY.md, "at most 8 sockets from one address
+    and 32 in all"): guests.serve keeps its own count, apart from the node listener's. Past the cap a socket is closed
+    at once with 1013; a welcomed link no longer counts as waiting."""
+    monkeypatch.setattr(hub_nodes, "MAX_WAITING_PER_ADDRESS", 2)
+    monkeypatch.setattr(hub_nodes, "MAX_WAITING", 3)
+    who, key = person(world)
+
+    async def go():
+        silent = [Wire("10.0.0.9") for _ in range(2)]
+        tasks = [asyncio.create_task(world.host.serve(p)) for p in silent]
+        await settle()
+        assert all(p.closed is None for p in silent)  # each holds a challenge, waiting for a hello
+        third = Wire("10.0.0.9")
+        await asyncio.wait_for(world.host.serve(third), 1)
+        assert third.closed and third.closed[0] == 1013  # its address holds its share
+        tasks.append(asyncio.create_task(world.host.serve(other := Wire("10.0.0.10"))))
+        await settle()
+        assert other.closed is None
+        fourth = Wire("10.0.0.11")
+        await asyncio.wait_for(world.host.serve(fourth), 1)
+        assert fourth.closed and fourth.closed[0] == 1013  # all of them together hold the rest
+        await silent[0].to_hub.put(None)  # one gives up: its place is free again
+        await settle()
+        voice = FakeVoice(world.host, who, key, address="10.0.0.12")
+        assert (await voice.connect())["t"] == "host.welcome"
+        assert world.host._waiting == {"10.0.0.9": 1, "10.0.0.10": 1}
+        await voice.drop()
+        for t in tasks:
+            t.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        assert world.host._waiting == {}
+
+    run(go())
+
 def test_one_link_per_person_and_a_silent_one_gives_way(world):
     who, key = person(world)
 

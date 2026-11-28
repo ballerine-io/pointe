@@ -1,4 +1,4 @@
-"""The two pairing routes take no secret, so anyone who reaches the phone listener can post to them. They answer before
+"""The three pairing routes (a node's, a phone's, a person's voice) take no secret, so anyone who reaches the phone listener can post to them. They answer before
 reading a byte when no invite is out, and never read more than a pairing's few hundred bytes when one is."""
 
 import asyncio
@@ -11,11 +11,12 @@ from fastapi import FastAPI
 
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 
-ROUTES = ["/voice/node/pair", "/voice/phone/pair"]
+ROUTES = ["/voice/node/pair", "/voice/phone/pair", "/voice/host/pair"]
 
 
 @pytest.fixture
 def world(tmp_path, monkeypatch):
+    import guests
     import hub_nodes
     import nodelink
     import phone_pairing
@@ -27,7 +28,10 @@ def world(tmp_path, monkeypatch):
     hub_nodes.install(app, hub, link=lambda code: f"pointe://hub?code={code}")
     link = phone_pairing.PhoneLink(tmp_path, phone_pairing.Phones(tmp_path))
     phone_pairing.install(app, link, page_key="page-key", listener=None)
-    invites = {"/voice/node/pair": hub.invites, "/voice/phone/pair": link.invites}
+    host = guests.HostSide(tmp_path, Registry(), host_id=lambda: "0123456789abcdef", record=lambda line: None,
+                           on_sent=lambda *a: None, working=lambda s: False)
+    guests.install(app, host)
+    invites = {"/voice/node/pair": hub.invites, "/voice/phone/pair": link.invites, "/voice/host/pair": host.invites}
     return SimpleNamespace(app=app, invites=invites)
 
 
@@ -77,7 +81,7 @@ def test_a_streamed_body_is_read_no_further_than_the_cap(world, path):
 
 @pytest.mark.parametrize("path", ROUTES)
 def test_a_pairing_sized_body_still_reaches_the_code_check(world, path):
-    code = world.invites[path].make()
+    code = world.invites[path].make(name="Mira")  # a person's invite names the person; the others ignore it
     wrong = "AAAA-AAAA" if code != "AAAA-AAAA" else "BBBB-BBBB"
     body = ('{"code": "%s", "name": "devbox", "os": "linux", "arch": "x86_64", "version": "1.0.1", '
             '"device": "Mira\'s iPhone", "id": "dev-1"}' % wrong).encode()

@@ -758,6 +758,27 @@ def test_a_request_goes_to_remote_permission_with_the_nodes_readable_and_holding
 
 
 
+def test_a_nodes_read_out_over_a_thousand_characters_is_dropped_never_cut(world):
+    """hub_nodes.MAX_READABLE_CHARS: a voice's yes must match the read-out exactly, so a cut one would approve words
+    nobody heard. Over the limit it is None (tap only); at the limit it passes whole."""
+    hub, host, registry, *_ = world
+    node = paired(hub)
+    at_limit = "run: " + "a" * (hub_nodes.MAX_READABLE_CHARS - 5)
+
+    async def go():
+        fake = FakeNode(hub, node)
+        await fake.connect()
+        await fake.send_sessions(entry())
+        await fake.send("permission.request", **_request(readable=at_limit + "a"))
+        await fake.send("permission.request", **_request(request_id="p2", readable=at_limit))
+        await fake.recv("permission.holding", timeout=0.5)
+        await fake.recv("permission.holding", timeout=0.5)
+        await fake.drop()
+
+    run(go())
+    over, whole = [c for c in host.calls if c[0] == "permission"]
+    assert over[-1] is None and whole[-1] == at_limit
+
 def test_no_holding_when_the_daemon_does_not_hold_it(world):
     hub, host, registry, *_ = world
     host.held = False  # no call up, or approvals in the terminal: the node hands it back after 10 s
