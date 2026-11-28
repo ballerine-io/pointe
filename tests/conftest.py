@@ -13,7 +13,10 @@ os.environ["POINTE_LINK_DIR"] = str(_STATE / "link")  # a daemon a test starts n
 os.environ["POINTE_SYSTEM_APPLICATIONS"] = str(_STATE / "Applications")  # an uninstall a test runs never reaches /Applications
 os.environ["CLAUDE_VOICE_SKIP_KEY_CHECK"] = "1"  # no test reaches a vendor with its synthetic keys (doctor.check_keys)
 
+import faulthandler  # noqa: E402
+import signal  # noqa: E402
 import sys  # noqa: E402
+import threading  # noqa: E402
 
 import pytest  # noqa: E402
 
@@ -74,3 +77,45 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if "slow" in item.keywords:
             item.add_marker(skip)
+
+
+TEST_LIMIT_SECS = 300  # the slowest test takes about 100 s on CI's runner
+
+
+class RanOver(BaseException):
+    """A BaseException, so a test's own `except Exception` (a probe retried until it answers) cannot swallow it."""
+
+
+_stderr = []
+
+
+def _uncaptured_stderr(config):
+    """The terminal's stderr, not the file pytest captures the test's into: that one is lost when faulthandler exits."""
+    if not _stderr:
+        capman = config.pluginmanager.getplugin("capturemanager")
+        fd = getattr(getattr(getattr(capman, "_global_capturing", None), "err", None), "targetfd_save", None)
+        _stderr.append(os.fdopen(os.dup(fd), "w") if isinstance(fd, int) else sys.__stderr__)
+    return _stderr[0]
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_protocol(item, nextitem):
+    """A test that waits forever fails instead: a hung link once held CI's offline job for six hours. The alarm fails
+    the test with the stack it was in; a test stuck where the alarm cannot reach it (a task that swallows its cancel
+    while asyncio.run shuts down) is ended a minute later by faulthandler, which prints every thread's stack and exits
+    the process: under xdist that is one worker, reported as crashed in this test, and replaced."""
+    if not hasattr(signal, "SIGALRM") or threading.current_thread() is not threading.main_thread():
+        return (yield)
+
+    def ran_over(signum, frame):
+        raise RanOver(f"{item.nodeid} ran over {TEST_LIMIT_SECS} s: something it waits on never comes")
+
+    before = signal.signal(signal.SIGALRM, ran_over)
+    signal.alarm(TEST_LIMIT_SECS)
+    faulthandler.dump_traceback_later(TEST_LIMIT_SECS + 60, exit=True, file=_uncaptured_stderr(item.config))
+    try:
+        return (yield)
+    finally:
+        signal.alarm(0)
+        faulthandler.cancel_dump_traceback_later()
+        signal.signal(signal.SIGALRM, before)

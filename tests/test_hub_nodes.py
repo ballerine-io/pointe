@@ -164,7 +164,11 @@ def paired(hub, name="devbox"):
 
 
 def run(coro):
-    return asyncio.run(coro)
+    """A link test that fails while the other end still waits ends here, with the stack, instead of waiting forever."""
+    return asyncio.run(asyncio.wait_for(coro, LINK_TEST_SECS))
+
+
+LINK_TEST_SECS = 30  # the slowest link test takes about 2 s
 
 
 # ---------- the nodes file ----------
