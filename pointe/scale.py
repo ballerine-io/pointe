@@ -519,7 +519,9 @@ def plan_speech(reports: list[Report], spoken_lately: int, several: bool = True)
         elif len(group) > 1 and room > 0:
             line = coalesced(group[0].machine, group, several)
             lines.append(line)
-            held += [r for r in group if r.session not in line.sessions]  # counted in the line, named on the screen
+            left = [r for r in group if r.session not in line.sessions]  # counted in the line, named on the screen
+            lines += [Line("", (r.session,)) for r in left if r.question]  # past the three it names: said as it came
+            held += [r for r in left if not r.question]
             room -= 1
         else:
             lines += [Line("", (r.session,)) for r in group if r.question]

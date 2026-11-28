@@ -756,8 +756,6 @@ def test_the_speech_plan_coalesces_per_machine_names_a_question_and_never_holds_
 
 
 
-@pytest.mark.xfail(strict=True, reason="a line names three sessions; a fourth with a question is held (scale.plan_speech): "
-                   "the fleet track owns the fix, and this mark comes off with it")
 @pytest.mark.parametrize("room", [0, 3])
 def test_no_report_with_a_question_is_held_however_many_one_machine_has(room):
     """The rule in plan_speech's own words: a report with a question for the user is never held. Four questions from one
