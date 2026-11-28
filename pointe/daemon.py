@@ -10852,8 +10852,9 @@ async def talk(request: Request):
     action = body.get("action", "toggle") if isinstance(body, dict) else None
     if action not in TALK_ACTIONS:
         raise HTTPException(status_code=400, detail="action must be on, off or toggle")
-    if PREFS.get("microphone") != "ptt":
-        raise HTTPException(status_code=409, detail="Microphone is Always on: set it to Push to talk in Settings")
+    if (mic := PREFS.get("microphone")) != "ptt":
+        setting = f'"{addressed.COPY["setting"]}"' if mic == addressed.MODE else "Always on"
+        raise HTTPException(status_code=409, detail=f"Microphone is {setting}: set it to Push to talk in Settings")
     if state.conn is None or state.conn.ptt is None:
         raise HTTPException(status_code=409, detail="No call is up: press Connect on the page or in the app first")
     want = TALK_ACTIONS[action] if TALK_ACTIONS[action] is not None else not state.ptt.open

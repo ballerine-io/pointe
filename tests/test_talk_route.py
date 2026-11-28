@@ -52,6 +52,17 @@ def test_always_on_is_refused_in_plain_words(d, monkeypatch):
     assert not d.state.ptt.open
 
 
+def test_the_refusal_names_the_microphone_setting_in_use(d, monkeypatch):
+    """Docs sweep: with "Only when I say Pointe" the 409 said the microphone was Always on."""
+    import addressed
+
+    _call_up(d, monkeypatch, mode=addressed.MODE)
+    r = client_for(d).post("/voice/talk", json={"action": "toggle"})
+    detail = r.json()["detail"]
+    assert r.status_code == 409 and addressed.COPY["setting"] in detail and "Always on" not in detail
+    assert not d.state.ptt.open
+
+
 def test_no_call_is_refused_in_plain_words(d):
     d.PREFS.update({"microphone": "ptt"})
     d.state.conn = None
