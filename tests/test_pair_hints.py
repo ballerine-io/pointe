@@ -58,3 +58,21 @@ def test_pair_help_names_no_old_script(tmp_path):
     got = subprocess.run([sys.executable, "-I", str(ROOT / "pointe" / "pair.py"), "--help"], capture_output=True, text=True,
                          env={"CLAUDE_VOICE_STATE": str(tmp_path), "PATH": "/usr/bin:/bin"}, timeout=60)
     assert "voice-remote" not in got.stdout
+
+
+def test_rotate_signs_people_out_and_keeps_the_owners_settings_for_people(tmp_path, monkeypatch):
+    """Docs sweep: _sign_everyone_out wrote people.json without its "settings", so "approvals off" (and every other
+    setting) went back to its default after `pointe pair rotate`. People go; the owner's choices stay."""
+    import guests
+    import pair
+
+    monkeypatch.setattr(pair, "STATE", tmp_path)
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    chosen = {"approve": "off", "start": "off", "sessions_ask": "ask", "owner_first_secs": 5.0, "people_hold_secs": 90.0}
+    (tmp_path / "people.json").write_text(json.dumps({
+        "people": {"p1": {"id": "p1", "name": "Dana", "key": "k", "grant": "send"}}, "private": ["ledger"],
+        "settings": chosen}))
+    pair.rotate()
+    after = guests.People(tmp_path / "people.json")
+    assert after.people == {} and after.private == {"ledger"}
+    assert guests.settings_of(after.settings) == chosen

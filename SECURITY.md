@@ -662,7 +662,8 @@ What Pointe adds on top of the shared account:
   their own voice deletes only their copy: their key stays valid on the machine until the owner removes them.
 - **`pointe pair rotate` and `pointe pair off` remove every person.** Both delete each person's key from
   `people.json`, as they sign out every phone, browser and node, and print who must be invited again. A person
-  linked at that moment is closed with 4401. The list of private sessions stays. A new route chosen with
+  linked at that moment is closed with 4401. The list of private sessions and your settings for people
+  (approvals, starts, sessions, window, hold) stay. A new route chosen with
   `pointe pair tailscale`, `wifi` or `host` does not sign people out. If a pairing code, a link or a key may have
   leaked, run `pointe pair rotate`, then `pointe people` to see that nobody is listed whom you did not invite again.
 - **Files.** On the machine, `people.json` (0600) holds each person's key, name, grant, last address and named

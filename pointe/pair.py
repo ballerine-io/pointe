@@ -419,17 +419,18 @@ def _write_private(path: Path, text: str) -> None:
 def _sign_everyone_out() -> list[str]:
     """Every credential the listener honours, gone: each phone's key (`phones.json`, the shared `phone_key`), each
     machine's (`nodes.json` keeps only the hub's id and the machines this voice dials, so a machine pairs again with a new code and nothing else) and
-    each person's (`people.json` keeps only the sessions kept private). A running daemon reads these files at each
+    each person's (`people.json` keeps only the sessions kept private and the owner's settings for people). A running daemon reads these files at each
     check and closes the calls and links they held within seconds. The names of the people who were signed out."""
     people = STATE / "people.json"
     try:
         data = json.loads(people.read_text())
         names = [str(p["name"]) for p in data.get("people", {}).values() if isinstance(p, dict) and p.get("name")]
         private = [s for s in data.get("private") or [] if isinstance(s, str)]
+        settings = data["settings"] if isinstance(data.get("settings"), dict) else {}
     except (OSError, ValueError, AttributeError, TypeError):
-        names, private = [], []
+        names, private, settings = [], [], {}
     if people.exists():
-        _write_private(people, json.dumps({"people": {}, "private": private}) + "\n")
+        _write_private(people, json.dumps({"people": {}, "private": private, **({"settings": settings} if settings else {})}) + "\n")
     for name in ("phone_key", "phones.json"):
         (STATE / name).unlink(missing_ok=True)
     nodes = STATE / "nodes.json"

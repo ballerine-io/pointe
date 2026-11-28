@@ -189,7 +189,8 @@ Added, all optional so an older app reads the rest:
 
 `pointe pair rotate` and `pointe pair off` (as built) sign out phones, browsers, nodes and every person: each
 person's key is deleted from `people.json`, a live link is closed with 4401, and the command says who to invite
-again. The private-sessions list stays. They keep the machines this voice dials
+again. The private-sessions list and the owner's settings for people (approvals, starts, sessions, window,
+hold) stay. They keep the machines this voice dials
 ([SECURITY.md](../../SECURITY.md#people-on-a-machine)).
 
 ## A big fleet
