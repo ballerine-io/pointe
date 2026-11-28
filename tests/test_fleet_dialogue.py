@@ -172,7 +172,7 @@ def test_the_report_counts_a_paid_dialogue_and_says_each_step_and_what_failed():
     steps += [{"kind": "dialogue_step", "step": "approvals", "passed": True, "verdicts": {"a": "allow", "b": "allow", "c": "allow"},
                "pending_at_once": 3, "read_out": ["a", "b", "c"], "taps": 3, "stray_answers": 0},
               {"kind": "dialogue_step", "step": "flood", "passed": False, "finished": list("abcdefghij"), "report_lines": 3,
-               "named_in_held": 6, "lost": ["j"]},
+               "named_in_held": 6, "lost": ["j"], "answers": 3, "answers_not_said": []},
               {"kind": "dialogue", "sessions": 15, "passed": False}]
     run = {"manifest": {"run": "fleet-x-dialogue-2m15-fleet-on", "what": "dialogue", "models": "real", "arm": "fleet-on",
                         "started": "2026-11-28T09:00:00+0200", "pointe": {"pointe_tree": "abcdef0123456"}},
@@ -183,4 +183,4 @@ def test_the_report_counts_a_paid_dialogue_and_says_each_step_and_what_failed():
     assert "`abcdef0123`" in row and "| 15 |" in row
     assert "pass: 3 of 3 to the one session named" in row and "**FAIL**: 2 of 3 to the one session named" in row
     assert "pass: 3 pending at once, 3 read out, 3 of 3 allowed in 3 taps, 0 stray" in row
-    assert "**FAIL**: 10 finished, 3 report lines, 6 held, 1 lost" in row and row.endswith("| **FAIL** |")
+    assert "**FAIL**: 10 finished, 3 report lines, 6 held, 1 lost, 3 of 3 answers said" in row and row.endswith("| **FAIL** |")

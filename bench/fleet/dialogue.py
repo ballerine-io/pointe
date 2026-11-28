@@ -20,8 +20,15 @@ The steps, and what passes (written before any paid row):
   pending on the page at once, and each is read out. The user taps allow on the one read out last (the page's button:
   a typed "yes" never answers an approval), six taps at most. Each of the three is allowed, none is denied, and no
   other approval is answered.
-- flood: every session but the three that asked and the two that wait ends a turn within ten seconds. Nothing is
-  lost (each is named in a spoken line or in the held list) and at most four spoken lines are reports (the burst bar).
+- flood: every session but the three that asked and the two that wait ends a turn within ten seconds, watched for 70 s.
+  Nothing is lost (each is named in a spoken line or in the held list) and at most four spoken lines are reports (the
+  burst bar).
+
+Changed after the first paid rows (2026-11-28, said here and in the report): the flood was watched until 4.5 s passed
+with nothing said, and a plan says what waits seconds apart, so reports still queued were counted lost; it is watched
+70 s now (the burst bar's minute and 10 s). And six of the sessions that end a turn in the flood were sent a request by
+the user in the name and topic steps: their answers are said as they come, by design, so the four-line bar counts the
+reports of the other sessions, and each answer must be said aloud, not held.
 
 A step that crashed is a failed step. The dialogue passes when every step passes.
 """
@@ -54,6 +61,7 @@ MACHINES = ("studio", "avi-box")
 HARNESSES = ("claude-code", "codex", "opencode")
 SEED = 20261128
 FLOOD_SECS = 10.0
+FLOOD_WATCH_SECS = 70.0  # the burst bar's minute and its 10 s: a plan says what waits one thing at a time, seconds apart
 MAX_TAPS = 6
 READ_OUT_SECS = 45.0  # how long the user waits to hear a pending approval named before tapping a card
 REPORT_LINES_MAX = 4  # the burst bar's
@@ -445,20 +453,24 @@ def run_dialogue(run: bench.Launch, seed: int) -> list[dict]:
                 seen[k] += got[k]
             time.sleep(sim.POLL_SECS)
         finals[sid] = f.finish(sid)
-    settled = w.settle(seen, least=FLOOD_SECS - (time.time() - t0) + 15, most=240.0)
+    settled = w.settle(seen, least=FLOOD_WATCH_SECS - (time.time() - t0), most=240.0)
     status = f.voice.status()
     held = [str(item) for item in ((status.get("held") or {}).get("items") or [])]
     by_id = {s["id"]: s for s in d["sessions"]}
     called = {sid: {by_id[sid]["name"], *([names[sid]] if names.get(sid) else [])} for sid in finals}
     spoken = [s["text"] for s in seen["said"]]
     told, kept, lost = score.burst_named(sorted(finals), spoken, held, called)
-    lines = score.report_lines(spoken, called)
+    asked = [sid for sid in finals if {"name", "topic"} & set(by_id[sid]["roles"])]  # the user sent each a request earlier
+    background = {sid: ns for sid, ns in called.items() if sid not in asked}
+    lines = score.report_lines(spoken, background)
+    unsaid = [sid for sid in asked if sid not in told]
     row = {"kind": "dialogue_step", "step": "flood", "run": run.id, "finished": sorted(finals), "settled": settled,
            "spoken": spoken, "held": held, "named_in_speech": len(told), "named_in_held": len(kept), "lost": lost,
-           "report_lines": lines, "by_harness": {h: sum(by_id[sid]["harness"] == h for sid in finals) for h in HARNESSES},
+           "report_lines": lines, "answers": len(asked), "answers_not_said": unsaid,
+           "by_harness": {h: sum(by_id[sid]["harness"] == h for sid in finals) for h in HARNESSES},
            "lost_by_harness": {h: sum(by_id[sid]["harness"] == h for sid in lost) for h in HARNESSES}}
-    row["passed"] = not lost and lines <= REPORT_LINES_MAX
-    row["why"] = "" if row["passed"] else f"{len(lost)} lost, {lines} report lines"
+    row["passed"] = not lost and lines <= REPORT_LINES_MAX and not unsaid
+    row["why"] = "" if row["passed"] else f"{len(lost)} lost, {lines} background report lines, {len(unsaid)} answers not said"
     run.write(row)
     rows.append(row)
     print(f"  {'flood':<20} {'pass' if row['passed'] else 'FAIL'} {len(finals)} finished: {lines} report lines, "

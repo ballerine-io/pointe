@@ -412,8 +412,10 @@ def dialogue_section(runs: list[dict], build) -> list[str]:
                 return (f"{verdict}: {x['pending_at_once']} pending at once, {len(x['read_out'])} read out, {allowed} of "
                         f"{len(x['verdicts'])} allowed in {x['taps']} taps, {x['stray_answers']} stray")
             if kind == "flood":
+                answers = (f", {x['answers'] - len(x['answers_not_said'])} of {x['answers']} answers said"
+                           if "answers" in x else "")
                 return (f"{verdict}: {len(x['finished'])} finished, {x['report_lines']} report lines, {x['named_in_held']} held, "
-                        f"{len(x['lost'])} lost")
+                        f"{len(x['lost'])} lost{answers}")
             return verdict + (f": missing {x['why']}" if x.get("why") else "")
 
         result = "pass" if summary.get("passed") else f"**FAIL**{': ' + summary['error'] if summary.get('error') else ''}"
@@ -426,7 +428,12 @@ def dialogue_section(runs: list[dict], build) -> list[str]:
             "no other; three approvals asked at once (one per harness, on both machines) are all pending on the page together, "
             "each is read out, each is allowed by a tap on the page (a typed yes never answers an approval), and no other "
             "approval is answered; in the flood every finished turn is said or held and at most "
-            "four spoken lines are reports. One dialogue a size: each step is n = 1, pass or fail, with no interval.", ""]
+            "four spoken lines are reports. One dialogue a size: each step is n = 1, pass or fail, with no interval.", "",
+            "Changed after the first paid rows, and so said here: the flood was watched until 4.5 s passed with nothing said, "
+            "and the voice says what waits seconds apart, so reports still queued were counted lost; it is watched 70 s now. "
+            "And the sessions the user sent requests to in the name and topic steps answer in the flood: their answers are "
+            "said as they come, by design, so the four-line bar counts the other sessions' reports, and each answer must "
+            "be said aloud. Rows written before carry no \"answers\" count and are scored as written.", ""]
     return out
 
 
