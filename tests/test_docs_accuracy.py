@@ -161,3 +161,17 @@ def test_design_docs_name_functions_and_keys_that_exist():
     daemon = (ROOT / "pointe" / "daemon.py").read_text()
     assert "_attach_line" not in daemon and "_attach_line" not in _flat("docs/design/attach-by-voice.md")
     assert '"agent_disclosure"' in daemon and "`agent_disclosure`" in _flat("docs/design/agents.md")
+
+
+def test_the_mac_app_guide_names_every_call_menu_item_with_a_key():
+    swift = (ROOT / "apps" / "macos" / "PointeMac" / "PointeMacApp.swift").read_text()
+    menu = swift[swift.index('CommandMenu("Call")'):]
+    menu = menu[:menu.index("\n        }\n")]
+    labels = dict(re.findall(r'static let (\w+) = "([^"]+)"', swift))
+    keyed = [m for m in re.findall(r"Button\(MacMenu\.(\w+)\)[^\n]*keyboardShortcut", menu) if m in labels]
+    assert {"approve", "deny", "sessions", "meeting", "briefing"} <= set(keyed), keyed  # the regex still finds them
+    guide = _flat("docs/mac-app.md")
+    missing = [labels[k] for k in keyed + ["mute"] if labels[k] not in guide]  # mute's Button picks its label by state
+    assert not missing, missing
+    assert "Settings, This Mac, \"Open Pointe at login\"" in guide
+    assert 'Text("This Mac")' in (ROOT / "apps" / "macos" / "PointeMac" / "MacSettings.swift").read_text()

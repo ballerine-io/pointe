@@ -146,7 +146,7 @@ machine and calls any of them directly, each on its own keys
 
 ## Alerts and the Apple Watch
 
-Menu → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
+Settings (•••) → Alerts. "Alerts on this iPhone" posts a notification when a session needs you and the app is not on screen; iOS
 mirrors it to an Apple Watch on your wrist while the iPhone is locked. There is no push server, so this works while the
 app is alive: open, or in the background with the call up. With the call down and the app in the background, iOS checks
 only when it grants a Background App Refresh (rarely, never in Low Power Mode, never after you swipe the app away).

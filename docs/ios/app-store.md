@@ -1,14 +1,16 @@
 # The iPhone app on the App Store
 
-What to paste into App Store Connect for Pointe, and how a build gets there. The listing text below is a draft: change
-it here first, then in App Store Connect, so the two stay the same.
+What to paste into App Store Connect for Pointe, and how a build gets there. The listing below is what App Store Connect
+shows: change it here first, then in App Store Connect, so the two stay the same.
 
 ## Build and upload
 
 `apps/ios/release.sh` archives a Release build and exports it for App Store Connect, signed automatically with the team in
 `apps/ios/.team` (gitignored). `--bump` raises `CURRENT_PROJECT_VERSION` by one first (commit that), `--upload` sends the
 export straight to App Store Connect; without it the `.ipa` lands in `apps/ios/build/export/` for Transporter. Every upload
-needs a build number higher than the last one for that version.
+needs a build number higher than the last one for that version. A release does this through `tools/release`: the
+`release` workflow runs `apps/ios/release.sh --manual` (Apple Distribution signing, no Xcode account) and uploads with
+the App Store Connect API key ([releasing.md](../releasing.md)). The steps above are the manual fallback.
 
 Export needs a team in the paid Apple Developer Program, with an App Store distribution certificate and an App Store
 Connect record for the bundle ID `io.ballerine.pointe`. A personal team archives but cannot export: "does not have
@@ -72,8 +74,7 @@ app's version line drops "· beta" on the iPhone (`AppVersion.line`), whatever t
 >
 > Pointe is open source (MIT). Built and open-sourced by Ballerine Engineering.
 
-**What's New:** none for the first version; App Store Connect shows the field from the second version on. Write it
-then from that version's line in `CHANGELOG.md`, without "beta".
+**What's New:** the release's `--summary`, which `tools/release` prints, without "beta".
 
 ## Screenshots
 

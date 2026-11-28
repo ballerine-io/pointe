@@ -77,7 +77,7 @@ update it here.
 | `pointe/brain.py` | Decides what to say. Speech is a tool call, so code checks a reply before anyone hears it |
 | `pointe/guards.py`, `pointe/readout.py` | Rules in code: what can be read out, what counts as a plain yes, which routes the phone key may call |
 | `pointe/brief.py` | The reader: session notes and reports |
-| `pointe/harnesses/` | One adapter per agent (Claude Code, OpenCode, Codex), and `pointe/remote.py` for sessions on other machines. The contract: [docs/harnesses.md](docs/harnesses.md) |
+| `pointe/harnesses/` | One adapter per coding agent (Claude Code, OpenCode, Codex), `remote.py` for sessions on other machines, and the agent-framework adapters (OpenClaw, Hermes, A2A, OpenAI-compatible chat), used only with `POINTE_AGENTS=on`. The contract: [docs/harnesses.md](docs/harnesses.md) |
 | `pointe/sessions.py` | The registry of joined sessions, their transcripts, and sends |
 | `pointe/vendors.py`, `pointe/setups.py`, `pointe/keys.py` | Each vendor, its key, the order roles pick them in; the six setups; `pointe key` |
 | `pointe/pair.py`, `pointe/phone_pairing.py`, `pointe/remote.py`, `pointe/phone.py`, `pointe/calllink.py` | The phone listener, pairing, the phone's call and its wire format, and the link that keeps a call through a dropped connection |
@@ -110,7 +110,7 @@ How the parts fit together: [docs/architecture.md](docs/architecture.md). How a 
    Swift tests read, or their own workflow changes, and on a release tag. Start the next change while it runs, then
    read the result.
 3. **If `main` goes red, everyone stops and fixes it first.** Nothing else lands on a red `main`.
-4. **A release runs the full gate**: every test with `--runslow` and the `ui` workflow on the version commit, at most
+4. **A release runs the full gate**: every test with `--runslow`, `test` and `apps` green on the version commit, and the tag's `ui` run before it is promoted, at most
    once a day ([docs/releasing.md](docs/releasing.md)).
 
 Which jobs a push to `main` starts (`tests/test_ci_triggers.py` holds the filters to the Swift tests' reads):
@@ -191,7 +191,7 @@ The iPhone app's tests run in the iPhone Simulator, as in CI (`.github/workflows
 available simulator's id from `xcrun simctl list devices available`, then
 
 ```
-(cd ios && xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=<simulator id>" \
+(cd apps/ios && xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination "id=<simulator id>" \
   -only-testing:PointeTests CODE_SIGNING_ALLOWED=NO -quiet)
 (cd apps/PointeKit && xcodebuild test -scheme PointeKit-Package -destination "id=<simulator id>" \
   -only-testing:PointeUIUnitTests -quiet)
@@ -210,7 +210,7 @@ a run is not recorded. Run them when you change the audio path, or ask a maintai
 tests/e2e/run_all.sh    # three suites in parallel, each on its own daemon, port and sample repository
 ```
 
-`run_all.sh` runs `scenarios.py brain` (one session), `multi_session.py` (routing, switching, permissions) and `pointe/echo.py`
+`run_all.sh` runs `scenarios.py brain` (one session), `multi_session.py` (routing, switching, permissions) and `echo.py`
 (the bot's voice leaking into the microphone) on ports 7862 to 7864, with state in `/tmp/cv-state-*`, and stops a suite
 after 25 minutes. To run one suite by itself, give it a state folder and a port of its own:
 
@@ -289,7 +289,7 @@ The supply-chain rules are in [CLAUDE.md](CLAUDE.md) ("Supply chain") and enforc
 In short:
 
 - **No new dependency without the owner's yes.** Ask in the issue first: the package, its license, what it pulls in, and
-  why nothing already here does the job. The iPhone app uses no packages at all.
+  why nothing already here does the job. The iPhone app uses no third-party packages.
 - **Lockfile only:** `uv run --locked` and `uv sync --locked`. Nothing is installed around the lockfile.
 - **Every download is pinned** by SHA-256 or commit in `pointe/assets.py`, and every host the code can reach is listed in
   `docs/security/egress-allowlist.txt`. The page and the site load nothing from another host.

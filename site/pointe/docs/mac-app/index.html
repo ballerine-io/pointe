@@ -162,7 +162,7 @@ is the command setup puts on your PATH. Contributors building from a clone run <
 </tr>
 <tr>
 <td>Builds Release</td>
-<td>The optimized build, into <code>~/.claude-voice/apps/build</code> (in a clone, <code>apps/macos/build/apps</code>, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run.</td>
+<td>The optimized build, into <code>~/.claude-voice/apps/build/macos</code> (in a clone, <code>apps/macos/build/apps</code>, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run.</td>
 </tr>
 <tr>
 <td>Quits a running Pointe and replaces <code>~/Applications/Pointe.app</code></td>
@@ -176,7 +176,7 @@ rebuild. With a team, the app's bundle ID is your own (the saved iPhone bundle I
 iPhone: <code>io.ballerine.pointe.mac</code> belongs to the team that publishes Pointe.</p>
 <p><strong>Gatekeeper</strong> does not stop it. Gatekeeper checks files that were downloaded (macOS marks them as quarantined), and an
 app built on this Mac carries no such mark. A copy of your build sent to another Mac is refused there: build on each Mac.</p>
-<p><strong>Start at login:</strong> in the app, Settings, General, "Open Pointe at login". macOS lists it under System Settings,
+<p><strong>Start at login:</strong> in the app, Settings, This Mac, "Open Pointe at login". macOS lists it under System Settings,
 General, Login Items, where you can remove it.</p>
 <p>Options: <code>--open</code> opens the app when it is installed, <code>--adhoc</code> signs to run locally even with a team, <code>--dest &lt;folder&gt;</code>
 installs somewhere other than <code>~/Applications</code>, <code>--dry-run</code> shows the Xcode command without running it. Run the command
@@ -259,9 +259,11 @@ is in <code>build.log</code> in the build folder.</p>
   has "What people can do". The Mac app registers no <code>pointe://</code> link: paste the line.</p>
 </li>
 <li>
-<p><strong>The Call menu</strong> has a key for each: Mute (⇧⌘A, in Always on), Approve Request (⌘Y, with Touch ID or the password, as
-  the card's button) and Deny Request (⌘D) for the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting
-  (⇧⌘M), Briefing (⇧⌘B), Open the page (⇧⌘P). While a sheet is open the commands for the window wait for it to close.
+<p><strong>The Call menu:</strong> Connect or Hang Up (⌘Return), Turn Mic Off (⇧⌘A, in Always on), Brain Dump (⌘B), Type Instead
+  of Talking (⌘T), Approve Request (⌘Y, with Touch ID or the password, as the card's button) and Deny Request (⌘D) for
+  the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Night Shift (⇧⌘N),
+  Machines, Pair a Phone…, Open the page (⇧⌘P). The File menu has New Session and Add Sessions (⇧⌘J). The Voice menu
+  has reply length (⌘1 to ⌘4), this Mac's speaking speed (⌥⌘1 to ⌥⌘5) and Clean up my words (⇧⌘K). While a sheet is open the commands for the window wait for it to close.
   Esc closes a sheet and the Type bar. Help, Pointe Help (⌘?) opens this page.</p>
 </li>
 <li>
@@ -311,8 +313,9 @@ is in <code>build.log</code> in the build folder.</p>
 <p><code>apps/macos/test.sh unit</code>, <code>smoke</code> and <code>ui</code>, and the live test against a real daemon:
 <a href="../contributing/#the-apps">Running the tests, The apps</a>.</p>
 <h2 id="the-signed-disk-image">The signed disk image</h2>
-<p><code>tools/build_dmg.sh</code> builds <code>Pointe-&lt;version&gt;.dmg</code> in one command: the app archived, signed with Developer ID through
-Xcode's account and notarized (Xcode exports it with destination "upload"), stapled; a disk image with an Applications
+<p><code>tools/build_dmg.sh</code> builds <code>Pointe-&lt;version&gt;.dmg</code> in one command: the app archived and exported with manual
+Developer ID signing from the keychain, notarized with <code>notarytool</code>, stapled (<code>--xcode-account</code> keeps the old way, through
+Xcode's account); a disk image with an Applications
 link and the brand's background (<code>tools/dmg_background.swift</code>), itself signed, notarized and stapled. The steps around
 it, and the GitHub Actions job that does the same with secrets: <a href="../releasing/#4-the-github-release">releasing.md</a>.</p>
 </article>

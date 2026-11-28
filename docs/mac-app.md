@@ -36,7 +36,7 @@ is the command setup puts on your PATH. Contributors building from a clone run `
 |---|---|
 | Checks Xcode | The build needs the full Xcode, selected and with its license accepted; the command line tools alone cannot build an app. |
 | Chooses how to sign | With an Apple Development certificate in your keychain (a free Apple Account is enough, [how](iphone-app.md#getting-the-app)) it signs as your team. Without one it signs ad hoc, which Xcode calls "Sign to Run Locally". If signing as your team fails, it says why and signs ad hoc instead. |
-| Builds Release | The optimized build, into `~/.claude-voice/apps/build` (in a clone, `apps/macos/build/apps`, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run. |
+| Builds Release | The optimized build, into `~/.claude-voice/apps/build/macos` (in a clone, `apps/macos/build/apps`, which git ignores). The first build took 44 s on an Apple-silicon Mac in the clean-install run. |
 | Quits a running Pointe and replaces `~/Applications/Pointe.app` | So there is one copy, where Spotlight and Login Items find it. Only the copy at that path is quit; if it was running, the new one is opened. |
 
 Both ways of signing give an app that runs on this Mac. The difference is the microphone permission: macOS ties it to
@@ -47,7 +47,7 @@ iPhone: `io.ballerine.pointe.mac` belongs to the team that publishes Pointe.
 **Gatekeeper** does not stop it. Gatekeeper checks files that were downloaded (macOS marks them as quarantined), and an
 app built on this Mac carries no such mark. A copy of your build sent to another Mac is refused there: build on each Mac.
 
-**Start at login:** in the app, Settings, General, "Open Pointe at login". macOS lists it under System Settings,
+**Start at login:** in the app, Settings, This Mac, "Open Pointe at login". macOS lists it under System Settings,
 General, Login Items, where you can remove it.
 
 Options: `--open` opens the app when it is installed, `--adhoc` signs to run locally even with a team, `--dest <folder>`
@@ -106,9 +106,11 @@ For work on the app itself, `apps/macos/build.sh --open` makes a Debug build in 
   sessions. A request on somebody else's machine says who is asked first and
   offers Approve only when it opens to you; New Session offers a machine you may start on, with its own folders; People
   has "What people can do". The Mac app registers no `pointe://` link: paste the line.
-- **The Call menu** has a key for each: Mute (⇧⌘A, in Always on), Approve Request (⌘Y, with Touch ID or the password, as
-  the card's button) and Deny Request (⌘D) for the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting
-  (⇧⌘M), Briefing (⇧⌘B), Open the page (⇧⌘P). While a sheet is open the commands for the window wait for it to close.
+- **The Call menu:** Connect or Hang Up (⌘Return), Turn Mic Off (⇧⌘A, in Always on), Brain Dump (⌘B), Type Instead
+  of Talking (⌘T), Approve Request (⌘Y, with Touch ID or the password, as the card's button) and Deny Request (⌘D) for
+  the first card that waits, Sessions and Mode (⇧⌘S), Start a Meeting (⇧⌘M), Briefing (⇧⌘B), Night Shift (⇧⌘N),
+  Machines, Pair a Phone…, Open the page (⇧⌘P). The File menu has New Session and Add Sessions (⇧⌘J). The Voice menu
+  has reply length (⌘1 to ⌘4), this Mac's speaking speed (⌥⌘1 to ⌥⌘5) and Clean up my words (⇧⌘K). While a sheet is open the commands for the window wait for it to close.
   Esc closes a sheet and the Type bar. Help, Pointe Help (⌘?) opens this page.
 - **Uninstall Pointe…** (in the Pointe menu): `pointe uninstall`'s list, one question (your keys only if you tick their
   box), then it removes Pointe, the app included, and quits.
@@ -145,7 +147,8 @@ Drive mode starts on the phone or by voice; the Mac shows it and can stop it, as
 
 ## The signed disk image
 
-`tools/build_dmg.sh` builds `Pointe-<version>.dmg` in one command: the app archived, signed with Developer ID through
-Xcode's account and notarized (Xcode exports it with destination "upload"), stapled; a disk image with an Applications
+`tools/build_dmg.sh` builds `Pointe-<version>.dmg` in one command: the app archived and exported with manual
+Developer ID signing from the keychain, notarized with `notarytool`, stapled (`--xcode-account` keeps the old way, through
+Xcode's account); a disk image with an Applications
 link and the brand's background (`tools/dmg_background.swift`), itself signed, notarized and stapled. The steps around
 it, and the GitHub Actions job that does the same with secrets: [releasing.md](releasing.md#4-the-github-release).

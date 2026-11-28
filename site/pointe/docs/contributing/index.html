@@ -248,7 +248,7 @@ update it here.</p>
 </tr>
 <tr>
 <td><code>pointe/harnesses/</code></td>
-<td>One adapter per agent (Claude Code, OpenCode, Codex), and <code>pointe/remote.py</code> for sessions on other machines. The contract: <a href="../harnesses/">docs/harnesses.md</a></td>
+<td>One adapter per coding agent (Claude Code, OpenCode, Codex), <code>remote.py</code> for sessions on other machines, and the agent-framework adapters (OpenClaw, Hermes, A2A, OpenAI-compatible chat), used only with <code>POINTE_AGENTS=on</code>. The contract: <a href="../harnesses/">docs/harnesses.md</a></td>
 </tr>
 <tr>
 <td><code>pointe/sessions.py</code></td>
@@ -339,7 +339,7 @@ update it here.</p>
 <li>
 <p><strong>If <code>main</code> goes red, everyone stops and fixes it first.</strong> Nothing else lands on a red <code>main</code>.</p>
 </li>
-<li><strong>A release runs the full gate</strong>: every test with <code>--runslow</code> and the <code>ui</code> workflow on the version commit, at most
+<li><strong>A release runs the full gate</strong>: every test with <code>--runslow</code>, <code>test</code> and <code>apps</code> green on the version commit, and the tag's <code>ui</code> run before it is promoted, at most
    once a day (<a href="../releasing/">docs/releasing.md</a>).</li>
 </ol>
 <p>Which jobs a push to <code>main</code> starts (<code>tests/test_ci_triggers.py</code> holds the filters to the Swift tests' reads):</p>
@@ -426,7 +426,7 @@ and checks the card goes. Take a quarantine out when its cause is fixed.</p>
 POINTE_UI_LOCAL=1 apps/macos/test.sh ui    # the same flows with XCUITest; macOS asks you to allow UI automation first</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 <p>The iPhone app's tests run in the iPhone Simulator, as in CI (<code>.github/workflows/apps.yml</code>, job <code>ios</code>): pick an
 available simulator's id from <code>xcrun simctl list devices available</code>, then</p>
-<div class="dx-code"><pre><code>(cd ios &amp;&amp; xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination &quot;id=&lt;simulator id&gt;&quot; \
+<div class="dx-code"><pre><code>(cd apps/ios &amp;&amp; xcodebuild test -project Pointe.xcodeproj -scheme Pointe -destination &quot;id=&lt;simulator id&gt;&quot; \
   -only-testing:PointeTests CODE_SIGNING_ALLOWED=NO -quiet)
 (cd apps/PointeKit &amp;&amp; xcodebuild test -scheme PointeKit-Package -destination &quot;id=&lt;simulator id&gt;&quot; \
   -only-testing:PointeUIUnitTests -quiet)</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
@@ -437,7 +437,7 @@ apps/macos/e2e/live.py</code> runs the real Mac app against its own daemon, with
 <p><code>tests/e2e/</code> starts real Claude Code sessions and calls the vendors on your keys, so each run costs money; the cost of
 a run is not recorded. Run them when you change the audio path, or ask a maintainer to.</p>
 <div class="dx-code"><pre><code>tests/e2e/run_all.sh    # three suites in parallel, each on its own daemon, port and sample repository</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p><code>run_all.sh</code> runs <code>scenarios.py brain</code> (one session), <code>multi_session.py</code> (routing, switching, permissions) and <code>pointe/echo.py</code>
+<p><code>run_all.sh</code> runs <code>scenarios.py brain</code> (one session), <code>multi_session.py</code> (routing, switching, permissions) and <code>echo.py</code>
 (the bot's voice leaking into the microphone) on ports 7862 to 7864, with state in <code>/tmp/cv-state-*</code>, and stops a suite
 after 25 minutes. To run one suite by itself, give it a state folder and a port of its own:</p>
 <div class="dx-code"><pre><code>export CLAUDE_VOICE_STATE=&quot;$(mktemp -d)&quot; CLAUDE_VOICE_DAEMON_PORT=7861
@@ -522,7 +522,7 @@ In short:</p>
 <ul>
 <li>
 <p><strong>No new dependency without the owner's yes.</strong> Ask in the issue first: the package, its license, what it pulls in, and
-  why nothing already here does the job. The iPhone app uses no packages at all.</p>
+  why nothing already here does the job. The iPhone app uses no third-party packages.</p>
 </li>
 <li>
 <p><strong>Lockfile only:</strong> <code>uv run --locked</code> and <code>uv sync --locked</code>. Nothing is installed around the lockfile.</p>

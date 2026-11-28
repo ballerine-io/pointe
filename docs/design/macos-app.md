@@ -298,16 +298,15 @@ was rejected: it needs Input Monitoring and sees every key.
   copy), a model key (present in the Keychain or the environment as the daemon reports through its preflight, or
   `pointe local`), the daemon (Start), the microphone (Allow), a session (run `/pointe:voice`).
 - **Keys.** The app never reads, shows, stores or logs a key. Whether a key is there is `SecItemCopyMatching` for the
-  service names in `vendors.KEYS` (`gemini-api-key`, `anthropic-api-key`, …) asking for attributes only, which loads
+  service names in `vendors.KEYS` (`pointe.gemini-api-key`, `pointe.anthropic-api-key`, …) asking for attributes only, which loads
   no secret and raises no prompt. "Add…" runs the plugin's `bin/pointe key <vendor>`: the existing hidden-input dialog,
   which saves the key through `security -i` on its standard input and reads it back.
 
 ## Distribution
 
-- **Now:** a Debug build signed with the team in `apps/ios/.team` (gitignored), for the owner's Macs. `apps/macos/build.sh`
-  builds and signs it; nothing is uploaded.
-- **Next, once the Developer ID account is approved:** Developer ID Application signing, hardened runtime, `notarytool`
-  and a stapled DMG (the steps are in `docs/mac-app.md`; no script is shipped before it can be run), then a Homebrew cask in a `ballerine-io/homebrew-tap`
+- **Now:** a Developer ID signed, notarized and stapled `Pointe-X.Y.Z.dmg` on each GitHub release, built by
+  `tools/build_dmg.sh` (in CI by the `release` workflow). From source: `pointe apps mac`.
+- **Planned, not built:** a Homebrew cask in a `ballerine-io/homebrew-tap`
   repository (`brew install --cask ballerine-io/tap/pointe`) whose `url` is the GitHub release's DMG and whose `sha256`
   the release script prints. A cask in homebrew-cask proper needs notarization and some adoption first.
 - **Entitlements, all of them:** `com.apple.security.device.audio-input`. No App Sandbox (it launches the plugin's
