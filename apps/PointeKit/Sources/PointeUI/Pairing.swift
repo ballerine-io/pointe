@@ -174,17 +174,36 @@ enum PairingStore {
 
 /// The Keychain under `PairedMachines`: generic passwords of one service, found again by their persistent reference.
 struct KeychainVault: PairingVault {
+    /// Each item by its attributes and persistent reference, then its data one by one: the Keychain refuses data for
+    /// several items in one query (errSecParam), which read as no pairing at all. If listing fails, the one item an
+    /// older version kept is read the old way, so a phone never loses its pairing to this.
     func rows() -> [VaultRow] {
         var out: AnyObject?
-        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: PairingStore.service,
-                                    kSecMatchLimit as String: kSecMatchLimitAll, kSecReturnAttributes as String: true,
-                                    kSecReturnData as String: true, kSecReturnPersistentRef as String: true]
-        guard SecItemCopyMatching(query as CFDictionary, &out) == errSecSuccess, let found = out as? [[String: Any]] else { return [] }
-        return found.compactMap { row in
-            guard let data = row[kSecValueData as String] as? Data, let p = try? JSONDecoder().decode(Pairing.self, from: data) else { return nil }
-            return VaultRow(account: row[kSecAttrAccount as String] as? String ?? "", pairing: p,
-                            ref: row[kSecValuePersistentRef as String] as? Data)
+        let all: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: PairingStore.service,
+                                  kSecMatchLimit as String: kSecMatchLimitAll, kSecReturnAttributes as String: true,
+                                  kSecReturnPersistentRef as String: true]
+        if SecItemCopyMatching(all as CFDictionary, &out) == errSecSuccess, let found = out as? [[String: Any]] {
+            let rows = found.compactMap { row -> VaultRow? in
+                guard let ref = row[kSecValuePersistentRef as String] as? Data, let p = Self.pairing(ref: ref) else { return nil }
+                return VaultRow(account: row[kSecAttrAccount as String] as? String ?? "", pairing: p, ref: ref)
+            }
+            if !rows.isEmpty { return rows }
         }
+        var one: AnyObject?
+        let first: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: PairingStore.service,
+                                    kSecReturnAttributes as String: true, kSecReturnData as String: true,
+                                    kSecReturnPersistentRef as String: true]
+        guard SecItemCopyMatching(first as CFDictionary, &one) == errSecSuccess, let row = one as? [String: Any],
+              let data = row[kSecValueData as String] as? Data, let p = try? JSONDecoder().decode(Pairing.self, from: data) else { return [] }
+        return [VaultRow(account: row[kSecAttrAccount as String] as? String ?? "", pairing: p, ref: row[kSecValuePersistentRef as String] as? Data)]
+    }
+
+    private static func pairing(ref: Data) -> Pairing? {
+        var out: AnyObject?
+        let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecValuePersistentRef as String: ref,
+                                    kSecReturnData as String: true, kSecMatchLimit as String: kSecMatchLimitOne]
+        guard SecItemCopyMatching(query as CFDictionary, &out) == errSecSuccess, let data = out as? Data else { return nil }
+        return try? JSONDecoder().decode(Pairing.self, from: data)
     }
 
     /// Written over the item of that account, never deleted first: a write that fails leaves the old pairing in place.
