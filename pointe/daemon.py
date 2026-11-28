@@ -7852,6 +7852,8 @@ async def _send_now(message: str) -> dict:
     # by the heard-as marks below, which are for names the code does not have.
     code = relay.code_names(targets[0].cwd) if not targets[0].machine else {}
     message = relay.repo_names(message, code)
+    # "bin report, snake case" heard binReportSnakeCase, "fetch rate" next to get_rate sent as fetchRate (HLK 0.8.5)
+    message = relay.spoken_style(message, said, code)
     known = _vocabulary_for(targets[0]) | {n for names in code.values() for n in names}
     message = relay.trade_words(message, {k.lower() for k in known})  # "dark string" is a docstring (tester round 5)
     # "ends in s" heard "ends in S" reached the session as "90S", and it accepted only a capital (HLK 0.8.5 twin-symbols)

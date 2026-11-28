@@ -197,6 +197,53 @@ def code_words(folder: str | None) -> set[str]:
     return _index(folder)[1]
 
 
+# ---------- the style of a spoken name ----------
+
+_CAMEL = re.compile(r"(?<![\w.])[a-z][a-z0-9]*(?:[A-Z][a-z0-9]*)+(?![\w])")
+_STYLE_WORDS = {"snake": "snake", "camel": "camel", "pascal": "pascal", "kebab": "kebab"}
+
+
+def _said_words(said: str) -> list[str]:
+    """The user's words, a name the recognizer wrote in camel case split back into its words."""
+    return [w for token in re.findall(r"\w+", said) for w in _split(token)]
+
+
+def _styled(parts: list[str], style: str) -> str:
+    if style == "snake":
+        return "_".join(parts)
+    if style == "kebab":
+        return "-".join(parts)
+    head = parts[0] if style == "camel" else parts[0].capitalize()
+    return head + "".join(p.capitalize() for p in parts[1:])
+
+
+def spoken_style(message: str, said: str, names: dict[str, set[str]]) -> str:
+    """The message with each camelCase name the recognizer built from the user's words written in the style the user
+    said ("snake case"), with that style word taken out of the name (binReportSnakeCase is bin_report), or, when they said
+    none, in snake case if every name the code defines in either style is snake case. A name the code has stays, and a
+    name whose words the user did not say (one the brain brought in) stays. `names`: code_names."""
+    words = _said_words(said)
+    cue = next((_STYLE_WORDS[a] for a, b in zip(words, words[1:]) if a in _STYLE_WORDS and b == "case"), None)
+    defined = {n for found in names.values() for n in found}
+    camel = any(_CAMEL.fullmatch(n) for n in defined)
+    snake = any(re.fullmatch(r"[a-z][a-z0-9]*(?:_[a-z0-9]+)+", n) for n in defined)
+    default = cue or ("snake" if snake and not camel else None)
+
+    def fix(m: re.Match) -> str:
+        name = m.group(0)
+        parts = _split(name)
+        style = default
+        if len(parts) > 2 and parts[-1] == "case" and parts[-2] in _STYLE_WORDS:
+            style, parts = _STYLE_WORDS[parts[-2]], parts[:-2]  # the style said after the name, glued into it
+        elif name in defined:
+            return name
+        if style is None or not _contains(words, parts):
+            return name
+        return _styled(parts, style)
+
+    return _CAMEL.sub(fix, message)
+
+
 # ---------- letters said aloud ----------
 
 # The user said the case: then a capital is theirs.
