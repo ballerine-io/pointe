@@ -69,6 +69,7 @@ import local
 import meeting as meetings
 import modes
 import mute
+import phrases
 import handoff
 import pair
 import progress
@@ -3077,6 +3078,7 @@ class State:
     corrected: set[int] = field(default_factory=set)  # user turns the user fixed in an app
     meeting: object = None  # meetings.Meeting while one is on
     mouth: object = None  # the call's text-to-speech service (brain front only)
+    phrases: object = None  # phrases.Phrases on that mouth: its short lines played from memory
     speed: float = 1.0  # the speed the mouth speaks at now
     by_voice: tuple[str, float] | None = None  # (key, when): the quick setting the user changed by voice last
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
@@ -6513,6 +6515,28 @@ NEXT_REQUEST_AFTER_SECS = 0.8
 
 
 ANSWERED_LINES = {("allow", False): "Approved.", ("deny", False): "Denied.", ("allow", True): "אושר.", ("deny", True): "נדחה."}
+PHRASES_WARM_SECS = 5.0  # a session that joins a call has its acknowledgements ready this soon
+
+
+def _ack_lines() -> list[str]:
+    """The lines a turn the daemon answers itself says most: an approval's answer, and a plain send or question to
+    each session now on the call (_quick_ack)."""
+    names = [_spoken_names(s.name).split("/")[0] for s in REGISTRY.sessions.values()]
+    return [ANSWERED_LINES[("allow", False)], ANSWERED_LINES[("deny", False)],
+            *(f"{verb} {name}." for name in names for verb in ("Sent to", "Asking"))]
+
+
+async def _warm_phrases(kept) -> None:
+    """Keeps those lines ready as audio for as long as the call is up (phrases.py): a few characters of the mouth's
+    vendor each, once per voice and speed. Not while the voice speaks, so a warm-up never competes with a line the
+    user waits for."""
+    if getattr(kept, "warming", False):
+        return  # a link that resumes connects again: one loop per mouth
+    kept.warming = True
+    while state.phrases is kept and state.conn is not None:
+        if not ECHO.speaking:
+            await kept.warm(_ack_lines())
+        await asyncio.sleep(PHRASES_WARM_SECS)
 
 
 UNHEARD_ANSWER_SECS = 2.5  # a sound with no words this long after it, while a request waits for its yes: ask once
@@ -12684,11 +12708,13 @@ async def run_call(transport) -> None:
     injector = FeedInjector()
     ears, mirror, stt = _call_ears(_recognition_terms(await _listed_repos()))
     gate = [PttGate(stt), WhisperIn()]
+    state.phrases = None  # set again below for a brain front's mouth
     if FRONT == "brain":
         front = BrainFront(opening)
         state.context = front.brain
         mouth = vendors.build_mouth(setup().mouth, MIRROR_RATE, state.http, speed=_call_speed())
         state.mouth, state.speed = mouth, _call_speed()
+        state.phrases = phrases.Phrases(mouth)
 
         @mouth.event_handler("on_tts_request")
         async def on_tts_request(_mouth, _context_id, _text):
@@ -12721,6 +12747,8 @@ async def run_call(transport) -> None:
         logger.info(f"client connected, front={FRONT} {setup() if FRONT == 'brain' else ''} model={MODEL or 'default'}, "
                     f"sessions: {_names()}")
         await _on_connect(Connection(injector=injector, voice=voice, runner=runner, workers={}, ptt=gate[0]))
+        if state.phrases is not None:
+            asyncio.create_task(_warm_phrases(state.phrases))
         await _apply_speed()  # the device is known now: its own speed, if it is not the one the voice was built at
 
     @transport.event_handler("on_client_disconnected")
