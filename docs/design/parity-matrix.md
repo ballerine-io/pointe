@@ -209,7 +209,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | About: what Pointe is, the version, the repository <br>`about` | yes `ui.html:1659` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes `apps/PointeKit/Sources/PointeUI/About.swift:54` | yes (the page) |
 | The app's version beside the daemon's when they differ <br>`about.version` | yes `ui.html:1204` | yes `apps/PointeKit/Sources/PointeUI/Brand.swift:564` | yes `apps/macos/PointeMac/AppModel.swift:258` | yes (the page) |
 | Local mode, as one read-only line <br>`local-mode` | yes `ui.html:1543` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:60` | yes `apps/PointeKit/Sources/PointeUI/CallSettings.swift:60` | yes (the page) |
-| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (51 topics)` | yes `product_help.json (51 topics)` | yes `product_help.json (48 topics)` | yes (the page) |
+| The voice knows where this surface keeps each control (product_help.json) <br>`help` | yes `product_help.json (51 topics)` | yes `product_help.json (52 topics)` | yes `product_help.json (48 topics)` | yes (the page) |
 | A demo with invented sessions, no Mac needed <br>`demo` | n/a | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | yes `apps/PointeKit/Sources/PointeUI/Demo.swift:7` | n/a |
 | Keyboard: a key for every main action <br>`keys` | yes `ui.html:3577` | n/a | yes `apps/macos/PointeMac/Panels.swift:202` | yes (the page) |
 
