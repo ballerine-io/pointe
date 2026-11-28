@@ -337,3 +337,38 @@ def test_a_yes_with_more_words_after_the_request_went_cold_brings_the_read_out_b
     d.state.user_started_at = time.time() - 1
     asyncio.run(d.on_user_utterance(words))
     assert verdicts(posts) == [] and d.state.utterance_spent and said and "rm -rf build" in said[-1]
+
+
+def test_a_read_out_binds_the_request_it_words_not_one_that_replaced_it_meanwhile(d, monkeypatch):  # noqa: F811
+    """Found by tests/test_approval_fuzz.py (stale family): _read_out worded p1, awaited the voice model's injector, and
+    then bound the line to whatever request was pending after that await. A request p2 that came in meanwhile had its
+    window opened by p1's words, and the yes after them approved p2, which was never read out."""
+    import json
+
+    active, posts, said = _read_out_setup(d, monkeypatch)
+    active.channel_url = None
+    asyncio.run(d._put_permission(active, "p1", "Bash", "status", json.dumps({"command": "git status"})))
+    inject = d.state.conn.injector.inject
+
+    async def replaced_meanwhile(text, respond):
+        await inject(text, respond)
+        if text.startswith("[read out to the user, by the daemon]") and active.permission_id == "p1":
+            await asyncio.sleep(0)  # the injector yields, and a new request comes in
+            await d._put_permission(active, "p2", "Bash", "clean", json.dumps({"command": "rm -rf build"}))
+
+    monkeypatch.setattr(d.state.conn.injector, "inject", replaced_meanwhile)
+
+    async def at_a_gap(*_a):
+        pass  # p2's own read-out waits for a gap in the conversation: it has not come yet
+
+    monkeypatch.setattr(d, "_read_out_when_quiet", at_a_gap)
+    asyncio.run(d._read_out(active))
+    assert "git status" in said[-1]
+    d.ECHO.bot_started()
+    d.ECHO.bot_stopped()
+    d.ECHO.stopped_at = time.time() - 5
+    d.state.user_started_at = time.time() - 1
+    d.state.conn.injector.bot_started_at = time.time()
+    asyncio.run(d.on_user_utterance("Yes."))
+    assert verdicts(posts) == [] and active.permission_id == "p2"
+    assert "rm -rf build" in said[-1]  # the yes brings the new request's own read-out

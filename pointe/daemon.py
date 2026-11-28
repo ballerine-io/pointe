@@ -10610,8 +10610,10 @@ async def _read_out(session: Session, unsure: bool = False, early: bool = False,
     elif urgent:  # it cuts into an exchange because it is about to go back to its terminal: say so
         text = ("דבר אחד דחוף. " if hebrew else "One urgent thing. ") + text
     session.permission_delivered_at = float("inf")
+    bound = None if session.permission_cut else session.permission_id  # the request these words say, fixed with them:
+    # one that replaces it during the await below must not have its window opened by them
     await state.conn.injector.inject(f"[read out to the user, by the daemon] {text}", False)
-    await front._speak(text, None if session.permission_cut else session.permission_id)
+    await front._speak(text, bound)
     if session.permission_cut:
         session.permission_read_at = time.time()  # a no still counts
 
