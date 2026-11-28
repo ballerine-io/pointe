@@ -1251,8 +1251,15 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 </li>
 <li>
 <p>the people invited to this machine: <code>/voice/people</code>, <code>/voice/people/invite</code>, <code>/voice/people/grant</code>,
-  <code>/voice/people/remove</code>, and <code>/voice/share</code> (keep a session private, or share it again).</p>
+  <code>/voice/people/remove</code>, and <code>/voice/share</code> (keep a session private, or share it again), and what they may do there
+  (<code>/voice/people/settings</code>: answer prompts, start sessions, how long the owner is asked first);</p>
 </li>
+<li>
+<p>the approvals record (<code>/voice/approvals</code>: who answered which request, read only);</p>
+</li>
+<li>agents (<code>/voice/agents</code>: the list, and adding one, its credential going to the machine's Keychain only;
+  <code>/voice/agents/seen</code>; <code>/voice/agents/&lt;name&gt;/replies</code>, an agent's replies; and <code>/voice/agents/&lt;name&gt;</code>, taking one
+  out). The pattern routes are <code>guards._PHONE_PATTERNS</code>: one name, one segment.</li>
 </ul>
 <p>Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
 uses.</p>
