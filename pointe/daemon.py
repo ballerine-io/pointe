@@ -7927,7 +7927,22 @@ async def _send_now(message: str) -> dict:
         result["offline"] = [t.name for t in offline]
         result["say"] = (result.get("say", "") + f" Tell the user it did not reach "
                          f"{'; '.join(_offline_line(t) for t in offline)}.").strip()
+    for target in targets:
+        if target.name in sent_to and (line := _behind_request(target)):
+            result["say"] = (result.get("say", "") + " " + line).strip()
     return result
+
+
+def _behind_request(target: Session) -> str:
+    """A send to a session that waits on its permission prompt: Claude Code holds the message until the prompt is
+    answered, so it is not called sent, and the prompt is put to the user again after the reply (acc-05 at 0.9.0:
+    "Sent to atlas." while atlas waited on an unanswered find, and the call went silent). "" when nothing waits."""
+    if not target.permission_id or target.machine:  # a machine refuses it itself (machines.refusal)
+        return ""
+    target.permission_read_at = 0.0  # not answered: read again, and a yes counts only after that
+    asyncio.create_task(_read_out_when_quiet(target, target.permission_id))
+    return (f"{target.name} waits on its request, so Claude takes this message only once that is answered. Tell the "
+            f"user so in one short sentence; the request is read to them again after it.")
 
 
 def _needs_warning(message: str) -> bool:
