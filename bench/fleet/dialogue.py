@@ -240,14 +240,19 @@ class MixedFleet(sim.FleetSim):
         return cwd
 
     def settle_notes(self, timeout: float = 120.0) -> dict:
-        """Before the call: every session's record on the voice's machine, as when sessions joined long before a call (a
-        Codex or OpenCode mirror its watcher writes, a remote one that arrives over the link)."""
-        def whole() -> bool:
-            return all(Path(s["transcript"]).exists() and Path(s["transcript"]).stat().st_size > 0
-                       for s in self.registry().values())
-
-        sim.until("every session's record is on the voice", whole, timeout, every=0.25)
+        """No kept notes: a Codex or OpenCode session's record is written by its watcher, which runs during a call, so the
+        reader reads every session once the call is up (notes_ready)."""
         return {"with_notes": len(self.noted()), "sessions": len(self.described["sessions"])}
+
+    def notes_ready(self, watch, timeout: float = 120.0) -> dict:
+        """After the call opens, the user starts once the voice has notes on every session, or after `timeout`: how
+        long that took, and how many it had."""
+        began, n = time.time(), len(self.described["sessions"])
+        while len(self.noted()) < n and time.time() - began < timeout:
+            watch.poll()
+            time.sleep(0.25)
+        watch.settle(least=1.0, most=60.0)
+        return {"secs": round(time.time() - began, 1), "with_notes": len(self.noted()), "sessions": n}
 
     def start_states(self) -> None:
         """Nothing works at the start of a dialogue: the two that wait ended their turn with a question."""
@@ -479,6 +484,9 @@ def main() -> None:
     error = ""
     try:
         run.up()
+        run.manifest["notes_ready"] = run.fleet.notes_ready(run.watch)
+        print(f"  notes on {run.manifest['notes_ready']['with_notes']} of {a.sessions} sessions after "
+              f"{run.manifest['notes_ready']['secs']} s", flush=True)
         rows = run_dialogue(run, a.seed)
         summary = {"kind": "dialogue", "run": run.id, "arm": run.arm, "sessions": a.sessions, "models": a.models,
                    "steps": {r.get("turn") or r["step"]: r["passed"] for r in rows}, "passed": all(r["passed"] for r in rows),
