@@ -3547,7 +3547,7 @@ def _quick_answer(session: Session, text: str, call: bool = True) -> str | None:
 def _others_machine(session: Session) -> bool:
     """The session runs on a machine somebody invited this voice to (machines.py), not on one of the user's own."""
     m = paired_machine(session.machine) if session.machine else None
-    return bool(m and m.dialed)
+    return bool(m and m.dialed and m.grant != "mine")
 
 
 def _hold_others(session: Session, text: str) -> None:
@@ -11716,7 +11716,7 @@ def _there_status(s: Session) -> dict:
         first = _asked_first(s)
         if first:
             out["asked"] = first
-        out["can_answer"] = first is None and m.grant == "send" and online(s)
+        out["can_answer"] = first is None and m.grant in ("send", "mine") and online(s)
     resolved = state.resolved_by.get(s.id)
     if resolved and time.time() - resolved["at"] < guests.RESOLVED_SHOWN_SECS:
         out["resolved_by"] = resolved

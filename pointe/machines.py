@@ -501,6 +501,8 @@ def vendors_line(vendors: list) -> str:
 
 
 def _can(grant: str) -> str:
+    if grant == "mine":
+        return "it is your own machine: its sessions are yours here"
     return "you can watch its sessions" if grant == "watch" else "you can talk to its sessions"
 
 

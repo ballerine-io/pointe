@@ -23,7 +23,7 @@ usage() {
     update)    echo "pointe update [--yes]: the standalone install: the newest release, checked against its SHA-256. The Claude Code plugin updates through Claude Code." ;;
     hub)       echo "pointe hub invite [--name NAME] | nodes | revoke NAME: the machines that join this one." ;;
     machine)   echo "pointe machine add '<line>' [--name NAME] | list | remove NAME: the machines in your voice; add takes the line a machine's owner gave you." ;;
-    machines)  echo "pointe machines: the machines in your voice, and whose each one is." ;;
+    machines)  echo "pointe machines: the machines in your voice, and whose each one is. pointe machines link <name>: a one-time line that links another machine of your own to this one (pointe machine add '<line>' there)." ;;
     agent)     echo "pointe agent add <openclaw|hermes|a2a|openai> <url> [--name NAME] [--agent ID] | agent remove NAME: talk to agents built on agent frameworks (POINTE_AGENTS=on)." ;;
     agents)    echo "pointe agents: the agents in your voice, and whether each answers." ;;
     people)    echo "pointe people | people invite NAME [--watch] | people grant NAME send|watch | people remove NAME: the people invited to this machine's sessions." ;;
@@ -64,7 +64,7 @@ case "$cmd" in
            exec env UV_PROJECT_ENVIRONMENT="$STATE/node-env" uv run -q --locked --only-group node --project "$ROOT" python "$ROOT/pointe/node_cli.py" "$@" ;;
   hub)     cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/hub_nodes.py "$@" ;;  # machines: invite, nodes, revoke
   machine) cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/machines.py "$@" ;;  # a machine somebody invited you to: add, list, remove
-  machines) exec "$0" machine list ;;
+  machines) if [ "${1:-}" = "link" ]; then shift; exec "$0" people invite "$@" --mine; fi; exec "$0" machine list ;;
   agent)   cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/agents.py "$@" ;;  # agent frameworks: add, list, remove
   agents)  exec "$0" agent list ;;
   people|share) cd "$BIN/.." && "$BIN/uv-sync" --inexact --quiet --project "$BIN/.." && exec uv run --no-sync --project "$BIN/.." python -I pointe/guests.py "$cmd" "$@" ;;  # people on this machine: invite, grant, remove; share a session or keep it private

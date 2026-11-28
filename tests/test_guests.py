@@ -1203,8 +1203,9 @@ def test_no_frame_about_a_session_reaches_a_link_that_may_not_see_it_and_no_send
     seen: set[str] = set()  # what the machine answered a send with
     count = iter(range(10_000))
 
-    def shared() -> set[str]:
-        return local - private
+    def shared(name: str | None = None) -> set[str]:
+        """What this person may see: the owner on another of their voices ("mine") sees private sessions too."""
+        return set(local) if name is not None and grants.get(name) == "mine" else local - private
 
     def checker(name: str):
         def check(frame: dict) -> None:
@@ -1218,7 +1219,7 @@ def test_no_frame_about_a_session_reaches_a_link_that_may_not_see_it_and_no_send
                 if t == "session.left":
                     assert sid in knew[name], f"{name} was told {sid} left and never knew it"
                 else:
-                    assert sid in shared(), f"{t} about {sid} to {name}: private, gone, or not this machine's"
+                    assert sid in shared(name), f"{t} about {sid} to {name}: private, gone, or not this machine's"
             if t in ("sessions", "session.joined"):
                 knew[name].update(about)
             if t == "sent":
@@ -1296,15 +1297,16 @@ def test_no_frame_about_a_session_reaches_a_link_that_may_not_see_it_and_no_send
             result = await voices[name].recv("send.result", req=req)
             await settle()
             seen.add(result.get("why") or ("delivered" if result["ok"] else "?"))
-            if sid not in shared():
+            if sid not in shared(name):
                 assert (result["ok"], result.get("why")) == (False, "private"), result
-            elif grants[name] != "send":
+            elif grants[name] == "watch":
                 assert (result["ok"], result.get("why")) == (False, "watch"), result
-            elif not result["ok"]:
-                assert result["why"] == "busy" and not anyway and result["busy"]["by"] in others, result
+            elif not result["ok"]:  # the owner on another voice is never busy against themselves
+                assert grants[name] == "send" and result["why"] == "busy" and not anyway and result["busy"]["by"] in others + [host.owner], result
             if result["ok"]:
                 assert len(agent.got) == before + 1 and agent.got[-1][0] == sid
-                assert agent.got[-1][1].startswith(sessions.person_prefix(name) + " #")
+                tag = sessions.voice_message("x").split(" #")[0] if grants[name] == "mine" else sessions.person_prefix(name)
+                assert agent.got[-1][1].startswith(tag + " #"), agent.got[-1][1]
             else:
                 assert len(agent.got) == before, f"a refused send reached the agent: {result}"
             sending.pop()
@@ -1332,7 +1334,8 @@ def test_no_frame_about_a_session_reaches_a_link_that_may_not_see_it_and_no_send
             await voice.drop()
 
     run(go())
-    assert all(any(text.startswith(sessions.person_prefix(n)) for n in grants) for _, text in agent.got)
+    owners = sessions.voice_message("x").split(" #")[0]  # the owner's own tag, from a "mine" link
+    assert all(text.startswith(owners) or any(text.startswith(sessions.person_prefix(n)) for n in grants) for _, text in agent.got)
     assert seen, "no send was tried"
 
 

@@ -643,7 +643,9 @@ class Hub:
         dialed = isinstance(paired.get("dial"), dict)
         machine = Machine(name=paired["name"], id=paired["id"], os=paired.get("os", ""), online=False,
                           since=self._clock(), key_fp=nodelink.fingerprint(paired["key"]) if paired.get("key") else "",
-                          dialed=dialed, owner=str(paired.get("owner") or "") if dialed else "",
+                          dialed=dialed,
+                          # one of the user's own machines (grant "mine"): no owner's name on it or its sessions
+                          owner=str(paired.get("owner") or "") if dialed and paired.get("grant") != "mine" else "",
                           grant=str(paired.get("grant") or "") if dialed else "",
                           me=str(paired.get("person_name") or "") if dialed else "",
                           host_id=str(paired.get("host_id") or "") if dialed else "",
@@ -795,7 +797,7 @@ class Hub:
             return f"Pointe starts sessions only on this machine and on machines you were invited to. On {node.name}, start it there and join it."
         if node.machine.removed or not node.online:
             return f"{node.name} is offline."
-        if node.machine.grant != "send":
+        if node.machine.grant not in ("send", "mine"):
             return f"{node.machine.owner or 'Its owner'} lets you watch {node.name}, not start sessions there."
         if "start" not in node.features:
             return f"{node.name} runs an older Pointe. Its owner updates it there, and then you can start sessions on it."

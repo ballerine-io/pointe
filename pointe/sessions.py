@@ -176,7 +176,7 @@ def owner_of(machine_name: str, said) -> str:
     machine this voice dialed has other people's sessions: a node of one's own cannot make a session somebody else's.
     There, a session with no owner named is the machine owner's, and one named as this person is theirs."""
     m = MACHINES.get(machine_name)
-    if m is None or not m.dialed:
+    if m is None or not m.dialed or m.grant == "mine":
         return ""
     said = " ".join(re.sub(r"[^\w ./-]+", " ", said if isinstance(said, str) else "").split())[:40].strip(" ./-")
     if said and m.me and said.lower() == m.me.lower():

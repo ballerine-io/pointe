@@ -6,6 +6,8 @@ here, never by their voice: which sessions cross, who may send, and whose name a
 
   pointe people                              the people invited to this machine
   pointe people invite <name> [--watch]      a one-time line for that person's voice (--watch: they see and hear only)
+  pointe people invite <name> --mine         a line for another machine of your own: its voice reaches this one as you
+                                             (pointe machines link <name> is the same)
   pointe people grant <name> send|watch      change what a person may do
   pointe people remove <name>                take a person off: their key is deleted and their link is closed
   pointe people approvals on|off             people who may send can answer a session's permission prompt, or not
@@ -428,7 +430,7 @@ class HostSide:
         session = self.registry.sessions.get(session_id) if isinstance(session_id, str) else None
         if session is None or session.machine:
             return None
-        if session.id in self.people.private:
+        if session.id in self.people.private and not self.mine(self.people.get(person_id) if person_id else None):
             starter = self.starter(session)
             if starter is None or starter["id"] != person_id:
                 return None
@@ -505,7 +507,8 @@ class HostSide:
         starter = _cut(str(by.get("name") or ""), 40) if isinstance(by, dict) else ""
         approves = link is not None and self.may_approve(self.people.get(link.id)) and "approve" in link.features
         return {"id": session.id, "name": session.name, "name_given": session.named_by == "user", "cwd": session.cwd,
-                "harness": session.harness, "title": self._title(session), "owner": starter or self.owner,
+                "harness": session.harness, "title": self._title(session),
+                "owner": starter or ("" if link is not None and self.mine(self.people.get(link.id)) else self.owner),
                 **({"started_by": starter} if starter else {}),
                 "capabilities": {**adapter.capabilities(), "side_questions": False, "approvals": approves},
                 "files": self._files.get(session.id, ("", []))[1],
@@ -877,13 +880,13 @@ class HostSide:
         from the link's person and this machine's own state: nothing the voice says about itself is read."""
         if person is None or session is None:
             return "private", None
-        if person["grant"] != "send":
+        if person["grant"] == "watch":
             return "watch", None
         if session.permission_id or session.blocked_on in PROMPTS:
             return "prompt", None
         if guards.claims_consent(frame["text"], self._names(), session.typed_approval):
             return "consent", None
-        if frame.get("anyway") is not True and (busy := self.busy(session, person["id"])):
+        if frame.get("anyway") is not True and not self.mine(person) and (busy := self.busy(session, person["id"])):
             return "busy", busy
         return None
 
@@ -891,6 +894,7 @@ class HostSide:
         person = self.people.get(link.id)
         session = self._shared(self._local_id(frame["id"]), link.id)
         name = person["name"] if person else link.name
+        mine = self.mine(person)
         refused = self.refusal(person, session, frame)
         if refused:
             why, busy = refused
@@ -901,7 +905,8 @@ class HostSide:
             return
         text, ok, held, began = frame["text"], False, {}, time.time()
         if text.strip():
-            sender = sessions.SENDER.set(name)  # the tag the agent reads names this person (sessions.voice_message)
+            # The tag the agent reads names this person (sessions.voice_message); the owner's own is the user's.
+            sender = sessions.SENDER.set("" if mine else name)
             try:
                 ok = bool(await asyncio.wait_for(harnesses.of(session).send(session, text), nodelink.SEND_TIMEOUT_SECS))
             except asyncio.TimeoutError:
@@ -917,7 +922,7 @@ class HostSide:
         if ok:
             at = self._clock()
             session.busy = True
-            self.asks[session.id] = Ask(by=name, by_id=link.id, since=at)
+            self.asks[session.id] = Ask(by=self.owner if mine else name, by_id=link.id, since=at)
             said = precise_mask(_cut(text, MAX_SENT_CHARS))  # as its transcript crosses: no credential in a frame or the journal
             self.record(f"{name} asked {session.name}: {_cut(said, 200)!r}")
             for other in [x for x in self.live.values() if x is not link]:
@@ -933,9 +938,20 @@ class HostSide:
 
     # ---------- a session's permission prompt, put to people (phase 3) ----------
 
+    @staticmethod
+    def mine(person: dict | None) -> bool:
+        """The machine's own owner, from another of their voices: the people rules are not theirs."""
+        return person is not None and person.get("grant") == "mine"
+
     def may_approve(self, person: dict | None) -> bool:
-        """This person may answer a prompt: the send grant, and the owner has not turned people's approvals off."""
-        return person is not None and person["grant"] == "send" and self.settings["approve"] != "off"
+        """This person may answer a prompt: the send grant, and the owner has not turned people's approvals off. The
+        owner on another of their voices always may."""
+        return self.mine(person) or (person is not None and person["grant"] == "send" and self.settings["approve"] != "off")
+
+    def _owner_listens(self, session: Session) -> bool:
+        """The owner hears this session's prompt: on this machine's own call, or on another voice of theirs."""
+        return self._owner_hears(session) or any(
+            self.mine(self.people.get(link.id)) and self._eligible(link, session.id) for link in list(self.live.values()))
 
     def _eligible(self, link: Link, session_id: str) -> bool:
         """This link can be offered this session's prompt now: its person may approve, their voice speaks this part
@@ -960,7 +976,7 @@ class HostSide:
 
     def _first_hears(self, offer: Offer, session: Session) -> bool:
         if not offer.first:
-            return self._owner_hears(session)
+            return self._owner_listens(session)
         link = self.live.get(offer.first)
         return link is not None and self._eligible(link, session.id)
 
@@ -974,8 +990,9 @@ class HostSide:
         old = self.offers.get(session.id)
         if old is not None:
             await self._finish(old, "terminal")
-        if session.machine or not self.people.people or self.settings["approve"] == "off":
-            return False
+        if session.machine or not self.people.people or (
+                self.settings["approve"] == "off" and not any(self.mine(p) for p in self.people.people.values())):
+            return False  # with people's approvals off, only the owner's own other voices are offered it
         readable = spoken = None
         if isinstance(tool_input, dict):
             readable = guards.readable_request(tool_name, tool_input, session.cwd, run_in)
@@ -988,13 +1005,13 @@ class HostSide:
         link = self.live.get(starter["id"]) if starter else None
         first = starter if link is not None and self._eligible(link, session.id) else None
         secs = self.settings["owner_first_secs"]
-        waits = secs > 0 and (first is not None or self._owner_hears(session))
+        waits = secs > 0 and (first is not None or self._owner_listens(session))
         offer = Offer(session_id=session.id, request_id=request_id, frame=frame, readable=readable, spoken=spoken,
                       first=first["id"] if first else "", first_name=first["name"] if first else self.owner,
                       opens_at=now + (secs if waits else 0.0), opened=not waits,
                       deadline=deadline if deadline is not None else now + harnesses.of(session).permission_deadline,
                       summary=_cut(f"{tool_name}: {' '.join(shown.split())}", 300),
-                      away_since=None if self._owner_hears(session) else now)
+                      away_since=None if self._owner_listens(session) else now)
         self.offers[session.id] = offer
         self._spawn(self.tick())  # the frames go out apart: a slow link never delays the owner's own read-out
         self._watch()
@@ -1003,7 +1020,7 @@ class HostSide:
     def _frame_for(self, offer: Offer, link: Link) -> dict:
         now = self._clock()
         frame = {**offer.frame, "deadline_ms": max(0, int((offer.deadline - now) * 1000))}
-        if not (offer.opened or offer.first == link.id):
+        if not (offer.opened or offer.first == link.id or self.mine(self.people.get(link.id))):
             frame["first"] = {"name": _cut(offer.first_name, nodelink.HELLO_CHARS)}
             frame["yours_in_ms"] = max(0, int((offer.opens_at - now) * 1000))
         return frame
@@ -1071,12 +1088,12 @@ class HostSide:
                 self._spawn(_maybe(self._open_owner(session, offer.request_id)))
         await self._reconcile(offer)
         # Held for people only, with no call of the machine owner's: bounded, so an owner at the terminal sees it.
-        offer.away_since = None if self._owner_hears(session) else now if offer.away_since is None else offer.away_since
+        offer.away_since = None if self._owner_listens(session) else now if offer.away_since is None else offer.away_since
         if self._held_too_long(offer):
             self.record(f"{session.name}'s request went back to its terminal: no person answered it in "
                         f"{self.settings['people_hold_secs']:g} seconds, and {self.owner} has no call")
             return await self._hand_back(offer, session)
-        if self._owner_hears(session) or any(self._eligible(link, session.id) for link in list(self.live.values())):
+        if self._owner_listens(session) or any(self._eligible(link, session.id) for link in list(self.live.values())):
             offer.alone_since = None
             return
         if offer.alone_since is None:
@@ -1141,9 +1158,9 @@ class HostSide:
             await self._send(link, encode("permission.answered", request_id=request_id, ok=False, why=why, **more))
 
         person = self.people.get(link.id)
-        if person is None or self.settings["approve"] == "off":
+        if person is None or (self.settings["approve"] == "off" and not self.mine(person)):
             return await refuse("not_offered")
-        if person["grant"] != "send":
+        if person["grant"] == "watch":
             return await refuse("watch")
         session = self._shared(sid, link.id)
         if session is None:
@@ -1155,11 +1172,11 @@ class HostSide:
         if offer.by is not None:
             return await refuse("answered", by=offer.by["name"])
         if offer.done or session.permission_id != request_id or self._clock() >= offer.deadline \
-                or (not self._owner_hears(session) and self._held_too_long(offer)):
+                or (not self._owner_listens(session) and self._held_too_long(offer)):
             return await refuse("stale")
         if not self._eligible(link, sid):
             return await refuse("not_offered")
-        if not (offer.opened or offer.first == link.id):
+        if not (offer.opened or offer.first == link.id or self.mine(person)):
             return await refuse("not_yet")
         why = recheck(_config(self.state_dir), offer, frame)
         if why is not None:
@@ -1188,9 +1205,9 @@ class HostSide:
     # ---------- a person starts a session here (phase 3) ----------
 
     def _start_refusal(self, person: dict | None) -> str | None:
-        if person is None or person["grant"] != "send":
+        if person is None or person["grant"] == "watch":
             return "watch"
-        if self.settings["start"] == "off" or self._start is None:
+        if self._start is None or (self.settings["start"] == "off" and not self.mine(person)):
             return "off"
         return None
 
@@ -1618,7 +1635,8 @@ def _people(argv: list[str]) -> None:
             print(f"{p['name']}  may {p['grant']}  {state}  key {p['key_fp']}{uses}")
     elif command == "invite" and len(argv) > 1:
         name = " ".join(a for a in argv[1:] if not a.startswith("--"))
-        made = _daemon("POST", "/voice/people/invite", {"name": name, "grant": "watch" if "--watch" in argv else "send"})
+        grant = "mine" if "--mine" in argv else "watch" if "--watch" in argv else "send"
+        made = _daemon("POST", "/voice/people/invite", {"name": name, "grant": grant})
         print(made["link"])
         print(f"Valid once, for ten minutes. {name} adds this machine with it: pointe machine add '<the line above>'",
               flush=True)

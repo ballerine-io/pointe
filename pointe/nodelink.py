@@ -31,7 +31,9 @@ PAIR_PATH = "/voice/node/pair"
 # voice.hello, host.welcome).
 HOST_PATH = "/voice/host"
 HOST_PAIR_PATH = "/voice/host/pair"
-GRANTS = ("send", "watch")  # what a person may do on a machine: talk to its sessions, or only see and hear them
+# What a person may do on a machine: talk to its sessions, or only see and hear them; "mine" is the machine's own owner
+# reaching it from another of their voices (docs/design/multi-machine-clients.md, 2.1).
+GRANTS = ("send", "watch", "mine")
 
 CLOSE_BAD_HELLO = 4400  # no hello in time, or not a hello: the node keeps its key and reconnects
 CLOSE_UNAUTHORIZED = 4401  # wrong HMAC, or a revoked key: the node deletes its key, and only for this code
