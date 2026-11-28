@@ -85,6 +85,7 @@ struct MacMachineMenu: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .accessibilityIdentifier("machineMenu")
+        .accessibilityLabel("Machine: \(session.remote?.label ?? "This Mac")")  // a menu's text is its title: say it
         .sheet(isPresented: $adding) { MacAddMachineSheet(session: session) }
     }
 }

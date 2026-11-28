@@ -36,8 +36,8 @@ final class MacMachinesUITests: XCTestCase {
         XCTAssertTrue(kite.exists, "each machine says how this Mac reaches it")
         XCTAssertTrue(app.menuItems["ledger.invalid · Tailscale"].exists)
         kite.click()
-        let moved = NSPredicate(format: "exists == true")
-        expectation(for: moved, evaluatedWith: window.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", "kite.invalid")).firstMatch)
+        let moved = NSPredicate(format: "label CONTAINS %@", "kite.invalid")
+        expectation(for: moved, evaluatedWith: window.descendants(matching: .any)["machineMenu"].firstMatch)
         waitForExpectations(timeout: 15)
     }
 
