@@ -86,6 +86,8 @@ struct CallSettingsActions {
     var open: (CallSettingsLink) -> Void = { _ in }
     var challenge: () -> Void = {}
     var unpair: () -> Void = {}
+    /// Several machines: the scanner, to add one beside this (PairingFlow.pairAgain).
+    var addMachine: (() -> Void)? = nil
 }
 
 /// Every setting and screen the call has, grouped, in a list that scrolls like any other: the microphone first.
@@ -259,6 +261,9 @@ struct CallSettingsSheet: View, Equatable {
                         #if os(iOS)
                         Toggle(MachineCopy.labs, isOn: Binding(get: { severalMachines }, set: { severalMachines = $0 }))
                             .accessibilityIdentifier("severalMachines")
+                        if severalMachines, let add = act.addMachine {
+                            Button(MachineCopy.add, systemImage: "plus") { dismiss(); add() }.accessibilityIdentifier("settingsAddMachine")
+                        }
                         #endif
                         if let agents = model.agentsSetting {
                             Toggle(isOn: Binding(get: { agentsWanted ?? agents.on }, set: { agentsWanted = $0; act.setAgents($0) })) {

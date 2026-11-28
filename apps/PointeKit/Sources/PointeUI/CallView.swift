@@ -661,7 +661,7 @@ struct CallView: View {
                             setAgents: setAgents,
                             open: { settingsNext = $0; showCallSettings = false },
                             challenge: { Task { await challenge(challengeOn ? "end" : "start") } },
-                            unpair: { call.hangUp(); unpair() })
+                            unpair: { call.hangUp(); unpair() }, addMachine: pairAgain)
     }
 
     /// What the Mac's menus and keys ask of this screen.

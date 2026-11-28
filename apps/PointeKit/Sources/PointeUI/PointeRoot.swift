@@ -67,7 +67,9 @@ public struct PointeRoot: View {
                          unpair: { Task { await flow.unpair() } }, pairAgain: { flow.pairAgain() }, incoming: $machineLine)
                     .id(pairing.connection)  // a new pairing is a new call: the old one pins the old certificate
                     .safeAreaInset(edge: .top) {
-                        if several { MachineBar(flow: flow, watch: watch) { showPaired = true }.padding(.top, 4) }
+                        // With one machine the call screen is as it was (its layout is tested at the largest type);
+                        // a second one comes from Settings, Add a machine.
+                        if several && flow.pairings.count > 1 { MachineBar(flow: flow, watch: watch) { showPaired = true }.padding(.top, 4) }
                     }
                     .sheet(isPresented: $showPaired) {
                         PairedMachinesSheet(flow: flow, watch: watch) { p in
