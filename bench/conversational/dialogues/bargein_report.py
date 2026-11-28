@@ -49,7 +49,7 @@ def row_result(row: dict) -> dict | None:
     scored = score.turn_scores(row)[1]
     log = row.get("log") or []
     ducked = _first(log, r"voice ducked", a - 0.05, b)
-    cut = _first(log, r"barge-in: ", a - 0.05, b)
+    cut = _first(log, r"(?<!no )barge-in: ", a - 0.05, b)  # "no barge-in: a backchannel ..." is the voice going on
     first = min(x for x in (ducked, cut) if x is not None) if (ducked or cut) else None
     return {"dialogue": row["dialogue"], "kind": "interrupt" if row["dialogue"].startswith("bi-int") else "backchannel",
             "voice_over": t.get("speaking_at_start", True), "stop": scored.get("barge_stop"), "ok": bool(scored.get("ok")),

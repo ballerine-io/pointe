@@ -46,6 +46,13 @@ def test_a_backchannel_the_daemon_cut_is_a_false_stop_and_its_resume_is_seen():
     assert kept["ducked"] and not kept["cut"]
 
 
+def test_a_backchannel_the_daemon_let_through_is_not_a_cut():
+    """The daemon logs "no barge-in: a backchannel over the voice": that line is the opposite of a cut."""
+    r = bargein_report.row_result(_row("bi-back-04", [_log(14.2, "voice ducked"),
+                                                      _log(14.6, "no barge-in: a backchannel over the voice: ' Ok'")]))
+    assert not r["cut"] and r["react"] == 0.2
+
+
 def test_lines_outside_the_turn_do_not_count():
     r = bargein_report.row_result(_row("bi-back-03", [_log(9.0, "barge-in: earlier"), _log(13.0, "voice ducked")]))
     assert not r["cut"] and not r["ducked"] and r["react"] is None
