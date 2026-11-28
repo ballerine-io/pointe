@@ -120,3 +120,20 @@ def pytest_runtest_protocol(item, nextitem):
         signal.alarm(0)
         faulthandler.cancel_dump_traceback_later()
         signal.signal(signal.SIGALRM, before)
+
+
+@pytest.fixture(autouse=True)
+def _log_sinks_end_with_their_test():
+    """A loguru sink a test added, directly or through the daemon (`_start_journal` adds its journal and problem sinks),
+    is removed when the test ends, and the patcher put back. Loguru is one per process: three journal sinks left by
+    tests/test_http.py wrote each line of tests/test_approvals.py's journal four times. A stderr sink stays: the daemon
+    puts one in place of loguru's default when it is first imported, which may happen inside any test."""
+    from loguru import logger
+
+    core = logger._core
+    before, patcher = set(core.handlers), core.patcher
+    yield
+    for sink_id, handler in list(core.handlers.items()):
+        if sink_id not in before and "sink=<stderr>" not in repr(handler):
+            logger.remove(sink_id)
+    core.patcher = patcher
