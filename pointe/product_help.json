@@ -1615,6 +1615,17 @@
    ]
   },
   {
+   "id": "iphone-menu-add-a-machine",
+   "title": "Add a machine",
+   "ask": [
+    "add a machine"
+   ],
+   "how": "",
+   "iphone": [
+    "Settings (••• at the top) → Add a machine"
+   ]
+  },
+  {
    "id": "iphone-menu-exit-demo",
    "title": "Exit demo",
    "ask": [
@@ -1828,6 +1839,7 @@
     "Show while it says": [],
     "Suggest Drive mode in the car": [],
     "About": [],
+    "Add a machine": [],
     "Exit demo": [],
     "Unpair this phone": []
    },
