@@ -572,8 +572,8 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             quoted.append(True)
         elif word == "{}":
             quoted.append(False)  # not a brace expansion: what find -exec puts each name in
-        elif word[:1] == '"':
-            if any(c in word.replace("$?", "") for c in "$`\\!"):
+        elif word[:1] == '"':  # a backslash there stays, but before $ ` " \ and a line end: as shlex reads it
+            if any(c in word.replace("$?", "") for c in "$`!"):
                 return None
             quoted.append(True)
         elif any(c in word for c in "$`{}()!*?[]#\\'\"") or "~" in word[1:]:

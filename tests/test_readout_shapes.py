@@ -225,3 +225,18 @@ def test_a_project_module_named_ast_is_not_the_standard_library(tmp_path):
     (tmp_path / "ast.py").write_text("import os\n")
     assert readout.spoken("python3 -c \"import ast; ast.parse(open('a.py').read())\"", str(tmp_path)) is None
 
+
+@pytest.mark.parametrize("command,said", [
+    (r'grep -rn "get_rate\|fetch_rate" . --exclude-dir=.git', "grep some text ."),
+    (r'git grep -n "calc_tax\|compute_tax"', "git grep some text"),
+])
+def test_a_backslash_in_double_quotes_is_part_of_the_text(command, said):
+    """The shell keeps a backslash in double quotes except before $ ` " \\ and a line end, as the lexer here does; $ and `
+    are refused whatever comes before them."""
+    assert readout.spoken(command, CWD) == said
+
+
+@pytest.mark.parametrize("command", [r'rm "a\b"', r'grep "a\$HOME" x', r'grep "a\`id\`" x', r'cat "x\"', r'grep x "a\b"',
+                                     r'echo "a\"; rm -rf ~; echo \"" > notes.txt'])
+def test_a_backslash_in_double_quotes_never_makes_a_path_or_hides_a_quote(command):
+    assert readout.spoken(command, CWD) is None
