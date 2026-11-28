@@ -37,6 +37,12 @@ class Remote:
         config = state_dir / "remote.json"
         settings = json.loads(config.read_text()) if config.exists() else {}
         self.host = settings["host"].lower() if settings.get("host") else None
+        # Every route's name answers (pair.route_list): a tunnel's arrives as this machine's loopback.
+        routes = settings.get("routes") if isinstance(settings.get("routes"), list) else []
+        self.hosts = {self.host} - {None} | {str(r.get("host", "")).lower() for r in routes
+                                             if isinstance(r, dict) and r.get("kind") != "ssh" and r.get("host")}
+        if any(isinstance(r, dict) and r.get("kind") == "ssh" for r in routes) or settings.get("kind") == "ssh":
+            self.hosts |= {"127.0.0.1", "localhost"}
         # 127.0.0.1 for a connector on this machine (Twingate, cloudflared); a Tailscale or Wi-Fi address from `pointe pair`
         self.listen = settings.get("listen") or ["127.0.0.1"]
         self._token_seen, self.token = None, None
@@ -86,7 +92,7 @@ class Remote:
         return self._own_host(request.headers) and self._own_origin(request.headers.get("origin"))
 
     def _own_host(self, headers) -> bool:
-        return (urlparse(f"//{headers.get('host', '')}").hostname or "").lower() == self.host
+        return (urlparse(f"//{headers.get('host', '')}").hostname or "").lower() in self.hosts
 
     def _own_origin(self, origin: str | None) -> bool:
         """No Origin (the app, a script), or exactly this listener's: scheme, name and port. Cookies and SameSite ignore

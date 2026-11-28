@@ -70,6 +70,7 @@ import meeting as meetings
 import modes
 import mute
 import handoff
+import pair
 import progress
 import quick
 import scope
@@ -11659,6 +11660,8 @@ async def _status(request: Request) -> dict:
             **PEOPLE.status(_shows_invite(request)),  # `people`, `people_invite`: absent on a machine with no people
             "phones": PHONES.status(),  # Settings → Phone: names and times, never the key or a code
             "phone_listener": REMOTE.enabled,  # false: no phone can reach this Mac yet; the page's Connect panel says so
+            # Every way to reach this machine, for a paired client to learn (pair.routes_status); never to a page over TLS.
+            "routes": _routes() if _shows_invite(request) else [],
             "sessions": [{"name": s.name, "harness": s.harness, "capabilities": _capabilities(s), "working": _working(s), "waiting": bool(s.permission_id),
                           "machine": _machine_of(s), "online": online(s), "origin": _origin(s),
                           **({"owner": s.owner} if s.owner else {}),  # whose it is, when not this person's
@@ -11678,6 +11681,15 @@ async def _status(request: Request) -> dict:
                           "mode": "channel" if s.channel_url else "inbox",
                           **(_there_status(s) if s.machine else PEOPLE.session_status(s))}
                          for s in REGISTRY.sessions.values()]}
+
+
+def _routes() -> list[dict]:
+    """Every way to reach this machine (pair.route_list over this state's remote.json), for a paired client to learn."""
+    try:
+        config = json.loads((STATE_DIR / "remote.json").read_text())
+    except (OSError, ValueError):
+        return []
+    return [{"kind": r["kind"], "host": r["host"], "port": remote.TLS_PORT} for r in pair.route_list(config)]
 
 
 def _origin(s: Session) -> str:

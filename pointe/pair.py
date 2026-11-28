@@ -3,6 +3,10 @@
   pointe pair tailscale      the Mac's Tailscale name (the phone needs Tailscale too)
   pointe pair wifi           this Mac's address on the current Wi-Fi (pair again if it changes)
   pointe pair host <name>    a name you route yourself (Twingate, a VPN); listens on 127.0.0.1
+      --public               the name is on the internet, its port passed straight through: pairing and the pinned
+                             certificate are what guard it
+  pointe pair ssh <user@host>  a client's own SSH tunnel to this machine's 127.0.0.1 (the Mac app, other machines)
+      --add                  (any route) beside the routes there are, with the same certificate: no client pairs again
                              (Cloudflare Tunnel with Access: the phone's browser only; the app pins this Mac's certificate)
       --listen <address>     also on this private address: `docker` is Docker's bridge, for a Twingate connector in a
                              container on the default bridge network (docs/linux.md)
@@ -187,20 +191,60 @@ def _covers(host: str) -> bool:
         and left > datetime.timedelta(days=30) and (STATE / "tls" / "key.pem").exists()
 
 
-def setup(host: str, listen: str, also: tuple[str, ...] = (), kind: str | None = None) -> None:
-    """`kind` (tailscale, wifi, host) goes into the pairing lines, so a client shows how it reaches this machine."""
+ROUTE_KINDS = ("tailscale", "wifi", "host", "public", "ssh")
+_SSH_TARGET = re.compile(r"(?:[a-z_][a-z0-9_.-]{0,31}@)?[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?")
+
+
+def setup(host: str, listen: str, also: tuple[str, ...] = (), kind: str | None = None, add: bool = False) -> None:
+    """`kind` (one of ROUTE_KINDS) goes into the pairing lines, so a client shows how it reaches this machine. `add`:
+    beside the routes there are, keeping the certificate, so every pairing stays (docs/design/multi-machine-clients.md,
+    1.2); the first route stays the one the lines name. Without it this route replaces them, as before."""
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if not _covers(host):
-        _certificate(host)
+    before = route_list() if add else []
+    keep = add and bool(before) and (STATE / "tls" / "key.pem").exists()
+    name = "127.0.0.1" if kind == "ssh" else host  # a tunnel arrives at this machine's loopback
+    if not keep and not _covers(name):
+        _certificate(name)
         _say_nodes_pair_again(_paired_nodes(), revoke=True)
     old = os.umask(0o077)
     try:
         if not (STATE / "remote_token").exists():
             (STATE / "remote_token").write_text(os.urandom(32).hex())
         addresses = [listen, *(a for a in also if a != listen)]
-        (STATE / "remote.json").write_text(json.dumps({"host": host, "listen": addresses, **({"kind": kind} if kind else {})}) + "\n")
+        route = {"kind": kind or "host", "host": host, "listen": addresses}
+        routes = [r for r in before if (r["kind"], r["host"]) != (route["kind"], host)] + [route]
+        first = routes[0]
+        config = {"host": first["host"], "listen": list(dict.fromkeys(a for r in routes for a in r["listen"]))}
+        if kind or len(routes) > 1:
+            config["kind"] = first["kind"]
+        if len(routes) > 1:
+            config["routes"] = routes
+        (STATE / "remote.json").write_text(json.dumps(config) + "\n")
     finally:
         os.umask(old)
+
+
+def route_list(config: dict | None = None) -> list[dict]:
+    """Every route to this machine, the one lines name first. A remote.json from before routes is one route."""
+    if config is None:
+        path = STATE / "remote.json"
+        if not path.exists():
+            return []
+        config = json.loads(path.read_text())
+    listed = config.get("routes")
+    if isinstance(listed, list) and listed:
+        return [r for r in listed if isinstance(r, dict) and r.get("kind") in ROUTE_KINDS and isinstance(r.get("host"), str)]
+    if not config.get("host"):
+        return []
+    return [{"kind": config.get("kind") or "host", "host": config["host"], "listen": list(config.get("listen") or [])}]
+
+
+def routes_status() -> list[dict]:
+    """The status's `routes`: what a paired client stores to reach this machine another way (never a listen address)."""
+    try:
+        return [{"kind": r["kind"], "host": r["host"], "port": TLS_PORT} for r in route_list()]
+    except (OSError, ValueError):
+        return []
 
 
 UNUSED = "phone_key.unused"  # a phone_key made here for a QR no phone has used yet: not listed as a paired phone
@@ -481,19 +525,28 @@ def main(argv: list[str]) -> None:
         host, listen = _tailscale()
     elif argv[0] == "wifi":
         host, listen = _wifi()
+    elif argv[0] == "ssh" and len(argv) > 1:
+        host, listen = argv[1].strip().lower(), "127.0.0.1"
+        if not _SSH_TARGET.fullmatch(host):
+            raise SystemExit(f"{argv[1]!r} is not an SSH target: a user and a host name, such as alon@kite.example.com. "
+                             "Nothing was changed.")
     elif argv[0] == "host" and len(argv) > 1:
         host, listen = argv[1].strip().lower(), "127.0.0.1"
         if not _HOST_NAME.fullmatch(host):  # checked before anything changes: a new certificate unpairs every phone and node
             raise SystemExit(f"{argv[1]!r} is not a host name: letters, digits, hyphens and dots only, such as "
                              "mac.example.internal. Nothing was changed.")
-        rest = argv[2:]
+        rest = [a for a in argv[2:] if a not in ("--public", "--add")]
         if rest and (len(rest) != 2 or rest[0] != "--listen"):
             raise SystemExit(__doc__.strip())
         also = (_listen_address(rest[1]),) if rest else ()
     else:
         raise SystemExit(__doc__.strip())
     also = also if argv[0] == "host" else ()
-    setup(host, listen, also, kind=argv[0])
+    kind = "public" if argv[0] == "host" and "--public" in argv else argv[0]
+    setup(host, listen, also, kind=kind, add="--add" in argv)
+    if kind == "public":
+        print("This name is on the internet: anyone can reach port 7443. Only a pairing code and the pinned certificate "
+              "guard it; keep codes to yourself.")
     print(f"Listening for the phone on {', '.join([listen, *also])} port {TLS_PORT} within a few seconds if the daemon "
           "runs, else at its next start.")
     if argv[0] == "host" and not also and sys.platform != "darwin" and _to_terminal():
