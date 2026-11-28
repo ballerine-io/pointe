@@ -26,19 +26,24 @@ final class MacMachinesUITests: XCTestCase {
         return window
     }
 
+    /// The menu's own label says the machine the call goes to (MacMachineMenu sets it from the session): the test waits
+    /// for that state, and opens the menu again if a click on an item did not land (the menu closed under it).
     @MainActor func testTheMenuListsThisMacThenEachMachineAndChoosingOneMovesTheCall() {
         let window = launch(several: true)
         let menu = window.descendants(matching: .any)["machineMenu"].firstMatch
         XCTAssertTrue(menu.waitForExistence(timeout: 10))
-        menu.click()
-        XCTAssertTrue(app.menuItems["This Mac"].waitForExistence(timeout: 5))
-        let kite = app.menuItems["kite.invalid · Twingate or VPN"]
-        XCTAssertTrue(kite.exists, "each machine says how this Mac reaches it")
-        XCTAssertTrue(app.menuItems["ledger.invalid · Tailscale"].exists)
-        kite.click()
-        let moved = NSPredicate(format: "label CONTAINS %@", "kite.invalid")
-        expectation(for: moved, evaluatedWith: window.descendants(matching: .any)["machineMenu"].firstMatch)
-        waitForExpectations(timeout: 15)
+        XCTAssertTrue(menu.label.contains("This Mac"), menu.label)
+        for attempt in 0..<2 where !menu.label.contains("kite.invalid") {
+            menu.click()
+            let kite = app.menuItems["kite.invalid · Twingate or VPN"]
+            XCTAssertTrue(kite.waitForExistence(timeout: 10), "each machine says how this Mac reaches it (attempt \(attempt))")
+            XCTAssertTrue(app.menuItems["This Mac"].exists)
+            XCTAssertTrue(app.menuItems["ledger.invalid · Tailscale"].exists)
+            kite.click()
+            _ = XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "kite.invalid"), object: menu)],
+                               timeout: 30)
+        }
+        XCTAssertTrue(menu.label.contains("kite.invalid"), "the call moved: \(menu.label)")
     }
 
     @MainActor func testWithTheFlagOffThereIsNoMenu() {
