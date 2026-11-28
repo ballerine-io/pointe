@@ -378,3 +378,61 @@ def test_nothing_is_published_before_every_check_and_a_dry_run_publishes_nothing
     assert {"publish.promote", "verify.dmg"} <= before("publish.live")
     without_dry = {s.name for s in steps.STEPS if s.dry is None}
     assert without_dry == {n for n in by if n.startswith("preflight.") and n != "preflight.tree"} | {"version.commit"}, without_dry
+
+
+def _published(monkeypatch, digests: dict[str, str], listed: dict[str, str] | None = None):
+    """A release whose files download (as a stranger would) with these SHA-256s; GitHub lists `listed` for each."""
+    listed = listed if listed is not None else {n: f"sha256:{d}" for n, d in digests.items()}
+    monkeypatch.setattr(github, "release", lambda tag: {"assets": [{"name": n, "digest": listed.get(n)} for n in digests],
+                                                        "isPrerelease": True})
+
+    def download_checked(tag, name, folder):
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / name).write_bytes(b"x")
+        return folder / name, digests[name]
+
+    monkeypatch.setattr(github, "download_checked", download_checked)
+
+
+@pytest.mark.parametrize("case, why", [
+    ("tarball", "not the one the tag builds"),
+    ("alias", "Pointe.dmg is not the same image"),
+    ("listed", "GitHub lists"),
+])
+def test_the_anonymous_download_check_refuses_any_file_that_is_not_the_one_built(tmp_path, monkeypatch, case, why):
+    """docs/releasing.md, verify.assets: the tarball a stranger downloads is the one the tag builds and install.sh pins,
+    Pointe.dmg is the versioned image, and each file matches what GitHub lists for it. 0.8.2's Pointe.dmg held the
+    previous app."""
+    ctx = ctx_for(tmp_path)
+    ctx.state.set(tarball_sha="t" * 64)
+    good = {"pointe-9.9.9.tar.gz": "t" * 64, "Pointe-9.9.9.dmg": "d" * 64, "Pointe.dmg": "d" * 64}
+    _published(monkeypatch, good)
+    assert "anonymous downloads match" in steps.assets(ctx)
+    bad = dict(good)
+    if case == "tarball":
+        bad["pointe-9.9.9.tar.gz"] = "e" * 64
+        _published(monkeypatch, bad)
+    elif case == "alias":
+        bad["Pointe.dmg"] = "o" * 64
+        _published(monkeypatch, bad)
+    else:
+        _published(monkeypatch, good, {**{n: f"sha256:{d}" for n, d in good.items()}, "Pointe-9.9.9.dmg": "sha256:" + "f" * 64})
+    with pytest.raises(Fail, match=why):
+        steps.assets(ctx)
+
+
+def test_a_published_tarball_that_differs_from_the_tags_build_is_never_replaced(tmp_path, monkeypatch):
+    """A release that already holds the tarball: the published one must be the tag's build byte for byte, or the step
+    fails and uploads nothing (an asset is never replaced; a new patch is cut)."""
+    ctx = ctx_for(tmp_path)
+    local = ctx.tree / "dist" / "pointe-9.9.9.tar.gz"
+    local.parent.mkdir(parents=True)
+    local.write_bytes(b"the tag's build")
+    monkeypatch.setattr(github, "release", lambda tag: {"assets": [{"name": local.name}], "isPrerelease": True})
+    monkeypatch.setattr(github, "download_checked", lambda tag, name, folder: (folder / name, "0" * 64))
+    ran = []
+    monkeypatch.setattr(steps, "sh", lambda cmd, **k: ran.append(cmd))
+    monkeypatch.setattr(steps, "_tarball", lambda c, ref: local, raising=False)
+    with pytest.raises(Fail, match="never replace an asset"):
+        steps.tarball(ctx)
+    assert not [c for c in ran if "upload" in c], ran
