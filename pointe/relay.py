@@ -135,7 +135,7 @@ _SOURCE = (".py", ".ts", ".tsx", ".js", ".jsx", ".go", ".rb", ".rs", ".java", ".
 _SKIP_DIRS = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist", "build", ".next", "target"}
 _DEFINES = re.compile(r"^\s*(?:async\s+)?(?:def|class|function|func|fn|const|let|var|type|interface|struct|enum)\s+"
                       r"([A-Za-z_][A-Za-z0-9_]{2,})", re.M)
-_CODE_NAMES: dict[str, tuple[float, dict[str, set[str]]]] = {}
+_CODE_NAMES: dict[str, tuple[float, tuple[dict[str, set[str]], set[str]]]] = {}
 CODE_NAMES_SECS = 60.0  # how long one folder's index is reused
 MAX_FILES, MAX_BYTES = 1500, 200_000
 
@@ -144,18 +144,19 @@ def _key(name: str) -> str:
     return re.sub(r"[_\-\s]+", "", name).lower()
 
 
-def code_names(folder: str | None) -> dict[str, set[str]]:
-    """The names a project's code defines (functions, classes, constants) and its source files' names, by key: lower
-    case with underscores, dashes and spaces dropped. Read from disk, a bounded walk, kept for a minute."""
+def _index(folder: str | None) -> tuple[dict[str, set[str]], set[str]]:
+    """One bounded walk of a project's source files, kept for a minute: the names its code defines, by key (code_names),
+    and every word in it (code_words)."""
     import os
     import time
     if not folder or not os.path.isdir(folder):
-        return {}
+        return {}, set()
     now = time.time()
     cached = _CODE_NAMES.get(folder)
     if cached and now - cached[0] < CODE_NAMES_SECS:
         return cached[1]
     index: dict[str, set[str]] = {}
+    words: set[str] = set()
     seen = 0
     for root, dirs, files in os.walk(folder):
         dirs[:] = [d for d in dirs if d not in _SKIP_DIRS and not d.startswith(".")]
@@ -167,6 +168,7 @@ def code_names(folder: str | None) -> dict[str, set[str]]:
                 break
             stem = f.rsplit(".", 1)[0]
             index.setdefault(_key(stem), set()).add(stem)
+            words.add(stem)
             try:
                 with open(os.path.join(root, f), errors="ignore") as fh:
                     text = fh.read(MAX_BYTES)
@@ -174,10 +176,90 @@ def code_names(folder: str | None) -> dict[str, set[str]]:
                 continue
             for name in _DEFINES.findall(text):
                 index.setdefault(_key(name), set()).add(name)
+            words.update(_WORD.findall(text))
         if seen > MAX_FILES:
             break
-    _CODE_NAMES[folder] = (now, index)
-    return index
+    _CODE_NAMES[folder] = (now, (index, words))
+    return index, words
+
+
+_WORD = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def code_names(folder: str | None) -> dict[str, set[str]]:
+    """The names a project's code defines (functions, classes, constants) and its source files' names, by key: lower
+    case with underscores, dashes and spaces dropped. Read from disk, a bounded walk, kept for a minute."""
+    return _index(folder)[0]
+
+
+def code_words(folder: str | None) -> set[str]:
+    """Every word in a project's source, case kept: names, and the words inside its strings ('record["ts"]' has ts)."""
+    return _index(folder)[1]
+
+
+# ---------- letters said aloud ----------
+
+# The user said the case: then a capital is theirs.
+_CASE_CUE = re.compile(r"\b(?:capital|capitals|capitali[sz]ed|upper ?case|all caps|in caps|caps)\b", re.I)
+_SAID_TOKEN = re.compile(r"[A-Za-z0-9]+(?:['’][A-Za-z]+)*")  # "it's" is one word, not "it" and a letter s
+_SPELLED_IN_MESSAGE = re.compile(r"(?<![\w-])[A-Z](?:(?:-|, ?| )[A-Z](?![\w]))+")
+_CAPITALS = re.compile(r"(?<![\w-])(\d*)([A-Z][A-Z_]*)(?![\w])|(?<=_)([A-Z]+)(?=_)")
+
+
+def _spelled(said: str) -> tuple[set[str], set[str]]:
+    """What the user said letter by letter: the words of runs of single letters ("G, I, M, B, A, L" is gimbal, "t s"
+    is ts) and the letters said on their own ("ends in s", "90 S", "90s"), in lower case."""
+    tokens = _SAID_TOKEN.findall(said)
+    runs: set[str] = set()
+    alone: set[str] = set()
+    run: list[str] = []
+    for token in tokens + [""]:
+        if len(token) == 1 and token.isalpha():
+            run.append(token.lower())
+            continue
+        if len(run) == 1:
+            alone.add(run[0])
+        elif run:
+            runs.add("".join(run))
+        run = []
+        if m := re.fullmatch(r"\d+([A-Za-z])", token):
+            alone.add(m.group(1).lower())
+    return runs, alone
+
+
+def letter_case(message: str, said: str, words: set[str]) -> str:
+    """The message with each letter the user said aloud written in lower case: speech has no case, and the recognizer
+    writes a letter said on its own as a capital ("ends in s" heard "ends in S"). A capital stays when the user said the
+    case ("all caps", "capital"), when the code has the word in capitals, and for a word nobody spelled ("JPY") unless
+    the code has it only in lower case ("TS" for the code's ts). `words`: the session's code words (code_words)."""
+    if _CASE_CUE.search(said):
+        return message
+    runs, alone = _spelled(said)
+    lower_words = {w for w in words if w.islower()}
+
+    def run(m: re.Match) -> str:  # "G-I-M-B-A-L" in the brain's words, for gimbal spelled
+        letters = re.sub(r"[^A-Z]", "", m.group(0))
+        return m.group(0).lower() if letters.lower() in runs else m.group(0)
+
+    message = _SPELLED_IN_MESSAGE.sub(run, message)
+
+    def capitals(m: re.Match) -> str:
+        if m.group(3):  # GIMBAL inside __GIMBAL__
+            digits, letters = "", m.group(3)
+        else:
+            digits, letters = m.group(1), m.group(2)
+        word = digits + letters
+        if word in words or letters in words or (not digits and letters in ("I", "A")):
+            return m.group(0)
+        core = letters.strip("_").lower()
+        # The code's case settles a short word of letters ("TS" for its ts), never a file name or a longer word that
+        # is written in capitals by convention (README.md, TODO).
+        as_code = len(word) <= 3 and word.lower() in lower_words and not re.match(r"\.\w", m.string[m.end():])
+        if as_code or core in runs or (len(core) == 1 and core in alone):
+            return m.group(0).lower()
+        return m.group(0)
+
+    return _CAPITALS.sub(capitals, message)
 
 
 _CAMEL_OR_SNAKE = re.compile(r"\b[A-Za-z][A-Za-z0-9]*(?:[A-Z][a-z0-9]+|_[A-Za-z0-9]+)+\b")

@@ -7854,6 +7854,8 @@ async def _send_now(message: str) -> dict:
     message = relay.repo_names(message, code)
     known = _vocabulary_for(targets[0]) | {n for names in code.values() for n in names}
     message = relay.trade_words(message, {k.lower() for k in known})  # "dark string" is a docstring (tester round 5)
+    # "ends in s" heard "ends in S" reached the session as "90S", and it accepted only a capital (HLK 0.8.5 twin-symbols)
+    message = relay.letter_case(message, said, relay.code_words(targets[0].cwd) if not targets[0].machine else set())
     message = relay.as_heard(relay.keep_lines(message, said), said, known)
     if await _abandoned(message):  # again, at the last moment: the checks above take a second or two, time to cut in
         return dict(ABANDONED)
