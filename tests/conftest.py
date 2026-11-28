@@ -80,6 +80,7 @@ def pytest_collection_modifyitems(config, items):
 
 
 TEST_LIMIT_SECS = 300  # the slowest test takes about 100 s on CI's runner
+REPORT_SECS = 240  # for pytest to write the ran-over failure: a deep asyncio traceback took over a minute in CI
 
 
 class RanOver(BaseException):
@@ -102,7 +103,7 @@ def _uncaptured_stderr(config):
 def pytest_runtest_protocol(item, nextitem):
     """A test that waits forever fails instead: a hung link once held CI's offline job for six hours. The alarm fails
     the test with the stack it was in; a test stuck where the alarm cannot reach it (a task that swallows its cancel
-    while asyncio.run shuts down) is ended a minute later by faulthandler, which prints every thread's stack and exits
+    while asyncio.run shuts down) is ended REPORT_SECS later by faulthandler, which prints every thread's stack and exits
     the process: under xdist that is one worker, reported as crashed in this test, and replaced."""
     if not hasattr(signal, "SIGALRM") or threading.current_thread() is not threading.main_thread():
         return (yield)
@@ -112,7 +113,7 @@ def pytest_runtest_protocol(item, nextitem):
 
     before = signal.signal(signal.SIGALRM, ran_over)
     signal.alarm(TEST_LIMIT_SECS)
-    faulthandler.dump_traceback_later(TEST_LIMIT_SECS + 60, exit=True, file=_uncaptured_stderr(item.config))
+    faulthandler.dump_traceback_later(TEST_LIMIT_SECS + REPORT_SECS, exit=True, file=_uncaptured_stderr(item.config))
     try:
         return (yield)
     finally:
