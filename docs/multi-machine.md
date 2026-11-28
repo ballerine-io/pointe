@@ -20,7 +20,7 @@ The docs and the screens say "your voice", "machines" and "people". The command 
 | **Your voice** | One person's Pointe: the call, the brain, the notes and the model keys. It runs on a Mac or a Linux machine | The hub (`pointe hub ...`) |
 | **Machine** | A computer whose sessions a voice can reach: the one your voice runs on, another one of yours, or one somebody invited you to | A node (`pointe node ...`), or the hub itself |
 | **Person** | Somebody the owner of a machine invited to it. A person reaches the machine from their own voice | Did not exist |
-| **Owner** | Of a machine: the person whose Pointe runs on it. Of a session: in this release, the owner of the machine it runs on | Implied |
+| **Owner** | Of a machine: the person whose Pointe runs on it. Of a session: the person who started it from their voice, else the owner of the machine it runs on | Implied |
 
 ## Your own other machines
 
@@ -53,8 +53,7 @@ no keys. It watches its own sessions, types your requests into them and holds th
 5. **Join sessions on the other machine** as you do on the first: `/pointe:voice` in Claude Code, `pointe join opencode`
    or `pointe join codex` in a folder.
 
-A Linux machine needs `uv` and either `lsof` or `ss` (from iproute2): `pointe node join` checks and says what to
-install. A machine paired this way does not install the voice models: on Linux, `bash install.sh --node` installs it
+A Linux machine needs `uv` and `ps` (procps): `pointe node join` checks and says what to install. A machine paired this way does not install the voice models: on Linux, `bash install.sh --node` installs it
 without them.
 
 ### Use it
@@ -102,7 +101,8 @@ Your voice keeps every rule it has for the sessions on its own machine ([SECURIT
 machine checks again before it answers a prompt:
 
 - A **spoken yes** counts only if your voice read out exactly the text the other machine computed from the real
-  request. A request that machine cannot read out cannot be approved by voice.
+  request, in short or word for word. A request it never reads out (one that holds a credential-like value) cannot be
+  approved by voice.
 - A **notification's Approve** counts only for a request that machine can read out.
 - A **tap** on the page or in the app is trusted from your voice, as a tap on its own sessions is. What the card
   shows is the request with credentials masked; the exact request is in the session's own terminal.
@@ -212,8 +212,8 @@ same fact and the screens then do not repeat it. Avi sees the same list next to 
   with her name on it: "[Voice request from dana, a person invited to this machine, relayed by dana's voice assistant".
 - If a session on `avi-box` has the same name as one of hers, hers keeps the plain name and the other gets the
   machine's name added: "shop avi-box".
-- A session that waits on a permission prompt shows that it waits. It offers her no Approve and no Deny, and it
-  never asks her for an answer: the prompt is the owner's.
+- A session that waits on a permission prompt shows that it waits. If she may send, she can answer it once its owner
+  had 20 seconds: see [Approving a prompt](#approving-a-prompt-on-a-shared-machine).
 
 ### Send or watch
 
@@ -352,10 +352,11 @@ see [SECURITY.md](../SECURITY.md#people-on-a-machine).
 
 - **From the shared machine to each linked person's voice:** for each shared session, its transcript with
   credentials masked on the machine, its name, folder path, agent, title, owner, up to 40 file names, and whether it
-  works or waits. Requests other people sent to it, masked, with the sender's name. Not its process id, not its
-  permission requests, not a private session, not a session on another machine.
-- **From a person's voice to the shared machine:** the person's requests, the name of the machine their voice runs
-  on, its Pointe version, and the names of the services their voice uses.
+  works or waits. Requests other people sent to it, masked, with the sender's name. Its permission prompts, if the
+  person may send and the owner has not turned people's approvals off. Not its process id, not a private session, not
+  a session on another machine.
+- **From a person's voice to the shared machine:** the person's requests, their answers to prompts, their requests to
+  start a session, the name of the machine their voice runs on, its Pointe version, and the names of the services their voice uses.
 - **From each person's voice to that person's vendors:** the shared sessions' transcripts, as for their own sessions.
   Each person's voice uses its own keys. A voice in fully local mode sends them to no outside service.
 - **Never:** anybody's vendor keys, voiceprint, journal, session notes or dictionary, and no person's key after
@@ -371,13 +372,18 @@ see [SECURITY.md](../SECURITY.md#people-on-a-machine).
 | your voice | `pointe hub revoke <name>` | unpairs it: its sessions leave your voice, and it needs a new code to come back. Also on the page (Settings → Machines, two clicks) and in the app (Face ID, then a confirm) |
 | your voice | `pointe machine add '<line>' [--name NAME]` | adds a machine somebody invited you to |
 | your voice | `pointe machine remove <name>` | takes a machine out of your voice |
-| your voice | `pointe pair rotate` | a new certificate, and every phone, browser and machine of your own paired with this one signed out: each needs a new code. `pointe pair off` signs out the same and stops listening |
+| your voice | `pointe pair rotate` | a new certificate, and every phone, browser, machine of your own and invited person paired with this one signed out: each needs a new code. `pointe pair off` signs out the same and stops listening |
 | a machine of your own | `pointe node status` | the voice it is paired with, the link, round trip, that voice's vendors, sessions here, key fingerprint |
 | a machine of your own | `pointe node leave` | unpairs this machine from its side |
 | a shared machine | `pointe people` | the people invited to this machine |
 | a shared machine | `pointe people invite <name> [--watch]` | a one-time line for that person's voice |
 | a shared machine | `pointe people grant <name> send\|watch` | changes what a person may do |
 | a shared machine | `pointe people remove <name>` | deletes the person's key and closes their link |
+| a shared machine | `pointe people approvals on\|off` | people who may send can answer a session's prompt, or not (on by default) |
+| a shared machine | `pointe people starts on\|off` | people who may send can start a session here, or not (on by default) |
+| a shared machine | `pointe people sessions default\|ask` | sessions people start follow your default, or always ask before actions |
+| a shared machine | `pointe people window <seconds>` | how long a prompt waits for its session's owner before the others get it (20; 0 to 120) |
+| a shared machine | `pointe people hold <seconds>` | with no call of yours, how long a prompt waits for people before your terminal gets it (45; 10 to 280) |
 | a shared machine | `pointe share <session> [--private\|--shared]` | keeps a session to yourself, or shares it again |
 
 **Names.** Your voice's machine is named by `"machine"` in its `~/.claude-voice/config.json` (else its short host
@@ -392,7 +398,7 @@ it connects, and a pair with nothing in common fails in one sentence that names 
 
 | Pair | What each side says | No common version |
 |---|---|---|
-| A node and its hub | The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak, and a list of features. The link uses the newest protocol both speak and the features both list | The link closes with code 4426. `pointe node status` on the node says which side is old: "studio runs an older Pointe (0.9.0) than this machine: update it there with pointe update", or "studio needs a newer Pointe on this machine". On the hub the machine stays in Settings → Machines, offline, with "devbox runs an older Pointe (0.9.0). Update it there to see its sessions: pointe update". Nobody's key is deleted, and the node reconnects by itself after the update |
+| A node and its hub | The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak. The node's hello and the hub's welcome list the features. The link uses the newest protocol both speak and the features both list | The link closes with code 4426. `pointe node status` on the node says which side is old: "studio runs an older Pointe (0.9.0) than this machine: update it there with pointe update", or "studio needs a newer Pointe on this machine". On the hub the machine stays in Settings → Machines, offline, with "devbox runs an older Pointe (0.9.0). Update it there to see its sessions: pointe update". Nobody's key is deleted, and the node reconnects by itself after the update |
 | A script, hook or command and the Pointe on the same machine | `X-Pointe-Client: <part>/<version> api=<n>` on every request | The answer is `426` with `{"error", "need", "have", "how"}`. The script prints the sentence in `error`; `how` is the command. A permission hook that is refused leaves the prompt in the terminal: it never blocks Claude Code |
 | The iPhone app and the Mac | The call protocol and the oldest one served, in the status ([phone.md](phone.md)) | The app says which of the two to update |
 
@@ -402,7 +408,7 @@ before; one so old that it fails by itself (the 0.1.6 plugin) is named by `point
 update or remove it.
 
 **What is tested.** A node as 0.9.0 sends its hello (one protocol, no range, no features) links with this hub. The
-requests the scripts of 0.1.6, 0.8.0, 0.8.7 and 0.9.0 send are replayed against this daemon on every push
+requests the scripts of 0.1.6, 0.8.0, 0.8.7, 0.9.0, 0.10.0, 0.10.1 and 0.10.2 send are replayed against this daemon on every push
 (`tests/fixtures/skew_requests.json`): each gets a 200 or a refusal with a sentence. A pair further apart than that
 is not tested.
 
@@ -436,9 +442,6 @@ is not tested.
   devbox". A closed Claude Code session there is not reopened from your voice (it needs a terminal on that machine);
   Codex and OpenCode ones are. The read-back says when such a session's approvals stay in its terminal; after it
   joins, its approvals capability shows as that machine's adapter reports it.
-- **No new session on another machine.** Pointe starts sessions only on the machine with your voice: in a terminal
-  window on a Mac, in tmux on Linux ([features/new-session.md](features/new-session.md)). On another machine, start
-  the agent there and join it.
 - **"By the way" questions** about a session on another machine are answered from its transcript, not from a forked
   copy.
 - **Show while it says** does not show files from another machine yet, and **Challenge me** leaves another machine's

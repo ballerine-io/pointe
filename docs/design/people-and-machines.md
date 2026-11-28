@@ -1,6 +1,6 @@
 # People and machines: several voices on one machine, several machines in one voice
 
-Status: phases 1, 2 and 3 built. Phase 3 (people approve prompts and start sessions on a machine) is the section
+Status: built, phase 3 included. Phase 3 (people approve prompts and start sessions on a machine) is the section
 "Phase 3" below, and it changes what phase 1 said about approvals. This file is the contract the daemon, the page, the iPhone
 app and the Mac app were built to, corrected where the code came out different; each such place says "As built". The
 guide for people who use it: [../multi-machine.md](../multi-machine.md). The threat model:

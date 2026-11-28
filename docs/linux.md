@@ -132,14 +132,14 @@ them reaches its sessions from their own voice, on their own machine. These shap
 | Shape | How | Limits |
 |---|---|---|
 | Your other machines' sessions in your call | `pointe hub invite` on the machine with your voice, `pointe node join '<line>'` on the other machine | Such a machine serves one voice. Its prompts are approved from that voice |
-| Colleagues on one Linux machine | `pointe people invite <name>` on the machine, `pointe machine add '<line>'` on the colleague's own machine | Below. No approval by an invited person yet |
+| Colleagues on one Linux machine | `pointe people invite <name>` on the machine, `pointe machine add '<line>'` on the colleague's own machine | Below. A person who may send can answer a prompt after its owner had 20 seconds |
 | Several phones | Each pairs with its own key: Settings → Phone, again for each | One call at a time |
 | Several browsers | `pointe pair link`, opened once in each | They share one pairing secret; `pointe pair rotate` signs all out |
 | Taking turns | A second phone or browser that calls while a call is up is refused ("a call is already up") | Not at the same time |
 
 **A phone or a browser paired with a voice acts as its owner.** It hears every session's reports, can send to any
 session and can approve its prompts. Pair only your own devices that way. For another person, use an invite: they get
-their own key, their name on what they send, and no approvals.
+their own key and their name on what they send and on what they approve; the session's owner is asked first.
 
 ### The office case: one Linux machine, several people
 
@@ -187,7 +187,8 @@ account. Invite only people you would give a shell on that account
    pointe people remove dana          # delete her key and close her link
    ```
 
-Permission prompts on `avi-box` are offered to Avi's voice and the session's terminal only. The whole guide, with the
+Permission prompts on `avi-box` go to the session's owner first, and after 20 seconds to everyone who may send. Avi
+turns that off with `pointe people approvals off`. The whole guide, with the
 screens, what each person hears and the limits: [Machines and people](multi-machine.md#a-shared-machine).
 
 ## Limits on Linux

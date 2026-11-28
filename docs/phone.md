@@ -92,7 +92,7 @@ listener within a few seconds (otherwise at its next start).
   come back.
 - **Unpair all:** signs out every phone, including a phone browser paired with `pointe pair link`. That link stops
   working; `pointe pair link` prints the new one.
-- **A new certificate:** `pointe pair rotate`. It signs out every phone, phone browser and paired machine at once (a
+- **A new certificate:** `pointe pair rotate`. It signs out every phone, phone browser, paired machine and invited person at once (a
   running Pointe ends their calls and links within seconds), and makes a new pairing secret. Each must pair again, and
   a browser that trusted the old certificate must trust the new one. The command prints the steps for each paired
   machine. Use it when a phone is lost or a pairing code or link was seen by someone else.

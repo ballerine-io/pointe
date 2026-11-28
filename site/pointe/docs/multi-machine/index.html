@@ -163,7 +163,7 @@
 </tr>
 <tr>
 <td><strong>Owner</strong></td>
-<td>Of a machine: the person whose Pointe runs on it. Of a session: in this release, the owner of the machine it runs on</td>
+<td>Of a machine: the person whose Pointe runs on it. Of a session: the person who started it from their voice, else the owner of the machine it runs on</td>
 <td>Implied</td>
 </tr>
 </tbody>
@@ -204,8 +204,7 @@ no keys. It watches its own sessions, types your requests into them and holds th
    or <code>pointe join codex</code> in a folder.</p>
 </li>
 </ol>
-<p>A Linux machine needs <code>uv</code> and either <code>lsof</code> or <code>ss</code> (from iproute2): <code>pointe node join</code> checks and says what to
-install. A machine paired this way does not install the voice models: on Linux, <code>bash install.sh --node</code> installs it
+<p>A Linux machine needs <code>uv</code> and <code>ps</code> (procps): <code>pointe node join</code> checks and says what to install. A machine paired this way does not install the voice models: on Linux, <code>bash install.sh --node</code> installs it
 without them.</p>
 <h3 id="use-it">Use it</h3>
 <p><strong>On the screens.</strong> With one machine, nothing changes. With more than one, on the page and in the app:</p>
@@ -280,7 +279,8 @@ machine checks again before it answers a prompt:</p>
 <ul>
 <li>
 <p>A <strong>spoken yes</strong> counts only if your voice read out exactly the text the other machine computed from the real
-  request. A request that machine cannot read out cannot be approved by voice.</p>
+  request, in short or word for word. A request it never reads out (one that holds a credential-like value) cannot be
+  approved by voice.</p>
 </li>
 <li>
 <p>A <strong>notification's Approve</strong> counts only for a request that machine can read out.</p>
@@ -433,8 +433,8 @@ same fact and the screens then do not repeat it. Avi sees the same list next to 
   machine's name added: "shop avi-box".</p>
 </li>
 <li>
-<p>A session that waits on a permission prompt shows that it waits. It offers her no Approve and no Deny, and it
-  never asks her for an answer: the prompt is the owner's.</p>
+<p>A session that waits on a permission prompt shows that it waits. If she may send, she can answer it once its owner
+  had 20 seconds: see <a href="#approving-a-prompt-on-a-shared-machine">Approving a prompt</a>.</p>
 </li>
 </ul>
 <h3 id="send-or-watch">Send or watch</h3>
@@ -637,12 +637,13 @@ see <a href="../security/#people-on-a-machine">SECURITY.md</a>.</p>
 <li>
 <p><strong>From the shared machine to each linked person's voice:</strong> for each shared session, its transcript with
   credentials masked on the machine, its name, folder path, agent, title, owner, up to 40 file names, and whether it
-  works or waits. Requests other people sent to it, masked, with the sender's name. Not its process id, not its
-  permission requests, not a private session, not a session on another machine.</p>
+  works or waits. Requests other people sent to it, masked, with the sender's name. Its permission prompts, if the
+  person may send and the owner has not turned people's approvals off. Not its process id, not a private session, not
+  a session on another machine.</p>
 </li>
 <li>
-<p><strong>From a person's voice to the shared machine:</strong> the person's requests, the name of the machine their voice runs
-  on, its Pointe version, and the names of the services their voice uses.</p>
+<p><strong>From a person's voice to the shared machine:</strong> the person's requests, their answers to prompts, their requests to
+  start a session, the name of the machine their voice runs on, its Pointe version, and the names of the services their voice uses.</p>
 </li>
 <li>
 <p><strong>From each person's voice to that person's vendors:</strong> the shared sessions' transcripts, as for their own sessions.
@@ -696,7 +697,7 @@ see <a href="../security/#people-on-a-machine">SECURITY.md</a>.</p>
 <tr>
 <td>your voice</td>
 <td><code>pointe pair rotate</code></td>
-<td>a new certificate, and every phone, browser and machine of your own paired with this one signed out: each needs a new code. <code>pointe pair off</code> signs out the same and stops listening</td>
+<td>a new certificate, and every phone, browser, machine of your own and invited person paired with this one signed out: each needs a new code. <code>pointe pair off</code> signs out the same and stops listening</td>
 </tr>
 <tr>
 <td>a machine of your own</td>
@@ -730,6 +731,31 @@ see <a href="../security/#people-on-a-machine">SECURITY.md</a>.</p>
 </tr>
 <tr>
 <td>a shared machine</td>
+<td><code>pointe people approvals on\|off</code></td>
+<td>people who may send can answer a session's prompt, or not (on by default)</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people starts on\|off</code></td>
+<td>people who may send can start a session here, or not (on by default)</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people sessions default\|ask</code></td>
+<td>sessions people start follow your default, or always ask before actions</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people window &lt;seconds&gt;</code></td>
+<td>how long a prompt waits for its session's owner before the others get it (20; 0 to 120)</td>
+</tr>
+<tr>
+<td>a shared machine</td>
+<td><code>pointe people hold &lt;seconds&gt;</code></td>
+<td>with no call of yours, how long a prompt waits for people before your terminal gets it (45; 10 to 280)</td>
+</tr>
+<tr>
+<td>a shared machine</td>
 <td><code>pointe share &lt;session&gt; [--private\|--shared]</code></td>
 <td>keeps a session to yourself, or shares it again</td>
 </tr>
@@ -753,7 +779,7 @@ it connects, and a pair with nothing in common fails in one sentence that names 
 <tbody>
 <tr>
 <td>A node and its hub</td>
-<td>The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak, and a list of features. The link uses the newest protocol both speak and the features both list</td>
+<td>The hub's challenge and the node's hello each carry the oldest and newest link protocol they speak. The node's hello and the hub's welcome list the features. The link uses the newest protocol both speak and the features both list</td>
 <td>The link closes with code 4426. <code>pointe node status</code> on the node says which side is old: "studio runs an older Pointe (0.9.0) than this machine: update it there with pointe update", or "studio needs a newer Pointe on this machine". On the hub the machine stays in Settings → Machines, offline, with "devbox runs an older Pointe (0.9.0). Update it there to see its sessions: pointe update". Nobody's key is deleted, and the node reconnects by itself after the update</td>
 </tr>
 <tr>
@@ -773,7 +799,7 @@ the request, something that is not Pointe. A script from a release before 0.10 s
 before; one so old that it fails by itself (the 0.1.6 plugin) is named by <code>pointe doctor</code>, with the commands that
 update or remove it.</p>
 <p><strong>What is tested.</strong> A node as 0.9.0 sends its hello (one protocol, no range, no features) links with this hub. The
-requests the scripts of 0.1.6, 0.8.0, 0.8.7 and 0.9.0 send are replayed against this daemon on every push
+requests the scripts of 0.1.6, 0.8.0, 0.8.7, 0.9.0, 0.10.0, 0.10.1 and 0.10.2 send are replayed against this daemon on every push
 (<code>tests/fixtures/skew_requests.json</code>): each gets a 200 or a refusal with a sentence. A pair further apart than that
 is not tested.</p>
 <h2 id="limits">Limits</h2>
@@ -829,11 +855,6 @@ is not tested.</p>
   devbox". A closed Claude Code session there is not reopened from your voice (it needs a terminal on that machine);
   Codex and OpenCode ones are. The read-back says when such a session's approvals stay in its terminal; after it
   joins, its approvals capability shows as that machine's adapter reports it.</p>
-</li>
-<li>
-<p><strong>No new session on another machine.</strong> Pointe starts sessions only on the machine with your voice: in a terminal
-  window on a Mac, in tmux on Linux (<a href="../features/new-session/">features/new-session.md</a>). On another machine, start
-  the agent there and join it.</p>
 </li>
 <li>
 <p><strong>"By the way" questions</strong> about a session on another machine are answered from its transcript, not from a forked

@@ -695,8 +695,8 @@ review; `--since` limits it to the week's changes.
 - **People on a shared machine are not isolated.** A person invited to a machine can make its agents run commands as
   the machine's one account, and through that reach everything the account can, Pointe's own files included. Names on
   requests and journal lines are attribution, not a boundary ([People on a machine](#people-on-a-machine)).
-- **An invited person cannot approve a prompt.** On a shared machine only the owner's voice and the terminal are
-  offered a permission prompt. A session that asks for permission waits for the owner.
+- **Any one invited person with the send grant can approve a prompt** once the session's owner had 20 seconds, and no
+  one else has to agree ([Approvals by people](#approvals-by-people)). `pointe people approvals off` turns it off.
 - **A person who removes the machine from their own voice keeps a valid key on it** until the owner removes them
   (`pointe people remove <name>`) or runs `pointe pair rotate`.
 - **The services next to a person's name are self-declared.** The machine shows what the person's voice named, and

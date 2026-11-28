@@ -14,9 +14,10 @@ What does not work yet, and what was not measured. Each feature page lists its o
 - **One voice per person, and no isolation on a shared machine.** Each Pointe is one person's voice, with one call at a
   time; a phone or a browser paired with it acts as its owner. Several people can use one machine: its owner invites
   each, and each talks from their own voice on their own Mac or Linux machine. A person invited to a machine can make
-  its agents run commands as that machine's account, and Pointe does not separate people on one account. An invited
-  person cannot approve a permission prompt or start a session there yet, and how many machines or people work well
-  together is not measured ([Machines and people](multi-machine.md#limits)).
+  its agents run commands as that machine's account, and Pointe does not separate people on one account. A person who
+  may send can answer a session's permission prompt once its owner had 20 seconds, and can start a session there; the
+  owner can turn either off (`pointe people approvals off`, `pointe people starts off`). How many machines or people
+  work well together is not measured ([Machines and people](multi-machine.md#limits)).
 - **The Mac app** is `Pointe.dmg`, signed with Developer ID and notarized, the image and the app in it
   ([how](mac-app.md#getting-it)). Its
   first-launch install ran for real into an empty home folder, through the same installer code, but has not yet been

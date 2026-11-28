@@ -97,3 +97,18 @@ def test_the_multi_machine_design_does_not_call_the_built_hub_unbuilt():
     status = next(l for l in (ROOT / "docs" / "design" / "multi-machine.md").read_text().splitlines()
                   if l.startswith("Status:"))
     assert "not built;" not in status and (ROOT / "pointe" / "hub_nodes.py").exists(), status
+
+
+def test_the_people_guides_say_a_person_who_may_send_can_answer_prompts_and_start_sessions():
+    """guests.Host.offer puts a prompt to people after the owner-first time, and `start` is on by default."""
+    import guests
+
+    assert guests.DEFAULTS["start"] == "on"
+    stale = ("No approval by an invited person yet", "and no approvals.", "the prompt is the owner's",
+             "offered to Avi's voice and the session's terminal only", "cannot approve a permission prompt or start a session",
+             "not its permission requests", "No new session on another machine.", "An invited person cannot approve a prompt")
+    for path in ("docs/multi-machine.md", "docs/linux.md", "docs/limits.md", "SECURITY.md"):
+        text = _flat(path)
+        assert not [s for s in stale if s in text], path
+    for setting in ("approvals on|off", "starts on|off", "window <seconds>", "hold <seconds>"):
+        assert setting in guests.__doc__ and setting.replace("|", "\\|") in _flat("docs/multi-machine.md"), setting

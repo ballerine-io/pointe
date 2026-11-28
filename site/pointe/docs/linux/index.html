@@ -247,7 +247,7 @@ them reaches its sessions from their own voice, on their own machine. These shap
 <tr>
 <td>Colleagues on one Linux machine</td>
 <td><code>pointe people invite &lt;name&gt;</code> on the machine, <code>pointe machine add '&lt;line&gt;'</code> on the colleague's own machine</td>
-<td>Below. No approval by an invited person yet</td>
+<td>Below. A person who may send can answer a prompt after its owner had 20 seconds</td>
 </tr>
 <tr>
 <td>Several phones</td>
@@ -268,7 +268,7 @@ them reaches its sessions from their own voice, on their own machine. These shap
 </table></div>
 <p><strong>A phone or a browser paired with a voice acts as its owner.</strong> It hears every session's reports, can send to any
 session and can approve its prompts. Pair only your own devices that way. For another person, use an invite: they get
-their own key, their name on what they send, and no approvals.</p>
+their own key and their name on what they send and on what they approve; the session's owner is asked first.</p>
 <h3 id="the-office-case-one-linux-machine-several-people">The office case: one Linux machine, several people</h3>
 <p>Avi runs his agents on a Linux machine, <code>avi-box</code>, under one account. It is his voice. Dana and Omer each have their
 own Pointe, on their own Mac or Linux machine, with their own model keys.</p>
@@ -314,7 +314,8 @@ pointe share billing --private     # keep a session to himself; --shared shares 
 pointe people remove dana          # delete her key and close her link</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
 </li>
 </ol>
-<p>Permission prompts on <code>avi-box</code> are offered to Avi's voice and the session's terminal only. The whole guide, with the
+<p>Permission prompts on <code>avi-box</code> go to the session's owner first, and after 20 seconds to everyone who may send. Avi
+turns that off with <code>pointe people approvals off</code>. The whole guide, with the
 screens, what each person hears and the limits: <a href="../multi-machine/#a-shared-machine">Machines and people</a>.</p>
 <h2 id="limits-on-linux">Limits on Linux</h2>
 <ul>
