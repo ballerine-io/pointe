@@ -26,7 +26,8 @@ breaks in [GitHub issues](https://github.com/ballerine-io/pointe/issues).
     You hear the reports of the turns you started; the others wait for "anything from the others?". The screens and the
     docs now say "your voice", "machines" and "people"; `pointe hub` and `pointe node` work as before. Limits: a person
     invited to a machine can make its agents run commands as that machine's account, cannot approve its permission
-    prompts yet, and cannot start a session there ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine),
+    prompts yet, and cannot start a session there. 0.10.2 lifted the last two: the session's owner is asked first, and
+    the others may answer after 20 seconds ([docs/multi-machine.md](docs/multi-machine.md#a-shared-machine),
     [SECURITY.md](SECURITY.md#people-on-a-machine)).
   - An old part of Pointe next to a new one fails in one sentence with the command that fixes it
 

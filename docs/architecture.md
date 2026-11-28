@@ -54,15 +54,17 @@ decision or next move. The brain speaks the report; a background session only sa
 
 1. A joined session needs permission. In Claude Code, its `PermissionRequest` hook asks the daemon and waits; OpenCode
    and Codex send their requests to the adapter over their own interfaces.
-2. The daemon builds the read-out itself, from what will run, and only if every part is a known program in a plain
-   pipeline. Anything else waits for a tap.
+2. The daemon builds the read-out itself, from what will run. A known program in a plain pipeline is said in short;
+   anything else is read word for word. A long shell command is first sent back to the session, at most twice in ten
+   minutes, to be redone as plain commands. A request that holds a credential-like value is never read out: it waits
+   for a tap.
 3. The mouth says the read-out. A plain yes of yours, begun after it ended, within 120 seconds, on the active session,
    approves it; a no from any voice denies it. Or you tap **Approve** or **Deny** on the page or in an app (Face ID on
    the iPhone).
 4. The daemon answers the hook, and the session goes on. With no call up, or Pointe stopped, the hook leaves the prompt
    in the terminal.
 
-The exact rules, and what never approves: [README, Safety model](../README.md#safety-model) and
+The exact rules, and what never approves: [Approvals, exactly](how-it-works.md#approvals-exactly) and
 [SECURITY.md](../SECURITY.md#what-a-spoken-word-can-do).
 
 ### Other machines
@@ -78,7 +80,8 @@ The owner of a machine can invite other people to it. Each person's daemon dials
 TLS, pinned to the machine's certificate from the invite, and proves the person's own key with an HMAC. On that link
 the machine is in the node's role: it ships each shared session's transcript with credentials masked, once per linked
 person, and delivers a person's requests with their name on them. The machine decides which sessions cross and who
-may send. It offers a permission prompt to its owner's voice and terminal only. Each person's daemon sends those
+may send. A session's permission prompt goes first to whoever started the session (else the machine's owner); after
+20 seconds the other people who may send can answer it too. Each person's daemon sends those
 transcripts to that person's own vendors ([A shared machine](multi-machine.md#a-shared-machine),
 [SECURITY.md](../SECURITY.md#people-on-a-machine)).
 

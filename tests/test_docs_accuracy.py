@@ -50,3 +50,34 @@ def test_the_features_index_lists_clean_up_my_words():
     row = next((l for l in index.splitlines() if "(clean-up-my-words.md)" in l), "")
     assert row.startswith("| [Clean up my words](clean-up-my-words.md) | "), row
     assert (ROOT / "docs" / "features" / "clean-up-my-words.md").exists()
+
+
+def _flat(path: str) -> str:
+    return " ".join((ROOT / path).read_text().split())
+
+
+def test_the_docs_say_invited_people_may_answer_prompts_after_the_owner_first_time():
+    """Since 0.10.2 a person who may send can answer a shared session's prompt (guests.Host.offer); docs said they
+    could not. The owner-first time the README states is the code's default."""
+    import guests
+
+    assert guests.DEFAULTS["approve"] != "off"
+    secs = f"{guests.OWNER_FIRST_SECS:g} seconds"
+    for path in ("README.md", "docs/architecture.md", "docs/multi-machine.md", "SECURITY.md"):
+        text = _flat(path)
+        assert "cannot approve its prompts" not in text and "owner's voice and terminal only" not in text, path
+    assert secs in _flat("README.md") and secs in _flat("docs/architecture.md")
+
+
+def test_the_docs_say_a_request_with_no_short_form_is_read_word_for_word():
+    """guards.spoken_request falls back to verbatim_request: only a credential-like request goes to a tap."""
+    import guards
+
+    command = {"command": "python3 -c 'print(1)'"}
+    assert guards.readable_request("Bash", command) is None and guards.verbatim_request("Bash", command)
+    for path in ("README.md", "docs/architecture.md"):
+        text = _flat(path)
+        assert "A command it cannot read out waits for a tap" not in text, path
+        assert "Anything else waits for a tap" not in text, path
+    assert "word for word" in _flat("docs/architecture.md")
+

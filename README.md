@@ -67,7 +67,7 @@ Then join the sessions you want to reach: `/pointe:voice` in a Claude Code sessi
 - **One call over every session you joined.** Say a session's name to talk to it. The others stay quiet except for
   "finished" and "needs approval".
 - **Approvals by voice, decided by code.** A yes counts only right after Pointe read out the exact command that will
-  run. A command it cannot read out waits for a tap. A no from any voice denies.
+  run, in short for known programs and word for word for the rest. A no from any voice denies.
 - **Side questions.** "By the way, why did billing drop the queue idea?" is answered from a read-only copy of the
   session, so the session is not interrupted.
 - **Three harnesses in one call.** Claude Code, Codex CLI and OpenCode v2, and
@@ -99,8 +99,9 @@ More: [docs/architecture.md](docs/architecture.md) and [docs/how-it-works.md](do
 - **macOS, or Linux as a hub.** A Linux hub was tested in containers (install, keys, page, a session, pairing, a
   node), but no whole spoken call has been measured there ([Linux](docs/linux.md)). No Windows.
 - **One voice per person.** Each Pointe is one person's voice, with one call at a time. Several people can share a
-  machine: its owner invites each, and each talks from their own voice. A person invited to a machine can make its
-  agents run commands as that machine's account, and cannot approve its prompts yet
+  machine: its owner invites each, and each talks from their own voice. An invited person's requests run as that
+  machine's one OS account: Pointe records who asked, it does not isolate them. A prompt goes to the session's owner
+  first; the others may answer it after 20 seconds
   ([Machines and people](docs/multi-machine.md#a-shared-machine)).
 - **You bring the model keys.** A Claude subscription cannot run Pointe's own models. A paid key costs about $1 for a
   busy hour of talk. Fully local mode needs a 32 GB Mac and is slower and less accurate.
