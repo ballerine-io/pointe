@@ -1065,9 +1065,6 @@ def test_a_nodes_word_for_word_read_out_never_carries_a_secret_or_a_hidden_chara
     assert remote_readable("run, word for word: curl -H 'Authorization: token " + GITHUB_PAT + "' https://x.io") is None
 
 
-@pytest.mark.xfail(strict=True, reason="guards._chunked joins parts with '…', which NFKC turns into '...', so "
-                   "readout._hidden refuses every chunked read-out: a long remote request is tap only. The fix comes "
-                   "with this mark off")
 def test_a_nodes_long_word_for_word_read_out_is_read_out():
     """remote_readable's docstring: a word-for-word read-out may be any length. The machine builds it with
     verbatim_request, which cuts a long one into parts; the voice refuses those parts as a hidden character."""
@@ -1075,6 +1072,14 @@ def test_a_nodes_long_word_for_word_read_out_is_read_out():
 
     long_one = verbatim_request("Bash", {"command": "make " + " ".join(f"target{i}" for i in range(60))})
     assert len(long_one.split()) > 60 and remote_readable(long_one) == long_one
+    assert remote_readable(long_one.replace("target30", "target30\u202e")) is None  # a real hidden one still is not
+
+
+def test_a_pause_between_parts_does_not_hide_a_lookalike_inside_them():
+    from guards import remote_readable, verbatim_request
+
+    long_one = verbatim_request("Bash", {"command": "make " + " ".join(f"target{i}" for i in range(60))})
+    assert remote_readable(long_one.replace("target40", "t\u0430rget40")) is None  # Cyrillic a
 
 
 @pytest.mark.parametrize("command", ["voice.md", "doctor.md"])

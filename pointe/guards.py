@@ -159,6 +159,7 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None, run_in
 
 VERBATIM = "word for word:"  # marks a read-out that is the exact request, not the allowlist's short form
 VERBATIM_CHUNK_WORDS = 18  # a long verbatim read-out is said in parts this long, with a pause between
+CHUNK_JOIN = " … "  # the pause between those parts
 
 
 def _say_hidden(text: str) -> str:
@@ -171,7 +172,7 @@ def _chunked(text: str) -> str:
     words = text.split()
     if len(words) <= VERBATIM_CHUNK_WORDS:
         return " ".join(words)
-    return " … ".join(" ".join(words[i:i + VERBATIM_CHUNK_WORDS]) for i in range(0, len(words), VERBATIM_CHUNK_WORDS))
+    return CHUNK_JOIN.join(" ".join(words[i:i + VERBATIM_CHUNK_WORDS]) for i in range(0, len(words), VERBATIM_CHUNK_WORDS))
 
 
 def verbatim_request(tool: str, tool_input: dict) -> str | None:
@@ -206,7 +207,9 @@ def remote_readable(readable) -> str | None:
     if not isinstance(readable, str) or not readable.strip():
         return None
     if VERBATIM in readable.split(" ", 3)[:3] or f", {VERBATIM}" in readable[:60]:
-        return readable if readout.redact(readable) is not None and not readout._hidden(readable) else None
+        # The parts _chunked joins with CHUNK_JOIN are its own pauses, not the request's: "…" is no hidden character
+        whole = readable.replace(CHUNK_JOIN, " ")
+        return readable if readout.redact(whole) is not None and not readout._hidden(whole) else None
     if len(readable.split()) >= 25:
         return None
     if readout.redact(readable) is None or readout._hidden(readable):
