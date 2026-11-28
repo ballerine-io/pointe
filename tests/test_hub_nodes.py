@@ -164,11 +164,28 @@ def paired(hub, name="devbox"):
 
 
 def run(coro):
-    """A link test that fails while the other end still waits ends here, with the stack, instead of waiting forever."""
-    return asyncio.run(asyncio.wait_for(coro, LINK_TEST_SECS))
+    """The scenario, then its loop's tasks cancelled and given CLEANUP_SECS to end. asyncio.run waits for them without
+    a limit, and a task cancelled inside asyncio.create_subprocess_exec (guests.HostSide._send_files lists a session's
+    files with git) never ends: a link test that failed with the machine's tasks still running hung instead of showing
+    its error. A scenario that waits forever ends at LINK_TEST_SECS."""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        return loop.run_until_complete(asyncio.wait_for(coro, LINK_TEST_SECS))
+    finally:
+        left = [t for t in asyncio.all_tasks(loop) if not t.done()]
+        for task in left:
+            task.cancel()
+        if left:
+            loop.run_until_complete(asyncio.wait(left, timeout=CLEANUP_SECS))
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(loop.shutdown_default_executor(CLEANUP_SECS))
+        asyncio.set_event_loop(None)
+        loop.close()
 
 
 LINK_TEST_SECS = 30  # the slowest link test takes about 2 s
+CLEANUP_SECS = 2
 
 
 # ---------- the nodes file ----------
@@ -738,6 +755,7 @@ def test_a_request_goes_to_remote_permission_with_the_nodes_readable_and_holding
         await fake.drop()
 
     run(go())
+
 
 
 def test_no_holding_when_the_daemon_does_not_hold_it(world):
