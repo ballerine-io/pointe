@@ -193,3 +193,35 @@ def test_a_command_that_only_looks_keeps_its_looking_read_out(command, said, tmp
 ])
 def test_what_was_tap_only_is_now_said(command, said):
     assert guards.readable_request("Bash", {"command": command}, "/p/repo") == said
+
+
+@pytest.mark.parametrize("code,said", [
+    ("import ast,sys; ast.parse(open('reader.py').read()); print('syntax ok')", "code checking the syntax of reader.py"),
+    ("import ast; [ast.parse(open(f).read(), f) for f in ['api/fees.py','api/routes.py']]; print('ok')",
+     "code checking the syntax of fees.py, routes.py"),
+    ("import ast, records; ast.parse(open('records.py').read()); print(records.count(3))",
+     "code calling records.count, checking the syntax of records.py"),
+    ("import ast; ast.parse(open('/etc/hosts').read())", "code checking the syntax of /etc/hosts"),
+])
+def test_a_python_syntax_check_says_the_files_it_reads(code, said, tmp_path):
+    (tmp_path / "records.py").write_text("def count(n): return n\n")
+    assert readout.spoken(f'python3 -I -c "{code}"', str(tmp_path)) == f"python3 {said}"
+
+
+@pytest.mark.parametrize("code", [
+    "import ast; ast.parse(open('a.py', 'w').read())", "import ast; exec(open('a.py').read())",
+    "import ast; ast.literal_eval(open('a.py').read())", "import ast, os; ast.parse(open('a.py').read())",
+    "import ast; ast.parse(open(f).read())", "import ast; [ast.parse(open(f).read()) for f in names]",
+    "import ast, sys; sys.path.insert(0, '.'); ast.parse(open('a.py').read())", "import ast as a; a.parse(open('a.py').read())",
+    "import ast; open = print; ast.parse(open('a.py').read())", "import ast; ast.parse(open('a b.py').read())",
+    "import ast; ast.parse(open('a.py').read(), mode='exec')", "import ast; [ast.parse(open(g).read()) for f in ['a.py']]",
+    "import ast; ast.parse(open('a.py').read()).body", "from ast import parse; parse(open('a.py').read())",
+])
+def test_python_code_that_does_more_than_check_syntax_is_not_said(code, tmp_path):
+    assert readout.spoken(f'python3 -c "{code}"', str(tmp_path)) is None
+
+
+def test_a_project_module_named_ast_is_not_the_standard_library(tmp_path):
+    (tmp_path / "ast.py").write_text("import os\n")
+    assert readout.spoken("python3 -c \"import ast; ast.parse(open('a.py').read())\"", str(tmp_path)) is None
+

@@ -427,16 +427,17 @@ _QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
 _EMPTY_FILE = re.compile(r"^\s*(?::|true)?\s*>\s*(?P<file>[^\s;&|<>]+)\s*$")
 
 
-def _python_calls(code: str, cwd: str | None) -> list[str] | None:
+def _python_calls(code: str, cwd: str | None) -> tuple[list[str], list[str]] | None:
     """`python3 -c` code that only imports the project's own modules and calls their functions with literal arguments
-    that hold no string, printed or not: the functions it calls, in order. None for anything else (the tap answers it)."""
+    that hold no string, printed or not, or checks files' syntax (ast.parse(open('a.py').read()), which runs nothing):
+    the functions it calls, in order, and the files it checks, as said. None for anything else (the tap answers it)."""
     if not cwd:
         return None
     try:
         tree = ast.parse(code)
     except (SyntaxError, ValueError):
         return None
-    local, calls = {}, []
+    local, calls, checked = {}, [], []
 
     def project(module: str) -> bool:
         return bool(re.fullmatch(r"[A-Za-z_]\w*", module)) and not module.startswith("_") and (
@@ -463,9 +464,49 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
             return f"{local[f.value.id][1]}.{f.attr}"
         return None
 
+    def parsed(node, var: str | None = None) -> str | None:
+        """ast.parse(open(F).read()), F also allowed as its second argument: F, a string, or the name `var`."""
+        if not (isinstance(node, ast.Call) and not node.keywords and 1 <= len(node.args) <= 2
+                and isinstance(node.func, ast.Attribute) and node.func.attr == "parse"
+                and isinstance(node.func.value, ast.Name) and local.get(node.func.value.id) == ("stdlib", "ast")):
+            return None
+        read = node.args[0]
+        if not (isinstance(read, ast.Call) and not read.args and not read.keywords and isinstance(read.func, ast.Attribute)
+                and read.func.attr == "read" and isinstance(read.func.value, ast.Call)):
+            return None
+        opened = read.func.value  # open(F) with no mode: it only reads
+        if not (isinstance(opened.func, ast.Name) and opened.func.id == "open" and "open" not in local
+                and len(opened.args) == 1 and not opened.keywords):
+            return None
+        target = opened.args[0]
+        if len(node.args) == 2 and ast.dump(node.args[1]) != ast.dump(target):
+            return None
+        if var is not None:
+            return var if isinstance(target, ast.Name) and target.id == var else None
+        return target.value if isinstance(target, ast.Constant) and isinstance(target.value, str) else None
+
+    def files_checked(node) -> list[str] | None:
+        """The files one statement's syntax check reads: ast.parse(open('a.py').read()), or the same in a list
+        comprehension over a list of strings."""
+        if isinstance(node, ast.ListComp) and len(node.generators) == 1:
+            loop = node.generators[0]
+            if not (isinstance(loop.target, ast.Name) and not loop.ifs and not loop.is_async
+                    and isinstance(loop.iter, (ast.List, ast.Tuple)) and parsed(node.elt, loop.target.id)
+                    and all(isinstance(e, ast.Constant) and isinstance(e.value, str) for e in loop.iter.elts)):
+                return None
+            names = [e.value for e in loop.iter.elts]
+        else:
+            names = [parsed(node)] if parsed(node) else None
+        if not names or not all(_WORD.fullmatch(n) and not n.startswith("~") for n in names):
+            return None  # open() does not expand ~: a folder named ~, which the read-out would say as home
+        return [place(n, cwd) for n in names]
+
     for stmt in tree.body:
         if isinstance(stmt, ast.Import):
             for a in stmt.names:
+                if a.name in ("ast", "sys") and not a.asname and not project(a.name):
+                    local[a.name] = ("stdlib", a.name)  # sys is imported only: any use of it is refused below
+                    continue
                 if not project(a.name) or a.asname and not re.fullmatch(r"[A-Za-z]\w*", a.asname):
                     return None
                 local[a.asname or a.name] = ("module", a.name)
@@ -480,6 +521,8 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
                 and len(stmt.test.ops) == 1 and isinstance(stmt.test.ops[0], (ast.Eq, ast.NotEq, ast.Is, ast.IsNot)) \
                 and call(stmt.test.left) and literal(stmt.test.comparators[0]):
             calls.append(call(stmt.test.left))  # "assert f('300S') == 300": a check of one call against a literal
+        elif isinstance(stmt, ast.Expr) and files_checked(stmt.value):
+            checked += files_checked(stmt.value)
         elif isinstance(stmt, ast.Expr):
             node = stmt.value
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print" \
@@ -494,7 +537,7 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
             calls += [c for c in inner if c]
         else:
             return None
-    return calls or None
+    return (calls, checked) if calls or checked else None
 
 
 def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | None:
@@ -640,8 +683,10 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             calls = _python_calls(token, cwd) if was_quoted and here == cwd else None
             if not calls:
                 return None
-            named = list(dict.fromkeys(calls))
-            words.append(f"code calling {', '.join(named[:4])}" + (f" and {len(named) - 4} more" if len(named) > 4 else ""))
+            named, files = list(dict.fromkeys(calls[0])), list(dict.fromkeys(calls[1]))
+            what = [f"calling {', '.join(named[:4])}" + (f" and {len(named) - 4} more" if len(named) > 4 else "")] if named else []
+            what += [f"checking the syntax of {', '.join(files)}"] if files else []
+            words.append(f"code {', '.join(what)}")
             sub = "code"
             continue
         if program in ("python", "python3") and sub == "code":
