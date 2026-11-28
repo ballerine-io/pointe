@@ -146,9 +146,11 @@ def test_a_mute_and_an_unmute_tapped_quickly_end_unmuted_whatever_order_the_mac_
             await _on_a_call(page)
             await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Speaking…' && g; }})()")
             await page.eval(SLOW_FIRST)
-            await page.eval("document.getElementById('mutebtn').click()")
-            await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
-            await page.eval("document.getElementById('mutebtn').click()")
+            # Both taps in one task, before any poll: a poll answered while the first request is still out shows the
+            # Mac's old state, and a tap after it would be a second mute, not a quick unmute.
+            pressed = await page.eval("(() => { const b = document.getElementById('mutebtn'); b.click(); "
+                                      "const between = b.getAttribute('aria-pressed'); b.click(); return between; })()")
+            assert pressed == "true", "the first tap shows at once"
             posts = await stub.posted("/voice/reading", 2)  # the first one 0.8 s late
             await stub.polled(2)  # and the page has polled the Mac since
             return await page.eval(BTN), stub.status["reading"]["on"], posts
