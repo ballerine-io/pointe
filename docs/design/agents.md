@@ -1,6 +1,8 @@
 # Agents: talking with agent frameworks by voice
 
-Status: built behind `POINTE_AGENTS=on` (off by default) until the proof on real OpenClaw and Hermes passes.
+Status: a Labs setting (`agents.on` in the daemon's prefs, Settings, Labs, Agents on the page, the iPhone and the
+Mac), off by default; `POINTE_AGENTS=on|off` overrides it. Turning it on or off applies at once: the configured agents
+join or leave the voice, and the brain's relay tool and agent rules follow at the next call.
 Research, versions and the live probes: the launch kit's `research/agents-integration.md`.
 
 ## The problem
@@ -47,8 +49,8 @@ and `spawn` are false.
 
 `$STATE/agents.json` (0600) holds each agent's name, kind, URL, the agent id within the framework (OpenClaw), and the
 Keychain item that holds its credential (`pointe.agent.<name>`). The credential itself is never in the file, a log, a
-command line or a response. With the flag on, the daemon registers a session for each entry at start and when one is
-added; with it off, nothing is registered and the file is left alone.
+command line or a response. With agents on, the daemon registers a session for each entry at start, when one is
+added and when the setting turns on; with it off, nothing is registered and the file is left alone.
 
 - CLI: `pointe agent add <kind> <url> [--name NAME] [--agent ID]` asks for the credential with hidden typing (a Mac
   dialog, as `pointe key` does) and checks it with one cheap authenticated call before saving; `pointe agents` lists

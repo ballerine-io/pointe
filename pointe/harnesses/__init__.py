@@ -83,14 +83,25 @@ def _load() -> None:
     register(Codex())
     import agents
 
-    if agents.enabled():  # agent frameworks, behind POINTE_AGENTS=on (docs/design/agents.md)
-        from .a2a import A2A
-        from .hermes import Hermes
-        from .openai_chat import OpenAIChat
-        from .openclaw import OpenClaw
-
-        for harness in (OpenClaw(), Hermes(), A2A(), OpenAIChat()):
-            register(harness)
+    if agents.enabled():  # agent frameworks, while the setting is on (docs/design/agents.md)
+        register_agents()
 
 
-__all__ = ["FINISHED_MARK", "HOST", "Harness", "StartError", "finished_tag", "get", "labels", "names", "of", "register", "set_remote"]
+def register_agents() -> None:
+    """The agent-framework kinds, once: at the first load with agents on, or when the setting turns them on. They stay
+    registered when it turns off again; the daemon takes their sessions off the voice instead."""
+    if not _HARNESSES:
+        _load()  # the coding harnesses first; it calls back here when agents are on
+    if "openclaw" in _HARNESSES:
+        return
+    from .a2a import A2A
+    from .hermes import Hermes
+    from .openai_chat import OpenAIChat
+    from .openclaw import OpenClaw
+
+    for harness in (OpenClaw(), Hermes(), A2A(), OpenAIChat()):
+        register(harness)
+
+
+__all__ = ["FINISHED_MARK", "HOST", "Harness", "StartError", "finished_tag", "get", "labels", "names", "of", "register",
+           "register_agents", "set_remote"]

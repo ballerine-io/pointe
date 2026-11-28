@@ -100,6 +100,55 @@ def test_the_routes_say_the_feature_is_off(world, monkeypatch):
     assert client.post("/voice/agents", json={"kind": "hermes"}).status_code == 409
 
 
+def test_the_labs_setting_turns_agents_on_and_off_without_a_restart(world, monkeypatch):
+    """The owner's flag was an environment variable (`launchctl setenv`), lost at every reboot. It is a saved setting
+    now: turning it on registers the configured agents and gives the brain its relay tool; off takes them off the voice
+    and keeps their entries. POINTE_AGENTS, when set, decides instead, and the status says so."""
+    d = world.d
+    monkeypatch.delenv("POINTE_AGENTS", raising=False)
+    monkeypatch.setattr(d, "PREFS", d.Prefs(world.tmp / "prefs.json"))
+    monkeypatch.setattr(d.TOOLS, "_standard_tools", list(d.TOOLS.standard_tools))  # the next test gets the import's list
+    world.store.put(agents.Agent(name="hermes", kind="hermes", url="http://127.0.0.1:1"))
+    client = client_for(d)
+
+    assert client.post("/voice/prefs", json={"agents.on": False}).status_code == 200
+    assert "agent-hermes" not in d.REGISTRY.sessions and d.RELAY_TOOL not in d.TOOLS.standard_tools
+    assert client.get("/voice/agents").json()["enabled"] is False
+    assert client.get("/voice/status").json()["agents_setting"] == {"on": False, "forced": False}
+
+    assert client.post("/voice/prefs", json={"agents.on": True}).json()["agents.on"] is True
+    assert "agent-hermes" in d.REGISTRY.sessions, "the configured agent joins at once"
+    assert d.RELAY_TOOL in d.TOOLS.standard_tools
+    status = client.get("/voice/status").json()
+    assert status["agents_setting"] == {"on": True, "forced": False} and status["agents"]["count"] == 1
+    assert d.Prefs(world.tmp / "prefs.json").get("agents.on") is True, "saved: it survives a restart"
+
+    client.post("/voice/prefs", json={"agents.on": False})
+    assert "agent-hermes" not in d.REGISTRY.sessions and world.store.get("hermes") is not None
+    assert d.RELAY_TOOL not in d.TOOLS.standard_tools
+
+    monkeypatch.setenv("POINTE_AGENTS", "on")
+    assert client.get("/voice/status").json()["agents_setting"] == {"on": True, "forced": True}
+    client.post("/voice/prefs", json={"agents.on": False})
+    assert client.get("/voice/agents").json()["enabled"] is True, "the environment wins over the saved setting"
+
+
+def test_agents_on_with_none_configured_cost_the_brain_nothing(world, monkeypatch):
+    """On by default must be inert for who has no agent: no agent rules, no relay tool in the brain's input until one
+    is added, and none again once the last is removed."""
+    d = world.d
+    monkeypatch.setattr(d.TOOLS, "_standard_tools", list(d.TOOLS.standard_tools))
+    client = client_for(d)
+    d.AGENTS.changed()
+    assert d.agents.enabled() and not d._agents_in_use() and d.RELAY_TOOL not in d.TOOLS.standard_tools
+    added = client.post("/voice/agents", json={"kind": "hermes", "name": "hermes", "url": "http://127.0.0.1:1",
+                                               "secret": "good-token"})
+    assert added.status_code == 200, added.text
+    assert d._agents_in_use() and d.RELAY_TOOL in d.TOOLS.standard_tools
+    assert client.delete("/voice/agents/hermes").status_code == 200
+    assert not d._agents_in_use() and d.RELAY_TOOL not in d.TOOLS.standard_tools
+
+
 def test_an_agent_folder_is_never_offered_for_a_new_session(world):
     session = _add(world, "hermes", "hermes")
     assert session.cwd not in world.d.RECENT_FOLDERS.folders()

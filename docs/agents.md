@@ -4,7 +4,9 @@ Pointe can talk to agents built on agent frameworks, in the same call as your co
 the agent, not a replacement for it: the agent keeps its own memory, tools, schedules and approval rules. Design:
 [design/agents.md](design/agents.md).
 
-Behind a flag while it is proven: start Pointe with `POINTE_AGENTS=on` (for example `POINTE_AGENTS=on pointe restart`).
+Turn it on or off in Settings, Labs, Agents, on the page, the iPhone or the Mac; the setting is saved on the Mac.
+`POINTE_AGENTS=on` or `off` in Pointe's environment decides instead, until Pointe restarts without it, and the switch
+says so.
 
 ## What you can say
 

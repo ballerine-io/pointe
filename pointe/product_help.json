@@ -1331,7 +1331,7 @@
     "להוסיף סוכן",
     "לחבר סוכן"
    ],
-   "how": "Connect an agent built on an agent framework: choose its kind (OpenClaw, Hermes Agent, any A2A or OpenAI-compatible agent), give it a name, its address and its token, then Connect. Or run pointe agent add with the kind and the address. Then say talk to it by name, or ask it to do something; its replies come in when it is done. Passing one agent's reply to another always asks you first.",
+   "how": "Turn on Agents under Labs first. Then connect an agent built on an agent framework: choose its kind (OpenClaw, Hermes Agent, any A2A or OpenAI-compatible agent), give it a name, its address and its token, then Connect. Or run pointe agent add with the kind and the address. Then say talk to it by name, or ask it to do something; its replies come in when it is done. Passing one agent's reply to another always asks you first.",
    "iphone": [
     "Settings (••• at the top) → Agents"
    ],
@@ -1900,6 +1900,7 @@
      "Cancel the code"
     ],
     "Agents": [
+     "Agents (Labs): OpenClaw, Hermes and other agents in your call",
      "Connect an agent",
      "Name",
      "Address",

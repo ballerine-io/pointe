@@ -282,6 +282,7 @@ IDLE = mac.IdleClock()  # how long since the user touched this Mac: a phone stay
 KEEP_AWAKE = mac.KeepAwake()  # no idle sleep under a call from another device, on AC power only
 ALARM = conflicts.Alarm()  # two sessions that disagree: their latest reports and the open conflicts
 PREFS = Prefs(STATE_DIR / "prefs.json")
+agents.saved = lambda: bool(PREFS.get(agents.PREF))  # Settings, Labs, Agents; POINTE_AGENTS overrides it
 VOICE = speaker.VoiceLock(STATE_DIR / "voiceprint", STATE_DIR / "models")  # who the owner is, by voice: local only
 DICTIONARY = vocabulary.Dictionary(STATE_DIR / "dictionary.json")  # names the user fixed or added: this Mac only
 SHOWS = artifacts.Shows()  # show while it says: what is on screen while the voice reports a turn
@@ -1690,7 +1691,7 @@ def make_brain(speak, filler=None) -> Brain:
                     + (f", {u['cached']} of them cached" if u.get("cached") else ""))
 
     state.fleet_rules_told = scale.big(len(REGISTRY.sessions))  # a small fleet's brain is told what it is told with the rules off
-    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES + (AGENT_RULES if agents.enabled() else "")
+    brain = Brain(setup().brain, INSTRUCTIONS + BRAIN_RULES + (AGENT_RULES if _agents_in_use() else "")
                   + (scale.RULES if state.fleet_rules_told else ""), TOOLS.standard_tools, _brain_context, speak, filler,
                   _open_items, lambda: bool(state.unconfirmed), usage, fallback=vendors.BRAIN_FALLBACK.get(setup().brain),
                   may_stay_silent=lambda: ack_only(state.last_utterance), language_problem=_language_problem)
@@ -9841,14 +9842,29 @@ TOOLS = ToolsSchema(standard_tools=[
         required=[], handler=_traced(briefing_tool)),
 ])
 
-if agents.enabled():
-    TOOLS.standard_tools.append(FunctionSchema(
-        name="relay_reply",
-        description="Pass one session's or agent's last reply to another session or agent: \"give hermes's answer to "
-        "openclaw\", \"send that to the shop session\". Only when the user just asked for it. Call it once: the daemon "
-        "takes both from the user's own words and the reply word for word, and returns confirm_first, a line to say "
-        "exactly. Again after the user answers it. Nothing is sent without their spoken yes.",
-        properties={}, required=[], handler=_traced(relay_reply)))
+RELAY_TOOL = FunctionSchema(
+    name="relay_reply",
+    description="Pass one session's or agent's last reply to another session or agent: \"give hermes's answer to "
+    "openclaw\", \"send that to the shop session\". Only when the user just asked for it. Call it once: the daemon "
+    "takes both from the user's own words and the reply word for word, and returns confirm_first, a line to say "
+    "exactly. Again after the user answers it. Nothing is sent without their spoken yes.",
+    properties={}, required=[], handler=_traced(relay_reply))
+
+
+def _agents_in_use() -> bool:
+    """Agents are on and at least one is configured: only then does the brain get the agent rules and the relay tool.
+    On with none costs no brain input, so turning the setting on by default changes nothing for who has none."""
+    return agents.enabled() and bool(AGENTS.store.agents)
+
+
+def _agent_tools() -> None:
+    """The relay tool is the brain's while agents are in use; a change reaches the brain at the next call, which builds
+    its own (make_brain), as the agent rules do. Called at start and when the setting or the list of agents changes."""
+    on, tools = _agents_in_use(), TOOLS.standard_tools
+    if on and RELAY_TOOL not in tools:
+        tools.append(RELAY_TOOL)
+    elif not on and RELAY_TOOL in tools:
+        tools.remove(RELAY_TOOL)
 
 # ---------- HTTP: registration, permission relay, status ----------
 
@@ -10031,7 +10047,7 @@ guests.install(app, PEOPLE, remote_share=_remote_share)
 # Agent frameworks (docs/design/agents.md): each configured agent is a session of its kind, behind POINTE_AGENTS=on.
 AGENTS = agent_routes.install(app, SimpleNamespace(state_dir=STATE_DIR, registry=REGISTRY, join=lambda body: _join(body),
                                                    drop=lambda session: _drop(session), people=PEOPLE,
-                                                   vendors=lambda: _vendor_names()))
+                                                   vendors=lambda: _vendor_names(), switched=_agent_tools))
 
 
 async def _end_phone_call(ids: set[str] | None) -> None:
@@ -11741,6 +11757,10 @@ async def _status(request: Request) -> dict:
             "machines": _status_machines(),
             **_disclosure(request),
             **({"agents": {"count": len(AGENTS.store.agents)}} if agents.enabled() and _shows_invite(request) else {}),
+            # The Labs toggle: on, and whether POINTE_AGENTS decides instead of the saved setting (the toggle then
+            # says so and cannot change it until Pointe restarts without it).
+            **({"agents_setting": {"on": agents.enabled(), "forced": agents.forced() is not None}}
+               if _shows_invite(request) else {}),
             **({"agent_disclosure": told} if agents.enabled() and _shows_invite(request) and (told := AGENTS.disclosure()) else {}),
             # New sessions (docs/design/new-session.md): the ones starting or just failed, and a read-back that waits.
             "starting": [x.view(_harness_title(x.harness)) for x in newsession.shown(STARTS)],
@@ -12066,6 +12086,9 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=403, detail="Change the folders new sessions may start in on the Mac itself.")
     if {"sessions.skip_ok", "sessions.skip_told"} & set(body):  # the daemon's record of a yes and of a line said
         raise HTTPException(status_code=400, detail="Set by Pointe when a session starts, never by a request.")
+    if agents.PREF in body and not _shows_invite(request):  # agents act with the owner's accounts: the owner's screens only
+        raise HTTPException(status_code=403, detail="Turn agents on or off on the Mac's own page or in the app.")
+    was = agents.enabled()
     if isinstance(body.get("voice.speed"), dict):  # each device sends its own speed: the others' stay
         body["voice.speed"] = PREFS.get("voice.speed") | body["voice.speed"]
     try:
@@ -12074,6 +12097,8 @@ async def prefs_set(request: Request):
         raise HTTPException(status_code=400, detail=str(e))
     if "voice.speed" in body:
         await _apply_speed()
+    if agents.enabled() != was:
+        await AGENTS.apply()
     return prefs
 
 

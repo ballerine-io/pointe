@@ -4,7 +4,8 @@ import SwiftUI
 // Settings → Agents (docs/design/agents.md): agents built on agent frameworks (OpenClaw, Hermes Agent, any A2A or
 // OpenAI-compatible agent), talked to like sessions. The list with whether each answers, Connect an agent (its credential
 // goes to the Mac's Keychain and is never shown again), Remove after a confirm and Face ID, and the one line, once after
-// an agent is added, about which services hear what it says. Shown only when the Mac runs agents (POINTE_AGENTS=on).
+// an agent is added, about which services hear what it says. Shown only while the Mac runs agents: Settings, Labs,
+// Agents turns them on or off (POINTE_AGENTS=on|off on the Mac decides instead, and the switch says so).
 
 extension API {
     struct AgentKind: Decodable, Equatable, Identifiable, Hashable {
@@ -35,6 +36,13 @@ extension API {
     /// In the status while the Mac runs agents; nil from a Mac without them or with them off.
     struct AgentsFlag: Decodable, Equatable {
         var count: Int? = nil
+    }
+
+    /// The Labs switch, for the owner's screens: whether agents run, and whether POINTE_AGENTS decides instead of the
+    /// saved setting. Nil from an older Mac, or on a screen that is not the owner's.
+    struct AgentsSetting: Decodable, Equatable, Sendable {
+        var on: Bool = false
+        var forced: Bool = false
     }
 
     /// Once after an agent is added on another screen: where its words go, until OK.
@@ -84,6 +92,10 @@ extension API {
 
 enum AgentsCopy {
     static let title = "Agents"
+    static let labs = "Agents"
+    static let labsHelp = "Talk to OpenClaw, Hermes and other agents in your call. Connect one in Settings, Agents."
+    static func forced(_ on: Bool) -> String { "POINTE_AGENTS=\(on ? "on" : "off") decides until Pointe restarts without it." }
+    static let switchFailed = "The Mac did not change the agents setting."
     static let add = "Connect an agent"
     static let connect = "Connect"
     static let kind = "Kind"

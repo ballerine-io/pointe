@@ -658,6 +658,7 @@ struct CallView: View {
                                 if demo == nil { PhoneTalk.shared.outside = on }
                                 #endif
                             },
+                            setAgents: setAgents,
                             open: { settingsNext = $0; showCallSettings = false },
                             challenge: { Task { await challenge(challengeOn ? "end" : "start") } },
                             unpair: { call.hangUp(); unpair() })
@@ -1349,6 +1350,13 @@ struct CallView: View {
         Task {
             if demo != nil { prefs?.newSessionPermissions = value; return }
             if !(await savePrefs(["sessions.permissions": value])) { problem = ThinkingCopy.failed }
+        }
+    }
+
+    private func setAgents(_ on: Bool) {
+        Task {
+            if demo != nil { return }
+            if !(await savePrefs(["agents.on": on])) { problem = AgentsCopy.switchFailed }
         }
     }
 

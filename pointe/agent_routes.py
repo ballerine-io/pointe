@@ -4,8 +4,10 @@ configured agent registered as a session of its kind. In daemon.py, after the pe
     AGENTS = agent_routes.install(app, host)
 
 `host` gives: state_dir, registry, join(body) (daemon._join), drop(session) (daemon._drop), people (guests.HostSide),
-vendors() (the services transcripts reach). Nothing here runs with POINTE_AGENTS off: no route answers but the list,
-which says the feature is off, and no session is registered.
+vendors() (the services transcripts reach), and optionally switched() (daemon: the brain's relay tool follows the
+setting and the list). Nothing here
+runs with agents off (the setting `agents.on`, or POINTE_AGENTS): no route answers but the list, which says the feature
+is off, and no session is registered. `apply()` follows the setting when it changes, without a restart.
 """
 
 
@@ -53,6 +55,28 @@ class Agents:
         if session is not None and not known and self.host.people is not None:
             await self.host.people.share(session, True)
 
+    async def apply(self) -> None:
+        """The setting changed: on, every configured agent joins the voice now; off, each leaves it (its record, its
+        credential and agents.json stay, for when it is turned on again)."""
+        on = agents.enabled()
+        if on:
+            harnesses.register_agents()
+            agent_harness.CONFIG = self.store.by_session
+            await self.register_all()
+        else:
+            for agent in list(self.store.agents.values()):
+                if (session := self.session(agent)) is not None:
+                    await harnesses.of(session).leave(session)
+                    await self.host.drop(session)
+            agent_harness.CONFIG = lambda _sid: None
+        self.changed()
+        logger.info(f"agents {'on' if on else 'off'}: {len(self.store.agents)} configured")
+
+    def changed(self) -> None:
+        """The setting or the list of agents changed: the daemon's brain tools follow."""
+        if callable(getattr(self.host, "switched", None)):
+            self.host.switched()
+
     async def register_all(self) -> None:
         for agent in list(self.store.agents.values()):
             try:
@@ -83,6 +107,7 @@ class Agents:
         secret = None
         self.store.put(agent)
         await self.register(agent)
+        self.changed()
         self.disclose.add(agent.name)
         logger.info(f"agent {agent.name} added ({kind})")
         return 200, {**self.entry(agent), "vendors_line": agents.vendors_line(self.host.vendors(), agent.name)}
@@ -96,6 +121,7 @@ class Agents:
             await harnesses.of(session).leave(session)
             await self.host.drop(session)
         await asyncio.to_thread(agents.delete_secret, agent)
+        self.changed()
         self.disclose.discard(agent.name)
         logger.info(f"agent {agent.name} removed")
         return True
@@ -121,7 +147,7 @@ def install(app, host) -> Agents:
         """The page on this machine, a script with its token, or the owner's phone; never a person's key."""
         return not Remote.on_tls_listener(request.scope) or bool(request.scope.get("state", {}).get("pointe_phone"))
 
-    off = PlainTextResponse(f"Agents are off: start Pointe with {agents.FLAG}=on.", status_code=409)
+    off = PlainTextResponse(agents.OFF, status_code=409)
     refused = PlainTextResponse("forbidden", status_code=403)
 
     async def body_of(request: Request) -> dict:
@@ -189,6 +215,7 @@ def install(app, host) -> Agents:
             if agents.enabled():
                 await hub.register_all()
                 logger.info(f"agents: {len(hub.store.agents)} configured ({time.strftime('%H:%M')})")
+            hub.changed()
             yield
 
     app.router.lifespan_context = lifespan

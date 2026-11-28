@@ -138,7 +138,7 @@ client in Codex's own records (its `source` and `originator`). Each Codex turn c
 ## Agents built on agent frameworks
 
 OpenClaw, Hermes Agent and any A2A or OpenAI-compatible agent join as sessions of four more harnesses (`openclaw`,
-`hermes`, `a2a`, `openai`, in `pointe/harnesses/`, sharing `agent.py`), behind `POINTE_AGENTS=on`. They are configured
+`hermes`, `a2a`, `openai`, in `pointe/harnesses/`, sharing `agent.py`), while Settings, Labs, Agents is on. They are configured
 with `pointe agent add`, not joined from a folder; their record is a mirror Pointe writes as turns finish in the
 background. How-to: [agents.md](agents.md). Design: [design/agents.md](design/agents.md).
 

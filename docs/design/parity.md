@@ -38,10 +38,10 @@ By the same scan, at a pre-release build (2026-11-21) (kept in `tools/parity_bas
 
 | Surface | yes before | no before | yes now | no now | n/a |
 |---|---|---|---|---|---|
-| Page | 73 | 1 | 127 | 0 | 25 |
-| iPhone | 79 | 1 | 136 | 0 | 16 |
-| Mac | 43 | 40 | 142 | 0 | 10 |
-| Linux hub | (not a surface then) | | 127 | 0 | 25 |
+| Page | 73 | 1 | 128 | 0 | 25 |
+| iPhone | 79 | 1 | 137 | 0 | 16 |
+| Mac | 43 | 40 | 143 | 0 | 10 |
+| Linux hub | (not a surface then) | | 128 | 0 | 25 |
 
 The pre-release Mac app had the call, typing, approvals, sessions by machine, the brain dump and New session. It had none
 of: meetings, briefings, challenge, whisper, the dictionary, the conflict alarm, show while it says, machines and

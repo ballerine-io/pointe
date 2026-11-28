@@ -15,7 +15,8 @@ struct CallSettingsModel: Equatable, Sendable {
     var polish = false
     var whisper: Bool?  // nil: this Mac has no whisper mode
     var machines = false
-    var agents = false  // the Mac runs agents (POINTE_AGENTS=on): Settings → Agents
+    var agents = false  // the Mac runs agents: Settings → Agents
+    var agentsSetting: API.AgentsSetting?  // Settings → Labs → Agents; nil from an older Mac or a screen not the owner's
     var meetingOn = false
     var meetingEnded = false
     var challengeOn = false
@@ -45,6 +46,7 @@ struct CallSettingsModel: Equatable, Sendable {
         whisper = status?.whisper.map { $0.on }
         machines = status?.machines != nil
         agents = status?.agents != nil
+        agentsSetting = status?.agents_setting
         meetingOn = status?.meeting?.isOn == true
         meetingEnded = status?.meeting?.isEnded == true
         challengeOn = status?.challenge?.on == true
@@ -80,6 +82,7 @@ struct CallSettingsActions {
     var setWhisper: (Bool) -> Void = { _ in }
     var setDriveSuggest: (Bool) -> Void = { _ in }
     var setOutside: (Bool) -> Void = { _ in }
+    var setAgents: (Bool) -> Void = { _ in }
     var open: (CallSettingsLink) -> Void = { _ in }
     var challenge: () -> Void = {}
     var unpair: () -> Void = {}
@@ -98,6 +101,7 @@ struct CallSettingsSheet: View, Equatable {
     @State private var tonesWanted: Bool?
     @State private var permissionsWanted: String?
     @State private var outsideWanted: Bool?
+    @State private var agentsWanted: Bool?
     @State private var unpairAsked = false
     @AppStorage(SeveralMachines.key) private var severalMachines = false
     #if os(macOS)
@@ -250,18 +254,30 @@ struct CallSettingsSheet: View, Equatable {
                     if let line = model.local { Label(line, systemImage: "desktopcomputer").accessibilityIdentifier("localMode") }  // read-only
                     row(AboutCopy.title, "info.circle", .about).accessibilityIdentifier("aboutSetting")
                 }
+                if !model.demo && (labsOnPhone || model.agentsSetting != nil) {
+                    Section {
+                        #if os(iOS)
+                        Toggle(MachineCopy.labs, isOn: Binding(get: { severalMachines }, set: { severalMachines = $0 }))
+                            .accessibilityIdentifier("severalMachines")
+                        #endif
+                        if let agents = model.agentsSetting {
+                            Toggle(isOn: Binding(get: { agentsWanted ?? agents.on }, set: { agentsWanted = $0; act.setAgents($0) })) {
+                                Label(AgentsCopy.labs, systemImage: "person.crop.circle.badge.checkmark")
+                            }
+                            .disabled(agents.forced)
+                            .accessibilityHint(AgentsCopy.labsHelp)
+                            .accessibilityIdentifier("agentsSetting")
+                        }
+                    } header: { Text("Labs") } footer: {
+                        Text(labsFooter).font(.brand(.footnote)).foregroundStyle(Brand.muted).accessibilityIdentifier("labsFooter")
+                    }
+                }
                 #if os(macOS)
                 macSections  // what belongs to this Mac alone: the shortcut, the bubble, Pointe on this Mac, its keys
                 if model.demo {
                     Section { Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() } }
                 }
                 #else
-                if !model.demo {
-                    Section {
-                        Toggle(MachineCopy.labs, isOn: Binding(get: { severalMachines }, set: { severalMachines = $0 }))
-                            .accessibilityIdentifier("severalMachines")
-                    } header: { Text("Labs") } footer: { Text(MachineCopy.labsHelp) }
-                }
                 Section {
                     if model.demo {
                         Button(DemoBadge.exit, systemImage: "xmark.circle") { dismiss(); act.unpair() }
@@ -282,9 +298,27 @@ struct CallSettingsSheet: View, Equatable {
             .onChange(of: model.whisper) { whisperWanted = nil }
             .onChange(of: model.outside) { outsideWanted = nil }
             .onChange(of: model.newSessionPermissions) { permissionsWanted = nil }
+            .onChange(of: model.agentsSetting) { agentsWanted = nil }
             .sheetTitle("Settings")
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() }.buttonStyle(.automatic) } }
         }
+    }
+
+    #if os(iOS)
+    private let labsOnPhone = true  // Several machines is the phone's own
+    #else
+    private let labsOnPhone = false
+    #endif
+
+    private var labsFooter: String {
+        var lines: [String] = []
+        #if os(iOS)
+        lines.append(MachineCopy.labsHelp)
+        #endif
+        if let agents = model.agentsSetting {
+            lines.append(agents.forced ? AgentsCopy.forced(agents.on) : AgentsCopy.labsHelp)
+        }
+        return lines.joined(separator: " ")
     }
 
     /// A row that opens its own sheet: this one closes first.

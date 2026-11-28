@@ -423,11 +423,28 @@ def test_the_list_keeps_no_credential_and_skips_damaged_entries(tmp_path):
     assert set(raw["agents"][0]) == {"name", "kind", "url", "agent", "added"}
 
 
-def test_the_feature_is_off_unless_the_flag_says_on(monkeypatch):
+@pytest.mark.parametrize("env,saved,on", [(None, False, False), (None, True, True), ("on", False, True),
+                                           ("off", True, False), ("maybe", True, True)])
+def test_the_saved_setting_decides_and_the_environment_overrides_it(monkeypatch, env, saved, on):
+    if env is None:
+        monkeypatch.delenv("POINTE_AGENTS", raising=False)
+    else:
+        monkeypatch.setenv("POINTE_AGENTS", env)
+    monkeypatch.setattr(agents, "saved", lambda: saved)
+    assert agents.enabled() is on
+    assert agents.forced() is {None: None, "on": True, "off": False, "maybe": None}[env]
+
+
+def test_the_saved_setting_is_read_from_the_state_folder_without_the_daemon(tmp_path, monkeypatch):
+    """`pointe agent ...` and a harness loaded before the daemon's prefs exist read the same file the daemon writes."""
+    from prefs import Prefs
+
+    monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))
     monkeypatch.delenv("POINTE_AGENTS", raising=False)
-    assert not agents.enabled()
-    monkeypatch.setenv("POINTE_AGENTS", "on")
-    assert agents.enabled()
+    Prefs(tmp_path / "prefs.json").update({agents.PREF: True})
+    assert agents._saved_in_file() is True
+    Prefs(tmp_path / "prefs.json").update({agents.PREF: False})
+    assert agents._saved_in_file() is False
 
 
 # ---------- relay rules ----------

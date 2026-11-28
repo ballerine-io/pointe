@@ -1,5 +1,6 @@
 """Agents built on agent frameworks (OpenClaw, Hermes Agent, any A2A or OpenAI-compatible agent), talked to through
-their own conversation surface (docs/design/agents.md). Off unless POINTE_AGENTS=on.
+their own conversation surface (docs/design/agents.md). On or off by the saved setting `agents.on` (Settings, Labs);
+POINTE_AGENTS=on|off overrides it.
 
     pointe agent add <kind> <url> [--name NAME] [--agent ID]   connect an agent; its credential is asked for, hidden
     pointe agents                                              the agents, and whether each answers
@@ -25,6 +26,7 @@ from urllib.parse import urlparse
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # run as a script in isolated mode (-I)
 
 FLAG = "POINTE_AGENTS"
+PREF = "agents.on"
 KINDS = {  # kind -> (what the screens call it, what the voice calls the agent)
     "openclaw": ("OpenClaw", "OpenClaw"),
     "hermes": ("Hermes Agent", "Hermes"),
@@ -32,12 +34,30 @@ KINDS = {  # kind -> (what the screens call it, what the voice calls the agent)
     "openai": ("Any OpenAI-compatible agent", "the agent"),
 }
 ITEM_PREFIX = "pointe.agent."  # the Keychain item of an agent's credential: pointe.agent.<name>
+OFF = "Agents are off. Turn them on in Settings, Labs, Agents (or start Pointe with POINTE_AGENTS=on)."
 NAME_MAX = 30
 SECRET_MAX = 512
 
 
+def forced() -> bool | None:
+    """POINTE_AGENTS=on or off, which overrides the saved setting; None when it is unset or says neither."""
+    value = os.environ.get(FLAG, "").strip().lower()
+    return True if value in ("on", "1", "true", "yes") else False if value in ("off", "0", "false", "no") else None
+
+
+def _saved_in_file() -> bool:
+    """The saved setting, read from the state folder: before the daemon has its own prefs, and in other processes."""
+    from prefs import Prefs
+
+    return bool(Prefs(Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice")) / "prefs.json").get(PREF))
+
+
+saved = _saved_in_file  # the daemon puts its own prefs here (daemon.PREFS)
+
+
 def enabled() -> bool:
-    return os.environ.get(FLAG, "off").strip().lower() in ("on", "1", "true", "yes")
+    on = forced()
+    return saved() if on is None else on
 
 
 @dataclass
@@ -226,7 +246,7 @@ def main(argv: list[str]) -> None:
     if command in ("list", "ls"):
         listed = _daemon("GET", "/voice/agents")
         if not listed.get("enabled"):
-            return print(f"Agents are off. Start Pointe with {FLAG}=on to use them.")
+            return print(OFF)
         if not listed["agents"]:
             return print("No agents yet. Connect one: pointe agent add openclaw|hermes|a2a|openai <url>")
         for a in listed["agents"]:
