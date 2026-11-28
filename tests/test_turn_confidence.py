@@ -195,10 +195,39 @@ def test_the_voice_is_judged_at_each_stop_and_forgotten_when_it_comes_back(d, mo
     asyncio.run(run())
 
 
-def test_soniox_is_asked_sooner_only_for_a_voice_that_sounded_finished_and_the_ask_is_remembered():
-    source = (ROOT / "pointe" / "daemon.py").read_text()
-    assert "sound=state.turn_sound if turnsound.judged(" in source
-    assert "self._asked = state.finalize_asked_at = now" in source
+def test_soniox_is_asked_sooner_only_for_a_voice_that_sounded_finished_and_the_ask_is_remembered(d, monkeypatch):
+    """The gate's tick passes the turn's sound to finalize_due only for words that may be judged by it (not Hebrew), and
+    the moment it asks is remembered (finalize_asked_at: a final that follows was asked for). On a level whose
+    likely settle is shorter, a clear end asks sooner than a plain one."""
+    import asyncio
+    import time
+
+    monkeypatch.setitem(d.turns.LEVELS, "normal", turns.Patience(complete=1.3, unfinished=3.0, maximum=10.0, likely=0.6))
+    sooner, plain = turns.finalize_after("normal", 0.95), turns.finalize_after("normal")
+    assert sooner < plain
+
+    def asked(words: str, sound, silent: float) -> bool:
+        async def run():
+            gate = d.PttGate()  # the microphone's gate ticks; it asks Soniox for the words it holds
+            gate._soniox = True
+            calls = []
+
+            async def finalize():
+                calls.append(True)
+            monkeypatch.setattr(gate, "_finalize", finalize)
+            now = time.time()
+            d.state.unfinalized, d.state.finalize_asked_at = True, 0.0
+            d.state.user_started_at, d.state.user_stopped_at = now - 3, now - silent + d.VAD_STOP_SECS
+            d.state.turn_sound, d.state.hearing = sound, (now - 3, words)
+            await gate.tick(now)
+            return bool(calls) and d.state.finalize_asked_at == now
+        return asyncio.run(run())
+
+    between = (sooner + plain) / 2
+    assert asked("Run the tests in the billing package", 0.95, between)
+    assert not asked("Run the tests in the billing package", None, between)
+    assert not asked("תריץ את הבדיקות של שירות התשלומים", 0.95, between)  # Hebrew: never judged by its sound
+    assert asked("תריץ את הבדיקות של שירות התשלומים", 0.95, plain + 0.05)
 
 
 # ---------- a first clause said ahead: measured, off on calls ----------
