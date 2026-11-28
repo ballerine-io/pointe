@@ -64,3 +64,38 @@ def test_local_py_never_installs_on_a_flag(monkeypatch, capsys):
     assert local.main(["--help"]) == 0 and local.main(["-h"]) == 0
     assert local.main(["--yes"]) == 2
     assert not ran and "pointe local status" in capsys.readouterr().out
+
+
+def _people_subcommands() -> set[str]:
+    """Every word `pointe people <word>` acts on, read from guests._people: the commands it compares against and the
+    settings words. A new subcommand without a line in bin/pointe's help fails here."""
+    import inspect
+    import re
+
+    import guests
+
+    said = set(re.findall(r'command == "([a-z]+)"', inspect.getsource(guests._people)))
+    return (said | set(guests._SETTING_WORDS)) - {"list"}  # bare `pointe people` lists
+
+
+def test_people_help_lists_every_people_subcommand_the_cli_accepts(pointe):
+    script, calls, env = pointe
+    got = subprocess.run([str(script), "people", "--help"], env=env, capture_output=True, text=True)
+    subcommands = _people_subcommands()
+    assert {"invite", "grant", "remove", "approvals", "starts", "sessions", "window", "hold"} <= subcommands
+    missing = sorted(w for w in subcommands if f"people {w} " not in got.stdout)
+    assert not missing, got.stdout
+
+
+def test_uninstall_counts_the_hooks_the_plugin_adds():
+    """The plugin's hooks are what hooks/hooks.json registers; uninstall said "two hooks" when it added four."""
+    import json
+    import re
+
+    import uninstall
+
+    count = sum(len(group["hooks"]) for groups in json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"].values()
+                for group in groups)
+    word = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}[count]
+    assert f"its {word} hooks" in uninstall.PLUGIN_BY_HAND
+    assert set(re.findall(r"its (\w+) hooks", (ROOT / "pointe" / "uninstall.py").read_text())) == {word}

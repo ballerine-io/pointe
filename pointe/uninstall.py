@@ -140,7 +140,7 @@ def plugin_left() -> bool:
                                   or "/.claude/plugins/" in str(ROOT))
 
 
-PLUGIN_BY_HAND = ("The Claude Code plugin is still installed, with its two hooks and its Python: no claude command was "
+PLUGIN_BY_HAND = ("The Claude Code plugin is still installed, with its four hooks and its Python: no claude command was "
                   "found. In Claude Code, run /plugin uninstall pointe@pointe, then /plugin marketplace remove pointe.")
 
 
@@ -178,7 +178,7 @@ def plan() -> dict[str, list[Item]]:
                         path=pointe_home()))
     claude = _claude()
     if claude:
-        own.append(Item("The Claude Code plugin pointe@pointe, with its two hooks and its Python (claude plugin uninstall)",
+        own.append(Item("The Claude Code plugin pointe@pointe, with its four hooks and its Python (claude plugin uninstall)",
                         command=(claude, "plugin", "uninstall", "pointe@pointe")))
         own.append(Item("The plugin's marketplace, pointe (claude plugin marketplace remove)",
                         command=(claude, "plugin", "marketplace", "remove", "pointe")))
