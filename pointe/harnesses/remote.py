@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 
 class RemoteHarness(Harness):
+    refusals: dict[str, str] = {}  # session id -> why its machine refused the last verdict; one per class: of() makes a new one per call
     def __init__(self, hub, inner: Harness) -> None:
         self.hub, self.inner = hub, inner
         self.name, self.label, self.agent = inner.name, inner.label, inner.agent
@@ -52,6 +53,7 @@ class RemoteHarness(Harness):
         ok, why = await self.hub.answer(session, request_id, verdict, how, spoken)
         if not ok:
             logger.info(f"{session.name} on {session.machine}: {verdict} by {how} not taken ({why})")
+            self.refusals[session.id] = why  # what the voice tells the user (daemon._apply_answer)
         return ok
 
     async def leave(self, session: Session) -> None:

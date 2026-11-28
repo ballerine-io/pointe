@@ -339,6 +339,7 @@ class FakeNode(harnesses.Harness):
         self.link, self.inner = link, inner
         self.name, self.label, self.agent = inner.name, inner.label, inner.agent
         self.side_questions = inner.side_questions
+        self.refusals = link.refusals
 
     def capabilities(self):
         return self.inner.capabilities()
@@ -355,6 +356,8 @@ class FakeNode(harnesses.Harness):
 
     async def answer(self, session, request_id, verdict, how, spoken):
         self.link.answers.append((session.id, request_id, verdict, how, spoken))
+        if not self.link.ok:
+            self.refusals[session.id] = getattr(self.link, "why", "timeout")
         return self.link.ok
 
     async def leave(self, session):
@@ -365,7 +368,7 @@ class FakeNode(harnesses.Harness):
 def node(d, monkeypatch, tmp_path):
     import sessions
 
-    link = SimpleNamespace(sent=[], answers=[], left=set(), ok=True, calls=[])
+    link = SimpleNamespace(sent=[], answers=[], left=set(), ok=True, calls=[], refusals={})
     harnesses.set_remote(lambda session, inner: FakeNode(link, inner))
     table = {"devbox": sessions.Machine(name="devbox", id="n3f2a1aa", os="linux", online=True, rtt_ms=23, key_fp="3f2a9c"),
              "laptop": sessions.Machine(name="laptop", id="n9c0deff", os="macos", online=True, rtt_ms=40)}
@@ -629,6 +632,16 @@ def test_a_verdict_the_node_refuses_is_the_did_not_reach_line(d, node):
     assert api.permission_id == "r1" and "did not reach api" in spoken(d.state.conn)
 
 
+def test_a_spoken_yes_the_machine_refuses_as_a_mismatch_points_to_the_tap_not_a_terminal(d, node):
+    """The machine re-checks a spoken yes against its own read-out (node.recheck): a person who said yes to other
+    words is told to tap, which they can reach, and never sent to a terminal on a machine that may not be theirs."""
+    api, _ = _remote_prompt(d, node)
+    node.ok, node.why = False, "mismatch"
+    assert asyncio.run(d._apply_answer(api, "r1", "allow", "user said: 'yes'")) is False
+    said = spoken(d.state.conn)
+    assert api.permission_id == "r1" and "tap Approve on your phone or the page" in said and "terminal" not in said
+
+
 def test_a_prompt_answered_at_the_node_clears_the_card(d, node):
     api, _ = _remote_prompt(d, node)
     d.remote_resolved(api, "other", "terminal")
@@ -819,3 +832,17 @@ def test_a_hub_shutting_down_does_not_tell_its_nodes_the_call_ended(d, node, mon
     monkeypatch.setattr(d, "SERVER", SimpleNamespace(should_exit=False))
     d._notify_call()
     assert node.calls[-1]["up"] is False  # a real hang-up still tells them
+
+
+def test_the_real_remote_adapter_keeps_why_its_machine_refused_for_the_next_call_to_of(monkeypatch):
+    """harnesses.of builds a new RemoteHarness per call, so the reason must outlive the instance that heard it."""
+    from harnesses.remote import RemoteHarness
+
+    class Hub:
+        async def answer(self, *_a):
+            return False, "mismatch"
+
+    monkeypatch.setattr(RemoteHarness, "refusals", {})
+    s = SimpleNamespace(id="s9", name="api", machine="devbox")
+    assert asyncio.run(RemoteHarness(Hub(), harnesses.get("claude-code")).answer(s, "r1", "allow", "voice", "run: ls")) is False
+    assert RemoteHarness(Hub(), harnesses.get("claude-code")).refusals == {"s9": "mismatch"}

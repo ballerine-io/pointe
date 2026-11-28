@@ -6483,6 +6483,14 @@ async def _apply_answer(session: Session, request_id: str, verdict: str, how: st
                       f"user in one line.")
             return False
         session.permission_id = request_id
+        refusals = getattr(harnesses.of(session), "refusals", None) if session.machine else None
+        if isinstance(refusals, dict) and refusals.pop(session.id, None) == "mismatch":
+            # The machine heard other words read out than the yes answered (node.recheck): its terminal may not be
+            # one this user can reach, the tap is
+            await say(f"[permission failed] {session.machine} did not take the user's spoken yes for {session.name}: "
+                      f"it was not for the exact request read out there. Tell the user in one line to tap Approve "
+                      f"on your phone or the page.")
+            return False
         await say(f"[permission failed] The user's answer did not reach {session.name}. Tell the user in one "
                   f"line to answer it in that session's terminal.")
         return False
