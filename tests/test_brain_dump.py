@@ -531,12 +531,21 @@ def test_the_dump_outlives_the_daemon(d, monkeypatch):
     assert d.state.dump.prompt["goal"] == STRUCTURED["goal"] and client_for(d).get("/voice/status").json()["brain_dump"]["resumed"]
 
 
-def test_a_meeting_takes_the_thoughts_as_its_brief_and_a_challenge_as_its_plan(d, monkeypatch):
+def test_a_meeting_started_while_dumping_takes_the_thoughts_as_its_brief(d, monkeypatch):
+    from test_meeting_daemon import _meeting_ready
+
+    call(d, monkeypatch)
+    take(d, "brain dump", *THOUGHTS[:2])
+    _meeting_ready(d, monkeypatch)
+    assert asyncio.run(d.start_meeting("listening", brief="the pricing review")) is None
+    brief = d.state.meeting.brief
+    assert THOUGHTS[0] in brief and THOUGHTS[1] in brief and brief.endswith("the pricing review")
+    assert d.state.dump is None and not (d.STATE_DIR / "brain_dump.json").exists()
+
+
+def test_a_challenge_takes_the_thoughts_as_its_plan(d, monkeypatch):
     call(d, monkeypatch)
     take(d, "brain dump", THOUGHTS[0])
-    import inspect
-    src = inspect.getsource(d.start_meeting)
-    assert "state.dump.said" in src and "_save_dump()" in src  # the brief: tested live in tests/test_meeting_daemon.py
     monkeypatch.setattr(d, "_challenge_refusal", lambda: None)
     monkeypatch.setattr(d, "_challenge_evidence", lambda sessions: asyncio.sleep(0, result=[]))
     take(d, "challenge this")

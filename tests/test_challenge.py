@@ -453,9 +453,17 @@ def test_cannot_start_in_a_meeting_and_a_meeting_ends_it_silently(d, c):
     assert d.state.challenge is None and not fed(c, "[challenge ended]")
 
 
-def test_meeting_start_calls_the_silent_end(d):
-    import inspect
-    assert "_challenge_off_silently()" in inspect.getsource(d.start_meeting)
+def test_a_meeting_started_during_a_challenge_ends_it_without_a_verdict(d, c, monkeypatch):
+    """A meeting is the room's: the challenge stops, says nothing, and is kept as the last one."""
+    from test_meeting_daemon import _meeting_ready
+
+    start(d)
+    running = d.state.challenge
+    _meeting_ready(d, monkeypatch)
+    room = d.state.conn
+    assert asyncio.run(d.start_meeting("listening")) is None and d.state.meeting is not None
+    assert d.state.challenge is None and d.state.last_challenge is running and running.ended_at
+    assert not fed(c, "[challenge ended]") and not [t for t, _ in room.injector.fed if "[challenge ended]" in t]
 
 
 def test_a_brain_dump_becomes_the_plan(d, c):
