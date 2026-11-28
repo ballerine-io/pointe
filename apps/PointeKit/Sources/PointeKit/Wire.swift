@@ -35,8 +35,9 @@ public enum Wire {
         }
     }
 
-    /// What this client can do: push to talk (3), coming back to a call on a new link and ADPCM audio (5).
-    public static let capabilities = ["ptt", "resume", "adpcm"]
+    /// What this client can do: push to talk (3), coming back to a call on a new link and ADPCM audio (5), and lowering
+    /// its own playback while the Mac judges a voice over it ("duck").
+    public static let capabilities = ["ptt", "resume", "adpcm", "duck"]
 
     /// The client's hello: who it is and what it can do, and the call it is coming back to, if any (protocol 5).
     /// `machines`: the machines a client that holds several can be moved to by "call kite" (ids and names only).
@@ -77,6 +78,9 @@ public enum Wire {
         /// The Mac's answer to the hello (protocol 5): the token that brings this call back on a new link, whether this
         /// link resumed a call, the codec of the audio from here on, and how long the Mac holds the call for a resume.
         case call(resume: String, resumed: Bool, adpcm: Bool, grace: Double)
+        /// The voice's playback level, 0 to 1: lowered the moment a voice comes over it, back to 1 once its words are
+        /// judged not to be a turn (or after a cut).
+        case duck(gain: Double)
 
         public init?(_ text: String) {
             guard let data = text.data(using: .utf8),
@@ -93,6 +97,9 @@ public enum Wire {
                 guard let token = message["resume"] as? String else { return nil }
                 self = .call(resume: token, resumed: message["resumed"] as? Bool ?? false,
                              adpcm: message["codec"] as? String == "adpcm", grace: message["grace"] as? Double ?? 0)
+            case "duck":
+                guard let gain = (message["gain"] as? NSNumber)?.doubleValue else { return nil }
+                self = .duck(gain: min(1, max(0, gain)))
             default: return nil
             }
         }

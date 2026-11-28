@@ -157,6 +157,11 @@
 </ul>
 <p>Background sessions stay quiet except for a one-line "finished" or "needs approval". A report you talk over comes back once
 your question is answered.</p>
+<p>When you start talking over the voice it steps back at once, before any of your words are recognized (about 10 dB
+quieter: <code>daemon._duck_voice</code>). Your words then decide: "mm-hm", "okay" or a cough bring it back to full volume and it
+goes on; anything else cuts it. Short lines it says often ("Sent to billing.", "Asking quarry.", "Approved.") are kept
+as audio and played from memory, so a turn the daemon answers itself does not wait on the voice vendor
+(<code>pointe/phrases.py</code>).</p>
 <h2 id="session-mode-speaks-about-one-session">Session mode speaks about one session</h2>
 <p>Orchestrator mode speaks for every session. Session mode ("let's focus on billing", "switch to billing", or a tap on a
 session) speaks only about the one in focus, in code (<code>pointe/scope.py</code>, <code>daemon._out_of_focus</code>), on every path that could

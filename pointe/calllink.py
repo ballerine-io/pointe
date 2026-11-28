@@ -43,6 +43,7 @@ class CallLink:
         self.socket = None
         self.ended = False
         self.resumable = False  # the client's hello listed "resume": until then a drop ends the call, as before
+        self.duckable = False  # the client's hello listed "duck": it lowers its own playback when told (daemon._duck_voice)
         self.stats = {"sockets": 0, "resumes": 0, "shed_bytes": 0, "dropped_bytes": 0, "outages": 0}
         self._inbox: asyncio.Queue = asyncio.Queue()
         self._text: list[str] = []
@@ -235,6 +236,7 @@ class CallLink:
             return
         capabilities = hello.get("capabilities") if isinstance(hello.get("capabilities"), list) else []
         self.resumable = "resume" in capabilities
+        self.duckable = "duck" in capabilities
         codec = phone.ADPCM if "adpcm" in capabilities else phone.PCM16
         if codec != self.serializer.down:
             self._clear_audio()  # queued in the old codec: the client reads what follows the answer in the new one

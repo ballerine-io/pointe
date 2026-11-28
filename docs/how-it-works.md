@@ -31,6 +31,12 @@ Built on [Pipecat](https://github.com/pipecat-ai/pipecat).
 Background sessions stay quiet except for a one-line "finished" or "needs approval". A report you talk over comes back once
 your question is answered.
 
+When you start talking over the voice it steps back at once, before any of your words are recognized (about 10 dB
+quieter: `daemon._duck_voice`). Your words then decide: "mm-hm", "okay" or a cough bring it back to full volume and it
+goes on; anything else cuts it. Short lines it says often ("Sent to billing.", "Asking quarry.", "Approved.") are kept
+as audio and played from memory, so a turn the daemon answers itself does not wait on the voice vendor
+(`pointe/phrases.py`).
+
 ## Session mode speaks about one session
 
 Orchestrator mode speaks for every session. Session mode ("let's focus on billing", "switch to billing", or a tap on a

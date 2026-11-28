@@ -32,13 +32,17 @@ import Testing
         #expect(Wire.Control(#"{"type":"ping","id":7,"rtt_ms":null}"#) == .ping(id: 7, rttMs: nil))
         #expect(Wire.Control(#"{"type":"ptt","open":true,"by":"shortcut"}"#) == .ptt(open: true))
         #expect(Wire.Control(#"{"type":"ptt"}"#) == nil)
+        #expect(Wire.Control(#"{"type":"duck","gain":0.3}"#) == .duck(gain: 0.3))
+        #expect(Wire.Control(#"{"type":"duck","gain":1}"#) == .duck(gain: 1))
+        #expect(Wire.Control(#"{"type":"duck","gain":7}"#) == .duck(gain: 1))  // never louder than the voice itself
+        #expect(Wire.Control(#"{"type":"duck"}"#) == nil)
         #expect(Wire.Control("not json") == nil && Wire.Control(#"{"type":"new"}"#) == nil)
     }
 
     @Test func helloSaysTheProtocolWhatTheClientCanDoAndTheCallItComesBackTo() throws {
         let hello = try #require(try JSONSerialization.jsonObject(with: Data(Wire.hello(device: "Mac").utf8)) as? [String: Any])
         #expect(hello["protocol"] as? Int == 5 && hello["device"] as? String == "Mac")
-        #expect(hello["capabilities"] as? [String] == ["ptt", "resume", "adpcm"])
+        #expect(hello["capabilities"] as? [String] == ["ptt", "resume", "adpcm", "duck"])
         #expect(hello["resume"] == nil)  // a first dial names no call
         let back = try #require(try JSONSerialization.jsonObject(with: Data(Wire.hello(device: "iPhone", resume: "tok").utf8)) as? [String: Any])
         #expect(back["resume"] as? String == "tok")

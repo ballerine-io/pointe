@@ -45,6 +45,10 @@ Version 5 keeps a call through a dropped link (calllink.py), and makes the audio
 - A pong may carry "ahead_ms": the bot audio the client holds, not yet played. While the link is SHED_SECS behind and
   the client has next to nothing left, the daemon drops new bot audio rather than let a path slower than the voice fall
   further behind (Heartbeat.lagging).
+Ducking needs no new version either: a client that lists "duck" in its hello's capabilities gets {"type": "duck",
+"gain": 0 to 1} when a voice comes over the bot's (a lower gain at once) and when its words were judged (1 again), and
+sets its own playback level, which reaches the half second it already holds. For any other client the daemon scales
+the audio it has not sent yet (PhoneSerializer.gain). Unknown text is ignored, so an older client keeps working.
 """
 
 import asyncio
@@ -206,12 +210,15 @@ class PhoneSerializer(FrameSerializer):
         self.down = PCM16  # the bot's audio as sent: ADPCM once the daemon said so in its `call` message (protocol 5)
         self.up = PCM16  # the client's audio: ADPCM after its {"type": "codec"}, PCM again on each new socket
         self._down_state: tuple[int, int] | None = None
+        self.gain = 1.0  # under 1 while the voice is ducked, for a client that cannot duck its own playback
 
     async def serialize(self, frame: Frame) -> str | bytes | None:
         if isinstance(frame, InterruptionFrame):
             return json.dumps({"type": "interrupt"})
         if isinstance(frame, OutputAudioRawFrame):
             pcm = frame.audio if frame.sample_rate == OUT_RATE else await self._resampler.resample(frame.audio, frame.sample_rate, OUT_RATE)
+            if self.gain < 1.0 and pcm:
+                pcm = audioop.mul(pcm, 2, self.gain)
             if self.down == ADPCM and pcm:
                 message, self._down_state = adpcm_encode(pcm, self._down_state)
                 return message

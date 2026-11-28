@@ -203,6 +203,8 @@ final class CallWire: @unchecked Sendable {
             if changed { events(self, .rtt(rttMs)) }
         case .interrupt:
             playout.flush()
+        case .duck(let gain):
+            playout.duck(gain)
         case .call(_, _, let adpcm, _):
             playout.setADPCM(adpcm)
             if adpcm {
@@ -265,6 +267,11 @@ final class Playout: @unchecked Sendable {
         }
     }
 
+    /// The voice steps back (or comes back) at once, with what is already queued: the Mac's `duck` message.
+    func duck(_ gain: Double) {
+        player.volume = Float(min(1, max(0, gain)))
+    }
+
     /// The user cut the bot off: drop what is queued at once, or it keeps talking over them.
     func flush() {
         queue.sync {
@@ -276,6 +283,7 @@ final class Playout: @unchecked Sendable {
             timer = nil
             publish()
         }
+        player.volume = 1  // a cut ends a duck: the next reply starts at full volume
         player.stop()  // outside the queue: stopping calls the completions of what was scheduled
         if player.engine?.isRunning == true { player.play() }  // play() on a stopped engine raises
         setSpeaking(false)

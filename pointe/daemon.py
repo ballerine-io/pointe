@@ -469,6 +469,8 @@ SILENT_TURN_LINE = "Sorry, I didn't answer that. Say it again?"
 SILENT_TURN_HE = "סליחה, לא עניתי על זה. אפשר שוב?"
 BARGE_CONFIRM_SECS = 0.25  # a loud voice over the bot cuts it after this much more, unless its words are a backchannel
 BARGE_WORDS_SECS = 0.8  # and, while it has no live words yet, up to this much longer: a wordless "mm-hm" lasts about 0.9 s
+DUCK_GAIN = 0.3  # about -10 dB: the voice steps back at a voice's onset over it, while its words decide (_duck_voice)
+DUCK_MAX_SECS = 2.5  # past the longest decision (BARGE_CONFIRM_SECS + BARGE_WORDS_SECS): the voice never stays ducked
 SETTLE_POLL_SECS = 0.03  # how often held words are checked for their settle time: what it adds to every turn
 ECHO_SETTLE_SECS = 0.8  # how far the mirror's transcript can trail the user's ears
 LEVEL = LevelGate()
@@ -2386,6 +2388,7 @@ class SonioxEars(FrameProcessor):
                 state.meeting.speaking = True
         elif isinstance(frame, BotStoppedSpeakingFrame):
             ECHO.bot_stopped()
+            await _duck_voice(False)  # cut or done: the next line starts at full volume
             if state.meeting is not None:
                 state.meeting.speaking = False
             _journal_bot_turn()
@@ -2397,7 +2400,8 @@ class SonioxEars(FrameProcessor):
                 VOICE.collector.frame(frame.audio, voiced=self._voiced)
             return  # the model gets words, not audio
         elif isinstance(frame, VADUserStartedSpeakingFrame) and ECHO.speaking and LEVEL.loud():
-            self.create_task(self._confirm_barge_in(), f"barge-{time.time()}")
+            duck = await _duck_voice(True)  # at once: the words, which decide, come later
+            self.create_task(self._confirm_barge_in(duck), f"barge-{time.time()}")
         elif isinstance(frame, PressEnd):
             if state.ptt.sendable():
                 await self._send_press(frame.why)
@@ -2484,10 +2488,17 @@ class SonioxEars(FrameProcessor):
             return
         await self.push_frame(frame, direction)
 
-    async def _confirm_barge_in(self) -> None:
+    async def _confirm_barge_in(self, duck: int | None = None) -> None:
         """A loud voice over the bot cuts it once it has gone on BARGE_CONFIRM_SECS and its words so far are not only a
         backchannel: "mm-hm" while the voice talks is listening, not taking the floor (LiveKit's defaults ignore speech
-        under 0.5 s). A stop word, or two words of something else, cut at once elsewhere (ECHO.is_barge_in)."""
+        under 0.5 s). A stop word, or two words of something else, cut at once elsewhere (ECHO.is_barge_in). The voice
+        was ducked at the onset (`duck`): whatever is decided, it ends here."""
+        try:
+            await self._decide_barge_in()
+        finally:
+            await _duck_voice(False, duck)
+
+    async def _decide_barge_in(self) -> None:
         began = time.time()
         await asyncio.sleep(BARGE_CONFIRM_SECS)
 
@@ -3079,6 +3090,8 @@ class State:
     meeting: object = None  # meetings.Meeting while one is on
     mouth: object = None  # the call's text-to-speech service (brain front only)
     phrases: object = None  # phrases.Phrases on that mouth: its short lines played from memory
+    ducked: bool = False  # the voice is stepped back while a voice over it is judged (_duck_voice)
+    duck_seq: int = 0  # which duck is current: an older decision does not end a newer duck
     speed: float = 1.0  # the speed the mouth speaks at now
     by_voice: tuple[str, float] | None = None  # (key, when): the quick setting the user changed by voice last
     last_meeting: object = None  # the meeting that just ended: its record, for export and the action-items send
@@ -13048,6 +13061,35 @@ def _turn_taken(last_word: float | None) -> None:
         return
     loop.create_task(_tell_phase())
     loop.create_task(_cue_watch(state.wait.turn))
+
+
+async def _duck_voice(on: bool, seq: int | None = None) -> int:
+    """Steps the voice back to DUCK_GAIN, or brings it back to full volume, and returns the current duck's number. A
+    client that said it can duck ("duck" in its hello: the page and the apps) is told, and lowers its own playback at
+    once, with the half second it holds; for any other, the daemon scales the audio it has not sent yet. `seq`: end
+    only this duck, not a newer one. A duck ends by itself after DUCK_MAX_SECS, whatever happens to its decision."""
+    if not on and seq is not None and seq != state.duck_seq:
+        return state.duck_seq
+    if on:
+        state.duck_seq += 1
+        mine = state.duck_seq
+
+        async def release() -> None:
+            await asyncio.sleep(DUCK_MAX_SECS)
+            await _duck_voice(False, mine)
+        asyncio.get_running_loop().create_task(release())
+    if state.ducked == on:
+        return state.duck_seq
+    state.ducked = on
+    gain = DUCK_GAIN if on else 1.0
+    link, serializer = state.call_socket, state.call_client
+    if getattr(link, "duckable", False):
+        with contextlib.suppress(Exception):
+            await link.send_text(json.dumps({"type": "duck", "gain": gain}))
+    elif serializer is not None and hasattr(serializer, "gain"):
+        serializer.gain = gain
+    logger.info(f"voice {'ducked' if on else 'back to full volume'}")
+    return state.duck_seq
 
 
 async def _tell_phase() -> None:
