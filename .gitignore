@@ -23,6 +23,7 @@ apps/ios/.bundle-id
 bench/conversational/*/.audio/
 bench/conversational/*/.human/
 bench/.human/
+bench/.eou/
 .security-reviews/
 dist/
 site/pointe/install.sh
