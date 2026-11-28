@@ -311,3 +311,33 @@ hash of their name; rules were chosen on 15 of them and are reported on the othe
 - Limits: people in a meeting talking to each other in English, not to an assistant; a pause while a colleague waits
   is not a pause while a machine does.
 
+
+## 8. A text model's end-of-turn probability: measured, not shipped
+
+`bench/turn_eou.py` gives every final the recorded-human rows can judge (the held words and the new segment, as
+`turn_rules.replay` joins them) to LiveKit's turn detector (`livekit/turn-detector`, a Qwen2.5-0.5B fine-tune that
+reads the transcript and gives the probability that the user's message ends there), and replays rules that wait less
+when it is high and longer when it is low, on top of Normal's text rules. Rules were chosen on the 15 train speakers
+and are reported on the 22 others. The multilingual variant (tag `v0.4.1-intl`, commit `87e35fcb`, 396 MB int8) took
+25 ms per final at the median and 47 ms at p90 on one core of this Mac, under a load of about 33; the deprecated English
+one (`v1.2.2-en`, `ebcab0c0`, 66 MB) 5 and 8 ms.
+
+| Rule (held-out speakers: 171 pauses, 163 ends) | Cut-ins on pauses (95% interval) | End: median | mean | p90 |
+|---|---|---|---|---|
+| Normal now (1.3 s) | 13, 7.6% (4.5 to 12.6%) | 1.30 s | 1.29 s | 1.30 s |
+| every whole sentence 1.2 s | 15, 8.8% (5.4 to 14.0%) | 1.20 s | 1.20 s | 1.20 s |
+| p ≥ 0.4: 0.5 s, else 1.3 s | 13, 7.6% (4.5 to 12.6%) | 1.30 s | 1.25 s | 1.30 s |
+| p ≥ 0.08: 1.1 s, p < 0.05: 1.6 s, else 1.3 s | 15, 8.8% (5.4 to 14.0%) | 1.10 s | 1.25 s | 1.60 s |
+| p ≥ 0.08: 0.9 s, p < 0.05: 2.5 s, else 1.3 s | 19, 11.1% (7.2 to 16.7%) | 0.97 s | 1.36 s | 2.50 s |
+| English model: p ≥ 0.8: 0.5 s, p < 0.1: 1.6 s, else 1.3 s | 14, 8.2% (4.9 to 13.3%) | 1.30 s | 1.22 s | 1.47 s |
+
+- **It tells a pause from an end a little.** Over finals that read whole, an end scores over a pause 70% of the time
+  on the held-out speakers (67% on all; a coin is 50%); the English model 57% (54%). The sound's score (Smart Turn)
+  added nothing on top of it.
+- **At Normal's cut-ins it saves 0.04 s on average and nothing at the median.** A lower median costs cut-ins, and
+  the ends it shortens are paid for by ends it lengthens: the rule with a 0.97 s median has a 2.5 s p90 and a higher
+  mean than Normal. With more cut-ins allowed the gain is larger (18.1% of pauses at a 0.91 s mean, against 19.9% at
+  1.03 s for a plain 1.0 s), but that is not a trade Normal makes.
+- **It cannot go into Pointe as it is.** The LiveKit Model License allows the model only together with the LiveKit
+  Agents framework; the multilingual variant has no Hebrew; and the rows have no reply before the user's words, which
+  the model was trained to read (a call has one, so it may do better there; unmeasured).
