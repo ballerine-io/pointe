@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pointe"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from test_pair import pair  # noqa: E402,F401  (a fixture)
+from test_orchestrator import d  # noqa: E402,F401  (a fixture)
 
 
 def remote(tmp_path) -> dict:
@@ -76,15 +77,14 @@ def test_the_listener_answers_every_route_name_and_no_other(pair, tmp_path):
     assert Remote(tmp_path)._own_host({"host": "127.0.0.1:17443"}), "through a tunnel the name is this machine's loopback"
 
 
-def test_the_daemons_status_lists_this_machines_routes(tmp_path):
-    from test_orchestrator import client_for
-    import daemon as d
+def test_the_daemons_status_lists_this_machines_routes(d):
+    """The status's `routes` (shown to the phone and the page on the machine) come from this state's remote.json."""
     (d.STATE_DIR / "remote.json").write_text(json.dumps({"host": "mac.ts.net", "listen": ["100.64.0.1"], "kind": "tailscale"}))
     try:
-        got = client_for(d).get("/voice/status").json()["routes"]
-        assert got == [{"kind": "tailscale", "host": "mac.ts.net", "port": d.remote.TLS_PORT}]
+        assert d._routes() == [{"kind": "tailscale", "host": "mac.ts.net", "port": d.remote.TLS_PORT}]
     finally:
         (d.STATE_DIR / "remote.json").unlink()
+    assert d._routes() == []
 
 
 def test_a_line_for_an_ssh_route_points_at_the_tunnels_end_and_names_its_target(pair, tmp_path):
