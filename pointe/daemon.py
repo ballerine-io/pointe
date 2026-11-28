@@ -7590,6 +7590,7 @@ async def send_to_claude_code(params: FunctionCallParams):
 
 
 _OWNER_YES = re.compile(r"\b(?:owner|user)\s+(?:confirm\w*|said yes|says yes|agree\w*|approv\w*|authori[sz]\w*|insists?)\b|"
+                        r"\b(?:confirm|approv|authori[sz])\w*\s+by\s+(?:the\s+)?(?:owner|user)\b|"
                         r"\bconfirms? by voice\b|(?<!\w)(?:הבעלים|המשתמש) (?:אישר|אמר כן|מסכים)", re.I)
 _DESTRUCTIVE = re.compile(r"\b(?:delet\w*|remov\w*|rm|drop\w*|force[- ]?push\w*|push\w*|merg\w*|publish\w*|post\w*|"
                           r"overwrit\w*|reset --hard|wipe\w*)\b|(?<!\w)(?:תמחק|למחוק|מחק|תמזג|למזג|תדחוף)(?!\w)", re.I)
