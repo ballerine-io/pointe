@@ -114,7 +114,8 @@ build artifact. Dependabot
 
 ## Releases
 
-There is no build: a release is a tag on `main`, and the plugin installer clones the repository. To verify what you run,
+There is no build step: a release is a tag on `main` plus a tarball of it, with its SHA-256, on the GitHub Release.
+The plugin installer clones the repository; `install.sh` installs the tarball. To verify what the plugin runs,
 compare `git rev-parse HEAD` in Claude Code's plugin folder with the tag on GitHub, and `uv lock --check` there. Signed
 tags are not yet in use (see Open).
 

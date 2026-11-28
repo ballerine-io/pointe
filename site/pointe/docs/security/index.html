@@ -205,7 +205,9 @@ reopen, and new sessions under Ask before actions.</p>
   with no consent word, so it cannot come back through the speakers as a yes.</p>
 </li>
 <li>
-<p>Everything can be approved by voice, and nothing that was not said in full (the owner's rule since 1.30.0). A request
+<p>Everything can be approved by voice, and nothing that was not said in full (the owner's rule since 0.8.4). One
+  exception: a session on another machine whose read-out is over 1000 characters is approved by a tap only
+  (<code>hub_nodes.MAX_READABLE_CHARS</code>). A request
   with no short form is read word for word (<code>guards.verbatim_request</code>): "run, word for word:" and the exact command, or
   each argument of another tool, with format and control characters named ("hidden character 202E"), in parts of 18
   words with a pause between. A yes after it approves exactly those words, under every rule below. A long one (over 40
@@ -731,8 +733,9 @@ leaves it. The inventory, with each source's pin and its verification, is
 <a href="https://github.com/ballerine-io/pointe/blob/main/docs/security/supply-chain.md">docs/security/supply-chain.md</a>.</p>
 <ul>
 <li>
-<p><strong>How it is built.</strong> There is no build and no package: <code>claude plugin install</code> clones <code>main</code>, and everything runs
-  from that checkout with <code>uv run --locked</code>. Python packages come from PyPI at the exact versions and SHA-256s in
+<p><strong>How it is built.</strong> There is no build step. The plugin (<code>claude plugin install</code>) clones <code>main</code>; the standalone
+  <code>install.sh</code> and the Mac app install a release tarball pinned by its SHA-256 into <code>~/.pointe/&lt;version&gt;</code>. Everything
+  runs with <code>uv run --locked</code>. Python packages come from PyPI at the exact versions and SHA-256s in
   <code>uv.lock</code>; uv refuses a mismatch. The Node channel (launch mode only) installs with <code>npm ci --ignore-scripts</code> from
   its lockfile. uv itself, when setup installs it, comes from the installer for one version, checked against a SHA-256
   before it runs (<code>bin/install-uv</code>). Models are fetched by SHA-256 (release files) or by commit (Hugging Face), pinned
@@ -750,7 +753,7 @@ leaves it. The inventory, with each source's pin and its verification, is
   vulnerability reporting on this repository or security@ballerine.com, as at the top of this page.</p>
 </li>
 <li>
-<p><strong>Known limits.</strong> You get <code>main</code> at install time (release tags are not signed yet); <code>bin/voice-connector</code> pulls
+<p><strong>Known limits.</strong> The plugin gets <code>main</code> at install time (release tags are not signed yet); <code>bin/voice-connector</code> pulls
   <code>twingate/connector:1</code>, a moving tag, by design; a model you name by hand (<code>pointe local --model</code>) is not pinned.</p>
 </li>
 </ul>
@@ -1055,7 +1058,7 @@ review; <code>--since</code> limits it to the week's changes.</p>
   the machine can read a command line with <code>ps</code>, on macOS as on Linux.</p>
 </li>
 <li>
-<p><strong>While the voice holds a prompt, the terminal also shows it</strong>, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).</p>
+<p><strong>While the voice holds a prompt, the terminal also shows it</strong>, and either can answer. The voice holds it up to 280 seconds for Claude Code, 600 for Codex and OpenCode. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).</p>
 </li>
 <li><strong>Two pages with the key can both be in a call.</strong> Keep it to one.</li>
 <li>
@@ -1319,7 +1322,7 @@ uses.</p>
 <p><strong>Revoke everything at once</strong> (a lost phone, a QR code, link or invite someone else saw): <code>pointe pair rotate</code> makes a
   new certificate and a new browser pairing secret, and signs out every phone (<code>phones.json</code>, <code>phone_key</code>), every
   browser and every machine of yours (<code>nodes.json</code> keeps only the hub's id and the machines this voice was invited to).
-  It does not remove the people invited to this machine: <code>pointe people remove &lt;name&gt;</code> does. <code>pointe pair off</code> signs
+  It also removes every person invited to this machine and prints who must be invited again. <code>pointe pair off</code> signs
   out the same and stops listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
   within about five seconds it restarts the listener on what is on disk and closes the calls and links that were up.</p>
 </li>

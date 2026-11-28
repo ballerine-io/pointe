@@ -68,7 +68,9 @@ With the default brain, a permission prompt is approved only when all of these h
   token or `password=`: `readout.redact`) has no short form. Two adversarial reviews found 24
   ways around earlier versions; each is now a test. File tools are read as their path. The line ends in "Should it?",
   with no consent word, so it cannot come back through the speakers as a yes.
-- Everything can be approved by voice, and nothing that was not said in full (the owner's rule since 1.30.0). A request
+- Everything can be approved by voice, and nothing that was not said in full (the owner's rule since 0.8.4). One
+  exception: a session on another machine whose read-out is over 1000 characters is approved by a tap only
+  (`hub_nodes.MAX_READABLE_CHARS`). A request
   with no short form is read word for word (`guards.verbatim_request`): "run, word for word:" and the exact command, or
   each argument of another tool, with format and control characters named ("hidden character 202E"), in parts of 18
   words with a pause between. A yes after it approves exactly those words, under every rule below. A long one (over 40
@@ -489,8 +491,9 @@ Pointe is installed from this repository and runs with your keys, so what reache
 leaves it. The inventory, with each source's pin and its verification, is
 [docs/security/supply-chain.md](docs/security/supply-chain.md).
 
-- **How it is built.** There is no build and no package: `claude plugin install` clones `main`, and everything runs
-  from that checkout with `uv run --locked`. Python packages come from PyPI at the exact versions and SHA-256s in
+- **How it is built.** There is no build step. The plugin (`claude plugin install`) clones `main`; the standalone
+  `install.sh` and the Mac app install a release tarball pinned by its SHA-256 into `~/.pointe/<version>`. Everything
+  runs with `uv run --locked`. Python packages come from PyPI at the exact versions and SHA-256s in
   `uv.lock`; uv refuses a mismatch. The Node channel (launch mode only) installs with `npm ci --ignore-scripts` from
   its lockfile. uv itself, when setup installs it, comes from the installer for one version, checked against a SHA-256
   before it runs (`bin/install-uv`). Models are fetched by SHA-256 (release files) or by commit (Hugging Face), pinned
@@ -502,7 +505,7 @@ leaves it. The inventory, with each source's pin and its verification, is
   grouped weekly bumps that a person reviews (`.github/`).
 - **How to report.** A suspicious dependency, download or install step is a vulnerability: use GitHub's private
   vulnerability reporting on this repository or security@ballerine.com, as at the top of this page.
-- **Known limits.** You get `main` at install time (release tags are not signed yet); `bin/voice-connector` pulls
+- **Known limits.** The plugin gets `main` at install time (release tags are not signed yet); `bin/voice-connector` pulls
   `twingate/connector:1`, a moving tag, by design; a model you name by hand (`pointe local --model`) is not pinned.
 
 ## Files
@@ -709,7 +712,7 @@ review; `--since` limits it to the week's changes.
 - **The page key does not rotate by itself.** It lasts until you delete `~/.claude-voice/page_key`. It also passes through a
   command line when `bin/voice-open` runs (`open` on macOS, `xdg-open` and the browser on Linux), and any other user of
   the machine can read a command line with `ps`, on macOS as on Linux.
-- **While the voice holds a prompt, the terminal also shows it**, and either can answer. It waits up to 280 seconds. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
+- **While the voice holds a prompt, the terminal also shows it**, and either can answer. The voice holds it up to 280 seconds for Claude Code, 600 for Codex and OpenCode. If you answer in the terminal, the daemon may not notice at once, because of how it reads a closed connection (Low; a known limit).
 - **Two pages with the key can both be in a call.** Keep it to one.
 - **A read-back's yes can come a moment early.** A yes to the read-back of a start, a close, a night shift or a meeting's
   action items counts from when the line is queued, not from its first sound, so a stray "okay" in the half second
@@ -903,7 +906,7 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
 - **Revoke everything at once** (a lost phone, a QR code, link or invite someone else saw): `pointe pair rotate` makes a
   new certificate and a new browser pairing secret, and signs out every phone (`phones.json`, `phone_key`), every
   browser and every machine of yours (`nodes.json` keeps only the hub's id and the machines this voice was invited to).
-  It does not remove the people invited to this machine: `pointe people remove <name>` does. `pointe pair off` signs
+  It also removes every person invited to this machine and prints who must be invited again. `pointe pair off` signs
   out the same and stops listening. A running daemon refuses the old keys at their next request, because it reads these files at each check;
   within about five seconds it restarts the listener on what is on disk and closes the calls and links that were up.
 - Tested on a real iPhone over Twingate, and in the simulator against a real host name.

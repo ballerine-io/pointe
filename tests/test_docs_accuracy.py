@@ -143,3 +143,16 @@ def test_the_commands_the_architecture_docs_name_exist():
     assert (ROOT / "plugin" / "commands" / "voice-review.md").exists()
     assert "`/pointe:voice-review`" in _flat("docs/how-it-works.md")
     assert "`pointe share <name> --shared`" in _flat("docs/agents.md")  # a bare `pointe share` makes it private
+
+
+def test_security_says_pair_rotate_removes_the_invited_people():
+    """pair.rotate and pair.off call _sign_everyone_out, which empties people.json's people."""
+    import inspect
+
+    import pair
+
+    assert "_sign_everyone_out()" in inspect.getsource(pair.rotate)
+    text = _flat("SECURITY.md")
+    assert "It does not remove the people invited to this machine" not in text
+    assert "since 1.30.0" not in text  # no such version: verbatim read-outs shipped in 0.8.4
+
