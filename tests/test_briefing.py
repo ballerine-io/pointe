@@ -372,14 +372,18 @@ def test_skip_while_paused_drops_the_next_part(d, b, tmp_path):
     async def go():
         first = asyncio.Event()
 
-        def respond():
+        def respond():  # the first part plays until the question is in: the next part cannot start under it
             b.injector.bot_started_at = time.time()
+            b.injector._bot_speaking = not first.is_set()
             first.set()
 
         b.injector.on_respond = respond
         await tool(d, "briefing")(Params(since="the night"))
         await first.wait()
         await d.on_user_utterance("hold on, what time is it?")
+        b.injector._bot_speaking = False
+        while d.state.briefing_play.speaking:  # paused, and out of the part: a skip now is of the next one
+            await asyncio.sleep(0.01)
         await d.briefing_control("skip")
         await d.state.briefing_task
         parts = said(b)
@@ -394,16 +398,17 @@ def test_another_question_pauses_and_go_on_continues(d, b, tmp_path):
     async def go():
         first = asyncio.Event()
 
-        def respond():
+        def respond():  # the first part plays until the question is in: the next part cannot start under it
             b.injector.bot_started_at = time.time()
-            b.injector._bot_speaking = False
+            b.injector._bot_speaking = not first.is_set()
             first.set()
 
         b.injector.on_respond = respond
         await tool(d, "briefing")(Params(since="the night"))
         await first.wait()
         await d.on_user_utterance("what failed in billing exactly?")  # a question: the briefing waits
-        await asyncio.sleep(0.2)
+        b.injector._bot_speaking = False
+        await asyncio.sleep(0.2)  # several poll-and-gap rounds of the player: it stays paused through them
         assert len(said(b)) == 1 and d.state.briefing_play.paused
         assert "paused" in d._brain_context().lower()
         await d.briefing_control("continue")
