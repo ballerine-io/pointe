@@ -108,8 +108,9 @@ More: [docs/architecture.md](docs/architecture.md) and [docs/how-it-works.md](do
 - **Claude Code cannot be interrupted from outside.** "Stop" ends its turn at the next tool step, and a command that is
   already running finishes first. Codex and OpenCode stop at once.
 - **A long command is read word for word before a yes counts.** Every request can be approved by voice once it has
-  been read in full; most have no short form, so the read-out is long. A request that holds a credential-like value
-  is never read out and waits for a tap.
+  been read in full; most have no short form, so the read-out is long. On a call, a long shell command is first
+  sent back to the session to be redone as plain commands. A request that holds a credential-like value is never read
+  out and waits for a tap.
 - **Use headphones.** On laptop speakers the echo guard works only with Soniox as the speech-to-text vendor.
 - **The iPhone reaches your Mac only over a network you set up** (Wi-Fi, Tailscale or a VPN). There is no relay.
 - **Vendor-hosted cloud sessions cannot be joined.** Claude Code on the web and Codex Cloud have no interface for it.
