@@ -194,7 +194,7 @@
             <h3 class="h2">At the gym, between sets.</h3>
             <p class="body">Phone in the pocket, earbuds in. “How’s billing doing?” “All tests pass. The PR is ready.” “Ship it.”
               Back at the desk, billing is merged.</p>
-            <p class="small"><a href="#apps">iPhone beta on TestFlight</a></p>
+            <p class="small"><a href="#apps">iPhone app on the App Store</a></p>
           </div>
           <figure class="beat-media">
             <div class="beat-frame">
@@ -263,7 +263,7 @@
           <div class="beat-copy">
             <p class="kicker"><span class="when">22:40</span> Night shift</p>
             <h3 class="h2">The agents work overnight.</h3>
-            <p class="body">“Tonight: billing fixes the retry tests; docs updates the changelog.” One tap, and Pointe keeps both moving, for up to 8 hours. It approves nothing.</p>
+            <p class="body">“Tonight: billing fixes the retry tests; docs updates the changelog.” One tap, and Pointe keeps both moving, for 8 hours by default, up to 12. It approves nothing.</p>
             <p class="small"><a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/night-shift.md">night-shift.md</a></p>
           </div>
           <figure class="beat-media">
@@ -390,16 +390,16 @@
                 <li>you said a plain yes and nothing else, begun after the read-out ended</li>
                 <li>within 120 seconds, on the active session</li>
               </ul></td><td class="verdict verdict--yes">Approves</td></tr>
-            <tr><td><b>You tap Approve</b> on the exact request, on the page, in the iPhone app (Face ID) or in the Mac app (Touch ID or your password). A request the
-              daemon cannot read out whole (unknown programs or flags, <code>$</code>, globs, subshells, several lines,
-              <code>sudo</code>, more than 25 words) is approved only this way.</td><td class="verdict verdict--yes">Approves</td></tr>
+            <tr><td><b>You tap Approve</b> on the exact request, on the page, in the iPhone app (Face ID) or in the Mac app (Touch ID or your password). A request
+              that holds a credential-like value, or one that cannot be read out at all, is approved only this way.</td><td class="verdict verdict--yes">Approves</td></tr>
             <tr><td><b>You answer in the terminal</b>, as always: your Claude Code deny rules still apply. Or <b>a
-              notification's Approve</b>, only if you turned it on, and only for a request that could be read out.</td><td class="verdict verdict--yes">Approves</td></tr>
+              notification's Approve</b>, only if you turned it on, and only for a request with a short read-out, not one read word
+              for word.</td><td class="verdict verdict--yes">Approves</td></tr>
             <tr><td>"Okay, tell me more", "yes, and run the linter", silence, or a yes to any other question. An echo of
               Pointe's own voice. Words typed in the call or as a correction. A voice match by itself. Any mode: drive,
               whisper, meeting, briefing and challenge can only narrow what a word may do.</td><td class="verdict verdict--none">Nothing</td></tr>
             <tr><td>The request holds a credential-like value: a key, a token or <code>password=</code>. Detection is by
-              pattern, so it can miss one.</td><td class="verdict verdict--none">Not read out. Masked on screen, waits for a tap</td></tr>
+              pattern, so it can miss one.</td><td class="verdict verdict--none">Not read out, and masked on screen. On a call a shell command is first sent back to pass the secret by reference; else it waits for a tap</td></tr>
             <tr><td><b>Anyone says no</b>, in every mode.</td><td class="verdict verdict--no">Denies</td></tr>
             <tr><td>Another person in the room, a video or a podcast says yes right after a read-out. Voice is not
               authentication. The voice lock narrows a yes to your voice; it is off by default, and a recording of your
@@ -446,7 +446,7 @@
         <div><p class="title"><code>pointe local voice</code>: no audio leaves</p>
           <p class="body">Whisper and Kokoro on the Mac. Your words still reach the text vendors.</p></div>
         <div><p class="title"><code>pointe local</code>: nothing leaves</p>
-          <p class="body">Whisper, Kokoro and Gemma on the Mac; no key is read. Needs Apple silicon and 32 GB. Less accurate: 76.9% against 91.9% for Sonnet. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/local.md">local.md</a></p></div>
+          <p class="body">Whisper, Kokoro and Gemma on the Mac; no key is read. Needs Apple silicon and 32 GB. Less accurate: the local brain passed 76.9% of 78 test cases. <a href="https://github.com/ballerine-io/pointe/blob/main/docs/features/local.md">local.md</a></p></div>
         <div><p class="title">Always on the Mac</p>
           <p class="body">Your voiceprint, call journal, notes and briefings. Keys come from the Keychain and reach the daemon only.</p></div>
       </div>

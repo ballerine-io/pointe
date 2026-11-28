@@ -194,3 +194,10 @@ def test_briefings_and_challenge_state_the_limits_in_code():
 
     assert f"at most {briefing.MAX_SESSIONS} sessions" in _flat("docs/features/briefings.md")
     assert challenge.PLAN_TURNS == 6 and "last six things you said" in _flat("docs/features/challenge.md")
+
+
+def test_the_site_says_what_a_tap_is_needed_for_and_where_the_iphone_app_is():
+    page = _flat("site/pointe/index.html")
+    assert "cannot read out whole" not in page and "iPhone beta on TestFlight" not in page
+    assert "91.9% for Sonnet" not in page  # withdrawn: no report or raw rows behind it (docs/benchmarks.md)
+    assert "A TestFlight beta, or from source" not in _flat("site/pointe/features/index.html")
