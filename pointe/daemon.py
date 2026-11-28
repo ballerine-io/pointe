@@ -5286,9 +5286,10 @@ async def set_drive(on: bool, how: str) -> bool:
     return changed
 
 
-# The wake word as the ears write it ("Point.", "Pointy,"): meetings.WAKE's spellings, not only "Pointe".
+# The wake word as the ears write it ("Point.", "Pointy,"): meetings.WAKE's spellings, not only "Pointe". "with" and up
+# to six words name the sessions to link ("meeting mode with billing, join in"; _meeting_sessions_heard).
 _MEETING_ON = re.compile(r"^\W*(?:(?:ok(?:ay)?|so|hey)\W+)?(?:(?:pointe|point|pointy|puente|pointer|poyant)\W+)?"
-                         r"(?:start\s+)?meeting mode(?:\W+(listening|listen|participating|"
+                         r"(?:start\s+)?meeting mode(?:\W+with(?:\W+[\w'/-]+){1,6}?)?(?:\W+(listening|listen|participating|"
                          r"participate|join in))?\W*$|^\W*מצב פגישה(?:\W+(הקשבה|השתתפות))?\W*$", re.I)
 
 

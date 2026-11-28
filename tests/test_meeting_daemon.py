@@ -289,6 +289,20 @@ def test_meeting_intent(d, said, want):
     assert d.meeting_intent(said) == want
 
 
+def test_a_spoken_start_that_names_sessions_links_only_those(d, monkeypatch):
+    """docs/features/meeting-mode.md: "meeting mode with billing, join in" links billing. The pattern refused any words
+    between "meeting mode" and the mode, so a voice start could only link every session."""
+    _meeting_ready(d, monkeypatch)
+    for i, name in enumerate(("billing", "checkout", "docs")):
+        add(d, f"s{i}", name)
+    d.PREFS.update({"meeting.consented": True})
+    said = "Pointe, meeting mode with billing, join in."
+    assert d.meeting_intent(said) == "participating"
+    assert d.meeting_intent("meeting mode with billing and checkout, listening") == "listening"
+    asyncio.run(d._start_meeting_by_voice(said, d.meeting_intent(said)))
+    assert d.state.meeting is not None and d.state.meeting.sessions == ["billing"]
+
+
 def test_the_phone_key_reaches_the_meeting_routes():
     from guards import _PHONE_PATHS
 
