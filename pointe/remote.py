@@ -92,7 +92,8 @@ class Remote:
         return self._own_host(request.headers) and self._own_origin(request.headers.get("origin"))
 
     def _own_host(self, headers) -> bool:
-        return (urlparse(f"//{headers.get('host', '')}").hostname or "").lower() in self.hosts
+        name = (urlparse(f"//{headers.get('host', '')}").hostname or "").lower()
+        return bool(name) and (name == self.host or name in getattr(self, "hosts", set()))
 
     def _own_origin(self, origin: str | None) -> bool:
         """No Origin (the app, a script), or exactly this listener's: scheme, name and port. Cookies and SameSite ignore

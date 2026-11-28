@@ -336,6 +336,6 @@ def test_what_another_person_sent_is_cut_cleaned_and_bounded(d, refusing):
 
 def test_pointe_machine_is_wired_into_the_one_command():
     script = (Path(__file__).resolve().parents[1] / "bin" / "pointe").read_text()
-    assert "pointe/machines.py" in script and 'machines) exec "$0" machine list' in script
+    assert "pointe/machines.py" in script and 'exec "$0" machine list ;;' in script and 'machines) ' in script
     assert os.access(Path(__file__).resolve().parents[1] / "bin" / "pointe", os.X_OK)
     assert machines.vendors_line([]).endswith("its vendors: none (fully local).")
