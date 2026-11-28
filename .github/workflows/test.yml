@@ -16,8 +16,9 @@ jobs:
         with:
           version: "0.12.21"  # the version bin/install-uv installs and the e2e images carry
       # Every test but the page's, the slow ones too, on every core of the runner. The slowest 50 are listed in the log: a
-      # new slow test gets @pytest.mark.slow so the inner loop (tools/test-changed) skips it.
-      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto -m "not chrome and not serial" --durations=50 --junitxml=timing/offline.xml
+      # new slow test gets @pytest.mark.slow so the inner loop (tools/test-changed) skips it. worksteal: an idle worker
+      # takes tests still queued on a busy one; with the default `load`, tests queued behind an 80 s one waited for it.
+      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto --dist worksteal -m "not chrome and not serial" --durations=50 --junitxml=timing/offline.xml
       # The tests that time real waits of a second or less, alone: beside other workers a busy runner stretches them.
       - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -m "serial and not chrome" --junitxml=timing/serial.xml
         if: ${{ !cancelled() }}
@@ -39,7 +40,7 @@ jobs:
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e  # v6.8.0
         with:
           version: "0.12.21"
-      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto -m chrome --durations=20 --junitxml=timing/page.xml
+      - run: uv run --locked --group test-tools pytest -q tests/ --ignore=tests/e2e --runslow -n auto --dist worksteal -m chrome --durations=20 --junitxml=timing/page.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7.0.2
         if: ${{ !cancelled() }}
         with:

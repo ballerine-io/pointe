@@ -296,12 +296,17 @@ def test_a_machine_answer_left_open_by_one_turn_does_not_answer_another(rig):
     assert asyncio.run(d._route("x", "Omer-lab."))[1] != "answered"
 
 
+def BIG(size: str):
+    """A fleet size whose test takes 10 to 80 s on CI: slow, so tools/test-changed leaves it to CI (conftest.py)."""
+    return pytest.param(size, marks=pytest.mark.slow)
+
+
 # ---------- the whole frozen dataset: what code alone decides ----------
 
 BY_CODE = ("clear_name", "clear_machine_name", "ambiguous_name", "ambiguous_none")
 
 
-@pytest.mark.parametrize("size", ["1x4", "5x20", "10x30", "frozen-1x4", "frozen-5x20", "frozen-10x30"])
+@pytest.mark.parametrize("size", ["1x4", BIG("5x20"), BIG("10x30"), "frozen-1x4", BIG("frozen-5x20"), BIG("frozen-10x30")])
 def test_every_turn_code_alone_decides_comes_out_by_rule(d, node, monkeypatch, size):  # noqa: F811
     """Named, machine-named, one name on several machines, and nothing matches: the labelled outcome on every path (with
     and without a model step), whatever session the brain names (none, the bare name, a same-named session on another
@@ -342,7 +347,7 @@ def test_every_turn_code_alone_decides_comes_out_by_rule(d, node, monkeypatch, s
     assert alike == (["clear_name-07"] if size == "frozen-10x30" else [])
 
 
-@pytest.mark.parametrize("size", ["5x20", "10x30", "frozen-5x20", "frozen-10x30"])
+@pytest.mark.parametrize("size", ["5x20", BIG("10x30"), "frozen-5x20", BIG("frozen-10x30")])
 def test_a_description_narrows_to_its_session_and_the_models_pick_of_it_is_sent(d, node, monkeypatch, size):  # noqa: F811
     """clear_description is the model's to pick (stage two). Stage one is code's: the session is among the eight, in
     every turn, also in a conversation about another session. When the model picks it, it is sent: a file or a topic
@@ -488,6 +493,7 @@ def _a_call(d, monkeypatch, rig, turns: int = 30, sent: list | None = None) -> l
     return [s[0] for s in sizes if s]
 
 
+@pytest.mark.slow  # about 16 s on CI
 def test_the_brains_input_at_5x20_is_within_a_twentieth_of_1x4(d, node, monkeypatch):  # noqa: F811
     """The paid rows: 31,253 tokens a turn at 5x20 against 25,941 at 1x4 (+20%), and a first step that carried 2,300
     tokens the cache had not seen against 113. Three things grew with the fleet: the opening listed every session
@@ -504,7 +510,7 @@ def test_the_brains_input_at_5x20_is_within_a_twentieth_of_1x4(d, node, monkeypa
     assert big[0] <= 1.05 * small[0] and big[-1] <= 1.05 * small[-1]  # at the call's start and after thirty turns
 
 
-@pytest.mark.parametrize("size", ["1x4", "10x30"])
+@pytest.mark.parametrize("size", ["1x4", BIG("10x30")])
 def test_what_the_brain_is_sent_keeps_its_prefix_from_step_to_step(d, node, monkeypatch, size):  # noqa: F811
     """The paid rows at 10x30 with the rules on: the vendor's time to first token was about 1.1 s against 0.76 s with
     the rules off right after. A prompt the vendor cannot cache is the classic cause: an early part that changes. It is
