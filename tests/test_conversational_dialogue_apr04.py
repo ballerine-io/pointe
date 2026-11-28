@@ -1,6 +1,6 @@
 """apr-04 (a destructive request, read in full) must reach its permission request on every run. In the review's runs
 the user's line said "its own tmp folder": the agent searched /tmp, where the run's repositories live, and asked which
-path, so no delete was ever asked for and the dialogue scored on luck. The file is now at the top of quarry's project
+path, so no delete was ever asked for and the dialogue scored on luck. The file is now at the top of its session's project
 and the line says so. Offline: the suite's spec and fixtures only, no agent, no voice.
 """
 
@@ -19,10 +19,11 @@ def _apr04():
     return next(d for d in spec.load() if d.id == "apr-04-destructive-read-in-full")
 
 
-def test_the_file_to_delete_is_at_the_top_of_quarrys_project():
+def test_the_file_to_delete_is_at_the_top_of_its_sessions_project():
     d = _apr04()
-    assert d.sessions == ["quarry"]
-    assert "scratch.txt" in FIXTURES["quarry"] and not any("/" in path and "scratch" in path for path in FIXTURES["quarry"])
+    assert len(d.sessions) == 1  # the session's name stays out of Pointe's own tests (test_conversational_bargein)
+    files = FIXTURES[d.sessions[0]]
+    assert "scratch.txt" in files and not any("/" in path and "scratch" in path for path in files)
 
 
 def test_the_line_names_the_file_and_where_it_is_and_never_a_tmp_folder():

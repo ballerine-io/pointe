@@ -41,7 +41,7 @@ ENV = ("uv run --no-project --python 3.12 --exclude-newer 2026-11-28T00:00:00Z -
 CACHE = HERE / ".eou"
 RUN = HERE / "results" / "2026-11-25-v0.8.5"
 ROWS = RUN / "turn-human.jsonl"
-SCORES = RUN / "turn-human.eou.jsonl"
+SCORES = HERE / "results" / "turn-human.eou.jsonl"  # beside the release, not in it: the release's rows are published as they were
 REPO = "livekit/turn-detector"
 MODELS = {  # variant -> (commit, {file: SHA-256})
     "multilingual": ("87e35fcb1e60a569bea70346191c4886ea92e281", {  # tag v0.4.1-intl

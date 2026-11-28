@@ -1,7 +1,7 @@
 """How long a permission request for a shell command takes to read out, over a corpus of agents' own commands.
 
 A spoken yes approves what was read (pointe/guards.py `spoken_request`): the allowlist's short form when there is one
-(pointe/readout.py), else the command word for word, symbol by symbol. This counts, over bench/readout_corpus.jsonl,
+(pointe/readout.py), else the command word for word, symbol by symbol. This counts, over bench/results/readout_corpus.jsonl,
 how many commands are read word for word and how long each read-out takes.
 
 The corpus: every Bash command the dialogue suite's sessions asked to run (bench/results/*/dialogues, their
@@ -76,7 +76,7 @@ def main() -> None:
     parser.add_argument("--weighted", action="store_true", help="count each command as often as it was asked for")
     parser.add_argument("--list", choices=("verbatim", "short", "tap"))
     args = parser.parse_args()
-    rows = [json.loads(line) for line in (ROOT / "bench/readout_corpus.jsonl").read_text().splitlines() if line]
+    rows = [json.loads(line) for line in (ROOT / "bench/results/readout_corpus.jsonl").read_text().splitlines() if line]
     results = []
     for row in rows:
         kind, said, secs = measure(row)

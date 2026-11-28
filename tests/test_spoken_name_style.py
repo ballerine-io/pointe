@@ -80,9 +80,9 @@ def test_code_with_camel_case_names_sets_no_style_and_its_own_names_stay(twins):
 def test_the_send_writes_a_new_name_in_the_codes_style(d, tmp_path, monkeypatch):  # noqa: F811
     (tmp_path / "utils.py").write_text("def calc_tax(x):\n    return round(x * 0.2, 2)\n")
     (tmp_path / "invoice.py").write_text("from utils import calc_tax\n\n\ndef show(x):\n    return str(calc_tax(x))\n")
-    add(d, "t", "tariff", cwd=str(tmp_path))
+    add(d, "t", "fennel", cwd=str(tmp_path))
     sent = record_dispatch(d, monkeypatch)
     open_gates(d, monkeypatch, "Rename calcTax to computeTax everywhere in this repo, in every file that uses it.")
-    d.state.brain_target = "tariff"
+    d.state.brain_target = "fennel"
     asyncio.run(d._send("Rename the function calc_tax to computeTax everywhere in this repo."))
     assert sent and "compute_tax" in sent[0][1] and "computeTax" not in sent[0][1].split("\n\n(Said by voice")[0]

@@ -59,20 +59,20 @@ def test_the_next_call_with_a_new_mouth_of_the_same_voice_finds_the_line():
     store = OrderedDict()
     first_call, next_call = FakeMouth(), FakeMouth()
     phrases.Phrases(first_call, store=store)
-    asyncio.run(_say(first_call, "Asking quarry."))
+    asyncio.run(_say(first_call, "Asking lantern."))
     phrases.Phrases(next_call, store=store)
-    asyncio.run(_say(next_call, "Asking quarry."))
-    assert (first_call.asked, next_call.asked) == (["Asking quarry."], [])
+    asyncio.run(_say(next_call, "Asking lantern."))
+    assert (first_call.asked, next_call.asked) == (["Asking lantern."], [])
 
 
 def test_another_speed_or_voice_is_a_new_line_not_a_stale_one():
     mouth = FakeMouth()
     phrases.Phrases(mouth, store=OrderedDict())
-    asyncio.run(_say(mouth, "Asking quarry."))
+    asyncio.run(_say(mouth, "Asking lantern."))
     mouth._settings.voice = "another"  # what a settings update frame changes, as a speed change does
-    after = asyncio.run(_say(mouth, "Asking quarry."))
-    assert mouth.asked == ["Asking quarry.", "Asking quarry."]
-    assert _audio(after)[0].startswith(b"Asking quarry.|another")
+    after = asyncio.run(_say(mouth, "Asking lantern."))
+    assert mouth.asked == ["Asking lantern.", "Asking lantern."]
+    assert _audio(after)[0].startswith(b"Asking lantern.|another")
 
 
 def test_a_long_line_is_never_kept():
@@ -154,9 +154,9 @@ def test_the_warmed_lines_are_the_acknowledgements_the_daemon_says(d):  # noqa: 
     from test_orchestrator import add
 
     add(d, "s1", "billing/main")
-    add(d, "s2", "tariff-web/main")
+    add(d, "s2", "pelican-web/main")
     lines = d._ack_lines()
-    for name in ("billing/main", "tariff-web/main"):
+    for name in ("billing/main", "pelican-web/main"):
         sent = {"sent_to": [name], "routing": "brain"}
         assert d._quick_ack({"message": "Bump the version."}, sent, "Bump the version.") in lines
         assert d._quick_ack({"message": "Did it pass?"}, sent, "Did it pass?") in lines

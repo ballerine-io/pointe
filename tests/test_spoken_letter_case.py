@@ -44,8 +44,8 @@ def test_a_name_spelled_letter_by_letter_is_lower_case():
         "In limits.py, add a module-level variable named __gimbal__ (g-i-m-b-a-l, double underscores on both sides), set to 9."
 
 
-@pytest.mark.parametrize("said", ["Tell marlin to rename the record field TS to timestamp in make record.",
-                                  "Tell marlin to rename the record field t s to timestamp in make record."])
+@pytest.mark.parametrize("said", ["Tell heron to rename the record field TS to timestamp in make record.",
+                                  "Tell heron to rename the record field t s to timestamp in make record."])
 def test_letters_the_code_writes_in_lower_case_are_written_so(said):
     words = {"make_record", "key", "amount", "ts"}
     assert relay.letter_case("Rename the record field TS to timestamp in make_record.", said, words) == \
@@ -85,11 +85,11 @@ def test_code_words_are_the_words_in_the_projects_source(tmp_path):
 
 def test_the_send_writes_a_spoken_letter_in_lower_case(d, tmp_path, monkeypatch):  # noqa: F811
     (tmp_path / "retry.py").write_text('def parse_retry_after(value):\n    """Seconds, such as "30"."""\n    return int(value)\n')
-    add(d, "k", "kiln", cwd=str(tmp_path))
+    add(d, "k", "orchard", cwd=str(tmp_path))
     sent = record_dispatch(d, monkeypatch)
     open_gates(d, monkeypatch, "In retry dot py, fix parse retry after, the snake case one, so it also accepts a value "
                                "that ends in s, like ninety s, which should give ninety.")
-    d.state.brain_target = "kiln"
+    d.state.brain_target = "orchard"
     asyncio.run(d._send(TWIN))
     assert sent
     brief = sent[0][1].split("\n\n(Said by voice")[0]
