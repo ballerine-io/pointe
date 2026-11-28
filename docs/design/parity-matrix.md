@@ -219,7 +219,7 @@ Before this work (a pre-release build (2026-11-21)), by the same scan:
 | A menu bar item with the state and who needs you <br>`mac.menubar` | n/a | n/a | yes `apps/macos/PointeMac/PointeMacApp.swift:16` | n/a |
 | A small call bubble that floats over other apps while a call is up: click to open, drag, small or full, × <br>`mac.bubble` | n/a | n/a | yes `apps/macos/PointeMac/Bubble.swift:144` | n/a |
 | The talk mode and the talk shortcut ("Hold ⌃⌥Space"), in the window and the bubble <br>`mac.talkmode` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:154` | n/a |
-| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:218` | n/a |
+| Play/pause in a call: Mute Pointe, Skip or Nothing, set in Settings; taken only during a call; the window and bubble say what an AirPods press does <br>`mac.airpods` | n/a | n/a | yes `apps/PointeKit/Sources/PointeUI/MacShell.swift:300` | n/a |
 | Open at login <br>`mac.login` | n/a | n/a | yes `apps/macos/PointeMac/Platform.swift:4` | n/a |
 | Find, start and restart Pointe on this Mac; say when versions differ <br>`mac.daemon` | n/a | n/a | yes `apps/macos/PointeMac/AppModel.swift:215` | n/a |
 | Which roles the keys fill: a key no role needs is Optional, an empty role names the one key to add <br>`keys.status` | yes `ui.html:1543` | n/a | yes `apps/macos/PointeMac/AppModel.swift:401` | yes (the page) |

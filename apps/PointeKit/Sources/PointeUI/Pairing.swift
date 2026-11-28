@@ -17,6 +17,8 @@ struct Pairing: Codable, Hashable {
     var via: String? = nil
     /// The machine's other routes, learnt from its status. Every one ends at the same pinned certificate.
     var routes: [Route]? = nil
+    /// An SSH route's target (`user@host`): the Mac app runs its own ssh to it, and `host` is the tunnel's local end.
+    var ssh: String? = nil
 
     /// One way to reach a machine (docs/design/multi-machine-clients.md, 1.2). For `ssh`, `host` is the SSH target.
     struct Route: Codable, Hashable, Sendable {
@@ -27,7 +29,7 @@ struct Pairing: Codable, Hashable {
 
     /// The route in use first, then the others it learnt, each once.
     var allRoutes: [Route] {
-        var out = [Route(kind: via ?? "host", host: host, port: port)]
+        var out = [ssh.map { Route(kind: "ssh", host: $0, port: port) } ?? Route(kind: via ?? "host", host: host, port: port)]
         for r in routes ?? [] where !out.contains(where: { $0.host == r.host && $0.port == r.port }) { out.append(r) }
         return out
     }
@@ -43,9 +45,17 @@ struct Pairing: Codable, Hashable {
 
     /// The same machine over another of its routes: same certificate, same key.
     func using(_ route: Route) -> Pairing {
-        var p = self
-        p.routes = allRoutes.filter { $0 != route }
-        return Pairing(host: route.host, port: route.port, fingerprint: fingerprint, key: key, id: id, name: name, via: route.kind, routes: p.routes)
+        let others = allRoutes.filter { $0 != route }
+        if route.kind == "ssh" {
+            return Pairing(host: "127.0.0.1", port: route.port, fingerprint: fingerprint, key: key, id: id, name: name, via: "ssh",
+                           routes: others, ssh: route.host)
+        }
+        return Pairing(host: route.host, port: route.port, fingerprint: fingerprint, key: key, id: id, name: name, via: route.kind, routes: others)
+    }
+
+    /// Dialled through a tunnel's local end: the same pinned certificate, another port on this Mac.
+    func through(port local: Int) -> Pairing {
+        Pairing(host: "127.0.0.1", port: local, fingerprint: fingerprint, key: key, id: id, name: name, via: via, routes: routes, ssh: ssh)
     }
 
     static let supportedVersion = 1
@@ -92,12 +102,12 @@ struct Pairing: Codable, Hashable {
     }
 
     init(host: String, port: Int, fingerprint: String, key: String, id: String? = nil, name: String? = nil, via: String? = nil,
-         routes: [Route]? = nil) {
+         routes: [Route]? = nil, ssh: String? = nil) {
         self.host = host; self.port = port; self.fingerprint = fingerprint; self.key = key
-        self.id = id; self.name = name; self.via = via; self.routes = routes
+        self.id = id; self.name = name; self.via = via; self.routes = routes; self.ssh = ssh
     }
 
-    private enum CodingKeys: String, CodingKey { case host, port, fingerprint, key, id, name, via, routes }
+    private enum CodingKeys: String, CodingKey { case host, port, fingerprint, key, id, name, via, routes, ssh }
 
     /// From the Keychain: a pairing an older version saved with a host that makes no URL is not used. One saved before
     /// several machines has no id, name or route.
@@ -108,7 +118,8 @@ struct Pairing: Codable, Hashable {
         self.init(host: host, port: try c.decode(Int.self, forKey: .port), fingerprint: try c.decode(String.self, forKey: .fingerprint),
                   key: try c.decode(String.self, forKey: .key), id: try c.decodeIfPresent(String.self, forKey: .id),
                   name: try c.decodeIfPresent(String.self, forKey: .name), via: try c.decodeIfPresent(String.self, forKey: .via),
-                  routes: try? c.decodeIfPresent([Route].self, forKey: .routes))
+                  routes: try? c.decodeIfPresent([Route].self, forKey: .routes),
+                  ssh: (try? c.decodeIfPresent(String.self, forKey: .ssh)).flatMap { $0.flatMap { SSHRoute.valid($0) ? $0 : nil } })
     }
 
     // Never forced: a URL that cannot be made goes nowhere instead of crashing the app.
@@ -124,6 +135,7 @@ struct PairingInvite: Hashable {
     let fingerprint: String
     let code: String
     var via: String? = nil
+    var ssh: String? = nil
 
     static let version = 2
 
@@ -132,11 +144,12 @@ struct PairingInvite: Hashable {
         guard let (q, host, port, fp) = Pairing.place(link, version: PairingInvite.version),
               let code = q["code"], code.range(of: "^[0-9A-Za-z]{4}-?[0-9A-Za-z]{4}$", options: .regularExpression) != nil
         else { return nil }
-        self.init(host: host, port: port, fingerprint: fp, code: code, via: Pairing.route(q["via"]))
+        self.init(host: host, port: port, fingerprint: fp, code: code, via: Pairing.route(q["via"]),
+                  ssh: q["via"] == "ssh" ? q["ssh"].flatMap { SSHRoute.valid($0) ? $0 : nil } : nil)
     }
 
-    init(host: String, port: Int, fingerprint: String, code: String, via: String? = nil) {
-        self.host = host; self.port = port; self.fingerprint = fingerprint; self.code = code; self.via = via
+    init(host: String, port: Int, fingerprint: String, code: String, via: String? = nil, ssh: String? = nil) {
+        self.host = host; self.port = port; self.fingerprint = fingerprint; self.code = code; self.via = via; self.ssh = ssh
     }
 
     /// The pairing from the machine's answer: its key, and its id and name when it sends them.
@@ -144,7 +157,7 @@ struct PairingInvite: Hashable {
         guard let key = body["key"] as? String, key.count >= 32 else { return nil }
         let id = (body["id"] as? String).flatMap { $0.range(of: "^[\\w-]{1,64}$", options: .regularExpression) != nil ? $0 : nil }
         let name = (body["name"] as? String ?? body["mac"] as? String).map { String($0.prefix(60)) }
-        return Pairing(host: host, port: port, fingerprint: fingerprint, key: key, id: id, name: name, via: via)
+        return Pairing(host: host, port: port, fingerprint: fingerprint, key: key, id: id, name: name, via: via, ssh: ssh)
     }
 
     var pairURL: URL { URL(string: "https://\(host):\(port)/voice/phone/pair") ?? URL(fileURLWithPath: "/") }
@@ -324,3 +337,18 @@ final class PinnedDelegate: NSObject, URLSessionWebSocketDelegate, @unchecked Se
         completionHandler(.useCredential, URLCredential(trust: trust))
     }
 }
+
+/// A route through the Mac app's own SSH tunnel (docs/design/multi-machine-clients.md, 1.2): the user's ssh, their
+/// ~/.ssh/config and agent, a local port forwarded to the machine's 127.0.0.1:7443. Nothing secret is on its command
+/// line, and the target can never be read as an option.
+enum SSHRoute {
+    static func valid(_ target: String) -> Bool {
+        target.range(of: #"^(?:[A-Za-z_][A-Za-z0-9_.-]{0,31}@)?[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?$"#, options: .regularExpression) != nil
+    }
+
+    static func arguments(target: String, local: Int, remote: Int) -> [String] {
+        ["-N", "-o", "BatchMode=yes", "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=15",
+         "-L", "127.0.0.1:\(local):127.0.0.1:\(remote)", "--", target]
+    }
+}
+

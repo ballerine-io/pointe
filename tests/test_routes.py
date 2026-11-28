@@ -85,3 +85,9 @@ def test_the_daemons_status_lists_this_machines_routes(tmp_path):
         assert got == [{"kind": "tailscale", "host": "mac.ts.net", "port": d.remote.TLS_PORT}]
     finally:
         (d.STATE_DIR / "remote.json").unlink()
+
+
+def test_a_line_for_an_ssh_route_points_at_the_tunnels_end_and_names_its_target(pair, tmp_path):
+    pair.main(["ssh", "alon@kite.example.com"])
+    q = parse_qs(urlparse(pair.invite_pairing_link("ABCD-EFGH")).query)
+    assert q["host"] == ["127.0.0.1"] and q["ssh"] == ["alon@kite.example.com"] and q["via"] == ["ssh"]

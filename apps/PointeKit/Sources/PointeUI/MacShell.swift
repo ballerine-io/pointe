@@ -1,5 +1,6 @@
 #if os(macOS)
 import AppKit
+import LocalAuthentication
 import PointeKit
 import SwiftUI
 
@@ -19,8 +20,16 @@ public final class MacSession: CallShell {
         public let label: String
     }
 
-    let link: DaemonLink
-    let call: Call
+    /// The daemon on this Mac: always the first machine.
+    let local: DaemonLink
+    /// The machine the call goes to: this Mac, or one this app paired with (several machines, Labs).
+    private(set) var link: DaemonLink
+    private(set) var call: Call
+    /// The paired machine the call goes to; nil is this Mac.
+    private(set) var remote: Pairing?
+    /// The machines this app holds besides this Mac.
+    private(set) var machines: [Pairing] = []
+    @ObservationIgnored private var tunnel: SSHTunnel?
     private(set) var demo: Demo?
     private(set) var status: API.Status?
     private(set) var reach = Reach.ok
@@ -32,13 +41,86 @@ public final class MacSession: CallShell {
 
     /// `daemon`: where the app verified Pointe to be on this Mac. A demo given at launch (`-demo call`) needs none.
     public init(daemon: LocalDaemon) {
-        link = DaemonLink(local: daemon)
-        call = Call(link: link)
+        local = DaemonLink(local: daemon)
+        link = local
+        call = Call(link: local)
+        if SeveralMachines.on {
+            #if DEBUG  // UI tests: machines given at launch, beside this Mac
+            for line in (ProcessInfo.processInfo.environment["POINTE_PAIR_MORE"] ?? "").split(separator: " ") {
+                if let p = Pairing(link: String(line)) { KeychainPairing().add(p) }
+            }
+            #endif
+            machines = PairingStore.all()
+        }
         demo = Demo.fromLaunch()
         status = demo?.status
         AlertCenter.shared.local = link
         if let demo { call.follow(demo.status.ptt) }
         presses.perform = { [weak self] choice in self?.playPaused(choice) }
+    }
+
+    /// Moves the call to another machine (nil: this Mac). A call that was up is dialled again there; an SSH route opens
+    /// its tunnel first.
+    func use(_ p: Pairing?) async {
+        guard p?.storeKey != remote?.storeKey else { return }
+        let wasLive = call.state != .off
+        if wasLive { call.hangUp() }
+        tunnel?.close()
+        tunnel = nil
+        var target = p.map(DaemonLink.init) ?? local
+        if let p, let ssh = p.ssh {
+            do {
+                let opened = try await SSHTunnel.open(target: ssh, remote: p.port)
+                tunnel = opened
+                target = DaemonLink(p.through(port: opened.port))
+            } catch {
+                print("pointe: machines: \(error)")  // the call screen then says the machine cannot be reached
+            }
+        }
+        remote = p
+        link = target
+        call = Call(link: target)
+        status = nil
+        demo = nil
+        AlertCenter.shared.local = target
+        if wasLive { await connect() }
+    }
+
+    /// The Add sheet's line: kept after Touch ID or the password; nil when added, else why not, in one sentence.
+    func add(_ line: String) async -> String? {
+        guard let parsed = PairingLink(line) else { return "That is not a Pointe pairing line." }
+        let context = LAContext()
+        guard (try? await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: "Add a machine to Pointe")) == true
+        else { return "Not added: Touch ID or the password is needed." }
+        let pairing: Pairing
+        switch parsed {
+        case .ready(let p): pairing = p
+        case .invite(var invite):
+            var opened: SSHTunnel?
+            if let ssh = invite.ssh {
+                do { opened = try await SSHTunnel.open(target: ssh, remote: invite.port) } catch { return "\(error)" }
+                invite = PairingInvite(host: "127.0.0.1", port: opened!.port, fingerprint: invite.fingerprint, code: invite.code,
+                                       via: "ssh", ssh: ssh)
+            }
+            defer { opened?.close() }
+            do {
+                let (p, _) = try await invite.redeem(device: Host.current().localizedName ?? "Mac", id: "")
+                pairing = invite.ssh == nil ? p : p.using(.init(kind: "ssh", host: invite.ssh ?? "", port: 7443))
+            } catch let why as ConnectionProblem {
+                return why.detail
+            } catch {
+                return error.localizedDescription
+            }
+        }
+        KeychainPairing().add(pairing)
+        machines = PairingStore.all()
+        return nil
+    }
+
+    func remove(_ p: Pairing) async {
+        if remote?.storeKey == p.storeKey { await use(nil) }
+        KeychainPairing().remove(p)
+        machines = PairingStore.all()
     }
 
     /// Invented sessions on screen: nothing is fetched, sent or heard.
@@ -363,7 +445,10 @@ public struct PointeMacRoot: View {
 
     public var body: some View {
         CallView(link: session.link, call: session.call, shell: session, unpair: { session.exitDemo() }, demo: session.demo)
-            .id(session.demo?.tried == true)  // the demo is another screen, with its own state
+            .id("\(session.demo?.tried == true)|\(session.remote?.connection ?? "here")")  // the demo, or another machine: another screen
+            .safeAreaInset(edge: .top) {
+                if SeveralMachines.on { MacMachineMenu(session: session).padding(.top, 4) }
+            }
             .environment(\.macSettings, settings)
             .preferredColorScheme(Theme.stored(theme).scheme)
             .tint(Brand.accent)

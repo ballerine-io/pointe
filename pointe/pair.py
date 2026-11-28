@@ -264,8 +264,11 @@ def invite_pairing_link(code: str) -> str:
     """The page's QR (Settings → Phone): where the Mac listens, its certificate, and a one-time code. No lasting secret:
     the app trades the code for the phone key over the pinned listener (phone_pairing.py)."""
     config = _config()
-    return "pointe://pair?" + urlencode({"v": CODE_PAIRING_VERSION, "host": config["host"], "port": TLS_PORT,
-                                         "fp": fingerprint(), "code": code, "via": config.get("kind") or "host"})
+    kind = config.get("kind") or "host"
+    # An SSH route: the client's tunnel arrives at this machine's loopback; `ssh` is the target it runs ssh to.
+    where = {"host": "127.0.0.1", "ssh": config["host"]} if kind == "ssh" else {"host": config["host"]}
+    return "pointe://pair?" + urlencode({"v": CODE_PAIRING_VERSION, **where, "port": TLS_PORT, "fp": fingerprint(),
+                                         "code": code, "via": kind})
 
 
 _HOST_NAME = re.compile(r"(?=.{1,253}$)[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*")

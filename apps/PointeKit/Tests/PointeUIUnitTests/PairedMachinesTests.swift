@@ -270,4 +270,26 @@ final class PairedMachinesTests: XCTestCase {
         XCTAssertEqual(flow.pairings[1].host, "192.168.1.20")
         XCTAssertEqual(flow.pairing, mac)
     }
+
+    // MARK: SSH (the Mac app's)
+
+    func testAnSSHLineKeepsItsTargetAndTheTunnelsArgumentsCarryNoOptionFromIt() {
+        let invite = PairingInvite(link: "pointe://pair?v=2&host=127.0.0.1&port=7443&fp=\(fp("b"))&code=ABCD-EFGH&via=ssh&ssh=alon@kite.example.com")
+        XCTAssertEqual(invite?.ssh, "alon@kite.example.com")
+        XCTAssertNil(PairingInvite(link: "pointe://pair?v=2&host=127.0.0.1&port=7443&fp=\(fp("b"))&code=ABCD-EFGH&via=ssh&ssh=-oProxyCommand=evil")?.ssh,
+                     "a target that starts like an option is no target")
+        let p = invite?.pairing(from: ["key": key, "id": "m2", "name": "kite"])
+        XCTAssertEqual(p?.ssh, "alon@kite.example.com")
+        XCTAssertEqual(p?.allRoutes.first, .init(kind: "ssh", host: "alon@kite.example.com", port: 7443))
+        let ssh = kite.using(.init(kind: "ssh", host: "alon@kite.example.com", port: 7443))
+        XCTAssertEqual(ssh.host, "127.0.0.1")
+        XCTAssertEqual(ssh.ssh, "alon@kite.example.com")
+        XCTAssertEqual(ssh.through(port: 50123).base.absoluteString, "https://127.0.0.1:50123")
+        XCTAssertEqual(SSHRoute.arguments(target: "alon@kite.example.com", local: 50123, remote: 7443),
+                       ["-N", "-o", "BatchMode=yes", "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=15",
+                        "-L", "127.0.0.1:50123:127.0.0.1:7443", "--", "alon@kite.example.com"])
+        XCTAssertFalse(SSHRoute.valid("-oProxyCommand=x"))
+        XCTAssertFalse(SSHRoute.valid("alon@kite;rm"))
+        XCTAssertTrue(SSHRoute.valid("kite.example.com"))
+    }
 }
