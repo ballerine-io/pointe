@@ -58,7 +58,7 @@ claude plugin marketplace add https://github.com/ballerine-io/pointe.git && clau
 ```
 
 Then join the sessions you want to reach: `/pointe:voice` in a Claude Code session, `pointe join codex` or
-`pointe join opencode` in a Codex or OpenCode session's folder. `pointe uninstall` removes everything.
+`pointe join opencode` in a Codex or OpenCode session's folder. `pointe uninstall` removes Pointe, and asks before it removes your keys.
 [What the install puts on your Mac](docs/install.md#what-this-does-to-your-mac), and
 [which keys it needs and what they cost](docs/install.md#which-keys).
 

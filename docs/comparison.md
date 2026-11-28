@@ -20,8 +20,8 @@ Android, Windows and Linux, it supports more agents, and it is widely used (abou
 Where Pointe differs from Happy:
 
 - **Code decides what a spoken yes approves.** Pointe's daemon reads a request out itself, from the command that will
-  run, only if every part of it is on an allowlist, and takes a plain yes only right after that read-out; anything else
-  waits for a tap ([SECURITY.md](../SECURITY.md#what-a-spoken-word-can-do)). In Happy's Android source the voice model allows or denies through a
+  run: in short when every part of it is on an allowlist, word for word otherwise. It takes a plain yes only right after
+  that read-out; a request that holds a credential-like value is never read out and waits for a tap ([SECURITY.md](../SECURITY.md#what-a-spoken-word-can-do)). In Happy's Android source the voice model allows or denies through a
   tool call, under a prompt rule to wait for the user
   ([`VoiceTools.kt`](https://github.com/slopus/happy/blob/main/packages/happy-android/app/src/main/kotlin/com/slopus/happy/voice/VoiceTools.kt),
   [`VoicePrompts.kt`](https://github.com/slopus/happy/blob/main/packages/happy-android/app/src/main/kotlin/com/slopus/happy/voice/VoicePrompts.kt));
@@ -38,4 +38,4 @@ desktop app it needs a paid ChatGPT plan. Pointe is one conversation over Claude
 keys. Dictation and Pointe work side by side.
 
 **The phone remotes** (Remote Control, Moshi, Paseo, Happy) reach your sessions from anywhere with store apps. Pointe's
-iPhone app is built from source for now and reaches the Mac only over a network you set up.
+iPhone app is on the App Store, and reaches the Mac only over a network you set up.

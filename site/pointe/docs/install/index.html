@@ -257,9 +257,10 @@ only for its keys; <a href="#try-it-for-free-or-cheap">Try it for free or cheap<
   the first run (about 530 MB on disk); and <code>~/.local/bin/pointe</code>, so <code>pointe</code> is a command in your terminal.</p>
 </li>
 <li>
-<p><strong>Adds two Claude Code hooks</strong> (the plugin only), active in every session: <code>PermissionRequest</code> (while Pointe runs, it holds the
-  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
-  and <code>SessionStart</code> (one file check, to suggest <code>/pointe:setup</code> until it is done).</p>
+<p><strong>Adds four Claude Code hooks</strong> (the plugin only), active in every session: <code>PermissionRequest</code> (while Pointe runs, it holds the
+  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once),
+  <code>PreToolUse</code> and <code>PostToolUse</code> (<code>voice-stop-hook</code>: ends a joined session's turn at its next tool step after you say
+  "stop") and <code>SessionStart</code> (one file check, to suggest <code>/pointe:setup</code> until it is done).</p>
 </li>
 <li>
 <p><strong>Runs</strong> one daemon on <code>127.0.0.1:7860</code>, started by <code>/pointe:voice</code> or <code>pointe open</code>, until <code>/pointe:stop</code> or a restart of the Mac.
@@ -366,7 +367,7 @@ lists each model Pointe uses with it (<code>gemini-3.8-flash</code>, <code>gemin
   the European Economic Area, Switzerland or the United Kingdom.</p>
 </li>
 <li>
-<p><strong>It is the weakest keyed setup measured</strong>: replies take about 4 s and there is no echo guard, so use headphones.</p>
+<p><strong>Replies take about 4 s</strong> and there is no echo guard, so use headphones.</p>
 </li>
 </ul>
 <p><strong>A 16 GB Mac.</strong> Fully local mode is not offered below 32 GB: its text model takes 17 GB of memory while it runs. The
@@ -408,8 +409,9 @@ name no free credit.</p>
   replaced.</p>
 </li>
 <li>
-<p>Only if you say yes in <code>pointe setup codex</code>: two lines at the end of <code>~/.zshrc</code> (or <code>~/.bash_profile</code>), the <code>codex</code>
-  alias and a comment above it. Only with <code>pointe setup opencode</code>: <code>/voice</code> for OpenCode, in
+<p>Only if you say yes in <code>pointe setup</code> or <code>pointe setup codex</code>: two lines at the end of <code>~/.zshrc</code> (or
+  <code>~/.bash_profile</code>), the <code>codex</code> alias and a comment above it. Only on a yes in <code>pointe setup</code>, or with
+  <code>pointe setup opencode</code>: <code>/voice</code> for OpenCode, in
   <code>~/.config/opencode/plugins/pointe-voice.ts</code>.</p>
 </li>
 <li>
@@ -428,7 +430,7 @@ and asks before it removes anything, in three groups, each with its own question
   (<code>defaults delete io.ballerine.pointe.mac</code>), <code>/voice</code> in OpenCode and the <code>codex</code> alias if setup added them,
   <code>~/.cache/pipecat/kokoro-onnx</code>, and last the standalone install (<code>~/.pointe</code>) and the plugin and its marketplace
   (<code>claude plugin uninstall pointe@pointe</code>, <code>claude plugin marketplace remove pointe</code>). Each install's folder holds its
-  Python packages; the plugin's also holds both hooks.</p>
+  Python packages; the plugin's also holds its hooks.</p>
 </li>
 <li>
 <p>Pointe's keys: the Keychain items <code>pointe.&lt;vendor&gt;-api-key</code>. Removed only on a yes to this question, or with

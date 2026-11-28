@@ -172,8 +172,9 @@ Codex or OpenCode session joins with <code>pointe join codex</code> or <code>poi
 <p>The page shows the conversation as it happens, what Pointe heard as you speak, and every pending permission request
 with its exact text and <strong>Approve</strong> and <strong>Deny</strong>. You can type instead of talking, and correct a line that was misheard.</p>
 <p>When a session asks for permission, Pointe reads the request out and waits. A plain "yes", said right after the
-read-out, approves it. "No" denies it. A request Pointe cannot read out whole (unknown programs, <code>sudo</code>, several lines)
-waits for a tap on the page, the iPhone app or the terminal. The exact rules: <a href="../how-it-works/#rules-enforced-in-code">How it works</a>.</p>
+read-out, approves it. "No" denies it. A request Pointe has no short form for (unknown programs, <code>sudo</code>, several lines)
+is read word for word, and a yes counts only after all of it. One that holds a credential-like value is never read out:
+it waits for a tap on the page, the iPhone app or the terminal. The exact rules: <a href="../how-it-works/#rules-enforced-in-code">How it works</a>.</p>
 <p>To end the call, hang up on the page. To stop Pointe entirely, run <code>/pointe:stop</code> (or <code>pointe stop</code>).</p>
 <h2 id="4-joining-a-session">4. Joining a session</h2>
 <p>A session you <strong>join</strong> to the voice is a coding-agent session that Pointe can hear about and talk to. It keeps running

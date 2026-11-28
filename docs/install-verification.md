@@ -3,7 +3,8 @@
 A record of the documented install path, followed word for word in an environment with nothing of Pointe's in it.
 Repeat it before a release and add a section on top ([docs/releasing.md](releasing.md)).
 
-The runs below version 0.8.0 are pre-release builds; their versions are those builds' own numbers.
+No run yet for 0.10.x; the newest is 0.9.0. The runs numbered 1.x below it are pre-release builds, from before the
+public 0.8.0; their versions are those builds' own numbers.
 
 ## 2026-11-26, version 0.9.0: the standalone install from github.com
 

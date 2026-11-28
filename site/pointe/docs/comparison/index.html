@@ -184,8 +184,8 @@ Android, Windows and Linux, it supports more agents, and it is widely used (abou
 <ul>
 <li>
 <p><strong>Code decides what a spoken yes approves.</strong> Pointe's daemon reads a request out itself, from the command that will
-  run, only if every part of it is on an allowlist, and takes a plain yes only right after that read-out; anything else
-  waits for a tap (<a href="../security/#what-a-spoken-word-can-do">SECURITY.md</a>). In Happy's Android source the voice model allows or denies through a
+  run: in short when every part of it is on an allowlist, word for word otherwise. It takes a plain yes only right after
+  that read-out; a request that holds a credential-like value is never read out and waits for a tap (<a href="../security/#what-a-spoken-word-can-do">SECURITY.md</a>). In Happy's Android source the voice model allows or denies through a
   tool call, under a prompt rule to wait for the user
   (<a href="https://github.com/slopus/happy/blob/main/packages/happy-android/app/src/main/kotlin/com/slopus/happy/voice/VoiceTools.kt"><code>VoiceTools.kt</code></a>,
   <a href="https://github.com/slopus/happy/blob/main/packages/happy-android/app/src/main/kotlin/com/slopus/happy/voice/VoicePrompts.kt"><code>VoicePrompts.kt</code></a>);
@@ -206,7 +206,7 @@ dictating a prompt and needs a Claude.ai sign-in. Codex voice is a full spoken c
 desktop app it needs a paid ChatGPT plan. Pointe is one conversation over Claude Code, OpenCode and Codex sessions together, on your own
 keys. Dictation and Pointe work side by side.</p>
 <p><strong>The phone remotes</strong> (Remote Control, Moshi, Paseo, Happy) reach your sessions from anywhere with store apps. Pointe's
-iPhone app is built from source for now and reaches the Mac only over a network you set up.</p>
+iPhone app is on the App Store, and reaches the Mac only over a network you set up.</p>
 </article>
 <p class="pg-small dx-source">This page is <a href="https://github.com/ballerine-io/pointe/blob/main/docs/comparison.md">docs/comparison.md</a> in the repository.</p>
 <nav class="dx-pager" aria-label="Previous and next"><a class="dx-prev" href="../"><span class="pg-small">Previous</span>Pointe documentation</a><a class="dx-next" href="../limits/"><span class="pg-small">Next</span>Limits</a></nav>

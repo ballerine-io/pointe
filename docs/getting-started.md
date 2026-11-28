@@ -70,8 +70,9 @@ The page shows the conversation as it happens, what Pointe heard as you speak, a
 with its exact text and **Approve** and **Deny**. You can type instead of talking, and correct a line that was misheard.
 
 When a session asks for permission, Pointe reads the request out and waits. A plain "yes", said right after the
-read-out, approves it. "No" denies it. A request Pointe cannot read out whole (unknown programs, `sudo`, several lines)
-waits for a tap on the page, the iPhone app or the terminal. The exact rules: [How it works](how-it-works.md#rules-enforced-in-code).
+read-out, approves it. "No" denies it. A request Pointe has no short form for (unknown programs, `sudo`, several lines)
+is read word for word, and a yes counts only after all of it. One that holds a credential-like value is never read out:
+it waits for a tap on the page, the iPhone app or the terminal. The exact rules: [How it works](how-it-works.md#rules-enforced-in-code).
 
 To end the call, hang up on the page. To stop Pointe entirely, run `/pointe:stop` (or `pointe stop`).
 

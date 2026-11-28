@@ -156,9 +156,10 @@ only for its keys; [Try it for free or cheap](#try-it-for-free-or-cheap) has the
   `~/.pointe/<version>`; [uv](https://docs.astral.sh/uv/) into `~/.local/bin` if it
   is missing (one pinned version, its installer checked against a SHA-256 first); about 180 MB of Python packages on
   the first run (about 530 MB on disk); and `~/.local/bin/pointe`, so `pointe` is a command in your terminal.
-- **Adds two Claude Code hooks** (the plugin only), active in every session: `PermissionRequest` (while Pointe runs, it holds the
-  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once)
-  and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
+- **Adds four Claude Code hooks** (the plugin only), active in every session: `PermissionRequest` (while Pointe runs, it holds the
+  permission prompts of the sessions you joined so you can answer them by voice; with Pointe stopped it exits at once),
+  `PreToolUse` and `PostToolUse` (`voice-stop-hook`: ends a joined session's turn at its next tool step after you say
+  "stop") and `SessionStart` (one file check, to suggest `/pointe:setup` until it is done).
 - **Runs** one daemon on `127.0.0.1:7860`, started by `/pointe:voice` or `pointe open`, until `/pointe:stop` or a restart of the Mac.
   Nothing starts at login unless you turn that on in the Mac app. During a call from your phone, on mains power, it
   runs `caffeinate -i` so the Mac does not sleep under the call. After you pair a phone it also listens on port 7443.
@@ -233,7 +234,7 @@ lists each model Pointe uses with it (`gemini-3.8-flash`, `gemini-3.5-flash-lite
   to the Unpaid Services." Pointe sends your speech and your sessions' content to the model. Try the free tier on a
   project you could publish. The same terms allow only paid services "when making API Clients available to users" in
   the European Economic Area, Switzerland or the United Kingdom.
-- **It is the weakest keyed setup measured**: replies take about 4 s and there is no echo guard, so use headphones.
+- **Replies take about 4 s** and there is no echo guard, so use headphones.
 
 **A 16 GB Mac.** Fully local mode is not offered below 32 GB: its text model takes 17 GB of memory while it runs. The
 one smaller model measured, Qwen3.5-9B (5.3 to 7.6 GB), passed 62.0% of the brain cases against 76.9%, with 35 unwanted
@@ -265,8 +266,9 @@ name no free credit.
 - `~/.local/bin/pointe`, a three-line script that runs the plugin's `bin/pointe` (or the standalone install's), so
   `pointe` is a command in a new terminal. Each start of Pointe points it at the newest installed version. One you made yourself is never
   replaced.
-- Only if you say yes in `pointe setup codex`: two lines at the end of `~/.zshrc` (or `~/.bash_profile`), the `codex`
-  alias and a comment above it. Only with `pointe setup opencode`: `/voice` for OpenCode, in
+- Only if you say yes in `pointe setup` or `pointe setup codex`: two lines at the end of `~/.zshrc` (or
+  `~/.bash_profile`), the `codex` alias and a comment above it. Only on a yes in `pointe setup`, or with
+  `pointe setup opencode`: `/voice` for OpenCode, in
   `~/.config/opencode/plugins/pointe-voice.ts`.
 - Only if you choose a local setup: local libraries (about 290 MB to download, 1.1 GB on disk) in the plugin's folder,
   and models in `~/.cache/huggingface`. "Voice stays on your Mac" adds 2 GB of models. "Fully local" adds 17.7 GB, and
@@ -281,7 +283,7 @@ and asks before it removes anything, in three groups, each with its own question
   (`defaults delete io.ballerine.pointe.mac`), `/voice` in OpenCode and the `codex` alias if setup added them,
   `~/.cache/pipecat/kokoro-onnx`, and last the standalone install (`~/.pointe`) and the plugin and its marketplace
   (`claude plugin uninstall pointe@pointe`, `claude plugin marketplace remove pointe`). Each install's folder holds its
-  Python packages; the plugin's also holds both hooks.
+  Python packages; the plugin's also holds its hooks.
 - Pointe's keys: the Keychain items `pointe.<vendor>-api-key`. Removed only on a yes to this question, or with
   `--delete-keys`.
 - What another tool may share: keys under the plain names pre-release builds of Pointe used (`gemini-api-key`,

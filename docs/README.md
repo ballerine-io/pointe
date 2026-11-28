@@ -18,7 +18,7 @@ Claude Code, OpenCode and Codex, and runs on your Mac with your own model keys, 
 - [Connect your phone](phone.md): which route to use, pairing, the phone's browser, and troubleshooting.
 - Step by step: [Wi-Fi](phone/wifi.md), [Tailscale](phone/tailscale.md), [Twingate](phone/twingate.md),
   [Cloudflare Tunnel with Access](phone/cloudflare.md).
-- [The iPhone app](iphone-app.md): building it from source until it is in the App Store, alerts and the Apple Watch.
+- [The iPhone app](iphone-app.md): the App Store, TestFlight or a build from source, alerts and the Apple Watch.
 
 ## Models and setups
 

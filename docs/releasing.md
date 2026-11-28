@@ -324,8 +324,8 @@ the tarball, the disk image and the SHA-256 of each; the plugin installs from th
 ## 5. After
 
 - The iPhone app follows its own path to TestFlight and the App Store: `docs/ios/app-store.md`.
-- The Mac app ships as `Pointe-X.Y.Z.dmg` (step 4). Until the iPhone app has a download, people build it with
-  `pointe apps ios`.
+- The Mac app ships as `Pointe-X.Y.Z.dmg` (step 4). The iPhone app is on the App Store and TestFlight;
+  `pointe apps ios` builds it from source.
 - The repository page: the description and topics are set through `gh repo edit`. The social preview image cannot be
   set through the API: upload `docs/social-preview.png` by hand in Settings, General, Social preview, after any change
   to it.

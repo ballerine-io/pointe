@@ -112,3 +112,21 @@ def test_the_people_guides_say_a_person_who_may_send_can_answer_prompts_and_star
         assert not [s for s in stale if s in text], path
     for setting in ("approvals on|off", "starts on|off", "window <seconds>", "hold <seconds>"):
         assert setting in guests.__doc__ and setting.replace("|", "\\|") in _flat("docs/multi-machine.md"), setting
+
+
+def test_install_names_every_claude_code_hook_the_plugin_adds():
+    import json
+
+    hooks = json.loads((ROOT / "hooks" / "hooks.json").read_text())["hooks"]
+    words = {2: "two", 3: "three", 4: "four", 5: "five"}
+    text = _flat("docs/install.md")
+    assert f"Adds {words[len(hooks)]} Claude Code hooks" in text
+    line = text[text.index("Claude Code hooks"):][:700]
+    assert all(f"`{name}`" in line for name in hooks), line
+
+
+def test_the_iphone_app_is_not_described_as_built_from_source_only():
+    for path in ("docs/README.md", "docs/comparison.md", "docs/releasing.md"):
+        text = _flat(path)
+        assert "until it is in the App Store" not in text and "built from source for now" not in text, path
+        assert "Until the iPhone app has a download" not in text, path
