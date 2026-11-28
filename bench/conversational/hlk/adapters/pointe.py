@@ -303,7 +303,7 @@ class Pointe(Base):
         chars = sum(len(m.group(1)) for line in lines if (m := re.search(r"speak: '(.*)'", line)))
         reports = sum(1 for line in lines if re.search(r"notes on .* updated|brain:read:", line))
         checks = sum(1 for line in lines if re.search(r" - -> \S+: |permission \S+ -> ", line))
-        secs = max(0.0, time.time() - self.started_at)
+        secs = max(0.0, time.time() - self.started_at) if self.started_at else 0.0  # a daemon that never started heard nothing
         return [SpendRow("anthropic", brain, "computed", f"{steps} brain steps from daemon.log"),
                 SpendRow("anthropic", reports * PRICES["pointe_reader_report"], "computed", f"{reports} reader reports"),
                 SpendRow("gemini", checks * PRICES["pointe_checker_call"], "computed", f"{checks} checker lines"),

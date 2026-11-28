@@ -174,6 +174,14 @@ def test_pointe_adapter_refuses_the_live_ports_and_a_state_under_home():
         p.denv()
 
 
+def test_a_daemon_that_never_started_costs_no_soniox_time():
+    """A run whose daemon refused to start (its port held by an orphan) was charged two Soniox streams for the whole
+    epoch, $119,724 a row, and the budget gate then refused every later run. The dialogue adapter already guarded this."""
+    from adapters.pointe import Pointe
+    soniox = next(r for r in Pointe(9300).spend() if r.vendor == "soniox")
+    assert soniox.usd == 0.0 and soniox.what == "2 streams x 0 s"
+
+
 def test_committed_rows_hold_no_home_path_or_key_shaped_text():
     for path in sorted((BENCH / "results").glob("*/*.jsonl")) + [BENCH / "results" / "ledger.jsonl"]:
         if path.exists():
