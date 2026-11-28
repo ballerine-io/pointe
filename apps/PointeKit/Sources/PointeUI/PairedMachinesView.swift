@@ -11,6 +11,14 @@ final class MachinesWatch {
 
     func state(_ p: Pairing) -> MachineReach { reach[p.storeKey] ?? .unknown }
 
+    /// The first other route that answers its status, pinned as always; none after a refusal (the caller checks).
+    static func answering(_ p: Pairing) async -> Pairing.Route? {
+        for route in RouteOrder.alternatives(p, ssh: false) {
+            if (try? await API.standalone(DaemonLink(p.using(route))).status()) != nil { return route }
+        }
+        return nil
+    }
+
     func run(_ flow: PairingFlow) async {
         while !Task.isCancelled {
             await check(flow)
@@ -34,10 +42,17 @@ final class MachinesWatch {
                     let here = status.machines?.first(where: \.isHere)
                     reach[p.storeKey] = .answering(sessions: status.sessions.count, need: here?.need ?? 0)
                     flow.learned(p, id: here?.machine_id, name: here?.name)
+                    if let routes = status.routes, !routes.isEmpty { flow.learned(p, routes: routes) }
                     if p.storeKey != current {  // the current machine's alerts come from the call's own poll
                         await AlertCenter.shared.sync(status.attention, api: nil, machines: MachineView(status), from: p)
                     }
                 case .failure(let error):
+                    if case API.Failure.status = error {} else if let route = await Self.answering(p) {
+                        flow.reroute(p, to: route)  // another of its routes answers: use it from now on
+                        downSince[p.storeKey] = nil
+                        reach[p.storeKey] = .unknown
+                        continue
+                    }
                     let link = DaemonLink(p)
                     let problem: ConnectionProblem? = if case API.Failure.status(let code, _) = error { link.problem(status: code) }
                         else { link.problem(error, pinRefused: false) }

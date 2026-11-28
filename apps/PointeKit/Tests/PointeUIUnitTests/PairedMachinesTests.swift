@@ -238,4 +238,36 @@ final class PairedMachinesTests: XCTestCase {
         XCTAssertEqual(Call.handoff(["type": "handoff", "machine": ["id": "", "name": "kite"]]), "kite")
         XCTAssertNil(Call.handoff(["type": "reading", "on": true]))
     }
+
+    // MARK: routes
+
+    func testAMachineLearnsItsOtherRoutesAndTriesThemInOrderNeverSSHOnThePhone() {
+        var p = kite
+        p = p.learning([.init(kind: "host", host: "kite.example.internal", port: 7443), .init(kind: "wifi", host: "192.168.1.20", port: 7443),
+                        .init(kind: "ssh", host: "alon@kite.example.com", port: 7443), .init(kind: "carrier", host: "x", port: 1)])
+        XCTAssertEqual(p.allRoutes.map(\.kind), ["host", "wifi", "ssh"], "its own route first, once; an unknown kind is dropped")
+        XCTAssertEqual(RouteOrder.alternatives(p, ssh: false).map(\.host), ["192.168.1.20"])
+        XCTAssertEqual(RouteOrder.alternatives(p, ssh: true).map(\.kind), ["wifi", "ssh"])
+        let moved = p.using(.init(kind: "wifi", host: "192.168.1.20", port: 7443))
+        XCTAssertEqual(moved.host, "192.168.1.20")
+        XCTAssertEqual(moved.via, "wifi")
+        XCTAssertEqual(moved.fingerprint, p.fingerprint, "every route ends at the same pinned certificate")
+        XCTAssertEqual(moved.key, p.key)
+        XCTAssertEqual(moved.allRoutes.count, 3, "the route it left stays known")
+        XCTAssertEqual(MachineCopy.route("public"), "Public address")
+        XCTAssertEqual(MachineCopy.route("ssh"), "SSH tunnel")
+    }
+
+    func testTheFlowKeepsLearntRoutesAndMovesAMachineToOneThatAnswersWithoutMovingTheCall() {
+        let (machines, _, _) = list()
+        machines.add(mac)
+        machines.add(kite)
+        let flow = flow(Keeper(machines: machines), several: true)
+        flow.select(mac)
+        flow.learned(kite, routes: [.init(kind: "wifi", host: "192.168.1.20", port: 7443)])
+        XCTAssertEqual(flow.pairings[1].allRoutes.count, 2)
+        flow.reroute(flow.pairings[1], to: .init(kind: "wifi", host: "192.168.1.20", port: 7443))
+        XCTAssertEqual(flow.pairings[1].host, "192.168.1.20")
+        XCTAssertEqual(flow.pairing, mac)
+    }
 }

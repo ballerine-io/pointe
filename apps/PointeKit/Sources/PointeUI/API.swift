@@ -77,6 +77,8 @@ struct API {
         var vendor_fault: KeyRefused?  // a vendor out of quota, failing, or gone for the call: the same, Cannot hear you
         var keep_awake: KeepAwake?  // the Mac holds off idle sleep under this call (mac.py); nil from an older Mac
         var machines: [Machine]?    // every machine with sessions on this voice, this Mac included; nil from a Mac without them
+        /// Every way to reach this machine, for a client that holds several (an older machine sends none).
+        @Tolerant var routes: [Pairing.Route]? = nil
         var invite: Invite?         // the one-time code to pair another machine, while one is outstanding
         var invite_ended: String?   // why the last invite ended early: wrong codes, and the addresses they came from
         var starting: [NewSession.Starting]?    // sessions Pointe is starting, or that just failed to; nil from an older Mac

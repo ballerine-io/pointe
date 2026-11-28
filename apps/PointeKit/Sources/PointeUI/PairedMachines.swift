@@ -113,6 +113,14 @@ struct PairedMachines {
     }
 }
 
+/// Which routes to try when the one in use does not answer: the others in order. The iPhone has no SSH client (it would
+/// need a new dependency), so an `ssh` route is the Mac app's only.
+enum RouteOrder {
+    static func alternatives(_ p: Pairing, ssh: Bool) -> [Pairing.Route] {
+        Array(p.allRoutes.dropFirst()).filter { ssh || $0.kind != "ssh" }
+    }
+}
+
 // MARK: - How each machine answers
 
 /// What the list shows for a machine: answering, or why not and since when.
@@ -140,6 +148,8 @@ enum MachineCopy {
         case "tailscale": "Tailscale"
         case "wifi": "Wi-Fi"
         case "host": "Twingate or VPN"
+        case "public": "Public address"
+        case "ssh": "SSH tunnel"
         default: ""
         }
     }

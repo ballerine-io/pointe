@@ -12,8 +12,41 @@ struct Pairing: Codable, Hashable {
     var id: String? = nil
     /// The machine's name, as it calls itself.
     var name: String? = nil
-    /// How this phone reaches it: `tailscale`, `wifi` or `host` (a name the user routes, such as Twingate's).
+    /// How this phone reaches it: `tailscale`, `wifi`, `host` (a name the user routes, such as Twingate's), `public`
+    /// or `ssh` (the Mac app's own tunnel).
     var via: String? = nil
+    /// The machine's other routes, learnt from its status. Every one ends at the same pinned certificate.
+    var routes: [Route]? = nil
+
+    /// One way to reach a machine (docs/design/multi-machine-clients.md, 1.2). For `ssh`, `host` is the SSH target.
+    struct Route: Codable, Hashable, Sendable {
+        let kind: String
+        let host: String
+        let port: Int
+    }
+
+    /// The route in use first, then the others it learnt, each once.
+    var allRoutes: [Route] {
+        var out = [Route(kind: via ?? "host", host: host, port: port)]
+        for r in routes ?? [] where !out.contains(where: { $0.host == r.host && $0.port == r.port }) { out.append(r) }
+        return out
+    }
+
+    /// With the routes a machine's status lists, the ones this app knows how to use (any host it accepts).
+    func learning(_ found: [Route]) -> Pairing {
+        var p = self
+        let known = found.filter { Pairing.route($0.kind) != nil && (1...65535).contains($0.port)
+            && ($0.kind == "ssh" ? $0.host.range(of: #"^[A-Za-z0-9_.-]+@?[A-Za-z0-9.-]+$"#, options: .regularExpression) != nil : Pairing.isHost($0.host)) }
+        p.routes = Array(Pairing(host: host, port: port, fingerprint: fingerprint, key: key, via: via, routes: (routes ?? []) + known).allRoutes.dropFirst())
+        return p
+    }
+
+    /// The same machine over another of its routes: same certificate, same key.
+    func using(_ route: Route) -> Pairing {
+        var p = self
+        p.routes = allRoutes.filter { $0 != route }
+        return Pairing(host: route.host, port: route.port, fingerprint: fingerprint, key: key, id: id, name: name, via: route.kind, routes: p.routes)
+    }
 
     static let supportedVersion = 1
 
@@ -25,7 +58,7 @@ struct Pairing: Codable, Hashable {
     }
 
     /// A route kind a line may name; anything else is not shown.
-    static func route(_ raw: String?) -> String? { raw.flatMap { ["tailscale", "wifi", "host"].contains($0) ? $0 : nil } }
+    static func route(_ raw: String?) -> String? { raw.flatMap { ["tailscale", "wifi", "host", "public", "ssh"].contains($0) ? $0 : nil } }
 
     /// Where this machine is kept among several (docs/design/multi-machine-clients.md, 1.1): its own id, else its
     /// certificate. The same machine paired again lands on the same entry.
@@ -58,12 +91,13 @@ struct Pairing: Codable, Hashable {
             && URL(string: "https://\(host):1") != nil
     }
 
-    init(host: String, port: Int, fingerprint: String, key: String, id: String? = nil, name: String? = nil, via: String? = nil) {
+    init(host: String, port: Int, fingerprint: String, key: String, id: String? = nil, name: String? = nil, via: String? = nil,
+         routes: [Route]? = nil) {
         self.host = host; self.port = port; self.fingerprint = fingerprint; self.key = key
-        self.id = id; self.name = name; self.via = via
+        self.id = id; self.name = name; self.via = via; self.routes = routes
     }
 
-    private enum CodingKeys: String, CodingKey { case host, port, fingerprint, key, id, name, via }
+    private enum CodingKeys: String, CodingKey { case host, port, fingerprint, key, id, name, via, routes }
 
     /// From the Keychain: a pairing an older version saved with a host that makes no URL is not used. One saved before
     /// several machines has no id, name or route.
@@ -73,7 +107,8 @@ struct Pairing: Codable, Hashable {
         guard Pairing.isHost(host) else { throw DecodingError.dataCorruptedError(forKey: .host, in: c, debugDescription: "not a host") }
         self.init(host: host, port: try c.decode(Int.self, forKey: .port), fingerprint: try c.decode(String.self, forKey: .fingerprint),
                   key: try c.decode(String.self, forKey: .key), id: try c.decodeIfPresent(String.self, forKey: .id),
-                  name: try c.decodeIfPresent(String.self, forKey: .name), via: try c.decodeIfPresent(String.self, forKey: .via))
+                  name: try c.decodeIfPresent(String.self, forKey: .name), via: try c.decodeIfPresent(String.self, forKey: .via),
+                  routes: try? c.decodeIfPresent([Route].self, forKey: .routes))
     }
 
     // Never forced: a URL that cannot be made goes nowhere instead of crashing the app.

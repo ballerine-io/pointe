@@ -268,6 +268,26 @@ final class PairingFlow {
         reload()
     }
 
+    /// Routes its status listed: kept, so the machine is reached another way when this one fails.
+    func learned(_ p: Pairing, routes: [Pairing.Route]) {
+        guard let entry = pairings.first(where: { PairedMachines.same($0, p) }) else { return }
+        replace(entry, with: entry.learning(routes))
+    }
+
+    /// The machine answered on another of its routes: that one is used from now on.
+    func reroute(_ p: Pairing, to route: Pairing.Route) {
+        guard let entry = pairings.first(where: { PairedMachines.same($0, p) }) else { return }
+        replace(entry, with: entry.using(route))
+    }
+
+    private func replace(_ entry: Pairing, with better: Pairing) {
+        guard better != entry else { return }
+        let current = pairing
+        keeper.add(better)
+        if let current, !PairedMachines.same(current, entry) { keeper.select(current) }
+        reload()
+    }
+
     /// The list's Remove, after its confirm: this machine only. Taking access away needs no Face ID.
     func remove(_ p: Pairing) {
         keeper.remove(p)
