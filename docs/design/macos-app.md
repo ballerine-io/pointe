@@ -31,7 +31,8 @@ lifecycle, distribution and the security rules.
  notifications ─┘    actions: approve, switch, say, dump, prefs
                      CallLink: one WebSocket, ws://127.0.0.1:<port>/voice/call
                        up: 16-bit PCM 16 kHz, 20 ms chunks      down: 16-bit PCM 24 kHz
-                       text: hello (protocol 4), ping/pong, its own keep-alive, ptt, interrupt
+                       (IMA ADPCM both ways when the app offers it: protocol 5)
+                       text: hello (protocol 5), ping/pong, its own keep-alive, ptt, interrupt
                                   │ loopback only, a proof of the page's key on each request
                      daemon.py on 127.0.0.1:7860 (unchanged)
 ```
@@ -39,7 +40,7 @@ lifecycle, distribution and the security rules.
 ### Which protocol
 
 The page's, on loopback: plain HTTP and one WebSocket on `127.0.0.1:<port>`. `/voice/call` is `socket_call(websocket,
-"page")` in `daemon.py`: the same wire format as the phone's `/voice/phone` (`phone.py`, protocol 4), behind the page's
+"page")` in `daemon.py`: the same wire format as the phone's `/voice/phone` (`phone.py`, protocol 5), behind the page's
 key. The phone's TLS listener is for another device: it needs a certificate, a pairing and an open address, and on the
 same Mac it would only add ways to fail. On loopback the app is "the page on this Mac" to every rule that asks
 (`_off_the_mac` is false: show while it says is allowed, alerts are never held as "at the Mac", the keep-awake rule

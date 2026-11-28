@@ -81,3 +81,19 @@ def test_the_docs_say_a_request_with_no_short_form_is_read_word_for_word():
         assert "Anything else waits for a tap" not in text, path
     assert "word for word" in _flat("docs/architecture.md")
 
+
+def test_the_mac_app_design_names_the_call_protocol_the_daemon_speaks():
+    import phone
+
+    text = (ROOT / "docs" / "design" / "macos-app.md").read_text()
+    current = text[:text.index("## Verification")]  # the dated record below says what was true that day
+    said = set(re.findall(r"protocol (\d+)", current))
+    assert said == {str(phone.PROTOCOL)}, said
+    swift = (ROOT / "apps" / "PointeKit" / "Sources" / "PointeKit" / "Wire.swift").read_text()
+    assert f"protocolVersion = {phone.PROTOCOL}" in swift
+
+
+def test_the_multi_machine_design_does_not_call_the_built_hub_unbuilt():
+    status = next(l for l in (ROOT / "docs" / "design" / "multi-machine.md").read_text().splitlines()
+                  if l.startswith("Status:"))
+    assert "not built;" not in status and (ROOT / "pointe" / "hub_nodes.py").exists(), status

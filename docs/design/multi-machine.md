@@ -1,6 +1,10 @@
 # Multi-machine Pointe: one voice over sessions on several machines
 
-Status: design, not built; revised after an independent review. Line numbers are from a pre-release `main` (2026-11).
+Status: built (`pointe/hub_nodes.py`, `pointe/node.py`, `pointe/harnesses/remote.py`; `pointe hub`, `pointe node`); the
+user guide is [docs/multi-machine.md](../multi-machine.md). Not built: phase 2 at the end of "Build plan" (show while it
+says, challenge diffs and forked side questions for a session on another machine). `bin/voice-remote` was kept: it
+still sets up the phone's private-network route. The open question at the end was decided as proposed: `remote_taps`
+defaults to `trusted`. The rest is the design as reviewed; line numbers are from a pre-release `main` (2026-11).
 
 A client now pairs with several machines, each a full voice: [multi-machine-clients.md](multi-machine-clients.md).
 
