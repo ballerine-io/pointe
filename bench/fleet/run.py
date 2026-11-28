@@ -244,17 +244,18 @@ def commit_of(checkout: Path) -> dict:
 class Launch:
     """One fleet brought up for one run: its folder in /tmp, its results folder, its spend."""
 
-    def __init__(self, what: str, size: str, arm: str, models: str, checkout: Path, label: str = ""):
+    def __init__(self, what: str, size: str, arm: str, models: str, checkout: Path, label: str = "",
+                 described: dict | None = None, fleet_class: type = sim.FleetSim):
         assert arm in ARMS
         assert (arm == "baseline") == (checkout != ROOT), "baseline is another checkout (--checkout); the fleet arms are this one"
         self.what, self.size, self.arm, self.models, self.checkout = what, size, arm, models, checkout
         self.id = f"fleet-{time.strftime('%Y%m%d-%H%M%S')}-{what}-{size}-{arm}{'-stub' if models == 'stub' else ''}{label}"
-        self.described = dataset.load(size)[0] if size in dataset.SIZES else gen.fleet(size)
+        self.described = described or (dataset.load(size)[0] if size in dataset.SIZES else gen.fleet(size))
         self.out = RESULTS / self.id
         self.root = Path(tempfile.mkdtemp(prefix="pfb-", dir="/tmp"))
         env = {"POINTE_FLEET": ARMS[arm]} if ARMS[arm] else {}
         notes = NOTES / arm / size if models == "real" else None
-        self.fleet = sim.FleetSim(self.described, self.root / "f", models, env, notes, checkout)
+        self.fleet = fleet_class(self.described, self.root / "f", models, env, notes, checkout)
         self.watch: Watch | None = None
         self.renamed_turns: set[str] = set()
         self.near_turns: set[str] = set()

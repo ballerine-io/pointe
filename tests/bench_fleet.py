@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 FLEET = Path(__file__).resolve().parents[1] / "bench" / "fleet"
-NAMES = ("gen", "score", "turns", "sim", "run", "report")
+NAMES = ("gen", "score", "turns", "sim", "run", "report", "vendors", "dialogue")
 
 
 def load(*names: str) -> list:

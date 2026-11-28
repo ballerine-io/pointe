@@ -46,7 +46,7 @@ def counted(run: dict) -> bool:
         return False
     if m["what"] == "turns":
         return m["models"] == "real" and not m.get("limit")
-    if m["what"] == "burst":
+    if m["what"] in ("burst", "dialogue"):
         return m["models"] == "real"
     return m["what"] in ("readers", "up")
 
@@ -315,6 +315,8 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     else:
         out += ["Not run.", ""]
 
+    out += dialogue_section([r for r in sorted(used, key=lambda r: r["manifest"]["started"]) if r["manifest"]["what"] == "dialogue"], build)
+
     sims = [(r["manifest"], row) for r in used for row in r["rows"] if row["kind"] == "sim"]
     out += ["## The simulator on this machine", ""]
     if sims:
@@ -384,6 +386,48 @@ def render(runs: list[dict], frozen: dict, dataset_sha: str, fleets: dict[str, d
     if not bursts:
         out.append("- **Not run:** 30 sessions ending their turn within a minute (a paid run), at any size or arm.")
     return "\n".join(out) + "\n"
+
+
+def dialogue_section(runs: list[dict], build) -> list[str]:
+    """The fleet dialogues (bench/fleet/dialogue.py): one row a run, each step pass or FAIL with what decided it."""
+    out = ["## Fleet dialogues: 8, 15 and 30 sessions, two machines, three harnesses", ""]
+    if not runs:
+        return out + ["Not run.", ""]
+    out += ["| Run | Build | Arm | Sessions | Overview | By name | By topic | Three approvals at once | Flood of reports | Dialogue |",
+            "|" + "---|" * 10]
+    for r in runs:
+        steps = [x for x in r["rows"] if x["kind"] == "dialogue_step"]
+        summary = next((x for x in r["rows"] if x["kind"] == "dialogue"), {})
+
+        def cell(kind: str) -> str:
+            xs = [x for x in steps if x["step"] == kind]
+            if not xs:
+                return "not run"
+            verdict = "pass" if all(x["passed"] for x in xs) else "**FAIL**"
+            x = xs[-1]
+            if kind in ("name", "topic"):
+                return f"{verdict}: {sum(x['passed'] for x in xs)} of {len(xs)} to the one session named"
+            if kind == "approvals":
+                allowed = sum(v == "allow" for v in x["verdicts"].values())
+                return (f"{verdict}: {x['pending_at_once']} pending at once, {len(x['read_out'])} read out, {allowed} of "
+                        f"{len(x['verdicts'])} allowed in {x['taps']} taps, {x['stray_answers']} stray")
+            if kind == "flood":
+                return (f"{verdict}: {len(x['finished'])} finished, {x['report_lines']} report lines, {x['named_in_held']} held, "
+                        f"{len(x['lost'])} lost")
+            return verdict + (f": missing {x['why']}" if x.get("why") else "")
+
+        result = "pass" if summary.get("passed") else f"**FAIL**{': ' + summary['error'] if summary.get('error') else ''}"
+        out.append(f"| {r['manifest']['run']} | `{build(r)}` | {r['manifest']['arm']} | {summary.get('sessions', 'n/a')} | "
+                   f"{cell('overview')} | {cell('name')} | {cell('topic')} | {cell('approvals')} | {cell('flood')} | {result} |")
+    out += ["", "Each machine runs sessions of all three harnesses: Claude Code stand-ins, and Codex and OpenCode sessions held "
+            "by a fake Codex daemon and a fake OpenCode service on each machine, reached through Pointe's own adapters. "
+            "The rules, written before any paid row (`bench/fleet/dialogue.py`): the overview gives each machine's number of "
+            "sessions and names both sessions waiting on a question; a request by name or by topic reaches that session and "
+            "no other; three approvals asked at once (one per harness, on both machines) are all pending on the page together, "
+            "each is read out, each is allowed by a tap on the page (a typed yes never answers an approval), and no other "
+            "approval is answered; in the flood every finished turn is said or held and at most "
+            "four spoken lines are reports. One dialogue a size: each step is n = 1, pass or fail, with no interval.", ""]
+    return out
 
 
 def write(results: Path, out: Path, frozen_path: Path, dataset_sha: str, fleets: dict[str, dict]) -> str:
