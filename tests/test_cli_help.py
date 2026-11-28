@@ -99,3 +99,30 @@ def test_uninstall_counts_the_hooks_the_plugin_adds():
     word = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six"}[count]
     assert f"its {word} hooks" in uninstall.PLUGIN_BY_HAND
     assert set(re.findall(r"its (\w+) hooks", (ROOT / "pointe" / "uninstall.py").read_text())) == {word}
+
+
+@pytest.mark.parametrize("grant", __import__("nodelink").GRANTS)
+def test_people_grant_says_the_grant_it_set(grant, monkeypatch, capsys):
+    """`pointe people grant NAME mine` was accepted and printed "may now watch only": each grant in nodelink.GRANTS has
+    its own line, and no other grant's."""
+    import guests
+    import hub_nodes
+
+    posted = []
+    monkeypatch.setattr(hub_nodes, "_daemon", lambda method, path, body=None: posted.append((path, body)) or {"ok": True})
+    guests._people(["grant", "Dana", grant])
+    said = capsys.readouterr().out
+    assert posted == [("/voice/people/grant", {"name": "Dana", "grant": grant})]
+    assert said.strip() == guests.GRANT_SAID[grant].format(name="Dana")
+    assert set(guests.GRANT_SAID) == set(guests.GRANTS) and len(set(guests.GRANT_SAID.values())) == len(guests.GRANTS)
+
+
+def test_people_help_offers_every_grant(pointe):
+    import guests
+    import nodelink
+
+    script, calls, env = pointe
+    got = subprocess.run([str(script), "people", "--help"], env=env, capture_output=True, text=True)
+    grants = "|".join(nodelink.GRANTS)
+    assert f"people grant NAME {grants} " in got.stdout, got.stdout
+    assert f"pointe people grant <name> {grants} " in guests.__doc__

@@ -383,7 +383,7 @@ def test_each_refusal_is_one_sentence_a_person_can_read(served, monkeypatch):
     assert taken.status_code == 409 and taken.text == "A person called dana is already on this machine."
     assert post("/voice/people/invite", json={"name": "!!"}).status_code == 409
     bad = post("/voice/people/invite", json={"name": "Erin", "grant": "admin"})
-    assert bad.status_code == 409 and "send or watch" in bad.text
+    assert bad.status_code == 409 and all(g in bad.text for g in nodelink.GRANTS)  # "mine" was missing
     assert post("/voice/people/grant", json={"name": "Dana", "grant": "admin"}).status_code == 409
     gone = post("/voice/people/grant", json={"name": "Erin", "grant": "watch"})
     assert gone.status_code == 404 and gone.text == "Nobody called Erin is on this machine."

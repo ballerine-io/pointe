@@ -9,7 +9,7 @@ here, never by their voice: which sessions cross, who may send, and whose name a
   pointe people invite <name> --another-voice  a line for that person's second voice (another machine of theirs): the same person
   pointe people invite <name> --mine         a line for another machine of your own: its voice reaches this one as you
                                              (pointe machines link <name> is the same)
-  pointe people grant <name> send|watch      change what a person may do
+  pointe people grant <name> send|watch|mine change what a person may do (mine: a machine of your own)
   pointe people remove <name>                take a person off: their key is deleted and their link is closed
   pointe people approvals on|off             people who may send can answer a session's permission prompt, or not
   pointe people starts on|off                people who may send can start a session here, or not
@@ -76,6 +76,7 @@ SETTINGS = {"approve": ("anyone", "off"), "start": ("on", "off"), "sessions_ask"
 DEFAULTS = {"approve": "anyone", "start": "on", "sessions_ask": "default", "owner_first_secs": OWNER_FIRST_SECS,
             "people_hold_secs": PEOPLE_HOLD_SECS}
 SECONDS = {"owner_first_secs": (0.0, OWNER_FIRST_MAX_SECS), "people_hold_secs": PEOPLE_HOLD_RANGE}
+GRANT_PROBLEM = f"A grant is one of {', '.join(GRANTS)}: say which."
 SETTING_PROBLEM = ("People's approvals are anyone or off, starts are on or off, their sessions follow default or ask, "
                    f"the owner-first time is 0 to {OWNER_FIRST_MAX_SECS:.0f} seconds, and a prompt is held for people "
                    f"{PEOPLE_HOLD_RANGE[0]:.0f} to {PEOPLE_HOLD_RANGE[1]:.0f} seconds.")
@@ -1546,7 +1547,7 @@ def install(app, host: HostSide, link: Callable[[str, str], str] | None = None, 
         name = " ".join(str(body.get("name") or "").split())
         grant = body.get("grant", "send")
         if grant not in GRANTS:
-            return PlainTextResponse("A person may send or watch: say which.", status_code=409)
+            return PlainTextResponse(GRANT_PROBLEM, status_code=409)
         same = host.people.by_name(name) if body.get("another_voice") is True else None
         if body.get("another_voice") is True and same is None:
             return PlainTextResponse(f"Nobody called {name} is on this machine yet: invite them first.", status_code=409)
@@ -1578,7 +1579,7 @@ def install(app, host: HostSide, link: Callable[[str, str], str] | None = None, 
         body = await body_of(request)
         name = str(body.get("name") or "")
         if body.get("grant") not in GRANTS:
-            return PlainTextResponse("A person may send or watch: say which.", status_code=409)
+            return PlainTextResponse(GRANT_PROBLEM, status_code=409)
         return {"ok": True} if await host.grant(name, body["grant"]) else no_person(name)
 
     @app.get("/voice/people/settings")
@@ -1680,7 +1681,7 @@ def _people(argv: list[str]) -> None:
     elif command == "grant" and len(argv) > 2 and argv[-1] in GRANTS:
         name = " ".join(argv[1:-1])
         _daemon("POST", "/voice/people/grant", {"name": name, "grant": argv[-1]})
-        print(f"{name} may now send to this machine's sessions." if argv[-1] == "send" else f"{name} may now watch only.")
+        print(GRANT_SAID[argv[-1]].format(name=name))
     elif command in _SETTING_WORDS and len(argv) == 2 and argv[1] in _SETTING_WORDS[command][1]:
         key, values, said = _SETTING_WORDS[command]
         _daemon("POST", "/voice/people/settings", {key: values[argv[1]]})
@@ -1696,6 +1697,10 @@ def _people(argv: list[str]) -> None:
     else:
         print(__doc__.split("\n\n", 1)[1].rstrip())
 
+
+# pointe people grant <name> <grant>: what is printed, one line per grant in nodelink.GRANTS.
+GRANT_SAID = {"send": "{name} may now send to this machine's sessions.", "watch": "{name} may now watch only.",
+              "mine": "{name} is now a machine of your own: its voice reaches this one as you."}
 
 # pointe people <word> <value>: the setting, the value each word means, and what is printed.
 _SETTING_WORDS = {
