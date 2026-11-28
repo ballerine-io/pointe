@@ -1,0 +1,126 @@
+{
+ "run": "fleet-20261128-100336-dialogue-2m8-fleet-on",
+ "what": "dialogue",
+ "size": "2m8",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "b2be0b5b2f29198af3227dcd264dcccfc0313714",
+  "pointe_tree": "1b78e33c742113d36a976370282932f0a3ef8f84",
+  "pointe_commit": "bc2693c2b084e4d7ee2402641f197b4f1502d46c",
+  "dirty_pointe": false
+ },
+ "harness_commit": "b2be0b5b2f29198af3227dcd264dcccfc0313714",
+ "fleet_sha256": "d6787e14c971f5be1e5b4d1601bd475fd9b0de10305c2b7546b6a9d4358dca1a",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-28T10:03:36+0200",
+ "load_start": 1.78076171875,
+ "machine": "arm64, 18 cores",
+ "dialogue_seed": 20261128,
+ "notes_restored": {
+  "with_notes": 0,
+  "sessions": 8
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 165.5,
+   "cpu_secs": 0.95
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 66.8,
+  "nodes_cpu_secs": 0.22,
+  "runner": {
+   "rss_mb": 47.0,
+   "cpu_secs": 0.31
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 1.1,
+  "nodes_up_secs": 0.4,
+  "sessions_joined_secs": 0.8
+ },
+ "sessions_with_notes": 2,
+ "names": {
+  "c0120c50-b93a-4c63-92c8-6d5ad5faf3b0": "trowel",
+  "165e968f-72ad-4648-a318-2c5696138e34": "clover",
+  "ses_c64db446d5a34688ac51a5de650ee1a2": "oasis",
+  "1616584c-8a59-4dc0-af67-679e7480048c": "obsidian",
+  "523b1d8c-4f8f-4e7e-991d-572987ed33fd": "riddle",
+  "ses_3c6e07e1eecf689494983e894c9471ce": "orchid",
+  "9f6d72ac-4156-439a-909f-f02a15c4a711": "fondue",
+  "a02b0c97-f598-4b00-a883-38264f326cbe": "granite"
+ },
+ "notes_sha256": "db6c5c817c20f583139e65f8b3d14bd82f5e9af9d6a39b0a3b73aef73e89497d",
+ "setup_calls": {
+  "reader": 2,
+  "brain": 0
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='gemini', mouth='gemini:gemini-3.8-flash-lite-tts', notes=['Use headphones: on speakers Pointe can hear itself.'])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 195.7,
+   "cpu_secs": 1.36
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 66.9,
+  "nodes_cpu_secs": 0.25,
+  "runner": {
+   "rss_mb": 47.5,
+   "cpu_secs": 0.41
+  },
+  "threads": 6
+ },
+ "ended": "2026-11-28T10:05:41+0200",
+ "load_end": 5.1162109375,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 202.2,
+   "cpu_secs": 2.86
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 68.0,
+  "nodes_cpu_secs": 0.76,
+  "runner": {
+   "rss_mb": 47.9,
+   "cpu_secs": 1.61
+  },
+  "threads": 6
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.133422,
+  "by": {
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 12,
+    "usd": 0.063854,
+    "tokens_in": 14797,
+    "tokens_out": 3426
+   },
+   "anthropic:claude-sonnet-5-5 brain (vendor counts)": {
+    "calls": 7,
+    "usd": 0.062596,
+    "tokens_in": 105010,
+    "tokens_out": 458
+   },
+   "gemini:gemini-3.5-flash-lite ask (vendor counts)": {
+    "calls": 3,
+    "usd": 0.000808,
+    "tokens_in": 2577,
+    "tokens_out": 14
+   },
+   "anthropic:claude-sonnet-5-5 _send_now (vendor counts)": {
+    "calls": 1,
+    "usd": 0.005132,
+    "tokens_in": 156,
+    "tokens_out": 482
+   },
+   "gemini:gemini-3.5-flash-lite _classify_target (vendor counts)": {
+    "calls": 3,
+    "usd": 0.001031,
+    "tokens_in": 3388,
+    "tokens_out": 6
+   }
+  }
+ }
+}

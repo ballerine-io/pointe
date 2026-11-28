@@ -1,0 +1,576 @@
+{
+ "size": "dialogue-30",
+ "seed": 20261128,
+ "machines": [
+  "studio",
+  "avi-box"
+ ],
+ "voice_machine": "studio",
+ "sessions": [
+  {
+   "id": "278584b0-b2ef-450f-b270-a517e674be03",
+   "machine": "studio",
+   "name": "keystone",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "wishlist migration",
+   "goal": "Make the wishlist migration safe to run twice with the same input.",
+   "files": [
+    "wishlist_migration.py",
+    "test_wishlist_migration.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic"
+   ],
+   "finish_at": 8.33
+  },
+  {
+   "id": "eb7fb38b-21f8-4721-bcf1-45de332ae9b0",
+   "machine": "studio",
+   "name": "linnet",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "refund parser",
+   "goal": "Cut the refund parser's cold start time by half.",
+   "files": [
+    "refund_parser.py",
+    "test_refund_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 9.15
+  },
+  {
+   "id": "ses_a525889462b1709fbe161bc525121495",
+   "machine": "studio",
+   "name": "quinoa",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "quota resolver",
+   "goal": "Add structured logging to the quota resolver and remove the print calls.",
+   "files": [
+    "quota_resolver.py",
+    "test_quota_resolver.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 3.58
+  },
+  {
+   "id": "9a2b7dcd-fa63-46c6-8fdf-f7fb7a598815",
+   "machine": "studio",
+   "name": "pixel",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "profile sampler",
+   "goal": "Split the profile sampler into a reader and a writer with a clear interface.",
+   "files": [
+    "profile_sampler.py",
+    "test_profile_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 9.66
+  },
+  {
+   "id": "b579c3c9-76c0-4e98-906a-a9b01c247eff",
+   "machine": "studio",
+   "name": "savanna",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "ticket importer",
+   "goal": "Make the ticket importer safe to run twice with the same input.",
+   "files": [
+    "ticket_importer.py",
+    "test_ticket_importer.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the ticket importer keep the old records, or may I drop them?"
+  },
+  {
+   "id": "ses_7bf654b5fc076387cda2e13f1eb51c08",
+   "machine": "studio",
+   "name": "dill",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "tariff batcher",
+   "goal": "Cut the tariff batcher's cold start time by half.",
+   "files": [
+    "tariff_batcher.py",
+    "test_tariff_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 3.98
+  },
+  {
+   "id": "f45e589b-d529-41d7-ae85-1dd3dd81a104",
+   "machine": "studio",
+   "name": "orbit",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "coupon digest",
+   "goal": "Split the coupon digest into a reader and a writer with a clear interface.",
+   "files": [
+    "coupon_digest.py",
+    "test_coupon_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.67
+  },
+  {
+   "id": "4d54c973-7fc9-4d0a-8afa-1bd24bb9c0fd",
+   "machine": "studio",
+   "name": "ratchet",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "receipt indexer",
+   "goal": "Add retries with backoff to the receipt indexer and cover them with tests.",
+   "files": [
+    "receipt_indexer.py",
+    "test_receipt_indexer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic"
+   ],
+   "finish_at": 2.14
+  },
+  {
+   "id": "ses_d799ae9c4701624ff58723d9c51cd6a2",
+   "machine": "studio",
+   "name": "wicker",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "warranty sampler",
+   "goal": "Make the warranty sampler safe to run twice with the same input.",
+   "files": [
+    "warranty_sampler.py",
+    "test_warranty_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "459f5d7f-2447-4cd3-b0e7-9e9d523735a1",
+   "machine": "studio",
+   "name": "magpie",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "booking dashboard",
+   "goal": "Migrate the booking dashboard to the new schema without downtime.",
+   "files": [
+    "booking_dashboard.py",
+    "test_booking_dashboard.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "a7b8682d-a793-48ef-bea3-68357dff9b60",
+   "machine": "studio",
+   "name": "zipper",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "banner batcher",
+   "goal": "Find why the banner batcher drops records under load and fix it.",
+   "files": [
+    "banner_batcher.py",
+    "test_banner_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 0.49
+  },
+  {
+   "id": "ses_c3b954c7ade6630dc844abd59b3b2461",
+   "machine": "studio",
+   "name": "cactus",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "pricing cache",
+   "goal": "Add retries with backoff to the pricing cache and cover them with tests.",
+   "files": [
+    "pricing_cache.py",
+    "test_pricing_cache.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 7.7
+  },
+  {
+   "id": "fd95ed05-39a0-409e-842d-3943b0f2969e",
+   "machine": "studio",
+   "name": "lupin",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "loyalty importer",
+   "goal": "Split the loyalty importer into a reader and a writer with a clear interface.",
+   "files": [
+    "loyalty_importer.py",
+    "test_loyalty_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.81
+  },
+  {
+   "id": "fa32f984-058a-4bea-93b8-5ab35f6d305c",
+   "machine": "studio",
+   "name": "chalk",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "tenant validator",
+   "goal": "Migrate the tenant validator to the new schema without downtime.",
+   "files": [
+    "tenant_validator.py",
+    "test_tenant_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 5.37
+  },
+  {
+   "id": "ses_eec7fddcbce144f853fedda33b6e469b",
+   "machine": "studio",
+   "name": "indigo",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "delivery sampler",
+   "goal": "Migrate the delivery sampler to the new schema without downtime.",
+   "files": [
+    "delivery_sampler.py",
+    "test_delivery_sampler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.42
+  },
+  {
+   "id": "8ab7e5f3-d7d3-4e27-8368-c00aa1beeeab",
+   "machine": "avi-box",
+   "name": "reed",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "dispatch queue",
+   "goal": "Migrate the dispatch queue to the new schema without downtime.",
+   "files": [
+    "dispatch_queue.py",
+    "test_dispatch_queue.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 8.45
+  },
+  {
+   "id": "ab8d1746-a32c-4785-8916-5b624614ffb6",
+   "machine": "avi-box",
+   "name": "kite",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "shipment archive",
+   "goal": "Cut the shipment archive's cold start time by half.",
+   "files": [
+    "shipment_archive.py",
+    "test_shipment_archive.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 0.0
+  },
+  {
+   "id": "ses_9b585452830da693e2753418604e0851",
+   "machine": "avi-box",
+   "name": "vega",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "currency validator",
+   "goal": "Move the currency validator off the deprecated client library.",
+   "files": [
+    "currency_validator.py",
+    "test_currency_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 1.7
+  },
+  {
+   "id": "caf9f059-f392-4507-85db-d88c10aa9d0d",
+   "machine": "avi-box",
+   "name": "knight",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "audit batcher",
+   "goal": "Migrate the audit batcher to the new schema without downtime.",
+   "files": [
+    "audit_batcher.py",
+    "test_audit_batcher.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the audit batcher keep the old records, or may I drop them?"
+  },
+  {
+   "id": "4223370e-97e3-43c7-83d7-33d93c179829",
+   "machine": "avi-box",
+   "name": "lodge",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "roster webhook",
+   "goal": "Make the roster webhook safe to run twice with the same input.",
+   "files": [
+    "roster_webhook.py",
+    "test_roster_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 9.52
+  },
+  {
+   "id": "ses_e9c84abd74e99944bd3d0be918d95e0d",
+   "machine": "avi-box",
+   "name": "mortar",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "catalog watchdog",
+   "goal": "Migrate the catalog watchdog to the new schema without downtime.",
+   "files": [
+    "catalog_watchdog.py",
+    "test_catalog_watchdog.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 8.54
+  },
+  {
+   "id": "28f9dbc0-b782-45b0-b9e2-96addd897d1b",
+   "machine": "avi-box",
+   "name": "kiln",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "voucher digest",
+   "goal": "Cut the voucher digest's cold start time by half.",
+   "files": [
+    "voucher_digest.py",
+    "test_voucher_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 3.74
+  },
+  {
+   "id": "87a2fa6b-d69a-4698-891b-932b8e0ff8ed",
+   "machine": "avi-box",
+   "name": "brass",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "billing notifier",
+   "goal": "Move the billing notifier off the deprecated client library.",
+   "files": [
+    "billing_notifier.py",
+    "test_billing_notifier.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.46
+  },
+  {
+   "id": "ses_5e0722021a1ceacf087758cddddcb25c",
+   "machine": "avi-box",
+   "name": "tuff",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "survey archive",
+   "goal": "Make the survey archive safe to run twice with the same input.",
+   "files": [
+    "survey_archive.py",
+    "test_survey_archive.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 0.84
+  },
+  {
+   "id": "ee2a0bda-4a55-4a80-8120-0e4e429756d3",
+   "machine": "avi-box",
+   "name": "acorn",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "invoice export",
+   "goal": "Find why the invoice export drops records under load and fix it.",
+   "files": [
+    "invoice_export.py",
+    "test_invoice_export.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 0.27
+  },
+  {
+   "id": "0f70a40a-8ef1-400a-83b2-2566f4c6bc8b",
+   "machine": "avi-box",
+   "name": "oxygen",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "inventory migration",
+   "goal": "Add retries with backoff to the inventory migration and cover them with tests.",
+   "files": [
+    "inventory_migration.py",
+    "test_inventory_migration.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "ses_8ba05db1ce128e7f3e08e5ba63d3a1d3",
+   "machine": "avi-box",
+   "name": "fondue",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "consent batcher",
+   "goal": "Find why the consent batcher drops records under load and fix it.",
+   "files": [
+    "consent_batcher.py",
+    "test_consent_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 2.95
+  },
+  {
+   "id": "eb90beea-cf1c-4310-b19b-bda7ae2b7073",
+   "machine": "avi-box",
+   "name": "hangar",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "payroll batcher",
+   "goal": "Add structured logging to the payroll batcher and remove the print calls.",
+   "files": [
+    "payroll_batcher.py",
+    "test_payroll_batcher.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.02
+  },
+  {
+   "id": "201ce5be-9dd4-4bde-a48c-ddff3f436b5b",
+   "machine": "avi-box",
+   "name": "mint",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "signup cache",
+   "goal": "Add retries with backoff to the signup cache and cover them with tests.",
+   "files": [
+    "signup_cache.py",
+    "test_signup_cache.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 6.33
+  },
+  {
+   "id": "ses_e23211eca71cb0a4addf4f9be6c744d8",
+   "machine": "avi-box",
+   "name": "sencha",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "returns parser",
+   "goal": "Migrate the returns parser to the new schema without downtime.",
+   "files": [
+    "returns_parser.py",
+    "test_returns_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic"
+   ],
+   "finish_at": 8.08
+  }
+ ],
+ "sha256": "c5fc3f4b0e1baa8ecd08052dc07af8e3f48182e99c49a4ed61b922cfc957cd47"
+}

@@ -1,0 +1,194 @@
+{
+ "run": "fleet-20261128-084755-turns-1x4-fleet-on-r1",
+ "what": "turns",
+ "size": "1x4",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "0fbcfaef23e7f26d7041f00d068a6b0555ff8a6c",
+  "pointe_tree": "1b78e33c742113d36a976370282932f0a3ef8f84",
+  "pointe_commit": "bc2693c2b084e4d7ee2402641f197b4f1502d46c",
+  "dirty_pointe": false
+ },
+ "harness_commit": "0fbcfaef23e7f26d7041f00d068a6b0555ff8a6c",
+ "fleet_sha256": "f9280647a063e18d1344d6885ad90a39e04f996652b81c09517eb1b35c48cedf",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-28T08:47:55+0200",
+ "load_start": 7.18017578125,
+ "machine": "arm64, 18 cores",
+ "seed": 20261127,
+ "order": [
+  "clear_name-02",
+  "ambiguous_none-05",
+  "clear_name-16",
+  "needs_me-04",
+  "clear_name-19",
+  "ambiguous_description-04",
+  "needs_me-05",
+  "clear_name-09",
+  "clear_name-10",
+  "clear_name-18",
+  "clear_description-03",
+  "clear_name-15",
+  "clear_name-17",
+  "clear_name-05",
+  "needs_me-03",
+  "clear_description-07",
+  "on_machine-05",
+  "ambiguous_none-01",
+  "clear_name-13",
+  "ambiguous_description-03",
+  "on_machine-04",
+  "clear_description-09",
+  "on_machine-02",
+  "clear_name-01",
+  "clear_name-03",
+  "clear_description-06",
+  "clear_description-11",
+  "ambiguous_none-03",
+  "clear_description-08",
+  "clear_description-00",
+  "ambiguous_description-05",
+  "on_machine-03",
+  "ambiguous_none-00",
+  "needs_me-00",
+  "needs_me-01",
+  "clear_name-07",
+  "on_machine-00",
+  "ambiguous_none-02",
+  "clear_name-12",
+  "clear_name-08",
+  "clear_name-04",
+  "clear_name-20",
+  "ambiguous_description-01",
+  "clear_description-01",
+  "on_machine-01",
+  "clear_description-02",
+  "ambiguous_description-02",
+  "ambiguous_none-04",
+  "clear_description-04",
+  "needs_me-02",
+  "clear_description-10",
+  "clear_description-05",
+  "clear_name-11",
+  "clear_name-00",
+  "ambiguous_none-06",
+  "ambiguous_description-00",
+  "clear_name-06",
+  "ambiguous_description-06",
+  "clear_name-21",
+  "clear_name-14"
+ ],
+ "limit": 0,
+ "notes_restored": {
+  "with_notes": 4,
+  "sessions": 4
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 173.6,
+   "cpu_secs": 1.23
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 38.4,
+   "cpu_secs": 0.15
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 1.5,
+  "nodes_up_secs": 0.0,
+  "seed_secs": 0.5,
+  "sessions_joined_secs": 0.0
+ },
+ "sessions_with_notes": 4,
+ "names": {
+  "4b726291-e39e-4dbe-960f-fadf19f2229c": "beacon",
+  "96e1a48c-42c4-49fd-a68f-8bcf52d447c6": "meteor",
+  "956e7361-d357-4203-8bbd-5949866a57c1": "harbor",
+  "d447c8ee-e734-458d-bd40-bdd6d4ebe07f": "finch"
+ },
+ "notes_sha256": "1d7fec23d546c95e6a002016d4ac97afdb43526ffa9dfc9e9c114625e72dfb27",
+ "setup_calls": {
+  "reader": 0,
+  "brain": 1
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='gemini', mouth='gemini:gemini-3.8-flash-lite-tts', notes=['Use headphones: on speakers Pointe can hear itself.'])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 237.2,
+   "cpu_secs": 2.31
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 39.8,
+   "cpu_secs": 0.26
+  },
+  "threads": 7
+ },
+ "reader_model": "anthropic:claude-sonnet-5-5",
+ "renamed_at_join": {},
+ "ended": "2026-11-28T08:55:14+0200",
+ "load_end": 4.3408203125,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 244.3,
+   "cpu_secs": 7.22
+  },
+  "nodes": 0,
+  "nodes_rss_mb": 0,
+  "nodes_cpu_secs": 0,
+  "runner": {
+   "rss_mb": 41.0,
+   "cpu_secs": 3.65
+  },
+  "threads": 7
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.47832,
+  "by": {
+   "anthropic:claude-sonnet-5-5 brain (vendor counts)": {
+    "calls": 80,
+    "usd": 0.457782,
+    "tokens_in": 1899639,
+    "tokens_out": 6180
+   },
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 1,
+    "usd": 0.00557,
+    "tokens_in": 1125,
+    "tokens_out": 332
+   },
+   "gemini:gemini-3.5-flash-lite ask (vendor counts)": {
+    "calls": 15,
+    "usd": 0.004716,
+    "tokens_in": 15421,
+    "tokens_out": 37
+   },
+   "anthropic:claude-sonnet-5-5 _send_now (vendor counts)": {
+    "calls": 2,
+    "usd": 0.008614,
+    "tokens_in": 327,
+    "tokens_out": 796
+   },
+   "gemini:gemini-3.5-flash-lite _classify_target (vendor counts)": {
+    "calls": 7,
+    "usd": 0.001335,
+    "tokens_in": 4390,
+    "tokens_out": 7
+   },
+   "anthropic:claude-sonnet-5-5 _send_now (estimate from characters)": {
+    "calls": 1,
+    "usd": 0.000298,
+    "tokens_in": 0,
+    "tokens_out": 0
+   }
+  }
+ }
+}

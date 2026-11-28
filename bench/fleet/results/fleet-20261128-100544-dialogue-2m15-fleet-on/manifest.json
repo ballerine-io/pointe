@@ -1,0 +1,133 @@
+{
+ "run": "fleet-20261128-100544-dialogue-2m15-fleet-on",
+ "what": "dialogue",
+ "size": "2m15",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "b2be0b5b2f29198af3227dcd264dcccfc0313714",
+  "pointe_tree": "1b78e33c742113d36a976370282932f0a3ef8f84",
+  "pointe_commit": "bc2693c2b084e4d7ee2402641f197b4f1502d46c",
+  "dirty_pointe": false
+ },
+ "harness_commit": "b2be0b5b2f29198af3227dcd264dcccfc0313714",
+ "fleet_sha256": "95dd4c5ee68920ad361d4d1d6d1710643b2158b212cb82533d3ce12452b076e1",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-28T10:05:44+0200",
+ "load_start": 4.7861328125,
+ "machine": "arm64, 18 cores",
+ "dialogue_seed": 20261128,
+ "notes_restored": {
+  "with_notes": 0,
+  "sessions": 15
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 166.0,
+   "cpu_secs": 0.91
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 67.2,
+  "nodes_cpu_secs": 0.25,
+  "runner": {
+   "rss_mb": 47.2,
+   "cpu_secs": 0.34
+  },
+  "threads": 7
+ },
+ "timing": {
+  "voice_up_secs": 1.4,
+  "nodes_up_secs": 0.6,
+  "sessions_joined_secs": 1.0
+ },
+ "sessions_with_notes": 6,
+ "names": {
+  "54efc8b1-5620-4608-b9d8-b331065258de": "bellows",
+  "9a3049fa-3c1d-4b04-9fb7-aabfc1400daa": "quill",
+  "ses_c821c7a826cf84001f62bdb9449cd521": "garnet",
+  "71079aa8-179a-42d3-89b3-6300c61d5dbf": "albatross",
+  "2bdac6a5-5d49-4a3f-86d5-1dcaa2fb6029": "velvet",
+  "ses_971c4c29911be9f52b1dd874dbaee5f7": "chicory",
+  "1e24192b-f0b5-439c-a069-accd482f5e99": "meadow",
+  "e8b1a91d-dbb0-4e33-85c2-dae70d6af264": "slate",
+  "ses_f6324efd84d549a434b27d1c886a2d7d": "eclipse",
+  "3b1b36e7-89f2-42cd-b0e9-e79eb0f817c2": "knight",
+  "01cf5f34-2a8b-455a-9507-5c65d369a2d9": "bronze",
+  "ses_af88e8a51f622c4de2615e42f3b8c809": "scarp",
+  "3af3fc7c-ee66-49d1-83b7-0474b5b49907": "danish",
+  "076a0ea6-12cc-48f2-b9c7-9dc0f81ce6b6": "leek",
+  "ses_1917717536f6b97fb5494a2654723380": "anchor"
+ },
+ "notes_sha256": "92b385e9b716424eefac8826ded42533eca159d288bd24cdb51814772b190c67",
+ "setup_calls": {
+  "reader": 6,
+  "brain": 0
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='gemini', mouth='gemini:gemini-3.8-flash-lite-tts', notes=['Use headphones: on speakers Pointe can hear itself.'])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 196.9,
+   "cpu_secs": 1.34
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 67.4,
+  "nodes_cpu_secs": 0.29,
+  "runner": {
+   "rss_mb": 47.8,
+   "cpu_secs": 0.45
+  },
+  "threads": 8
+ },
+ "ended": "2026-11-28T10:07:49+0200",
+ "load_end": 1.86181640625,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 203.8,
+   "cpu_secs": 3.25
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 68.8,
+  "nodes_cpu_secs": 0.99,
+  "runner": {
+   "rss_mb": 48.2,
+   "cpu_secs": 1.63
+  },
+  "threads": 8
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.185052,
+  "by": {
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 30,
+    "usd": 0.151278,
+    "tokens_in": 37569,
+    "tokens_out": 7614
+   },
+   "anthropic:claude-sonnet-5-5 brain (vendor counts)": {
+    "calls": 6,
+    "usd": 0.026802,
+    "tokens_in": 74384,
+    "tokens_out": 325
+   },
+   "gemini:gemini-3.5-flash-lite ask (vendor counts)": {
+    "calls": 3,
+    "usd": 0.000844,
+    "tokens_in": 2602,
+    "tokens_out": 25
+   },
+   "anthropic:claude-sonnet-5-5 _send_now (vendor counts)": {
+    "calls": 2,
+    "usd": 0.00518,
+    "tokens_in": 320,
+    "tokens_out": 454
+   },
+   "gemini:gemini-3.5-flash-lite _classify_target (vendor counts)": {
+    "calls": 3,
+    "usd": 0.000949,
+    "tokens_in": 3131,
+    "tokens_out": 4
+   }
+  }
+ }
+}

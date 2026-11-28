@@ -1,0 +1,48 @@
+{
+ "run": "fleet-20261128-101018-dialogue-2m30-fleet-on",
+ "what": "dialogue",
+ "size": "2m30",
+ "arm": "fleet-on",
+ "models": "real",
+ "pointe": {
+  "commit": "c3295a3b74197180dc1d87cca96678edd1497442",
+  "pointe_tree": "04d68506455574af4c19a8cf772009f10f09e6da",
+  "pointe_commit": "3a395f0271998f492dc5dcbda201381657bd5362",
+  "dirty_pointe": false
+ },
+ "harness_commit": "c3295a3b74197180dc1d87cca96678edd1497442",
+ "fleet_sha256": "c5fc3f4b0e1baa8ecd08052dc07af8e3f48182e99c49a4ed61b922cfc957cd47",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-28T10:10:18+0200",
+ "load_start": 1.91943359375,
+ "machine": "arm64, 18 cores",
+ "dialogue_seed": 20261128,
+ "ended": "2026-11-28T10:12:22+0200",
+ "load_end": 1.30908203125,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 170.2,
+   "cpu_secs": 2.05
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 68.6,
+  "nodes_cpu_secs": 1.65,
+  "runner": {
+   "rss_mb": 48.0,
+   "cpu_secs": 0.82
+  },
+  "threads": 12
+ },
+ "error": "AssertionError: timed out after 120 s: every session's record is on the voice (last: False)",
+ "spend": {
+  "usd": 0.078092,
+  "by": {
+   "anthropic:claude-sonnet-5-5 _read_model (vendor counts)": {
+    "calls": 20,
+    "usd": 0.078092,
+    "tokens_in": 15536,
+    "tokens_out": 4702
+   }
+  }
+ }
+}

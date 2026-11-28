@@ -1,0 +1,1 @@
+{"kind": "dialogue", "run": "fleet-20261128-101018-dialogue-2m30-fleet-on", "arm": "fleet-on", "sessions": 30, "models": "real", "steps": {}, "passed": false, "error": "AssertionError: timed out after 120 s: every session's record is on the voice (last: False)"}

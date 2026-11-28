@@ -1,0 +1,304 @@
+{
+ "size": "dialogue-15",
+ "seed": 20261128,
+ "machines": [
+  "studio",
+  "avi-box"
+ ],
+ "voice_machine": "studio",
+ "sessions": [
+  {
+   "id": "54efc8b1-5620-4608-b9d8-b331065258de",
+   "machine": "studio",
+   "name": "bellows",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "warranty ledger",
+   "goal": "Add retries with backoff to the warranty ledger and cover them with tests.",
+   "files": [
+    "warranty_ledger.py",
+    "test_warranty_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.25
+  },
+  {
+   "id": "9a3049fa-3c1d-4b04-9fb7-aabfc1400daa",
+   "machine": "studio",
+   "name": "quill",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "booking webhook",
+   "goal": "Cut the booking webhook's cold start time by half.",
+   "files": [
+    "booking_webhook.py",
+    "test_booking_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.29
+  },
+  {
+   "id": "ses_c821c7a826cf84001f62bdb9449cd521",
+   "machine": "studio",
+   "name": "garnet",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "catalog scheduler",
+   "goal": "Find why the catalog scheduler drops records under load and fix it.",
+   "files": [
+    "catalog_scheduler.py",
+    "test_catalog_scheduler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 5.34
+  },
+  {
+   "id": "71079aa8-179a-42d3-89b3-6300c61d5dbf",
+   "machine": "studio",
+   "name": "albatross",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "inventory webhook",
+   "goal": "Add structured logging to the inventory webhook and remove the print calls.",
+   "files": [
+    "inventory_webhook.py",
+    "test_inventory_webhook.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 4.53
+  },
+  {
+   "id": "2bdac6a5-5d49-4a3f-86d5-1dcaa2fb6029",
+   "machine": "studio",
+   "name": "velvet",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "banner throttle",
+   "goal": "Add retries with backoff to the banner throttle and cover them with tests.",
+   "files": [
+    "banner_throttle.py",
+    "test_banner_throttle.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the banner throttle keep the old records, or may I drop them?"
+  },
+  {
+   "id": "ses_971c4c29911be9f52b1dd874dbaee5f7",
+   "machine": "studio",
+   "name": "chicory",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "shipment export",
+   "goal": "Split the shipment export into a reader and a writer with a clear interface.",
+   "files": [
+    "shipment_export.py",
+    "test_shipment_export.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 9.59
+  },
+  {
+   "id": "1e24192b-f0b5-439c-a069-accd482f5e99",
+   "machine": "studio",
+   "name": "meadow",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "refund scheduler",
+   "goal": "Add structured logging to the refund scheduler and remove the print calls.",
+   "files": [
+    "refund_scheduler.py",
+    "test_refund_scheduler.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name",
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "e8b1a91d-dbb0-4e33-85c2-dae70d6af264",
+   "machine": "studio",
+   "name": "slate",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "loyalty ledger",
+   "goal": "Add retries with backoff to the loyalty ledger and cover them with tests.",
+   "files": [
+    "loyalty_ledger.py",
+    "test_loyalty_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic"
+   ],
+   "finish_at": 2.05
+  },
+  {
+   "id": "ses_f6324efd84d549a434b27d1c886a2d7d",
+   "machine": "avi-box",
+   "name": "eclipse",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "roster importer",
+   "goal": "Move the roster importer off the deprecated client library.",
+   "files": [
+    "roster_importer.py",
+    "test_roster_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 0.97
+  },
+  {
+   "id": "3b1b36e7-89f2-42cd-b0e9-e79eb0f817c2",
+   "machine": "avi-box",
+   "name": "knight",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "invoice archive",
+   "goal": "Migrate the invoice archive to the new schema without downtime.",
+   "files": [
+    "invoice_archive.py",
+    "test_invoice_archive.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the invoice archive keep the old records, or may I drop them?"
+  },
+  {
+   "id": "01cf5f34-2a8b-455a-9507-5c65d369a2d9",
+   "machine": "avi-box",
+   "name": "bronze",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "tariff importer",
+   "goal": "Find why the tariff importer drops records under load and fix it.",
+   "files": [
+    "tariff_importer.py",
+    "test_tariff_importer.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "ses_af88e8a51f622c4de2615e42f3b8c809",
+   "machine": "avi-box",
+   "name": "scarp",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "returns cache",
+   "goal": "Move the returns cache off the deprecated client library.",
+   "files": [
+    "returns_cache.py",
+    "test_returns_cache.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [],
+   "finish_at": 0.06
+  },
+  {
+   "id": "3af3fc7c-ee66-49d1-83b7-0474b5b49907",
+   "machine": "avi-box",
+   "name": "danish",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "billing validator",
+   "goal": "Cut the billing validator's cold start time by half.",
+   "files": [
+    "billing_validator.py",
+    "test_billing_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic"
+   ],
+   "finish_at": 7.43
+  },
+  {
+   "id": "076a0ea6-12cc-48f2-b9c7-9dc0f81ce6b6",
+   "machine": "avi-box",
+   "name": "leek",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "ticket throttle",
+   "goal": "Split the ticket throttle into a reader and a writer with a clear interface.",
+   "files": [
+    "ticket_throttle.py",
+    "test_ticket_throttle.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 1.33
+  },
+  {
+   "id": "ses_1917717536f6b97fb5494a2654723380",
+   "machine": "avi-box",
+   "name": "anchor",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "delivery digest",
+   "goal": "Migrate the delivery digest to the new schema without downtime.",
+   "files": [
+    "delivery_digest.py",
+    "test_delivery_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic",
+    "approves"
+   ],
+   "finish_at": null
+  }
+ ],
+ "sha256": "95dd4c5ee68920ad361d4d1d6d1710643b2158b212cb82533d3ce12452b076e1"
+}

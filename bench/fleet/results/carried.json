@@ -4,5 +4,11 @@
   "from": "05857b19f6",
   "to": "0b98c14e3a",
   "why": "Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`."
+ },
+ {
+  "arm": "fleet-on",
+  "from": "1b78e33c74",
+  "to": "04d6850645",
+  "why": "Between the two builds (b2be0b5b and 3a395f02) the one change in pointe/ is daemon._refresh_brief reading a session again, every 5 s for about a minute, while its record is missing or empty and it has no notes. Every turn and burst run restores the reader's kept notes before the call, so the retry never reads there. Shown by `git diff b2be0b5b 3a395f02 -- pointe`. The bursts were made again on the later build."
  }
 ]
