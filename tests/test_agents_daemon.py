@@ -193,3 +193,77 @@ def test_an_agents_finished_turn_answers_the_question_that_started_it(world, mon
     asyncio.run(world.d._digest_turn(openclaw, f"[openclaw finished its turn] {FINAL_MARK}Lisbon."))
     assert not world.d.state.unconfirmed.get(openclaw.id)
     assert "Still waiting" not in (world.d.fixed_greeting() or "")
+
+
+def test_the_same_reply_goes_to_the_same_agent_once_in_ten_minutes(world):
+    hermes, openclaw = _add(world, "hermes", "hermes"), _add(world, "openclaw", "openclaw")
+    _reply(hermes, "The deploy window is Thursday at nine.")
+
+    async def scenario():
+        await _relay(world.d, "give hermes's answer to openclaw")
+        assert (await _relay(world.d, "yes"))["sent_to"] == ["openclaw"]
+        return await _relay(world.d, "give hermes's answer to openclaw again")
+
+    assert "got this same reply" in asyncio.run(scenario())["error"]
+    assert len(world.kinds["openclaw"].got) == 1
+    text = "The deploy window is Thursday at nine."
+    assert world.d.RELAYS.repeated(openclaw.id, text)
+    assert not world.d.RELAYS.repeated(openclaw.id, text, now=__import__("time").time() + 601), "ten minutes later it may go"
+
+
+def test_with_the_voice_lock_on_a_yes_not_clearly_the_owners_relays_nothing(world, monkeypatch):
+    hermes, _ = _add(world, "hermes", "hermes"), _add(world, "openclaw", "openclaw")
+    _reply(hermes, "The deploy window is Thursday at nine.")
+    monkeypatch.setattr(world.d, "lock_level", lambda: "approvals")
+    monkeypatch.setattr(world.d.VOICE, "confident", lambda verdict: False)
+
+    async def scenario():
+        await _relay(world.d, "give hermes's answer to openclaw")
+        return await _relay(world.d, "yes")
+
+    assert "not clearly the owner's voice" in asyncio.run(scenario())["error"]
+    assert world.kinds["openclaw"].got == []
+
+
+def test_one_yes_sends_one_hop_and_a_late_or_unasked_yes_sends_nothing(world):
+    hermes, _ = _add(world, "hermes", "hermes"), _add(world, "openclaw", "openclaw")
+    _reply(hermes, "The deploy window is Thursday at nine.")
+    d = world.d
+
+    async def scenario():
+        await _relay(d, "give hermes's answer to openclaw")
+        assert (await _relay(d, "yes"))["sent_to"] == ["openclaw"]
+        again = await _relay(d, "yes")  # the same yes cannot carry a second hop
+        assert "error" in again, again
+        unasked = await _relay(d, None)  # the model calls it again with nothing new said
+        assert "error" in unasked, unasked
+        _reply(hermes, "Friday works too.")
+        await _relay(d, "give hermes's answer to openclaw")
+        d.state.pending_relay = (d.state.pending_relay[0] - d.agent_relay.CONFIRM_SECS - 1, d.state.pending_relay[1])
+        late = await _relay(d, "yes")
+        assert "error" in late, late
+
+    asyncio.run(scenario())
+    assert len(world.kinds["openclaw"].got) == 1
+
+
+def test_a_reply_passed_twice_still_asks_before_its_third_hop(world):
+    hermes, _ = _add(world, "hermes", "hermes"), _add(world, "openclaw", "openclaw")
+    _reply(hermes, "Round and round.", depth=2)
+    assert "confirm_first" in asyncio.run(_relay(world.d, "give hermes's answer to openclaw"))
+
+
+def test_only_the_owner_reaches_the_agent_routes(world, monkeypatch):
+    """A person's key (a voice linked over the TLS listener, not the owner's phone) is refused on every agents route,
+    not only on reading the replies (tests/test_agent_reply_alerts.py)."""
+    _add(world, "hermes", "hermes")
+    monkeypatch.setattr("remote.Remote.on_tls_listener", staticmethod(lambda scope: True))
+    monkeypatch.setattr(world.d.REMOTE, "_remote_request", lambda request: True)
+    monkeypatch.setattr(world.d.REMOTE, "_paired", lambda request: True)
+    client = client_for(world.d)
+    for got in (client.get("/voice/agents"),
+                client.post("/voice/agents", json={"kind": "openclaw", "name": "x", "url": "http://127.0.0.1:1", "secret": "good-token"}),
+                client.post("/voice/agents/seen", json={"name": "hermes"}),
+                client.delete("/voice/agents/hermes")):
+        assert got.status_code == 403 and "hermes" not in got.text, (got.request.method, got.request.url.path, got.text)
+    assert world.store.get("hermes") is not None and world.store.get("x") is None
