@@ -77,7 +77,7 @@ update it here.
 | `pointe/brain.py` | Decides what to say. Speech is a tool call, so code checks a reply before anyone hears it |
 | `pointe/guards.py`, `pointe/readout.py` | Rules in code: what can be read out, what counts as a plain yes, which routes the phone key may call |
 | `pointe/brief.py` | The reader: session notes and reports |
-| `pointe/harnesses/` | One adapter per coding agent (Claude Code, OpenCode, Codex), `remote.py` for sessions on other machines, and the agent-framework adapters (OpenClaw, Hermes, A2A, OpenAI-compatible chat), used only with `POINTE_AGENTS=on`. The contract: [docs/harnesses.md](docs/harnesses.md) |
+| `pointe/harnesses/` | One adapter per coding agent (Claude Code, OpenCode, Codex), `remote.py` for sessions on other machines, and the agent-framework adapters (OpenClaw, Hermes, A2A, OpenAI-compatible chat), used only while agents are on (Settings, Labs, Agents). The contract: [docs/harnesses.md](docs/harnesses.md) |
 | `pointe/sessions.py` | The registry of joined sessions, their transcripts, and sends |
 | `pointe/vendors.py`, `pointe/setups.py`, `pointe/keys.py` | Each vendor, its key, the order roles pick them in; the six setups; `pointe key` |
 | `pointe/pair.py`, `pointe/phone_pairing.py`, `pointe/remote.py`, `pointe/phone.py`, `pointe/calllink.py` | The phone listener, pairing, the phone's call and its wire format, and the link that keeps a call through a dropped connection |
