@@ -34,8 +34,15 @@
   function muteStore(on) { try { localStorage.setItem(MUTE_KEY, on ? '1' : '0'); } catch (e) {} }
   const muteQuery = () => muteStored() ? '?reading=1' : '';  // the call's address: the daemon reads it before greeting
   // While a call is up, the call's choice (status); with none, this browser's own.
+  // A tap's choice until the Mac's status shows it: a poll answered while the request is on its way carries the old
+  // state, and showing it for a moment made the next tap mute again. Dropped when the request failed, or 3 s after the
+  // Mac answered (it may hold the state itself: drive mode).
+  let muteWanted = null, muteAnswered = 0;
   function muteNow(s) {
-    if (s && s.connected && s.reading) return {on: !!s.reading.on, held: s.reading.held || null, writing: !!s.reading.writing};
+    if (s && s.connected && s.reading) {
+      if (muteWanted !== null && (!!s.reading.on === muteWanted || (muteAnswered && Date.now() - muteAnswered > 3000))) muteWanted = null;
+      return {on: muteWanted ?? !!s.reading.on, held: s.reading.held || null, writing: !!s.reading.writing};
+    }
     return {on: muteStored(), held: null, writing: false};
   }
   const muteWriting = s => { const m = muteNow(s); return m.on && !m.held && m.writing; };
@@ -47,13 +54,14 @@
     muteStore(on);
     // Muted mid-sentence: what this browser still holds to play stops now, before the Mac's own cut arrives.
     if (on && call.player && !(status && status.reading && status.reading.held)) call.player.port.postMessage('flush');
-    if (status && status.connected && status.reading) status.reading.on = on;  // shown at once; the next poll confirms
+    muteWanted = on; muteAnswered = 0;  // shown at once (muteNow)
     muteFollow(status); showState();
     const send = muteSending.then(async () => {
       try {
         const r = await fetch('/voice/reading', {method: 'POST', headers: {'content-type': 'application/json'}, body: JSON.stringify({on})});
         if (!r.ok) throw new Error(String(r.status));
-      } catch (e) { sayProblem(MUTE_COPY.failed); }
+        if (muteWanted === on) muteAnswered = Date.now();
+      } catch (e) { if (muteWanted === on) muteWanted = null; sayProblem(MUTE_COPY.failed); }
     });
     muteSending = send;
     await send;

@@ -161,6 +161,29 @@ def test_a_mute_and_an_unmute_tapped_quickly_end_unmuted_whatever_order_the_mac_
     assert on_the_mac is False and shown["pressed"] == "false" and shown["stored"] == "0", (on_the_mac, shown)
 
 
+
+def test_a_poll_answered_while_a_mute_is_on_its_way_does_not_show_the_old_state():
+    """The tap shows at once. A status poll answered before the Mac has the request still carries the old state; the
+    button kept showing it for a moment, and a tap then would mute again instead of unmuting."""
+    async def run():
+        stub, browser, page = await _page(_speaking_status())
+        try:
+            await _on_a_call(page)
+            await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Speaking…' && g; }})()")
+            await page.eval(SLOW_FIRST)  # the request reaches the Mac 0.8 s late
+            await page.eval("document.getElementById('mutebtn').click()")
+            seen = []
+            while not stub.posts or all(p != "/voice/reading" for p, _, _ in stub.posts):
+                await stub.polled(1)  # polls answered while the request is still on its way: the Mac says unmuted
+                seen.append(await page.eval("document.getElementById('mutebtn').getAttribute('aria-pressed')"))
+            await stub.polled(2)
+            return seen, await page.eval(BTN), stub.status["reading"]["on"]
+        finally:
+            await _close(stub, browser)
+    seen, after, on_the_mac = asyncio.run(run())
+    assert seen and set(seen) == {"true"}, seen
+    assert after["pressed"] == "true" and on_the_mac is True, (after, on_the_mac)
+
 def test_muted_the_status_says_writing_where_pointe_would_have_spoken():
     async def run():
         stub, browser, page = await _page(_writing_status())
