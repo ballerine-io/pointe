@@ -148,6 +148,37 @@ def p90(values: list) -> float:
     return ordered[min(len(ordered) - 1, int(round(0.9 * (len(ordered) - 1))))]
 
 
+def half(r: dict) -> str:
+    return "train" if int(hashlib.sha256(r["voice"].encode()).hexdigest(), 16) % 2 == 0 else "test"
+
+
+def load(path: str, max_load: float = 21.0) -> tuple[list, dict]:
+    """The `before` rows taken at load `max_load` or under, and where in its recording each clip is."""
+    rows = [r for r in map(json.loads, Path(path).read_text().splitlines())
+            if r["policy"] == "before" and not r.get("error") and r.get("load", 0) <= max_load]
+    when = {}
+    manifest = Path(__file__).parent / "human_turns.jsonl"
+    if manifest.exists():  # where in its recording each clip is: a speaker's clips are replayed in that order
+        when = {m["clip"]: (m["meeting"], m["segment"][0]) for m in map(json.loads, manifest.read_text().splitlines())}
+    return rows, when
+
+
+def evaluate(rows: list, wait, when: dict) -> dict:
+    """Every clip replayed under `wait`, a speaker's clips in the order recorded: the cut-ins on pauses and the delays
+    at real ends."""
+    paused: dict[tuple, float] = {}  # (speaker, recording) -> when they last went on after a final being held
+    got = {}
+    for r in sorted(rows, key=lambda r: (r["voice"], when.get(r["clip"], ("", 0.0)))):
+        meeting, at = when.get(r["clip"], ("", 0.0))
+        last = paused.get((r["voice"], meeting))
+        got[r["clip"]] = out = replay(r, wait, last is not None and at - last <= PAUSED_SECS)
+        if out["joined"]:
+            paused[(r["voice"], meeting)] = at
+    pauses = [r for r in rows if r["pause"] is not None]
+    return {"got": got, "pauses": pauses, "cuts": [r for r in pauses if got[r["clip"]]["cut"]],
+            "delays": [got[r["clip"]]["delay"] for r in rows if r["pause"] is None and got[r["clip"]]["delay"] is not None]}
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--rows", default=str(Path(__file__).parent / "results" / "turn-human.jsonl"))
@@ -155,31 +186,17 @@ def main() -> None:
     p.add_argument("--max-load", type=float, default=21.0)
     p.add_argument("--cuts", default="", help="list the cut-ins of this rule")
     a = p.parse_args()
-    rows = [r for r in map(json.loads, Path(a.rows).read_text().splitlines())
-            if r["policy"] == "before" and not r.get("error") and r.get("load", 0) <= a.max_load]
-    half = lambda r: "train" if int(hashlib.sha256(r["voice"].encode()).hexdigest(), 16) % 2 == 0 else "test"  # noqa: E731
-    when = {}
-    manifest = Path(__file__).parent / "human_turns.jsonl"
-    if manifest.exists():  # where in its recording each clip is: a speaker's clips are replayed in that order
-        when = {m["clip"]: (m["meeting"], m["segment"][0]) for m in map(json.loads, manifest.read_text().splitlines())}
+    rows, when = load(a.rows, a.max_load)
     rows = [r for r in rows if a.split == "all" or half(r) == a.split]
     pauses, ends = [r for r in rows if r["pause"] is not None], [r for r in rows if r["pause"] is None]
     print(f"{a.split}: {len({r['voice'] for r in rows})} speakers, {len(pauses)} pauses, {len(ends)} ends of turn\n")
     print(f"{'rule':52s} {'cut-ins on pauses':>18s} {'under 0.8 s':>12s} {'0.8 s and over':>15s}  "
           f"{'ends: median':>12s} {'mean':>5s} {'p90':>5s} {'over 1.05 s':>11s}")
     for name, wait in RULES.items():
-        paused: dict[tuple, float] = {}  # (speaker, recording) -> when they last went on after a final being held
-        got = {}
-        for r in sorted(rows, key=lambda r: (r["voice"], when.get(r["clip"], ("", 0.0)))):
-            meeting, at = when.get(r["clip"], ("", 0.0))
-            last = paused.get((r["voice"], meeting))
-            got[r["clip"]] = out = replay(r, wait, last is not None and at - last <= PAUSED_SECS)
-            if out["joined"]:
-                paused[(r["voice"], meeting)] = at
-        cuts = [r for r in pauses if got[r["clip"]]["cut"]]
+        out = evaluate(rows, wait, when)
+        got, cuts, delays = out["got"], out["cuts"], out["delays"]
         short = [r for r in pauses if r.get("pause_secs", r["pause"]) < 0.8]
         long = [r for r in pauses if r.get("pause_secs", r["pause"]) >= 0.8]
-        delays = [got[r["clip"]]["delay"] for r in ends if got[r["clip"]]["delay"] is not None]
         print(f"{name:52s} {len(cuts):4d} ({len(cuts) / max(1, len(pauses)):5.1%})      "
               f"{sum(got[r['clip']]['cut'] for r in short):3d}/{len(short):<4d}    {sum(got[r['clip']]['cut'] for r in long):3d}/{len(long):<4d}  "
               f"{statistics.median(delays):12.2f} {statistics.mean(delays):5.2f} {p90(delays):5.2f} "
@@ -187,7 +204,6 @@ def main() -> None:
         if name == a.cuts:
             for r in cuts:
                 print(f"      {r.get('pause_secs', r['pause']):.2f} s  …{' '.join(got[r['clip']]['text'].split()[-6:])}")
-
 
 if __name__ == "__main__":
     main()
