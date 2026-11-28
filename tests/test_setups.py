@@ -291,3 +291,20 @@ def test_no_tool_shares_a_module_name_with_pointe():
     imported in its place ("import vendors" with tools/ first took tools/write_setups.py and failed on setups.WHY_KEYS)."""
     tools = {p.stem for p in (ROOT / "tools").glob("*.py")}
     assert not tools & {p.stem for p in (ROOT / "pointe").glob("*.py")}
+
+
+def test_config_is_read_again_only_when_the_file_changed(state, monkeypatch):
+    """Name matching asks for this Mac's name per session: a route at 300 sessions read config.json 900 times."""
+    path = state / "config.json"
+    path.write_text(json.dumps({"machine": "desk"}))
+    reads = []
+    real = vendors.json.loads
+    monkeypatch.setattr(vendors.json, "loads", lambda text, *a, **k: (reads.append(1), real(text, *a, **k))[1])
+    assert [vendors.config()["machine"] for _ in range(50)] == ["desk"] * 50 and len(reads) == 1
+    got = vendors.config()
+    got["machine"] = "changed by a caller"
+    assert vendors.config()["machine"] == "desk"  # a caller's change never reaches the next one
+    path.write_text(json.dumps({"machine": "studio-two"}))
+    assert vendors.config()["machine"] == "studio-two" and len(reads) == 2
+    path.unlink()
+    assert vendors.config() == {}

@@ -790,3 +790,19 @@ def test_the_fleet_rules_are_off_until_somebody_switches_them_on(monkeypatch):
     assert scale.enabled()
     monkeypatch.setenv("POINTE_FLEET", "off")
     assert not scale.enabled()
+
+
+def test_a_route_on_a_big_fleet_reads_config_json_once_at_most(d, node, fleet_on, monkeypatch, tmp_path):
+    """Tests track, 2026-11-28: name matching asked for this Mac's name (config.json) once per session, 900 reads and
+    about 400 ms a send at 300 sessions."""
+    everyone = build(d, node, 10, 30)
+    import vendors
+
+    reads = []
+    real = vendors.json.loads
+    monkeypatch.setattr(vendors.json, "loads", lambda text, *a, **k: (reads.append(1), real(text, *a, **k))[1])
+    monkeypatch.setenv("CLAUDE_VOICE_STATE", str(tmp_path))  # vendors.config() looks here; the daemon's own state is untouched
+    (tmp_path / "config.json").write_text('{"machine": "studio"}')
+    for _ in range(3):
+        assert asyncio.run(d._route("Run the tests.", f"tell {everyone[150].name} to run the tests"))[0] == [everyone[150]]
+    assert len(reads) <= 1, len(reads)

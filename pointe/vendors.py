@@ -10,6 +10,7 @@ Keychain item named here, and reach this process only when a role in use needs t
 """
 
 import no_telemetry  # noqa: F401  (first: before anything loads onnxruntime)
+import copy
 import dataclasses
 import json
 import os
@@ -246,15 +247,25 @@ def has(vendor: str) -> bool:
     return vendor == LOCAL or key(vendor) is not None
 
 
+_CONFIG: tuple[tuple, dict] | None = None  # (the file's identity when read, what it held)
+
+
 def config() -> dict:
-    """~/.claude-voice/config.json, for a choice that should outlast a shell: {"brain": "openai:gpt-6-sol", "mouth": ...}."""
+    """~/.claude-voice/config.json, for a choice that should outlast a shell: {"brain": "openai:gpt-6-sol", "mouth": ...}.
+    Read again only when the file changed: name matching asks for this Mac's name once per session, which read it 900
+    times a send at 300 sessions. A copy each time, so no caller changes what the next one gets."""
+    global _CONFIG
     path = Path(os.environ.get("CLAUDE_VOICE_STATE", Path.home() / ".claude-voice")) / "config.json"
     try:
-        return json.loads(path.read_text())
+        st = path.stat()
+        key = (str(path), st.st_ino, st.st_mtime_ns, st.st_size)
+        if _CONFIG is None or _CONFIG[0] != key:
+            _CONFIG = (key, json.loads(path.read_text()))
     except FileNotFoundError:
         return {}
     except (OSError, json.JSONDecodeError) as e:
         raise SystemExit(f"{path} cannot be read: {e}") from e
+    return copy.deepcopy(_CONFIG[1])
 
 
 def pick(env: str, order: list[str]) -> str:
