@@ -517,7 +517,7 @@ def _negated(tokens: list[str], vocab: set[str]) -> set[int]:
 _TELL = {"tell", "ask", "get", "remind", "instruct", "תגיד", "תגידי", "תבקש", "תבקשי", "תשאל", "תשאלי",
          "ותגיד", "ותגידי", "ותבקש", "ותבקשי", "ותשאל", "ותשאלי"}
 _MOVE = {"switch", "go", "back", "move", "jump", "change", "talk", "over", "head", "come", "work", "focus", "pin",
-         "only", "speak", "chat", "connect", "me"}
+         "only", "speak", "chat"}
 # Hebrew verbs whose next words name where the user goes: "דבר עם הרמס", "תעבור להרמס", "תחבר אותי לאופנקלו".
 _MOVE_HE = {"דבר", "דברי", "תדבר", "תדברי", "לדבר", "נדבר", "עבור", "תעבור", "תעברי", "לעבור", "נעבור", "חזור",
             "תחזור", "תחזרי", "לחזור", "חבר", "תחבר", "תחברי", "העבר", "תעביר", "תעבירי", "של"}
@@ -576,8 +576,9 @@ def _address(tokens: list[str], vocab: set[str]) -> set[int]:
                 j -= 1
     if "," in tokens[:4]:
         slot.update(range(tokens.index(",")))
-    if len([t for t in tokens if t not in _ENDS]) == 1:  # a name alone, as the answer to "which one?"
-        slot.update(range(len(tokens)))
+    words = [i for i, t in enumerate(tokens) if t not in _ENDS]
+    if len(words) == 1 and _HEBREW.search(tokens[words[0]]):  # a name alone in Hebrew letters: "הרמס", to "which one?"
+        slot.add(words[0])
     return slot
 
 
