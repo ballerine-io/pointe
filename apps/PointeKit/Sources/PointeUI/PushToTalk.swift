@@ -225,14 +225,18 @@ private struct HoldToTalkModifier: ViewModifier {
     let toggle: () -> Void
     @GestureState private var held = false
 
-    func body(content: Content) -> some View {
-        content
-            // A long press ends when it is recognised, not at the lift: the drag after it sees the finger come up.
-            .simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12)
-                .sequenced(before: DragGesture(minimumDistance: 0))
-                .updating($held) { value, state, _ in if case .second(true, _) = value { state = true } })
-            .onChange(of: held) { _, now in
-                if now { style == .tap ? toggle() : press() } else if style == .hold { release() }
-            }
+    @ViewBuilder func body(content: Content) -> some View {
+        if style == .tap {
+            // A toggle needs no lift: it happens when the long press is recognised. Tied to the held state below, the
+            // second press toggled nothing on iOS 26, where the scroll view never ended the first press's sequence.
+            content.simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12).onEnded { _ in toggle() })
+        } else {
+            content
+                // A long press ends when it is recognised, not at the lift: the drag after it sees the finger come up.
+                .simultaneousGesture(LongPressGesture(minimumDuration: 0.35, maximumDistance: 12)
+                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .updating($held) { value, state, _ in if case .second(true, _) = value { state = true } })
+                .onChange(of: held) { _, now in now ? press() : release() }
+        }
     }
 }

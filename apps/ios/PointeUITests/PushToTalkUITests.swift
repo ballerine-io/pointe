@@ -98,15 +98,11 @@ final class PushToTalkUITests: XCTestCase {
         XCTAssertTrue(waitFor(line, "Sent"), "the second tap did not send: \(line.label)")
         XCTAssertTrue(waitFor(line, "Tap to talk", timeout: 3), line.label)
         XCTAssertGreaterThan(heldMs(ring) ?? 0, 1000, "\(ring.value ?? "")")
-        // The scroll view itself: the first element of any kind with this identifier can be a container of it.
         let words = app.scrollViews["conversation"].firstMatch
         words.press(forDuration: 1.0)  // a long press on the words toggles too
         XCTAssertTrue(waitFor(line, "Talking · tap to send"), line.label)
-        quarantinedInCI("On the iOS 26 simulator in CI the second long press on the words leaves the gate open, every run; "
-                        + "the cause is not found, and it may be a real bug on iOS 26 (CONTRIBUTING.md, UI tests in CI)") {
-            words.press(forDuration: 1.0)
-            XCTAssertTrue(waitFor(line, "Tap to talk", timeout: 3), line.label)
-        }
+        words.press(forDuration: 1.0)  // and a second toggles back
+        XCTAssertTrue(waitFor(line, "Tap to talk", timeout: 3), line.label)
     }
 
     /// The owner could not find push to talk: it was only in the ••• menu. The switch over the mic, as on the page, is the
