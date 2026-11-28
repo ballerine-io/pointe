@@ -1,8 +1,16 @@
 # Agents: talking with agent frameworks by voice
 
 Status: a Labs setting (`agents.on` in the daemon's prefs, Settings, Labs, Agents on the page, the iPhone and the
-Mac), off by default; `POINTE_AGENTS=on|off` overrides it. Turning it on or off applies at once: the configured agents
-join or leave the voice, and the brain's relay tool and agent rules follow at the next call.
+Mac), on by default since the 2026-11-28 proof; `POINTE_AGENTS=on|off` overrides it. Turning it on or off applies at
+once: the configured agents join or leave the voice, and the brain's relay tool and agent rules follow at the next call.
+On with no agent configured is inert: nothing is registered, and the brain gets neither the agent rules nor the relay
+tool until one is added (`daemon._agents_in_use`), so the default costs nobody brain input.
+
+Decided (2026-11-28): on by default, because an empty agent list does nothing and the setting was lost at every reboot
+when it lived in the environment. Evidence: the live proof on the finished build 2f62a68b (launch kit
+`research/agents-evidence/run-20261128-1410`: every step passed, the setting turned on without a restart, the Hebrew
+switch and back, no brain failure; judges natural from both vendors), the tests in `tests/test_agents_daemon.py` (on and off without a restart, inert with
+none). If that is wrong for a user, Settings, Labs, Agents turns it off, or `POINTE_AGENTS=off`.
 Research, versions and the live probes: the launch kit's `research/agents-integration.md`.
 
 ## The problem

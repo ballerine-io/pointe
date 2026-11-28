@@ -673,9 +673,9 @@ TOPICS = (
     Topic("agents", "Talk to an agent: OpenClaw, Hermes, or another agent",
           ("agents", "add an agent", "connect an agent", "openclaw", "hermes", "a2a agent", "talk to my agent",
            "pointe agent add", "להוסיף סוכן", "לחבר סוכן"),
-          "Turn on Agents under Labs first. Then connect an agent built on an agent framework: choose its kind "
-          "(OpenClaw, Hermes Agent, any A2A or OpenAI-compatible agent), give it a name, its address and its token, "
-          "then Connect. Or run pointe agent add "
+          "Connect an agent built on an agent framework: choose its kind (OpenClaw, Hermes Agent, any A2A or "
+          "OpenAI-compatible agent), give it a name, its address and its token, then Connect. Agents is on under "
+          "Labs unless you turned it off. Or run pointe agent add "
           "with the kind and the address. Then say talk to it by name, or ask it to do something; its replies come in "
           "when it is done. Passing one agent's reply to another always asks you first.",
           iphone=(("menu", "Agents"),), page=(("settings", "Agents"),),

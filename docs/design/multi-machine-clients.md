@@ -440,7 +440,7 @@ owner keeps his own copy with the real names and addresses outside the repositor
    the vendor keys with hidden typing into the keyring. Until `pointe unlock` ships, the same by hand in the SSH
    session: `export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus`, then
    `read -rs P; printf %s "$P" | gnome-keyring-daemon --unlock --components=secrets; unset P`.
-4. **The agent:** `POINTE_AGENTS=on pointe restart`, then on kite
+4. **The agent:** on kite (agents are on by default)
    `pointe agent add openclaw http://127.0.0.1:18789 --name openclaw`, on ledger
    `pointe agent add hermes http://127.0.0.1:8642 --name hermes` (the port from the survey); each asks for the
    agent's token, hidden.
@@ -450,7 +450,7 @@ owner keeps his own copy with the real names and addresses outside the repositor
    a group with only the owner. One Remote Network per server: two connectors in one network share its resources,
    and `127.0.0.1` would land on either server.
 6. **Pair:** `pointe pair host kite.<network>.internal` prints a QR; in the app, Settings, Machines, Add a machine.
-7. **At boot:** `pointe service install` (a user unit, with `POINTE_AGENTS=on` and no key). After a reboot, `pointe
+7. **At boot:** `pointe service install` (a user unit, with no key). After a reboot, `pointe
    unlock` over SSH; until then the phone shows "kite cannot use its keys".
 8. **Check:** `pointe doctor` on the server (its Phone section checks the route); on the phone, with Twingate on,
    `https://kite.<network>.internal:7443/voice/status` in Safari; a call; "ask openclaw what is on my calendar

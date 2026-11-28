@@ -10104,7 +10104,7 @@ PEOPLE = guests.HostSide(STATE_DIR, REGISTRY, host_id=lambda: HUB.nodes.hub_id, 
                          owner_hears=lambda s: state.conn is not None or _night_parks(s),
                          open_owner=_open_permission, start=_person_start, start_options=_start_options)
 guests.install(app, PEOPLE, remote_share=_remote_share)
-# Agent frameworks (docs/design/agents.md): each configured agent is a session of its kind, behind POINTE_AGENTS=on.
+# Agent frameworks (docs/design/agents.md): each configured agent is a session of its kind while agents are on.
 AGENTS = agent_routes.install(app, SimpleNamespace(state_dir=STATE_DIR, registry=REGISTRY, join=lambda body: _join(body),
                                                    drop=lambda session: _drop(session), people=PEOPLE,
                                                    vendors=lambda: _vendor_names(), switched=_agent_tools))

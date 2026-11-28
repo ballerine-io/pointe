@@ -56,9 +56,10 @@ SCHEMA: dict[str, tuple] = {
     "replies.length": (quick.DEFAULT_LEVEL, quick.LEVELS),  # conversation.LENGTHS: Concise is the length Pointe always had
     "voice.speed": ({}, quick.valid_speeds),  # per device: {"mac" | "iphone" | "page": 0.8 … 1.2}; a device not in it speaks at 1
     "polish": (False, bool),  # Clean up my words: a cleaned line under each thing the user says, on the screen only
-    # Labs: agents built on agent frameworks join the voice as sessions (docs/agents.md). POINTE_AGENTS=on|off at the
+    # Labs: agents built on agent frameworks join the voice as sessions (docs/agents.md). On by default: with no agent
+    # configured it registers nothing and adds nothing to the brain (daemon._agents_in_use). POINTE_AGENTS=on|off at the
     # daemon's start overrides it (agents.forced). Set only from the owner's page and app: daemon.prefs_set.
-    "agents.on": (False, bool),
+    "agents.on": (True, bool),
 }
 CHANGES_MAX_BYTES = 256_000  # the change log keeps its newer half past this
 
