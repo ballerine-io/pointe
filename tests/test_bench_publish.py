@@ -3,6 +3,7 @@ figures) are written by bench/publish.py from one release's committed results; n
 number on them is recomputed from the rows by bench/release_report.py."""
 
 import importlib.util
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -44,7 +45,9 @@ def test_every_page_matches_the_release():
     publish = load("publish")
     for path, text in publish.build(RELEASES[-1]).items():
         same_as_generated(path.read_text(), text, "run bench/publish.py", str(path.relative_to(ROOT)))
-    assert (publish.SITE / RELEASES[-1].name / "rows.tar.gz").read_bytes() == publish.tarball(RELEASES[-1])
+    # Digests, not the 2 MB themselves: with CI set pytest diffs two unequal byte strings whole, longer than 300 s.
+    published, made = (publish.SITE / RELEASES[-1].name / "rows.tar.gz").read_bytes(), publish.tarball(RELEASES[-1])
+    assert hashlib.sha256(published).hexdigest() == hashlib.sha256(made).hexdigest(), "rows.tar.gz is stale: run bench/publish.py"
 
 
 def test_the_manifest_names_a_tag_and_its_commit():
