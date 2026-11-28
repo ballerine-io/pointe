@@ -8,24 +8,25 @@ itself, in one or two sentences, with the exact path on the screen the user is o
 `product_help.json` is written by `tools/product_help.py` (standard library, no network) and checked in. It has two
 parts:
 
-- **`ui`: the labels the code shows**, read from the code. The iPhone app: Settings, the sheet behind the ••• button
+- **`ui`: the labels the code shows**, read from the code, for three surfaces: the iPhone, the Mac and the page. The
+  apps draw the same screens (`apps/PointeKit/Sources/PointeUI/`): Settings, the sheet behind the ••• button
   (`CallSettings.swift`: each item, each picker's options, with `Copy.member` constants, `ForEach(Copy.levels)` and
   `Type.allCases` labels resolved), the switch above the mic (`MicModeSwitch`), the bottom bar and its mic, the header, a session's long-press menu and the Sessions sheet (`Sessions.swift`), a request's
   card and the pairing screen. The page (`ui.html`): each Settings section by its nav name with its fields, ticks,
   options and buttons; the dock, the mic and the switch above it; the Sessions panel; the top bar; a session row's
   actions; the brain dump's review; a request's card.
-- **`entries`: what a person asks.** 52 hand-written topics in the generator (`TOPICS`): the words people ask with in
+- **`entries`: what a person asks.** Hand-written topics in the generator (`TOPICS`): the words people ask with in
   English and Hebrew, one or two sentences of explanation, a path per surface, a note where a path is not enough, the
   phrases that do the same by voice today, and the brain's own tool that does it. A topic that names a feature page in
   `docs/features/` gets that page's one line from the features table as `about`. Then one generated entry for every iPhone
-  Settings item, page Settings section and dock button no topic covers, so a new item is findable the day it ships. 59 entries now.
+  Settings item, page Settings section and dock button no topic covers, so a new item is findable the day it ships.
 
 A path is written as its place and the labels inside it, `("menu", "Microphone", "Always on|Push to talk")`, and
 rendered for speech: `Settings (••• at the top) → Microphone → Always on / Push to talk` (iPhone), `Settings → Microphone → Always on /
 Push to talk` (page; a field named like its section is said once). Every label in a path must be one the code shows in
 that place, or the generator stops with what it found there. So:
 
-- a label a topic names, renamed in `apps/ios/` or `ui.html`, fails the generator until the topic is fixed;
+- a label a topic names, renamed in `apps/PointeKit/Sources/PointeUI/` or `ui.html`, fails the generator until the topic is fixed;
 - any label in the inventory, changed without regenerating, fails `tests/test_product_help.py` (the committed file must
   equal what the generator writes), like the copy parity tests. Both are tested by editing a copy of the UI.
 

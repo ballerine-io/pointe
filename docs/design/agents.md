@@ -127,7 +127,7 @@ how to turn approvals on.
   the existing grants (`send`, `watch`) then apply. No new permission system.
 - **Vendors.** An agent's replies are transcribed into the call like a session's: the brain, the reader and the voice
   vendors of the current setup receive them. After an agent is added, the screens show once which services that is
-  (`disclosure` in `/voice/status`, as after a machine is added), and `pointe agent add` prints it.
+  (`agent_disclosure` in `/voice/status`, as `disclosure` after a machine is added), and `pointe agent add` prints it.
 - The agent sees each request as a relay from the user's voice assistant (`VOICE_PREFIX`), as a coding session does.
 
 ## Failure modes

@@ -156,3 +156,8 @@ def test_security_says_pair_rotate_removes_the_invited_people():
     assert "It does not remove the people invited to this machine" not in text
     assert "since 1.30.0" not in text  # no such version: verbatim read-outs shipped in 0.8.4
 
+
+def test_design_docs_name_functions_and_keys_that_exist():
+    daemon = (ROOT / "pointe" / "daemon.py").read_text()
+    assert "_attach_line" not in daemon and "_attach_line" not in _flat("docs/design/attach-by-voice.md")
+    assert '"agent_disclosure"' in daemon and "`agent_disclosure`" in _flat("docs/design/agents.md")

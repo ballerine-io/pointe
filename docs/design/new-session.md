@@ -83,7 +83,7 @@ has no start yet: asking for it by voice is refused with one line, and the sheet
   joins, the row becomes the session. A failed start stays for two minutes with its reason.
 - **Failures**, each with fixed words: the harness is not installed; OpenCode's service or Codex's daemon is not
   running (with the command that starts it); the folder is gone; the folder is not in the list; the name is not
-  usable; no terminal can be opened (not a Mac); Claude Code has not joined after 90 seconds (the window is open: it
+  usable; no terminal can be opened (on Linux: tmux is missing or not working); Claude Code has not joined after 90 seconds (the window is open: it
   may be asking something there); the harness would bypass.
 - **The first prompt** (the sheet only, up to 4,000 characters) is sent after the session is on the voice, through
   the same `send` as any request. If the session never joins, it is not sent, and the failure says so. By voice there
@@ -105,4 +105,4 @@ has no start yet: asking for it by voice is refused with one line, and the sheet
 ## Not in this version
 
 Starting on a node; a new git worktree; a first prompt by voice; picking the Claude account (a started session runs in
-the terminal's default account); terminals other than Terminal and iTerm; Claude Code on a Linux hub.
+the terminal's default account); terminals other than Terminal and iTerm. (Claude Code now starts on a Linux hub, in tmux.)

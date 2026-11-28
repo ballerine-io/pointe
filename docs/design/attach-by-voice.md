@@ -90,7 +90,8 @@ New link frames (protocol stays 1; an older node ignores them and the hub says "
 it there"): hub `discover {req, since, cap}`, node `discovered {req, found}`; hub `attach {req, harness, id}`, node
 `attach.result {req, ok, why?}`. The node runs the same adapter's `discover` and registers the session in its own
 registry, exactly as `/pointe:voice` there would; the session then reaches the hub through the node's `sessions`
-snapshot. Reopen on a node is refused, as Start is: "Pointe reopens sessions only on this Mac for now."
+snapshot. Reopening a Claude Code session on a node is refused: "Pointe reopens Claude Code sessions only on this Mac for now.
+On another machine, resume it there and join it." A recent Codex or OpenCode session there joins through the node.
 
 ## Matching a description
 
@@ -117,7 +118,7 @@ or asked something is spoken to, not asked for.
 
 ## The read-backs
 
-Word for word, from `daemon._attach_line`:
+Word for word, from `matching.line_one` and `matching.line_all`:
 
 - One open: "Join pentest-recon, the Claude Code session in pentest-notes on studio?"
 - One open whose approvals stay in its terminal: "... on studio? Its approvals stay in its terminal. Join?"
@@ -183,5 +184,5 @@ A session that is open already is joined, not reopened. A folder that is gone ca
 
 ## Not in this version
 
-Reopening on a node; picking which account a reopened Claude Code session runs in (it is the account it ran in);
+Reopening a Claude Code session on a node; picking which account a reopened Claude Code session runs in (it is the account it ran in);
 OpenCode's TUI opened for the user; sessions of Claude Code on the web or Codex Cloud ([cloud-sessions.md](../cloud-sessions.md)).
