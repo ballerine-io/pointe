@@ -19,6 +19,7 @@ from conversational.routing.adapters import naive  # noqa: E402
 from conversational.routing.adapters.echo import EchoArm  # noqa: E402
 from conversational.routing.routing import check, runner  # noqa: E402
 from conversational.routing.routing.fixture import make  # noqa: E402
+from generated import same_as_generated  # noqa: E402
 
 DS = check.load()
 CANARY = (ROOT / "bench" / "conversational" / "routing" / "CANARY").read_text().strip()
@@ -275,7 +276,7 @@ def test_committed_rows_hold_no_home_path_or_key_and_the_page_matches_the_rows()
         from conversational.routing.routing import report
 
         rows, spend, metas = report.load(runs)
-        assert report.markdown(report.summarize(rows, spend), metas) == md.read_text()
+        same_as_generated(md.read_text(), report.markdown(report.summarize(rows, spend), metas), "regenerate it from the runs", md.name)
 
 
 class _SlowAgentArm(EchoArm):

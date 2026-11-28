@@ -8,6 +8,7 @@ import re
 from pathlib import Path
 
 import pytest
+from generated import same_as_generated  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 # The report scores with the dialogue suite's harness; its module names (core, dialogues) are shared with the other
@@ -34,7 +35,7 @@ def test_the_summary_is_what_the_rows_give():
     committed = (release / "summary.json").read_text()
     report.main(release)
     try:
-        assert (release / "summary.json").read_text() == committed, "run bench/release_report.py and commit summary.json"
+        same_as_generated(committed, (release / "summary.json").read_text(), "run bench/release_report.py and commit summary.json", "summary.json")
     finally:
         (release / "summary.json").write_text(committed)
 
@@ -42,7 +43,7 @@ def test_the_summary_is_what_the_rows_give():
 def test_every_page_matches_the_release():
     publish = load("publish")
     for path, text in publish.build(RELEASES[-1]).items():
-        assert path.read_text() == text, f"{path.relative_to(ROOT)}: run bench/publish.py"
+        same_as_generated(path.read_text(), text, "run bench/publish.py", str(path.relative_to(ROOT)))
     assert (publish.SITE / RELEASES[-1].name / "rows.tar.gz").read_bytes() == publish.tarball(RELEASES[-1])
 
 

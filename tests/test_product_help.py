@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 import howto  # noqa: E402
 from test_orchestrator import Params, add, d, open_gates, record_dispatch  # noqa: E402,F401  (d is the daemon fixture)
+from generated import same_as_generated  # noqa: E402
 
 spec = importlib.util.spec_from_file_location("product_help", ROOT / "tools" / "product_help.py")
 gen = importlib.util.module_from_spec(spec)
@@ -224,8 +225,8 @@ def test_every_tool_named_is_one_the_brain_has(d):
 # ---------- the file stays in step with the UI ----------
 
 def test_the_committed_file_is_what_the_generator_writes():
-    assert (ROOT / gen.OUT).read_text() == gen.dumps(gen.build(ROOT)), \
-        "product_help.json is stale: run python3 tools/product_help.py and commit it"
+    same_as_generated((ROOT / gen.OUT).read_text(), gen.dumps(gen.build(ROOT)), "run python3 tools/product_help.py and commit it",
+                      "product_help.json")
 
 
 def _copy(tmp_path: Path) -> Path:

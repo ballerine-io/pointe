@@ -25,6 +25,7 @@ from adapters.naive import rule  # noqa: E402
 from adapters.llm_router import parse_reply  # noqa: E402
 from core import corpus, ledger, scrub, stats  # noqa: E402
 from core.adapter import RunEnv  # noqa: E402
+from generated import same_as_generated  # noqa: E402
 
 DATA = tomllib.loads((BENCH / "actions" / "items.toml").read_text())
 ITEMS = DATA["item"]
@@ -348,7 +349,7 @@ def test_results_and_pages_regenerate_from_the_rows():
         assert json.loads(json.dumps(again, sort_keys=True)) == results, f"{path} differs from its rows"
     latest = json.loads(published[-1].read_text())
     md = report.page(latest)
-    assert report.PAGE.read_text() == md, "RESULTS.md was edited by hand or is stale"
+    same_as_generated(report.PAGE.read_text(), md, "it was edited by hand: regenerate it from the rows", "RESULTS.md")
     # The site page was withdrawn on 2026-11-25 (docs/benchmarks/withdrawn/2026-11-23/): only RESULTS.md stays.
     assert "synthetic speech" in md and md.count("synthetic speech") >= md.count("\n## ")
 

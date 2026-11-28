@@ -13,6 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 import parity  # noqa: E402
+from generated import same_as_generated  # noqa: E402
 
 # A gap that is known and being closed. Each entry is (feature id, surface). The test fails for a gap that is not
 # listed, and for a listed gap that is closed: delete the entry in the change that closes it. The aim is an empty set.
@@ -23,7 +24,7 @@ MATRIX = parity.scan()
 
 def test_the_matrix_file_is_what_the_code_says():
     baseline = parity.json.loads((ROOT / parity.BASELINE).read_text())
-    assert (ROOT / parity.OUT).read_text() == parity.render(MATRIX, baseline), "run python3 tools/parity.py"
+    same_as_generated((ROOT / parity.OUT).read_text(), parity.render(MATRIX, baseline), "run python3 tools/parity.py", str(parity.OUT))
 
 
 def test_every_feature_is_on_every_surface_that_can_have_it():

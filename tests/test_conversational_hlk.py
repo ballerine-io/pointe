@@ -26,6 +26,7 @@ from core import audit, ledger, scrub, stats, verify  # noqa: E402
 from core.user import is_question  # noqa: E402
 from hlk import score  # noqa: E402
 from hlk.common import CANARY  # noqa: E402
+from generated import same_as_generated  # noqa: E402
 
 INSTANCES = hlk.public()
 
@@ -185,9 +186,9 @@ def test_generated_pages_match_the_rows():
         pytest.skip("no frozen run yet")
     from core import report
     text, page, data = report.build_all()
-    assert report.DOC.read_text() == text, "run: uv run --locked python bench/conversational/hlk/run.py report"
-    assert report.PAGE.read_text() == page
-    assert report.SUMMARY.read_text() == data
+    fix = "run: uv run --locked python bench/conversational/hlk/run.py report"
+    for path, made in ((report.DOC, text), (report.PAGE, page), (report.SUMMARY, data)):
+        same_as_generated(path.read_text(), made, fix, path.name)
     for body in (text, page):
         assert "Humanity's Last Keystroke" in body and report.SUBTITLE in body
         assert "36 instances in 12 families" in body

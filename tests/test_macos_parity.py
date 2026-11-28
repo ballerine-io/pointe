@@ -20,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 import phone  # noqa: E402
 import vendors  # noqa: E402
+from generated import same_as_generated  # noqa: E402
 
 KIT = ROOT / "apps" / "PointeKit" / "Sources"
 MAC = ROOT / "apps" / "macos"
@@ -220,4 +221,5 @@ def test_the_icons_are_the_brands_drawings():
 def test_the_project_file_is_what_its_generator_writes():
     made = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, 'apps/macos/tools'); import make_project; print(make_project.project(), end='')"],
                           cwd=ROOT, capture_output=True, text=True, check=True).stdout
-    assert made == (MAC / "PointeMac.xcodeproj" / "project.pbxproj").read_text(), "run python3 apps/macos/tools/make_project.py"
+    same_as_generated((MAC / "PointeMac.xcodeproj" / "project.pbxproj").read_text(), made, "run python3 apps/macos/tools/make_project.py",
+                      "project.pbxproj")
