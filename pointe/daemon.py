@@ -27,7 +27,7 @@ import sys
 import threading
 import textwrap
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace as _replace
 from types import SimpleNamespace
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -6690,7 +6690,7 @@ def _fleet_label(machine: str) -> tuple[str, str]:
         facts.insert(0, f"{m.owner}'s machine" + (", the user may only watch it" if m.grant == "watch" else ""))
     if m.rtt_ms is not None:
         shown = state.fleet_rtt.get(machine)
-        if shown is None or abs(m.rtt_ms - shown) > max(20, shown // 2):
+        if shown is None or abs(m.rtt_ms - shown) > max(50, shown // 2):  # loopback jitters 0 to 42 ms
             shown = state.fleet_rtt[machine] = m.rtt_ms
         facts.append(f"{shown} ms")
     return machine, ", ".join(f for f in facts if f)
@@ -6718,7 +6718,10 @@ def _fleet_split(pool: list[Session]) -> tuple[list[Session], list[scale.Machine
     listed = {s.id for s in full} | {s.id for s in waited}
     shown = {sid: scale.FOCUS if sid in listed else scale.BACKGROUND for sid in tier}
     labels = {m: _fleet_label(m) for m in {r.machine for r in rows}}
-    return full, scale.machine_lines(rows, shown, labels), scale.more_need(rows, tier), sent, state.fleet_rules_told
+    # A send marks its session busy (_dispatch); counted as working in its machine's line, it changed the block on every
+    # send until its batch was listed. The sends are the brain's own calls, so only work nobody here asked for counts.
+    counted = [_replace(r, working=r.working and not r.awaiting) for r in rows]
+    return full, scale.machine_lines(counted, shown, labels), scale.more_need(rows, tier), sent, state.fleet_rules_told
 
 
 def _fleet_sent(awaiting: list[Session]) -> list[Session]:

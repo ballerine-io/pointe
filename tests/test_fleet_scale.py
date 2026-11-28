@@ -7,6 +7,7 @@ uv run --locked pytest -q tests/test_fleet_scale.py
 """
 
 import asyncio
+import difflib
 import random
 import sys
 import time
@@ -216,6 +217,40 @@ def test_a_machines_latency_does_not_change_the_block_turn_to_turn(d, node, flee
     assert d._needs_now() == before
     node.machines["box-00"].rtt_ms = 400  # a real change is told
     assert "box-00 (Linux, 400 ms)" in d._needs_now()
+
+
+def test_loopback_jitter_of_a_few_tens_of_ms_does_not_change_the_block(d, node, fleet_on):
+    """Fleet benchmark, 2026-11-28: a link between 0 and 42 ms crossed the old 20 ms floor both ways and made a new
+    copy of the block."""
+    build(d, node, 3, 15)
+    for m in node.machines.values():
+        m.rtt_ms = 0
+    d.state.fleet_rtt.clear()
+    before = d._needs_now()
+    for rtt in (42, 0, 37, 3):
+        node.machines["box-01"].rtt_ms = rtt
+        assert d._needs_now() == before, rtt
+
+
+def test_a_send_changes_the_block_only_when_its_batch_is_listed(d, node, fleet_on):
+    """Fleet benchmark, 2026-11-28: the block was copied into the brain's history on 53 of 60 turns at 10x30. Sends join
+    the block four at a time, but the send marks its session busy, and its machine's line counted it as working until its
+    batch was listed: one new copy per send."""
+    everyone = build(d, node, 3, 15)
+    d.REGISTRY.active_id = everyone[0].id
+
+    def send(s: Session) -> str:
+        d.state.unconfirmed.setdefault(s.id, []).append(f"Run the tests of {s.name}.")
+        s.busy, s.turn_mine, s.last_delegation_at = True, True, 2000.0 + len(d.state.unconfirmed)
+        d.state.fleet_touched[s.id] = time.time()
+        return d._needs_now()
+
+    first = send(everyone[20])  # the first send is listed at once
+    assert f"- {everyone[20].name} (on box-01" in first
+    blocks = [send(s) for s in everyone[30:30 + d.scale.SENT_BATCH - 1]]  # the next ones wait for their batch
+    assert all(b == first for b in blocks), "\n".join(difflib.unified_diff(first.splitlines(), next(b for b in blocks if b != first).splitlines(), lineterm=""))
+    batch = send(everyone[40])
+    assert batch != first and f"- {everyone[40].name} (on box-02" in batch
 
 
 def test_a_line_over_its_share_loses_its_notes_before_what_it_waits_on(d, node, fleet_on):
