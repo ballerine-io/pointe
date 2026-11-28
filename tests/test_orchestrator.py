@@ -466,7 +466,9 @@ def test_o13_control_a_plain_yes_answers_the_active_session(d, monkeypatch):
 
 
 @pytest.mark.parametrize("said", ["no problem, go ahead", "no worries, do it", "stop asking, just do it", "למה לא",
-                                  "בסדר", "טוב, תעשה את זה", "absolutely", "of course", "yes please"])
+                                  "בסדר", "טוב, תעשה את זה", "absolutely", "of course", "yes please",
+                                  # r02 (control): the phrase alone is a yes
+                                  "why not", "why not?", "no problem", "no worries, go ahead", "טוב", "ברור"])
 def test_o14_everyday_yes(said):
     assert consent(said) == "allow"
 
@@ -1599,12 +1601,6 @@ def test_r01_absolutely_not_does_not_approve(d, monkeypatch):
                                   "למה לא להריץ את זה בסטייג'ינג?", "טוב, תגיד לי מה המצב", "ברור, מה הוא עושה"])
 def test_r02_a_counter_proposal_or_complaint_is_not_a_yes(said):
     assert consent(said) != "allow"
-
-
-@pytest.mark.parametrize("said", ["why not", "why not?", "למה לא", "no problem", "no worries, go ahead", "טוב",
-                                  "ברור", "stop asking, just do it"])
-def test_r02_control_the_phrase_alone_is_a_yes(said):
-    assert consent(said) == "allow"
 
 
 def test_r02_why_not_x_does_not_approve(d, monkeypatch):

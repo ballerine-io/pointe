@@ -478,12 +478,6 @@ def test_fragments_and_dismissals_do_not_approve(said):
     assert permission_answer(said) is None
 
 
-@pytest.mark.parametrize("said", ["yes", "okay", "yes please", "go ahead", "yes, do it", "yes you can", "כן", "no problem"])
-def test_plain_answers_still_approve(said):
-    from guards import permission_answer
-    assert permission_answer(said) == "allow"
-
-
 @pytest.mark.parametrize("tool,args,want", [
     ("Bash", {"command": "rm -rf build", "description": "Tidy up"}, "run: rm -rf build"),
     ("Bash", {"command": "cat README.md && python3 -m pytest -q 2>&1 | tail -40"}, "run: cat README.md then python3 pytest"),

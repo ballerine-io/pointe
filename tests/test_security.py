@@ -18,7 +18,8 @@ from remote import COOKIE, Remote, TLS_PORT  # noqa: E402
 HOST = "phone.example.internal"
 
 
-@pytest.mark.parametrize("said", ["yes", "yes please", "go ahead", "okay, do it", "כן", "no problem"])
+@pytest.mark.parametrize("said", ["yes", "yes please", "go ahead", "okay, do it", "כן", "no problem", "okay", "yes, do it",
+                                  "yes you can"])
 def test_a_plain_yes_approves(said):
     assert permission_answer(said) == "allow"
 
