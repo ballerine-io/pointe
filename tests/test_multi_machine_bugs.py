@@ -483,6 +483,38 @@ def test_one_address_cannot_cancel_an_invite_by_guessing(world):
 
 # ---------- 14. a node that crashed waits out the hub's heartbeat before it can link again ----------
 
+
+@pytest.mark.parametrize("new_address, told", [("203.0.113.9", True), ("100.64.0.7", False)])
+def test_a_takeover_from_another_address_is_said_on_the_machine_and_one_from_the_same_is_not(world, monkeypatch,
+                                                                                             new_address, told):
+    """multi-machine.md, "a stolen node key": a new connection with a node's key that replaces its silent link from
+    another address puts one line on the machine's row, naming both addresses, so the owner can revoke it. The same
+    address (the node itself reconnecting) says nothing."""
+    from test_hub_nodes import Pipe
+
+    class At(Pipe):
+        def __init__(self, host):
+            super().__init__()
+            self.client = type("Client", (), {"host": host})()
+
+    hub, *_ = world
+    monkeypatch.setattr(hub_nodes, "STALE_PROBE_SECS", 0.2, raising=False)
+    node = paired(hub)
+
+    async def go():
+        old, new = FakeNode(hub, node), FakeNode(hub, node)
+        old.pipe, new.pipe = At("100.64.0.7"), At(new_address)
+        assert (await old.connect())["t"] == "welcome"
+        assert (await new.connect())["t"] == "welcome"  # old never answers its ping: stale, replaced
+        await new.drop()
+
+    run(go())
+    notice = sessions.MACHINES[node["name"]].notice
+    if told:
+        assert "203.0.113.9" in notice and "100.64.0.7" in notice and "revoke" in notice, notice
+    else:
+        assert notice == ""
+
 def test_a_new_connection_replaces_an_old_link_that_no_longer_answers(world, monkeypatch):
     """The laptop slept or the node's machine rebooted: its old link stays open on the hub, silent, until the heartbeat
     gives up (about 15 s), and every reconnect meanwhile is refused 4409. A new connection with the key now makes the

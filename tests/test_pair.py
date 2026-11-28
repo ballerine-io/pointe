@@ -249,6 +249,22 @@ def test_rotate_and_off_delete_every_persons_key_and_say_how_many_must_be_invite
     assert "invited again" not in capsys.readouterr().out  # nobody is left to say it of
 
 
+
+@pytest.mark.parametrize("add", [False, True])
+def test_choosing_another_route_signs_no_person_out(pair, tmp_path, add):
+    """SECURITY.md: a new route chosen with `pointe pair tailscale`, `wifi` or `host` does not sign people out; only
+    rotate and off do. Their keys stay on disk and in the running daemon's list, whether the route replaces the old
+    one or is added beside it."""
+    import guests
+
+    pair.setup("pointe.example.internal", "127.0.0.1")
+    people = guests.People(tmp_path / "people.json")
+    dana = people.add("Dana", "send", "100.64.0.7", ["Anthropic"], 5.0)
+    before = (tmp_path / "people.json").read_text()
+    pair.setup("studio.tail0000.ts.net", "127.0.0.1", kind="tailscale", add=add)
+    assert people.get(dana["id"])["key"] == dana["key"]
+    assert (tmp_path / "people.json").read_text() == before
+
 def test_after_rotate_a_new_pairing_does_not_bring_the_old_ones_back(pair, tmp_path):
     phones, phone, nodes, node, _ = _everyone_paired(pair, tmp_path)
     pair.main(["rotate"])
