@@ -241,6 +241,30 @@ def test_openclaw_exec_approval_is_held_for_the_user(world, monkeypatch, verdict
     asyncio.run(scenario())
 
 
+
+def test_openclaw_approval_nobody_answered_is_left_to_the_gateway(world, monkeypatch):
+    """agents.md: an approval nobody answers is resolved by nobody here; the gateway's own timeout and fallback (deny)
+    decide. Hermes has this test; OpenClaw's path is its own code (harnesses/openclaw.py)."""
+    fake = FakeOpenClaw()
+    fake.approve_command = "rm -rf /tmp/build"
+
+    async def scenario():
+        runner, url = await serve(fake.app())
+        world["agent"] = agent = agents.Agent(name="openclaw", kind="openclaw", url=url)
+        world["verdict"] = None
+        monkeypatch.setattr(HOST, "hold_permission", world["hold"])
+        session, harness = _session(agent, "openclaw"), OpenClaw()
+        try:
+            assert await harness.send(session, "clean the build")
+            await _until(lambda: world["holds"])
+            await asyncio.sleep(0.2)
+            await harness.leave(session)
+        finally:
+            await runner.cleanup()
+        assert fake.resolved == [], "never auto-approved, never answered for the user"
+
+    asyncio.run(scenario())
+
 def test_openclaw_refused_token_and_an_unasked_reply(world):
     fake = FakeOpenClaw()
 

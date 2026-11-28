@@ -349,3 +349,32 @@ def test_an_iphone_left_out_of_a_run_is_pending_not_done(tmp_path):
     with pytest.raises(Stop, match="pending") as stop:
         steps.ios(ctx)
     assert stop.value.waiting and "--platforms iphone,mac,linux" in stop.value.how
+
+
+# ---------- the order of the steps ----------
+
+def test_nothing_is_published_before_every_check_and_a_dry_run_publishes_nothing():
+    """docs/releasing.md: the version commit waits for every preflight check; Latest waits for the downloads checked
+    anonymously, the disk image's notarization, both installs and the tag's ui run; and from the push on, every step
+    has a dry version (a step without one runs its real action in a dry run, core.Step.dry). Only the checks and the
+    local version commit run as themselves."""
+    by = {s.name: s for s in steps.STEPS}
+    assert len(by) == len(steps.STEPS), "one step per name"
+    assert {n for n in by if n.startswith("preflight.")} - {"preflight.tree"} <= set(by["version.commit"].needs)  # each needs the tree
+    assert {"verify.assets", "verify.dmg", "verify.mac-install", "verify.linux", "publish.ui"} <= set(by["publish.promote"].needs)
+    assert by["version.push"].needs == ("version.commit",) and by["tag"].needs == ("version.ci",)
+
+    def before(name: str) -> set[str]:
+        out, todo = set(), list(by[name].needs)
+        while todo:
+            n = todo.pop()
+            if n not in out:
+                out.add(n)
+                todo += by[n].needs
+        return out
+
+    for late in ("publish.site", "publish.live", "dist.app-store", "dist.external"):
+        assert {"tag.ci", "version.ci", "preflight.ci"} <= before(late), late
+    assert {"publish.promote", "verify.dmg"} <= before("publish.live")
+    without_dry = {s.name for s in steps.STEPS if s.dry is None}
+    assert without_dry == {n for n in by if n.startswith("preflight.") and n != "preflight.tree"} | {"version.commit"}, without_dry
