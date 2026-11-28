@@ -1,0 +1,845 @@
+# Barge-in and backchannel set: 30 interruptions and 30 backchannels over a long answer, in SYNTHETIC voices (Kokoro).
+# Not recorded people: no openly licensed corpus holds these lines spoken over an assistant (HUMAN_SET.md). Built for
+# the independent review's item 5 (interruption that feels instant). Each dialogue asks a question whose answer runs
+# several sentences, then speaks over it while it plays: an interruption that asks something new (the voice must stop
+# and answer it), or a listener's sound (the voice must go on). Score with bargein_report.py.
+
+[[dialogue]]
+id = "bi-int-01"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain how a hash map handles collisions, in a few sentences."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait, stop. What's the capital of Japan?"
+  when = "speaking"
+  delay = 2.69
+  expect = { kind = "answer", facts = ['tokyo'] }
+
+[[dialogue]]
+id = "bi-int-02"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Walk me through what happens when I type a web address and press enter."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on. How many days are in a leap year?"
+  when = "speaking"
+  delay = 3.1
+  expect = { kind = "answer", facts = ['366|three hundred sixty.six'] }
+
+[[dialogue]]
+id = "bi-int-03"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain the difference between processes and threads, with an example."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Actually, stop. What's two plus two?"
+  when = "speaking"
+  delay = 3.17
+  expect = { kind = "answer", facts = ['\b4\b|four'] }
+
+[[dialogue]]
+id = "bi-int-04"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how garbage collection works in a language like Java."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait, wait. What color is the sky on a clear day?"
+  when = "speaking"
+  delay = 3.48
+  expect = { kind = "answer", facts = ['blue'] }
+
+[[dialogue]]
+id = "bi-int-05"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain how TCP makes sure data arrives in order."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop there. What's the capital of France?"
+  when = "speaking"
+  delay = 2.96
+  expect = { kind = "answer", facts = ['paris'] }
+
+[[dialogue]]
+id = "bi-int-06"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how a database index speeds up a query, in a few sentences."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hang on. How many minutes are in an hour?"
+  when = "speaking"
+  delay = 2.59
+  expect = { kind = "answer", facts = ['60|sixty'] }
+
+[[dialogue]]
+id = "bi-int-07"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain what a race condition is and how a lock prevents it."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "No, wait. What's the boiling point of water in Celsius?"
+  when = "speaking"
+  delay = 3.4
+  expect = { kind = "answer", facts = ['100|hundred'] }
+
+[[dialogue]]
+id = "bi-int-08"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me how public key encryption works, simply."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on, what's the largest planet?"
+  when = "speaking"
+  delay = 3.3
+  expect = { kind = "answer", facts = ['jupiter'] }
+
+[[dialogue]]
+id = "bi-int-09"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain how git stores history under the hood."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. How many legs does a spider have?"
+  when = "speaking"
+  delay = 2.09
+  expect = { kind = "answer", facts = ['\b8\b|eight'] }
+
+[[dialogue]]
+id = "bi-int-10"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how a load balancer decides where to send a request."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop, stop. What's the capital of Italy?"
+  when = "speaking"
+  delay = 3.12
+  expect = { kind = "answer", facts = ['rome'] }
+
+[[dialogue]]
+id = "bi-int-11"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain the difference between unit tests and integration tests."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hang on a second. What's ten times ten?"
+  when = "speaking"
+  delay = 2.14
+  expect = { kind = "answer", facts = ['100|hundred'] }
+
+[[dialogue]]
+id = "bi-int-12"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how a CPU cache helps a program run faster."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Actually, wait. Which ocean is the largest?"
+  when = "speaking"
+  delay = 3.33
+  expect = { kind = "answer", facts = ['pacific'] }
+
+[[dialogue]]
+id = "bi-int-13"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain what eventual consistency means in a distributed database."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. How many continents are there?"
+  when = "speaking"
+  delay = 2.28
+  expect = { kind = "answer", facts = ['\b7\b|seven'] }
+
+[[dialogue]]
+id = "bi-int-14"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how DNS finds the address of a website."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on. What's the chemical symbol for gold?"
+  when = "speaking"
+  delay = 2.4
+  expect = { kind = "answer", facts = ['\bau\b|a\.? ?u\b'] }
+
+[[dialogue]]
+id = "bi-int-15"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain how a compiler turns source code into a program."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop. What's the capital of Spain?"
+  when = "speaking"
+  delay = 3.08
+  expect = { kind = "answer", facts = ['madrid'] }
+
+[[dialogue]]
+id = "bi-int-16"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me how HTTPS keeps a connection private."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait, wait, wait. How many hours are in a day?"
+  when = "speaking"
+  delay = 3.25
+  expect = { kind = "answer", facts = ['24|twenty.four'] }
+
+[[dialogue]]
+id = "bi-int-17"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain what a deadlock is and two ways to avoid it."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on. What's the freezing point of water in Celsius?"
+  when = "speaking"
+  delay = 2.79
+  expect = { kind = "answer", facts = ['\b0\b|zero'] }
+
+[[dialogue]]
+id = "bi-int-18"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how a message queue decouples two services."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "No, stop. What's the capital of Germany?"
+  when = "speaking"
+  delay = 2.34
+  expect = { kind = "answer", facts = ['berlin'] }
+
+[[dialogue]]
+id = "bi-int-19"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain how binary search works and why it is fast."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hang on. How many sides does a triangle have?"
+  when = "speaking"
+  delay = 2.98
+  expect = { kind = "answer", facts = ['\b3\b|three'] }
+
+[[dialogue]]
+id = "bi-int-20"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me what happens in memory when a function is called."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. What planet do we live on?"
+  when = "speaking"
+  delay = 2.63
+  expect = { kind = "answer", facts = ['earth'] }
+
+[[dialogue]]
+id = "bi-int-21"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain how containers differ from virtual machines."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop there. What's five times five?"
+  when = "speaking"
+  delay = 2.92
+  expect = { kind = "answer", facts = ['25|twenty.five'] }
+
+[[dialogue]]
+id = "bi-int-22"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how rate limiting protects an API."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on. What's the capital of Canada?"
+  when = "speaking"
+  delay = 2.25
+  expect = { kind = "answer", facts = ['ottawa'] }
+
+[[dialogue]]
+id = "bi-int-23"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain what a closure is in JavaScript, with an example."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. How many weeks are in a year?"
+  when = "speaking"
+  delay = 2.13
+  expect = { kind = "answer", facts = ['52|fifty.two'] }
+
+[[dialogue]]
+id = "bi-int-24"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me how a B-tree keeps lookups fast on disk."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Actually, hold on. What's the smallest prime number?"
+  when = "speaking"
+  delay = 2.5
+  expect = { kind = "answer", facts = ['\b2\b|two'] }
+
+[[dialogue]]
+id = "bi-int-25"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain how OAuth lets one app act for a user on another."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop, please. What's the capital of Egypt?"
+  when = "speaking"
+  delay = 2.93
+  expect = { kind = "answer", facts = ['cairo'] }
+
+[[dialogue]]
+id = "bi-int-26"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how a content delivery network makes sites faster."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. How many seconds are in a minute?"
+  when = "speaking"
+  delay = 2.29
+  expect = { kind = "answer", facts = ['60|sixty'] }
+
+[[dialogue]]
+id = "bi-int-27"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain what idempotency means for an API request."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hang on. Which gas do plants take in?"
+  when = "speaking"
+  delay = 2.04
+  expect = { kind = "answer", facts = ['carbon dioxide|co2|c\.? ?o\.? ?2'] }
+
+[[dialogue]]
+id = "bi-int-28"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how a bloom filter can say no for sure but yes only maybe."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Hold on. What's the capital of Australia?"
+  when = "speaking"
+  delay = 2.27
+  expect = { kind = "answer", facts = ['canberra'] }
+
+[[dialogue]]
+id = "bi-int-29"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain how a write-ahead log keeps a database safe after a crash."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Wait. What's the square root of nine?"
+  when = "speaking"
+  delay = 2.56
+  expect = { kind = "answer", facts = ['\b3\b|three'] }
+
+[[dialogue]]
+id = "bi-int-30"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how a reverse proxy differs from a forward proxy."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Stop. How many months are in a year?"
+  when = "speaking"
+  delay = 3.32
+  expect = { kind = "answer", facts = ['12|twelve'] }
+
+[[dialogue]]
+id = "bi-back-01"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how public key encryption works, simply."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hm."
+  when = "speaking"
+  delay = 3.35
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-02"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain how git stores history under the hood."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Uh-huh."
+  when = "speaking"
+  delay = 2.47
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-03"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how a load balancer decides where to send a request."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah."
+  when = "speaking"
+  delay = 3.28
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-04"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain the difference between unit tests and integration tests."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay."
+  when = "speaking"
+  delay = 2.33
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-05"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me how a CPU cache helps a program run faster."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Right."
+  when = "speaking"
+  delay = 2.34
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-06"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain what eventual consistency means in a distributed database."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yep."
+  when = "speaking"
+  delay = 2.76
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-07"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how DNS finds the address of a website."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mhm."
+  when = "speaking"
+  delay = 3.28
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-08"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain how a compiler turns source code into a program."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hmm."
+  when = "speaking"
+  delay = 3.4
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-09"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how HTTPS keeps a connection private."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah, yeah."
+  when = "speaking"
+  delay = 3.19
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-10"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain what a deadlock is and two ways to avoid it."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay, okay."
+  when = "speaking"
+  delay = 2.56
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-11"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how a message queue decouples two services."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hm."
+  when = "speaking"
+  delay = 3.21
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-12"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain how binary search works and why it is fast."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Uh-huh."
+  when = "speaking"
+  delay = 2.31
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-13"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me what happens in memory when a function is called."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah."
+  when = "speaking"
+  delay = 3.26
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-14"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain how containers differ from virtual machines."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay."
+  when = "speaking"
+  delay = 2.34
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-15"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how rate limiting protects an API."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Right."
+  when = "speaking"
+  delay = 3.32
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-16"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain what a closure is in JavaScript, with an example."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yep."
+  when = "speaking"
+  delay = 2.13
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-17"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Tell me how a B-tree keeps lookups fast on disk."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mhm."
+  when = "speaking"
+  delay = 2.14
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-18"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain how OAuth lets one app act for a user on another."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hmm."
+  when = "speaking"
+  delay = 2.54
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-19"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Describe how a content delivery network makes sites faster."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah, yeah."
+  when = "speaking"
+  delay = 3.12
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-20"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain what idempotency means for an API request."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay, okay."
+  when = "speaking"
+  delay = 2.01
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-21"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Tell me how a bloom filter can say no for sure but yes only maybe."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hm."
+  when = "speaking"
+  delay = 3.3
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-22"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain how a write-ahead log keeps a database safe after a crash."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Uh-huh."
+  when = "speaking"
+  delay = 2.01
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-23"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "am_michael"
+  [[dialogue.turn]]
+  say = "Describe how a reverse proxy differs from a forward proxy."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah."
+  when = "speaking"
+  delay = 2.44
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-24"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bf_emma"
+  [[dialogue.turn]]
+  say = "Explain how a hash map handles collisions, in a few sentences."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay."
+  when = "speaking"
+  delay = 2.61
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-25"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "bm_george"
+  [[dialogue.turn]]
+  say = "Walk me through what happens when I type a web address and press enter."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Right."
+  when = "speaking"
+  delay = 2.84
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-26"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "hm_omega"
+  [[dialogue.turn]]
+  say = "Explain the difference between processes and threads, with an example."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yep."
+  when = "speaking"
+  delay = 2.55
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-27"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ef_dora"
+  [[dialogue.turn]]
+  say = "Tell me how garbage collection works in a language like Java."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mhm."
+  when = "speaking"
+  delay = 2.49
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-28"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "ff_siwis"
+  [[dialogue.turn]]
+  say = "Explain how TCP makes sure data arrives in order."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Mm-hmm."
+  when = "speaking"
+  delay = 3.43
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-29"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "im_nicola"
+  [[dialogue.turn]]
+  say = "Describe how a database index speeds up a query, in a few sentences."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Yeah, yeah."
+  when = "speaking"
+  delay = 2.07
+  expect = { kind = "none", need = 0 }
+
+[[dialogue]]
+id = "bi-back-30"
+dim = "turn-taking"
+sessions = ["billing"]
+voice = "af_heart"
+  [[dialogue.turn]]
+  say = "Explain what a race condition is and how a lock prevents it."
+  expect = { kind = "answer", need = 60 }
+  [[dialogue.turn]]
+  say = "Okay, okay."
+  when = "speaking"
+  delay = 3.33
+  expect = { kind = "none", need = 0 }
