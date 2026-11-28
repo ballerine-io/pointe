@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import quick  # noqa: E402
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = os.environ.get("POINTE_QUICK_SHOTS")
@@ -45,7 +45,7 @@ def test_the_page_and_both_apps_say_the_same_words_as_the_daemon():
 
 
 async def _run(script, status=None, width=1280, shot=None):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = fixture(sessions=2, talk=2, connected=True)
     stub.status.update(status or {})
     try:

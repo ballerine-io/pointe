@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, ROOT, Browser, StubMac, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac  # noqa: E402
 from test_thinking_page import DIAL, THINKING, WORKING, _status, _until  # noqa: E402
 
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
@@ -32,7 +32,7 @@ SWIFT = [*(ROOT / "apps" / "PointeKit" / "Sources").rglob("*.swift"), *(ROOT / "
 
 
 async def _on_page(status, script, reduce=False, width=None, live=True, shot=None):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     try:
         async with Browser() as browser:

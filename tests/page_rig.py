@@ -12,7 +12,6 @@ import asyncio
 import json
 import os
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
@@ -24,7 +23,9 @@ from aiohttp import web
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
+sys.path.append(str(Path(__file__).resolve().parent))
 from guards import page_csp  # noqa: E402
+from ports import free_port  # noqa: E402,F401  (the page tests take it from here)
 # Where a Mac and GitHub's Ubuntu runner keep Chrome: the page's tests run in CI too (CONTRIBUTING.md, "How to test").
 CHROME = next((c for c in ("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/google-chrome")
                if os.path.exists(c)), "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
@@ -46,10 +47,6 @@ def page_html() -> str:
     )
 
 
-def free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 # ---------- the fixture: what /voice/status says ----------
@@ -112,8 +109,8 @@ def fixture(sessions: int = 1, machines: int = 1, talk: int = 0, approval: bool 
 class StubMac:
     """Serves the page and the fixture; `delay` seconds before every answer when set."""
 
-    def __init__(self, port: int):
-        self.port = port
+    def __init__(self, port: int = 0):
+        self.port = port  # 0: the system picks one at start, and it is read back (tests/ports.py)
         self.status = fixture()
         self.delay = 0.0
         self.posts: list[tuple[str, dict, float]] = []  # path, body, when it was answered
@@ -145,7 +142,9 @@ class StubMac:
         app.router.add_route("DELETE", "/{tail:.*}", self._ok)
         self._runner = web.AppRunner(app, access_log=None)
         await self._runner.setup()
-        await web.TCPSite(self._runner, "127.0.0.1", self.port).start()
+        site = web.TCPSite(self._runner, "127.0.0.1", self.port)
+        await site.start()
+        self.port = site._server.sockets[0].getsockname()[1]
         return self
 
     def routes(self, app) -> None:
@@ -154,6 +153,21 @@ class StubMac:
     async def stop(self) -> None:
         if self._runner:
             await self._runner.cleanup()
+
+    async def posted(self, path: str, n: int, timeout: float = 10.0) -> list[dict]:
+        """The bodies of the first `n` POSTs to `path`, once they arrived: a page's click shows at once, its request
+        lands when the runner gets to it."""
+        deadline = time.monotonic() + timeout
+        while sum(p == path for p, _, _ in self.posts) < n and time.monotonic() < deadline:
+            await asyncio.sleep(0.02)
+        return [b for p, b, _ in self.posts if p == path]
+
+    async def polled(self, n: int = 2, timeout: float = 10.0) -> None:
+        """Until the page has fetched the status `n` more times: whatever it drew from the status as it is now has
+        been drawn, without guessing how long that takes."""
+        deadline, want = time.monotonic() + timeout, self.status_hits + n
+        while self.status_hits < want and time.monotonic() < deadline:
+            await asyncio.sleep(0.02)
 
     async def _stall(self) -> None:
         if self.delay:
@@ -337,6 +351,23 @@ class StubMac:
 
 # ---------- the browser ----------
 
+CDP_WAIT_SECS = 60  # one DevTools command; the slowest, a screenshot on a busy runner, takes a few seconds
+
+
+async def devtools_port(profile: Path, proc: subprocess.Popen, timeout: float = 30.0) -> int:
+    """The port Chrome picked for --remote-debugging-port=0: it writes it to DevToolsActivePort in its profile once it
+    listens. A port chosen by the test and passed in could be taken by another worker before Chrome bound it."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            return int((profile / "DevToolsActivePort").read_text().split()[0])
+        except (OSError, ValueError, IndexError):
+            if proc.poll() is not None:
+                raise RuntimeError(f"Chrome exited ({proc.returncode}) before it listened") from None
+            await asyncio.sleep(0.1)
+    raise RuntimeError(f"Chrome did not listen within {timeout:.0f} s")
+
+
 class Chrome:
     """Headless Chrome over the DevTools protocol: `cdp` for commands, `on` for events."""
 
@@ -348,22 +379,30 @@ class Chrome:
         self.reader = asyncio.create_task(self._read())
 
     async def _read(self):
-        async for raw in self.ws:
-            msg = json.loads(raw)
-            if "id" in msg:
-                fut = self.waiting.pop(msg["id"], None)
-                if fut and not fut.done():
-                    fut.set_result(msg)
-            else:
-                for cb in list(self.listeners):
-                    cb(msg)
+        try:
+            async for raw in self.ws:
+                msg = json.loads(raw)
+                if "id" in msg:
+                    fut = self.waiting.pop(msg["id"], None)
+                    if fut and not fut.done():
+                        fut.set_result(msg)
+                else:
+                    for cb in list(self.listeners):
+                        cb(msg)
+        finally:  # Chrome went away: a command still waiting fails now instead of waiting forever
+            for fut in self.waiting.values():
+                if not fut.done():
+                    fut.set_exception(ConnectionError("Chrome closed the DevTools socket"))
+            self.waiting.clear()
 
     async def cdp(self, method: str, params: dict | None = None) -> dict:
         self.n += 1
         fut = asyncio.get_running_loop().create_future()
         self.waiting[self.n] = fut
+        if self.reader.done():
+            raise ConnectionError(f"{method}: Chrome closed the DevTools socket")
         await self.ws.send(json.dumps({"id": self.n, "method": method, "params": params or {}}))
-        reply = await fut
+        reply = await asyncio.wait_for(fut, CDP_WAIT_SECS)
         if "error" in reply:
             raise RuntimeError(f"{method}: {reply['error']}")
         return reply.get("result", {})
@@ -386,18 +425,36 @@ class Chrome:
         raise RuntimeError("the page did not get its first status")
 
 
+# `await __fresh()` in a test: a poll that fetched the status as it is now, drawn. The page's own refresh() returns at
+# once while its 700 ms poll is in flight (that poll may have fetched the status before the test changed it), so a test
+# that awaited refresh() read the page before the change at random.
+FRESH = "window.__fresh = async () => { while (inflight) await new Promise(r => setTimeout(r, 10)); await refresh(); };"
+
+
+async def until(page, expression: str, timeout: float = 10.0):
+    """`expression`'s value as soon as it is truthy; its last value when the time is up, for the test to assert on. A
+    busy runner draws late, never wrong: the time is how long a test may wait, not how long the page should take."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        value = await page.eval(expression)
+        if value:
+            return value
+        await asyncio.sleep(0.1)
+    return await page.eval(expression)
+
+
 class Browser:
     """Launches Chrome on about:blank; `open(url)` navigates and hands back the page's Chrome."""
 
     def __init__(self):
-        self.port = free_port()
+        self.port = None  # Chrome's DevTools port, read from the profile once it listens (devtools_port)
         self.profile = Path(tempfile.mkdtemp(prefix="pointe-page-perf-"))
         self.proc = None
         self.ws = None
 
     async def __aenter__(self) -> "Browser":
         self.proc = subprocess.Popen(
-            [CHROME, "--headless=new", f"--remote-debugging-port={self.port}", f"--user-data-dir={self.profile / 'profile'}",
+            [CHROME, "--headless=new", "--remote-debugging-port=0", f"--user-data-dir={self.profile / 'profile'}",
              "--no-first-run", "--use-mock-keychain", "--password-store=basic", "--window-size=1440,900", "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream",
              "--autoplay-policy=no-user-gesture-required", "--disable-background-timer-throttling", "about:blank"],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -418,6 +475,7 @@ class Browser:
         from websockets.asyncio.client import connect
 
         target = None
+        self.port = self.port or await devtools_port(self.profile / "profile", self.proc)
         for _ in range(80):
             try:
                 tabs = json.loads(urllib.request.urlopen(f"http://127.0.0.1:{self.port}/json", timeout=1).read())
@@ -430,6 +488,7 @@ class Browser:
         chrome = Chrome(self.ws)
         await chrome.cdp("Page.enable")
         await chrome.cdp("Runtime.enable")
+        await chrome.cdp("Page.addScriptToEvaluateOnNewDocument", {"source": FRESH})
         await chrome.cdp("Page.navigate", {"url": url})
         await chrome.wait_for_page()
         return chrome

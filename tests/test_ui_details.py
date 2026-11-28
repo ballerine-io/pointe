@@ -17,7 +17,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -39,7 +39,7 @@ class Refusing(StubMac):
 
 def _page(status, script, refuse=None, media=None):
     async def run():
-        stub = await Refusing(free_port()).start()
+        stub = await Refusing().start()
         stub.refuse = refuse or {}
         stub.status = status
         try:

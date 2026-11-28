@@ -16,7 +16,7 @@ import pytest
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import tones  # noqa: E402
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = os.environ.get("POINTE_TONES_SHOTS")
@@ -26,7 +26,7 @@ MARKS = """[...document.querySelectorAll('#list .s')].map(r => [r.querySelector(
 
 
 async def _run(script, on=False, toned=False, shot=None):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = fixture(sessions=3, connected=True)
     stub.tones = on
     if toned:

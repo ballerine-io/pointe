@@ -20,7 +20,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac, fixture  # noqa: E402
 from test_orchestrator import client_for, d  # noqa: E402,F401  (d is a fixture)
 
 THEME = json.loads((ROOT / "assets" / "theme.json").read_text())
@@ -173,7 +173,7 @@ def test_both_surfaces_offer_the_same_theme_choices_with_the_same_default_and_wo
 @needs_chrome
 def test_the_page_follows_the_system_until_a_choice_is_made_and_keeps_the_choice():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
@@ -298,7 +298,7 @@ LIST = """(() => [...document.querySelectorAll('#list > *')].map(e => e.classLis
 
 
 async def _list(status: dict) -> list:
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     try:
         async with Browser() as browser:

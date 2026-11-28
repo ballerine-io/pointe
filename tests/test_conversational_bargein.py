@@ -328,16 +328,14 @@ def test_cleanup_kills_only_this_runs_listener_never_another_benchmarks_daemon(t
     same machine, included. Now only a process with this run's folder in its command line or environment (the actions
     runner's rule)."""
     import os
-    import socket
     import sys
     import time
 
     from adapters.pointe import free_ports
+    from ports import free_port
 
     def listener(folder):
-        with socket.socket() as s:
-            s.bind(("127.0.0.1", 0))
-            port = s.getsockname()[1]
+        port = free_port()
         code = f"import socket,time;s=socket.socket();s.bind(('127.0.0.1',{port}));s.listen();time.sleep(60)"
         proc = subprocess.Popen([sys.executable, "-c", code], env={**os.environ, "CLAUDE_VOICE_STATE": f"{folder}/ps"})
         for _ in range(50):

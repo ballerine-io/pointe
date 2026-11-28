@@ -5,13 +5,13 @@ failed on the port (3 of 3)."""
 import os
 import shutil
 import signal
-import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 import pytest
+from ports import free_port as _free_port
 
 ROOT = Path(__file__).resolve().parents[1]
 pytestmark = pytest.mark.skipif(not shutil.which("lsof") or sys.platform == "win32", reason="needs lsof")
@@ -26,12 +26,6 @@ class H(http.server.BaseHTTPRequestHandler):
         pass
 http.server.HTTPServer(("127.0.0.1", int(sys.argv[1])), H).serve_forever()
 """
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 @pytest.fixture

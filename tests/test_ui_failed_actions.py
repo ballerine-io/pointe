@@ -15,7 +15,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -41,7 +41,7 @@ class Refusing(StubMac):
 
 def _run(script):
     async def run():
-        stub = await Refusing(free_port()).start()
+        stub = await Refusing().start()
         stub.refuse = {}
         stub.status = fixture(sessions=4, talk=4, approval=True, connected=True)
         try:
@@ -125,7 +125,7 @@ def test_a_refused_drive_key_or_microphone_change_says_why_after_the_refresh():
 def test_a_start_that_never_reached_the_mac_gives_its_button_back():
     async def script(stub, page):
         stub.status["start_pending"] = {"id": "p1", "line": "Start a Codex session in shop? Say yes or tap.", "expires_in": 40}
-        await page.eval("(async () => { await refresh(); return true; })()")
+        await page.eval("(async () => { await __fresh(); return true; })()")
         await asyncio.sleep(0.4)
         await _offline(page, True)
         await page.eval("document.querySelector('#startask .allow').click()")

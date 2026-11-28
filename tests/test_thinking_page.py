@@ -16,7 +16,6 @@ import base64
 import json
 import os
 import sys
-import time
 from pathlib import Path
 
 import pytest
@@ -26,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mute  # noqa: E402
 import progress  # noqa: E402
 import thinking  # noqa: E402
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture, until as _until  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = Path(os.environ.get("POINTE_SHOTS", "/tmp/parity-shots"))
@@ -45,7 +44,7 @@ LINE = """(() => { const st = document.getElementById('state'), mute = document.
 
 
 async def _page(status):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
@@ -57,16 +56,6 @@ async def _page(status):
 async def _close(stub, browser):
     await browser.__aexit__(None, None, None)
     await stub.stop()
-
-
-async def _until(page, expression: str, timeout: float = 5.0):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        value = await page.eval(expression)
-        if value:
-            return value
-        await asyncio.sleep(0.1)
-    return await page.eval(expression)
 
 
 async def _shot(page, name: str) -> None:

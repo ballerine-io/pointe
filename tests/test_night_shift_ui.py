@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 from test_new_session_ui import page_dict, swift_enum  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,7 +106,7 @@ def a_night() -> dict:
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 def test_the_sheet_starts_what_it_shows_and_the_strip_the_card_and_the_ledger_follow():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, connected=True)
         out = {}
         try:
@@ -127,7 +127,7 @@ def test_the_sheet_starts_what_it_shows_and_the_strip_the_card_and_the_ledger_fo
                     document.getElementById('night-hours').value = '2'; document.getElementById('night-messages').value = '12';
                     document.getElementById('night-notify').checked = true; nightSync(); return true; })()""")
                 out["ready"] = await page.eval(SHEET)
-                await page.eval("(async () => { await startShift(); await refresh(); return true; })()")
+                await page.eval("(async () => { await startShift(); await __fresh(); return true; })()")
                 await asyncio.sleep(0.4)
                 out["started"] = await page.eval(SHEET)
                 out["running"] = await page.eval(MAIN)
@@ -137,7 +137,7 @@ def test_the_sheet_starts_what_it_shows_and_the_strip_the_card_and_the_ledger_fo
                 stub.status["shift_pending"] = {"id": "p9", "expires_in": 50, "items": [], "line":
                                                 "Night shift. docs: update the changelog. Up to 8 hours and 40 messages. I approve "
                                                 "nothing: a session that needs approval waits for you. Start? Say yes or tap."}
-                await page.eval("(async () => { await refresh(); await openNightShift(); return true; })()")
+                await page.eval("(async () => { await __fresh(); await openNightShift(); return true; })()")
                 await asyncio.sleep(0.4)
                 out["ledger"] = await page.eval(SHEET)
                 out["busy"] = await page.eval(MAIN)

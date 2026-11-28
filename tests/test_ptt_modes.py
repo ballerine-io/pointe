@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac, fixture  # noqa: E402
 
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
 SWIFT = (ROOT / "apps" / "PointeKit" / "Sources" / "PointeUI" / "PushToTalk.swift").read_text()
@@ -69,7 +69,7 @@ RING = "(() => { const r = document.getElementById('mic').getBoundingClientRect(
 async def _page(style: str):
     status = fixture(connected=True)
     status["ptt"]["mode"] = "ptt"
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
@@ -208,7 +208,7 @@ BURSTS = {"on connect": [0, 47, 87, 466], "at the greeting": [0, 105, 112, 475]}
 async def _media_page(mode: str):
     status = fixture(connected=True)
     status["ptt"]["mode"] = mode
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()

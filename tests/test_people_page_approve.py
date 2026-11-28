@@ -27,7 +27,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, ROOT, Browser, fixture, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, fixture  # noqa: E402
 from test_people_page import (SEEN, TEXT, PeopleMac, machine, mine, open_machines, posts, session, until, with_avi,  # noqa: E402
                               with_people)
 
@@ -58,7 +58,7 @@ class ThereMac(PeopleMac):
     """PeopleMac, with phase 3's routes: /voice/approve while somebody is asked first, /voice/people/settings, a start
     on a machine somebody invited this voice to, and a share of a session there."""
 
-    def __init__(self, port: int):
+    def __init__(self, port: int = 0):
         super().__init__(port)
         self.there = {"harnesses": [{"name": "claude-code", "title": "Claude Code", "available": True, "why": None}],
                       "folders": [{"path": "/home/avi/work/ledger", "name": "ledger"}, {"path": "/home/avi/work/atlas", "name": "atlas"}],
@@ -122,7 +122,7 @@ class ThereMac(PeopleMac):
 
 
 async def on_page(status: dict, steps, width: int | None = None, prepare=None):
-    stub = ThereMac(free_port())
+    stub = ThereMac()
     stub.status = copy.deepcopy(status)
     if prepare:
         prepare(stub)

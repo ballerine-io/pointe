@@ -10,7 +10,6 @@ import ipaddress
 import json
 import os
 import shutil
-import socket
 import ssl
 import subprocess
 import sys
@@ -49,6 +48,7 @@ def test_a_node_imports_nothing_that_loads_a_model_or_a_vendor_sdk(tmp_path):
 
 import node  # noqa: E402: after the fresh-interpreter test, which must not see this process's imports
 import node_cli  # noqa: E402
+from ports import free_port as _free_port  # noqa: E402
 
 
 # ---------- masking: only the high-precision rules ----------
@@ -845,11 +845,6 @@ def test_prompts_of_one_session_are_held_one_at_a_time(tmp_path):
 
 
 # ---------- the real scripts against a running node ----------
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 def _trimmed_path(tmp: Path, without: tuple[str, ...]) -> str:

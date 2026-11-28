@@ -18,7 +18,7 @@ import pytest
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import approvals  # noqa: E402
-from page_rig import CHROME, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = os.environ.get("POINTE_APPROVALS_SHOTS")
@@ -33,7 +33,7 @@ ROWS = """(() => ({rows: [...document.querySelectorAll('#approvals-list .ap')].m
 
 
 async def _record(rows, size=(1280, 900), shot=None):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = fixture(sessions=2, connected=True)
     stub.approvals = rows
     try:

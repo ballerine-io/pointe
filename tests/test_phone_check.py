@@ -14,14 +14,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 import phone_check  # noqa: E402
+from ports import free_port  # noqa: E402
 
 NAME = "pointe.example.internal"
-
-
-def free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
 
 
 @pytest.fixture

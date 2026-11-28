@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
@@ -94,7 +94,7 @@ LIST = """(() => ({rows: [...document.querySelectorAll('#list .s.starting')].map
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 def test_the_sheet_starts_what_it_shows_and_the_row_and_the_card_follow():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, connected=True)
         out = {}
         try:
@@ -109,14 +109,14 @@ def test_the_sheet_starts_what_it_shows_and_the_row_and_the_card_follow():
                     document.getElementById('new-name').value = 'invoices';
                     document.getElementById('new-prompt').value = 'List the open invoices.'; return true; })()""")
                 out["picked"] = await page.eval(SHEET)
-                await page.eval("(async () => { await startNewSession(); await refresh(); return true; })()")
+                await page.eval("(async () => { await startNewSession(); await __fresh(); return true; })()")
                 await asyncio.sleep(0.4)
                 out["after"] = await page.eval(SHEET)
                 out["list"] = await page.eval(LIST)
                 stub.status["starting"][0].update(state="failed", detail="OpenCode's service is not running.")
                 stub.status["start_pending"] = {"id": "p1", "line": "Start a Codex session in shop on studio, named shop-2? Say yes or tap.",
                                                 "harness": "codex", "name": "shop-2", "folder": "shop", "expires_in": 55}
-                await page.eval("(async () => { await refresh(); return true; })()")
+                await page.eval("(async () => { await __fresh(); return true; })()")
                 await asyncio.sleep(0.3)
                 out["failed"] = await page.eval(LIST)
                 await page.eval("(() => { document.querySelector('#startask button.allow').click(); return true; })()")

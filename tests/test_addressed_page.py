@@ -16,7 +16,7 @@ import pytest
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import addressed  # noqa: E402
-from page_rig import CHROME, ROOT, Browser, StubMac, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac  # noqa: E402
 from test_thinking_page import DIAL, _status, _until  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
@@ -30,7 +30,7 @@ SWITCH = """(() => ({order: [...document.querySelectorAll('.micmode [role=radio]
 
 
 async def _run(script, status=None, width=1280, shot=None):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status or _status()
     try:
         async with Browser() as browser:

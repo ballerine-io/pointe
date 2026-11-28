@@ -27,16 +27,8 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LIVE_PORTS = {7860, 7443}  # a Pointe somebody uses: never these
-
-
-def free_port() -> int:
-    while True:
-        with socket.socket() as s:
-            s.bind(("127.0.0.1", 0))
-            port = s.getsockname()[1]
-        if port not in LIVE_PORTS:
-            return port
+sys.path.append(str(Path(__file__).resolve().parent))  # run as `python -I`, its own folder is not on the path
+from ports import LIVE_PORTS, free_port  # noqa: E402,F401  (free_port: the tests take it from here)
 
 
 def until(what: str, probe, timeout: float = 20.0, every: float = 0.1):

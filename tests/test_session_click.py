@@ -153,7 +153,7 @@ def test_a_click_puts_the_voice_in_session_mode_as_the_phone_does(call):
 def test_the_page_stub_switches_as_the_daemon_does(d):
     """tests/page_rig.py plays the daemon for the page tests: a switch must leave it where the daemon is left."""
     import aiohttp
-    from page_rig import StubMac, fixture, free_port
+    from page_rig import StubMac, fixture
 
     add(d, "a", "alpha/main"), add(d, "b", "beta/main")
     d.REGISTRY.set_active("a")
@@ -163,7 +163,7 @@ def test_the_page_stub_switches_as_the_daemon_does(d):
     real = client.get("/voice/status").json()
 
     async def stub_after_switch():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         try:
             stub.status = fixture(sessions=2)
             stub.status["mode"] = "orchestrator"

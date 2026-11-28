@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture, until as _until  # noqa: E402
 
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = Path(os.environ.get("POINTE_SHOTS", "/tmp/brain-dump-shots/web"))
@@ -43,7 +43,7 @@ PROMPT = {"goal": "stop the checkout timing out for some customers", "context": 
 
 
 async def _page(status):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
@@ -62,16 +62,6 @@ async def _shot(page, name: str) -> None:
     SHOTS.mkdir(parents=True, exist_ok=True)
     data = (await page.cdp("Page.captureScreenshot", {"format": "png"}))["data"]
     (SHOTS / f"{name}.png").write_bytes(base64.b64decode(data))
-
-
-async def _until(page, expression: str, timeout: float = 5.0):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        value = await page.eval(expression)
-        if value:
-            return value
-        await asyncio.sleep(0.2)
-    return await page.eval(expression)
 
 
 def _posts(stub, path="/voice/dump"):

@@ -11,7 +11,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -39,7 +39,7 @@ def _waiting(status, i, request, request_id):
 
 def _run(script, waiting=True):
     async def run():
-        stub = await Answering(free_port()).start()
+        stub = await Answering().start()
         stub.status = fixture(sessions=3, connected=True)
         if waiting:
             _waiting(stub.status, 1, "Bash\n{\"command\": \"git status\"}", "perm-a")

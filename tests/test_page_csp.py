@@ -11,7 +11,7 @@ import pytest
 
 sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(__file__).resolve().parents[1])]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -43,7 +43,7 @@ INJECT = """(async () => {
 
 def test_the_page_runs_under_its_policy_and_an_injected_script_does_not():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=3, talk=4, connected=True)
         try:
             async with Browser() as browser:
@@ -54,7 +54,7 @@ def test_the_page_runs_under_its_policy_and_an_injected_script_does_not():
                 await page.wait_for_page()
                 policy = await page.eval("fetch('/voice').then(r => r.headers.get('content-security-policy'))")
                 hashed = await page.eval(HASHED_HERE)
-                await page.eval("(async () => { openSettings && openSettings(); await refresh(); return true; })()")
+                await page.eval("(async () => { openSettings && openSettings(); await __fresh(); return true; })()")
                 await asyncio.sleep(0.5)
                 loaded = await page.eval("window.__csp.slice()")
                 injected = await page.eval(INJECT)
@@ -72,7 +72,7 @@ def test_the_page_runs_under_its_policy_and_an_injected_script_does_not():
 
 
 SINKS = """(async () => {
-  await refresh(); await new Promise(r => setTimeout(r, 300));
+  await __fresh(); await new Promise(r => setTimeout(r, 300));
   const sub = document.getElementById('sub');
   await loadCtx();
   const ctx = document.getElementById('ctx-total');
@@ -95,7 +95,7 @@ def test_names_and_the_qr_code_reach_the_page_as_text_and_shapes_never_as_markup
     marked = '<img src=x onerror="window.__pwned=7">shop'
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, talk=2, connected=True)
         stub.status["sessions"][0]["name"] = marked
         stub.status["active"], stub.status["mode"] = marked, "session"
@@ -127,7 +127,7 @@ def test_the_call_runs_under_the_policy():
     """The microphone's AudioWorklet (from blob:), the call's WebSocket and the media-keys clip (a blob: wav): the
     policy refuses none of them, so a stricter directive cannot silently break the call."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=1)
         try:
             async with Browser() as browser:

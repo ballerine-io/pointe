@@ -2,7 +2,6 @@
 Gemini key; on Free start "Next key: soniox", which the setup then did not use, shown as "another key fills its roles";
 jargon about Soniox and a "mirror stream" at every Free start start-up."""
 
-import socket
 import sys
 from pathlib import Path
 
@@ -13,12 +12,7 @@ import doctor  # noqa: E402
 import keys  # noqa: E402
 import setups  # noqa: E402
 import vendors  # noqa: E402
-
-
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+from ports import free_port as _free_port  # noqa: E402
 
 
 @pytest.fixture

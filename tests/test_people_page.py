@@ -29,7 +29,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, ROOT, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = [pytest.mark.slow, pytest.mark.chrome]
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
@@ -84,7 +84,7 @@ class PeopleMac(StubMac):
     """Answers the routes of people-and-machines.md with what pointe/guests.py `install` and pointe/machines.py `install`
     build (the same fields, a refusal as one plain-text sentence), and changes the status as guests.status does."""
 
-    def __init__(self, port: int):
+    def __init__(self, port: int = 0):
         super().__init__(port)
         self.add_answers: list[tuple[int, str]] = []  # the next refusals of /voice/machines/add; none left: it is added
         self.add_delay = 0.0
@@ -183,7 +183,7 @@ class PeopleMac(StubMac):
 
 async def on_page(status: dict, steps, width: int | None = None, settings: bool = False, prepare=None):
     """Open the page on `status`, run `steps(page, stub)`, and hand back what it returns."""
-    stub = PeopleMac(free_port())
+    stub = PeopleMac()
     stub.status = copy.deepcopy(status)
     if prepare:
         prepare(stub)

@@ -11,12 +11,13 @@ Skipped where that Chrome is not installed.
 import asyncio
 import os
 import sys
+import time
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture, until  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -28,7 +29,7 @@ LONG = ("Bash(cd /srv/shop && uv run pytest -q tests/integration/test_checkout_f
 def _run(steps, status=None):
     """`steps` is a list of (width, js-before, expression); returns the expression's value for each, from one page."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = status or fixture(sessions=4, talk=8, connected=True)
         out = []
         try:
@@ -37,7 +38,7 @@ def _run(steps, status=None):
                 for width, before, expr in steps:
                     await page.cdp("Emulation.setDeviceMetricsOverride", {"width": width, "height": 844 if width < 500 else 800,
                                                                            "deviceScaleFactor": 1, "mobile": False})
-                    await page.eval(f"(async () => {{ {before} await refresh(); return true; }})()")
+                    await page.eval(f"(async () => {{ {before} await __fresh(); return true; }})()")
                     await asyncio.sleep(0.6)
                     out.append(await page.eval(expr))
         finally:
@@ -207,7 +208,7 @@ def test_a_sessions_rename_and_disconnect_are_behind_a_44_px_button_on_touch():
     """On a phone, or a touch screen of any width, a row has no hover to show its Rename and Disconnect marks: a ⋯
     button does, 44 px square. With a mouse on a wide screen the row keeps its hover marks and no ⋯."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=4, talk=4, connected=True)
         out = {}
         try:
@@ -217,7 +218,7 @@ def test_a_sessions_rename_and_disconnect_are_behind_a_44_px_button_on_touch():
                     await page.cdp("Emulation.setTouchEmulationEnabled", {"enabled": touch, "maxTouchPoints": 5 if touch else 1})
                     await page.cdp("Emulation.setDeviceMetricsOverride", {"width": width, "height": 844 if width < 500 else 900,
                                                                            "deviceScaleFactor": 1, "mobile": False})
-                    await page.eval(f"(async () => {{ {LIVE} toggleSessions({'true' if width < 500 else 'false'}); await refresh(); return true; }})()")
+                    await page.eval(f"(async () => {{ {LIVE} toggleSessions({'true' if width < 500 else 'false'}); await __fresh(); return true; }})()")
                     await asyncio.sleep(0.6)
                     out[name] = await page.eval(MORE)
         finally:
@@ -237,13 +238,13 @@ SHEET = """(() => ({open: document.getElementById('rowsheet').classList.contains
 
 def test_the_rows_sheet_renames_and_disconnects_with_two_taps():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=4, talk=4, connected=True)
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
                 await page.cdp("Emulation.setDeviceMetricsOverride", {"width": 390, "height": 844, "deviceScaleFactor": 1, "mobile": False})
-                await page.eval(f"(async () => {{ {LIVE} toggleSessions(true); await refresh(); return true; }})()")
+                await page.eval(f"(async () => {{ {LIVE} toggleSessions(true); await __fresh(); return true; }})()")
                 await asyncio.sleep(0.6)
                 tap = "[...document.querySelectorAll('#list .s')].find(r => r.querySelector('.nm').textContent === 's1-api').querySelector('.more').click();"
                 await page.eval(f"(() => {{ {tap} return true; }})()")
@@ -329,7 +330,7 @@ def test_on_a_short_screen_the_approval_card_is_never_under_the_conversation():
     """A phone held sideways (844x390) or a laptop at 200 % zoom (720x450): the card's header, which names the session
     that asks, shows when the page opens, and the card and the dock can be reached; no bubble lies over them."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=4, talk=12, approval=True, connected=True)
         out = []
         try:
@@ -337,7 +338,7 @@ def test_on_a_short_screen_the_approval_card_is_never_under_the_conversation():
                 page = await browser.open(stub.url)
                 for w, h in ((844, 390), (720, 450)):
                     await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 1, "mobile": False})
-                    await page.eval(f"(async () => {{ {LIVE} await refresh(); document.querySelector('main').scrollTop = 0; return true; }})()")
+                    await page.eval(f"(async () => {{ {LIVE} await __fresh(); document.querySelector('main').scrollTop = 0; return true; }})()")
                     await asyncio.sleep(0.6)
                     out.append(await page.eval(SHORT))
         finally:
@@ -351,7 +352,7 @@ def test_the_newest_turn_is_in_view_when_the_page_opens_with_a_card_up():
     """The first paint scrolls to the newest turn and the card then takes its room in the same frame: the scroll event
     that follows is the page's own, not the user scrolling up, so the conversation stays on its newest turn."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=4, talk=30, approval=True, connected=True)
         out = []
         try:
@@ -412,13 +413,13 @@ def test_the_typed_message_field_has_a_name_and_shows_its_focus():
       return {ring: cs.outlineStyle !== 'none' && parseFloat(cs.outlineWidth) >= 2, name: e.getAttribute('aria-label') || (e.labels[0] || {}).textContent || ''}; })()"""
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, talk=2, connected=True)
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
                 await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})  # headless has no focused window
-                await page.eval(f"(async () => {{ {LIVE} await refresh(); return true; }})()")
+                await page.eval(f"(async () => {{ {LIVE} await __fresh(); return true; }})()")
                 await asyncio.sleep(0.5)
                 return await page.eval(focus)
         finally:
@@ -489,7 +490,7 @@ def test_fix_the_key_shows_only_beside_the_refused_key():
     up on another device. The not-answering line names no internal host."""
     probe = "(() => [!!document.getElementById('fixkey').offsetParent, (document.getElementById('connect-why')?.textContent || '') + ' ' + document.getElementById('problem').textContent, location.host])()"
     refused = {**fixture(sessions=2, talk=2, connected=True), "key_refused": {"vendor": "gemini", "ears": True}}
-    down = "window.fetch = async () => { throw new TypeError('Failed to fetch'); }; await refresh(); await refresh();"
+    down = "window.fetch = async () => { throw new TypeError('Failed to fetch'); }; await __fresh(); await __fresh();"
     mine, elsewhere, dead = _run([(1440, LIVE, probe), (1440, "call.state = 'off'; render();", probe), (1440, down, probe)], refused)
     assert mine[0] is True, mine
     assert elsewhere[0] is False, elsewhere
@@ -507,13 +508,13 @@ def test_a_gone_artifact_is_named_not_led_by_a_colon():
 def test_space_on_a_session_row_switches_as_enter_does():
     """A row's name is its button: Space presses it, as it presses every button (WAI-ARIA button pattern)."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=3, talk=2, connected=True)
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
                 await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
-                await page.eval(f"(async () => {{ {LIVE} await refresh(); [...document.querySelectorAll('#list .s .nm')]"
+                await page.eval(f"(async () => {{ {LIVE} await __fresh(); [...document.querySelectorAll('#list .s .nm')]"
                                 ".find(n => n.textContent === 's2-mobile').focus(); return true; })()")
                 for kind in ("keyDown", "keyUp"):
                     await page.cdp("Input.dispatchKeyEvent", {"type": kind, "key": " ", "code": "Space", "windowsVirtualKeyCode": 32,
@@ -639,13 +640,13 @@ def test_the_context_panel_keeps_the_keyboard_inside_and_gives_it_back():
     where = "[document.activeElement.id, !!document.activeElement.closest('#ctxpanel')]"
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=4, talk=6, connected=True)
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
                 await page.cdp("Emulation.setFocusEmulationEnabled", {"enabled": True})
-                await page.eval(f"(async () => {{ {LIVE} await refresh(); $('ctx').focus(); openCtx(); return true; }})()")
+                await page.eval(f"(async () => {{ {LIVE} await __fresh(); $('ctx').focus(); openCtx(); return true; }})()")
                 await asyncio.sleep(0.4)
                 stops = [await page.eval(where)]
                 for _ in range(40):
@@ -717,7 +718,7 @@ def test_the_phone_hint_is_not_shown_on_a_first_open_or_while_the_mac_is_away():
     assert _run([(1280, "", hint)], status) == [False]  # no phone paired: a newcomer's first open
     status["phones"] = {"paired": [{"name": "phone"}]}
     down = ("const f = window.fetch; window.fetch = (u, o) => String(u).startsWith('/voice/status') ? Promise.reject(new Error('down')) : f(u, o);"
-            " await refresh(); await refresh();")
+            " await __fresh(); await __fresh();")
     got = _run([(1280, "", hint), (1280, "wantCall = true; render();", hint), (1280, "wantCall = false; " + down, hint)], status)
     assert got == [True, False, False], got
 
@@ -727,7 +728,7 @@ def test_settings_done_with_the_mac_away_says_so_in_words_and_machines_do_not_cl
     from the last status the page could read."""
     status = fixture(sessions=2, machines=2, talk=2, connected=True)
     down = ("window.fetch = () => Promise.reject(new TypeError('Failed to fetch'));"
-            " await openSettings().catch(() => {}); await refresh(); await saveSettings().catch(() => {});")
+            " await openSettings().catch(() => {}); await __fresh(); await saveSettings().catch(() => {});")
     got = _run([(390, down, "[document.getElementById('seterr').textContent, [...document.querySelectorAll('#mach-list .mmeta')].map(m => m.textContent)]")],
                status)
     err, machines = got[0]
@@ -813,16 +814,22 @@ def test_a_short_phone_in_a_meeting_gives_the_notes_the_room_of_the_mic_switch()
     """QA round 3: on a short phone a meeting's notes had a sliver between the top bar and the dock; the Always on / Hold
     to talk switch above the mic took that room, and in a meeting the mic is the room's."""
     async def run():
-        stub = await StubMac(free_port()).start()
-        stub.status = fixture(sessions=2, talk=2, connected=True)
+        stub = await StubMac().start()
+        # A meeting the Mac reports, as the page learns of one: a class set by hand is taken off by the next poll.
+        stub.status = {**fixture(sessions=2, talk=2, connected=True),
+                       "meeting": {"on": True, "id": "m1", "ending": False, "mode": "listening", "since": time.time() - 60,
+                                   "speakers": [], "owner_known": False, "hand": None, "speaking": False, "paused": False,
+                                   "vendors": [], "recording": True, "sessions": [], "auto_lookups": False, "turns": 0}}
         out = []
         try:
             async with Browser() as browser:
                 page = await browser.open(stub.url)
+                assert await until(page, "document.body.classList.contains('meeting')")
                 for w, h in ((360, 640), (390, 844)):
                     await page.cdp("Emulation.setDeviceMetricsOverride", {"width": w, "height": h, "deviceScaleFactor": 2, "mobile": True})
-                    out.append(await page.eval(f"(async () => {{ {LIVE} document.body.classList.add('meeting'); "
-                                               "await new Promise(r => setTimeout(r, 100)); return getComputedStyle(document.querySelector('.micmode')).display; })()"))
+                    await page.eval(f"(async () => {{ {LIVE} return true; }})()")
+                    await until(page, "new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => r(true))))")
+                    out.append(await page.eval("getComputedStyle(document.querySelector('.micmode')).display"))
         finally:
             await stub.stop()
         return out

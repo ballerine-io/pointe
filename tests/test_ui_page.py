@@ -9,7 +9,6 @@ import json
 import os
 import re
 import shutil
-import socket
 import subprocess
 import sys
 import tempfile
@@ -76,11 +75,6 @@ def test_user_text_elements_keep_their_direction():
 
 # ---------- rendered, in a headless Chrome ----------
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
 
 STATUS = {"connected": False, "mode": "orchestrator", "active": "shop", "sessions": [], "attention": [], "recent": [], "talk": [],
           "machines": [{"id": "hub", "name": "studio", "here": True, "os": "macos", "online": True, "sessions": 0, "need": 0}],
@@ -105,11 +99,13 @@ async def _render(checks: str, sizes: tuple[int, ...] = ()):
         .replace("{{WHISPER}}", (ROOT / "pointe" / "ui_whisper.html").read_text())
     work = Path(tempfile.mkdtemp(prefix="pointe-page-test-"))
     (work / "page.html").write_text(html)
-    port = _free_port()
-    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", f"--remote-debugging-port={port}", f"--user-data-dir={work / 'profile'}",
+    chrome = subprocess.Popen([CHROME, "--headless=new", "--use-mock-keychain", "--password-store=basic", "--remote-debugging-port=0", f"--user-data-dir={work / 'profile'}",
                                "--no-first-run", "--window-size=1440,900", "about:blank"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         import urllib.request
+
+        from page_rig import FRESH, devtools_port
+        port = await devtools_port(work / "profile", chrome)
         target = None
         for _ in range(60):
             try:
@@ -133,6 +129,7 @@ async def _render(checks: str, sizes: tuple[int, ...] = ()):
 
             await cdp("Page.enable")
             await cdp("Page.addScriptToEvaluateOnNewDocument", {"source": STUB % json.dumps(STATUS)})
+            await cdp("Page.addScriptToEvaluateOnNewDocument", {"source": FRESH})
             await cdp("Page.navigate", {"url": (work / "page.html").as_uri()})
             for _ in range(40):
                 r = await cdp("Runtime.evaluate", {"expression": "!!window.status && !!window.status.voice_lock", "returnByValue": True})
@@ -168,7 +165,7 @@ def test_enrol_panel_is_off_screen_until_enrolment_starts():
                       need: document.getElementById('vl-needcall').textContent, section: vis('voicelock')};
         window.__status = {...window.__status, connected: true, voice_lock: {...window.__status.voice_lock,
           enrolling: {device: 'Mic', progress: 0.5, line: 0, text: 'Read me', seconds: 4, segments: 2, rejected: 0, last_reason: null}}};
-        await refresh();
+        await __fresh();
         const enrolling = {panel: vis('vl-enrol'), actions: vis('vl-actions'), line: document.getElementById('vl-line').textContent,
                            pct: document.getElementById('vl-pct').textContent};
         return {idle, enrolling};
@@ -203,7 +200,7 @@ def test_mic_mode_toggle_follows_the_daemon_and_sets_the_preference():
         window.fetch = async (u, o) => { if (o && o.method === 'POST') window.__posts.push([String(u), JSON.parse(o.body)]); return real(u, o); };
         window.__status = {...window.__status, connected: true, ptt: {...window.__status.ptt, mode: 'ptt'}};
         call.state = 'live'; call.heard = Date.now();
-        await refresh();
+        await __fresh();
         const after = [on('micmode-always'), on('micmode-ptt'), document.getElementById('keyhint').textContent,
                        document.getElementById('miclabel').textContent, document.body.dataset.state];
         await setMicMode('always');
@@ -259,27 +256,27 @@ CONNECT_STATES = """(async () => {
     ringTap({detail: 1}); out.ringNoCall = {dialled, nudged: q('connectbtn').classList.contains('nudge'), focused: document.activeElement.id};
     connectTap(); out.connectDials = dialled; startCall = realStart;
     // a Mac without the phone's listener: the panel says so
-    window.__status = {...window.__status, phone_listener: false}; await refresh(); out.noListenerNoPhone = snap();
+    window.__status = {...window.__status, phone_listener: false}; await __fresh(); out.noListenerNoPhone = snap();
     window.__status = {...window.__status, phones: {paired: [{id: 'p1', name: 'Test iPhone', online: false, paired_at: 1, last_seen: 2}]}};
-    await refresh(); out.noListener = snap();
+    await __fresh(); out.noListener = snap();
     window.__status = {...window.__status, phones: {paired: []}};
-    window.__status = {...window.__status, phone_listener: true}; await refresh();
+    window.__status = {...window.__status, phone_listener: true}; await __fresh();
     call.state = 'connecting'; showState(); out.connecting = snap(); call.state = 'off';
     // (a) the Mac stops answering
     const realFetch = window.fetch; window.fetch = async () => { throw new TypeError('Failed to fetch'); };
-    await refresh(); await refresh(); await refresh(); out.unreachable = snap();
+    await __fresh(); await __fresh(); await __fresh(); out.unreachable = snap();
     // (b) the key is refused
-    window.fetch = async () => new Response('forbidden', {status: 403}); await refresh(); out.notPaired = snap();
-    window.fetch = realFetch; await refresh(); out.back = snap();
+    window.fetch = async () => new Response('forbidden', {status: 403}); await __fresh(); out.notPaired = snap();
+    window.fetch = realFetch; await __fresh(); out.back = snap();
     // (d) no microphone
     micError = 'The browser blocked the microphone. Allow it for this page, then press Connect.'; showState(); out.micDenied = snap(); micError = '';
     // a first dial that never opened
     callNote = 'The call did not connect.'; showState(); out.failed = snap(); callNote = '';
     // live: the panel loses its button, the pill steps aside for the dock's Hang up, the mic is a mic
-    window.__status = {...window.__status, connected: true}; call.state = 'live'; call.heard = Date.now(); await refresh(); out.live = snap();
+    window.__status = {...window.__status, connected: true}; call.state = 'live'; call.heard = Date.now(); await __fresh(); out.live = snap();
     // with a conversation on screen the top bar carries the reason and the pill is the way back
     call.state = 'off'; window.__status = {...window.__status, connected: false, talk: [{id: 1, who: 'user', text: 'hello'}, {id: 2, who: 'assistant', text: 'hi'}]};
-    callNote = 'The call did not connect.'; await refresh(); out.dropped = {...snap(), panelShown: !!document.getElementById('connectempty'),
+    callNote = 'The call did not connect.'; await __fresh(); out.dropped = {...snap(), panelShown: !!document.getElementById('connectempty'),
         pillClass: q('topconnect').className};
     callNote = '';
     return out;
@@ -338,7 +335,7 @@ def test_machines_where_this_page_cannot_invite_shows_no_empty_row():
     got = asyncio.run(_render("""(async () => {
         window.__status = {...window.__status, can_invite: false, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1},
           {id: 'devbox', name: 'devbox', here: false, os: 'linux', online: true, sessions: 2, rtt_ms: 30}]};
-        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        await __fresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
         const row = document.getElementById('mach-invitebtn').parentElement;
         return {row: row.getBoundingClientRect().height, display: getComputedStyle(row).display};
     })()"""))
@@ -396,7 +393,7 @@ def test_how_to_fix_is_said_in_the_same_words_on_the_page_and_the_apps():
 def test_a_keyboard_and_a_screen_reader_can_tell_what_is_selected_and_where_focus_is():
     got = asyncio.run(_render("""(async () => {
         const a = id => document.getElementById(id).getAttribute('aria-pressed');
-        window.__status = {...window.__status, mode: 'session'}; await refresh();
+        window.__status = {...window.__status, mode: 'session'}; await __fresh();
         const mode = [a('m-orchestrator'), a('m-session')], role = document.getElementById('m-session').parentElement.getAttribute('role');
         openSettings(); await new Promise(r => setTimeout(r, 300)); settingsJump('phone'); await new Promise(r => setTimeout(r, 900));
         const current = [...document.querySelectorAll('#set-nav button[aria-current]')].map(b => b.dataset.section);
@@ -409,10 +406,10 @@ def test_a_keyboard_and_a_screen_reader_can_tell_what_is_selected_and_where_focu
 @needs_chrome
 def test_the_text_box_shows_a_focus_ring():
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from page_rig import Browser, StubMac, fixture, free_port
+    from page_rig import Browser, StubMac, fixture
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, connected=True)
         try:
             async with Browser() as browser:
@@ -465,7 +462,7 @@ def test_the_machine_invite_copies_its_join_line():
         window.__copied = null; navigator.clipboard.writeText = async t => { window.__copied = t; };
         window.__status = {...window.__status, can_invite: true, machines: [{id: 'studio', name: 'studio', here: true, os: 'macos', online: true, sessions: 1}],
                            invite: {code: 'K7Q-2PX', expires_in: 300, link: 'pointe-join://studio.example:7443/K7Q-2PX'}};
-        await refresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
+        await __fresh(); openSettings(); await new Promise(r => setTimeout(r, 300));
         const b = document.getElementById('mach-copy');
         const shown = !!b && !b.hidden; if (b) b.click(); await new Promise(r => setTimeout(r, 100));
         return {shown, copied: window.__copied, label: b && b.textContent, line: document.getElementById('mach-link').textContent};

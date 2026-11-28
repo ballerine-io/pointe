@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, PROBES, ROOT, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, PROBES, ROOT, Browser, StubMac, fixture  # noqa: E402
 
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
 needs_chrome = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
@@ -41,7 +41,7 @@ WATCH_LIST = """(() => {
 
 async def _page(status, throttle: int = 1):
     """The page on the stub, probes installed, settled after its first polls."""
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
@@ -77,7 +77,7 @@ def test_a_poll_with_the_same_status_touches_no_list():
         try:
             await page.eval("__reset()")
             await page.eval(TAG_ROWS)
-            await page.eval("(async () => { await refresh(); await refresh(); return true; })()")
+            await page.eval("(async () => { await __fresh(); await __fresh(); return true; })()")
             muts = await page.eval("JSON.stringify(__probe.muts)")
             tags = await page.eval(TAGS_KEPT)
             return muts, tags, stub.status_hits
@@ -98,12 +98,12 @@ def test_a_poll_that_changes_one_session_touches_that_row_only():
             await page.eval(WATCH_LIST)
             changed = next(x for x in stub.status["sessions"] if x["needs"])
             changed["needs"] = "which port should it use?"  # the same urgency: the row stays where it is
-            await page.eval("(async () => { await refresh(); return true; })()")
+            await page.eval("(async () => { await __fresh(); return true; })()")
             in_place = await page.eval("__touched.slice()")
             await page.eval("__touched = []")
             moved = next(x for x in stub.status["sessions"] if x["working"] and x is not changed)
             moved["working"] = False  # idle now: sorted after the working ones
-            await page.eval("(async () => { await refresh(); return true; })()")
+            await page.eval("(async () => { await __fresh(); return true; })()")
             after_move = await page.eval("__touched.slice()")
             names = await page.eval(ROW_NAMES)
             return changed["name"], set(in_place), moved["name"], set(after_move), names
@@ -121,6 +121,13 @@ def test_idle_on_a_slow_cpu_runs_no_long_task():
     async def run():
         stub, browser, page = await _page(fixture(sessions=20, machines=3, talk=200, approval=True), throttle=4)
         try:
+            # Idle is after start-up: the first draws of 200 lines at a quarter of the CPU are long, and on a busy runner
+            # they ran into the measured window (a 61 ms task at 2.9 s). Settled is two polls in a row with no long task.
+            for _ in range(20):
+                await page.eval("__reset()")
+                await stub.polled(2)
+                if await page.eval("__probe.longtasks.length === 0"):
+                    break
             await page.eval("__reset()")
             m0 = {m["name"]: m["value"] for m in (await page.cdp("Performance.getMetrics"))["metrics"]}
             await asyncio.sleep(10)
@@ -187,7 +194,7 @@ def test_a_press_that_spans_a_poll_still_clicks_the_row():
             pressed = await page.eval(f"({ROW_NAME})(document.querySelectorAll('#list .s')[2])")
             other = next(x for x in stub.status["sessions"] if x["needs"] and x["name"] != pressed)
             other["needs"] = "which port should it use?"  # another row changes under the press; the order stays
-            await page.eval("(async () => { while (inflight) await new Promise(r => setTimeout(r, 20)); await refresh(); return true; })()")
+            await page.eval("(async () => { while (inflight) await new Promise(r => setTimeout(r, 20)); await __fresh(); return true; })()")
             under = await page.eval(f"({ROW_NAME})(document.elementFromPoint({x}, {y}).closest('.s'))")
             await page.cdp("Input.dispatchMouseEvent", {"type": "mouseReleased", "x": x, "y": y, "button": "left", "clickCount": 1})
             await asyncio.sleep(0.5)

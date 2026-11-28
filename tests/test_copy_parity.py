@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PAGE = (ROOT / "pointe" / "ui.html").read_text()
@@ -57,7 +57,7 @@ def test_the_page_shows_them_where_they_apply():
     """"Or type below" is true only where the box is below: on a phone it is folded behind the keyboard button. The
     lock levels above Off say why they are off while there is no voiceprint."""
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, talk=0, connected=True)
         out = {}
         try:
@@ -69,7 +69,7 @@ def test_the_page_shows_them_where_they_apply():
                     await asyncio.sleep(0.5)
                     await page.wait_for_page()
                     for live in (False, True):
-                        await page.eval(f"(async () => {{ call.state = '{'live' if live else 'off'}'; await refresh(); render(); return true; }})()")
+                        await page.eval(f"(async () => {{ call.state = '{'live' if live else 'off'}'; await __fresh(); render(); return true; }})()")
                         await asyncio.sleep(0.4)
                         out[(width, live)] = await page.eval(SHOWN)
                 await page.eval("(async () => { await openSettings(); settingsJump('voicelock'); return true; })()")
@@ -115,7 +115,7 @@ ABOUT_SHOWN = """(() => ({body: document.getElementById('about-body').textConten
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 def test_the_page_header_is_the_mark_and_pointe_and_about_shows_the_credit():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = {**fixture(sessions=1, talk=0, connected=False), "version": "9.8.7"}
         try:
             async with Browser() as browser:

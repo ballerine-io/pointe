@@ -3,22 +3,20 @@ the daemon stopped by SIGSTOP the hook was still blocked after 30 s, and it may 
 
 import json
 import shutil
-import socket
 import subprocess
 import sys
 import time
 from pathlib import Path
 
 import pytest
+from ports import free_port
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.mark.skipif(not shutil.which("lsof"), reason="the hook needs lsof (or ss, /proc) to tell its daemon")
 def test_a_daemon_that_accepts_but_never_answers_leaves_the_prompt_to_the_terminal(tmp_path):
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        port = s.getsockname()[1]
+    port = free_port()
     # A listener that takes connections and never reads or answers them: what a stopped process looks like from outside.
     frozen = subprocess.Popen([sys.executable, "-c", f"import socket,time\ns=socket.socket()\ns.bind(('127.0.0.1',{port}))\n"
                                "s.listen(8)\nprint('up',flush=True)\nwhile True: time.sleep(60)"],

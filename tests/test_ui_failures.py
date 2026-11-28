@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 
@@ -30,12 +30,12 @@ CARD = """(() => { const c = document.querySelector('#attention .ask'); const b 
 
 
 async def _page(status):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
     page = await browser.open(stub.url)
-    await page.eval(f"(async () => {{ {FAIL} {LIVE} await refresh(); return true; }})()")
+    await page.eval(f"(async () => {{ {FAIL} {LIVE} await __fresh(); return true; }})()")
     await asyncio.sleep(0.8)
     return stub, browser, page
 

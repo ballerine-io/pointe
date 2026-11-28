@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path[0:0] = [str(ROOT / "pointe"), str(ROOT)]
 
 import guards  # noqa: E402
+from ports import free_port  # noqa: E402
 
 
 def _has_ipv6_loopback() -> bool:
@@ -32,15 +33,13 @@ needs_ipv6 = pytest.mark.skipif(not _has_ipv6_loopback(), reason="no IPv6 loopba
 def _free_port() -> int:
     """A port free on 127.0.0.1 and on ::1 at once."""
     for _ in range(50):
-        with socket.socket() as four:
-            four.bind(("127.0.0.1", 0))
-            port = four.getsockname()[1]
-            try:
-                with socket.socket(socket.AF_INET6) as six:
-                    six.bind(("::1", port))
-                return port
-            except OSError:
-                continue
+        port = free_port()
+        try:
+            with socket.socket(socket.AF_INET6) as six:
+                six.bind(("::1", port))
+            return port
+        except OSError:
+            continue
     raise RuntimeError("no port free on both loopbacks")
 
 
@@ -93,9 +92,7 @@ def test_a_machine_with_no_ipv6_loopback_listens_on_ipv4_alone(monkeypatch):
         return real(family, *a, **k)
 
     monkeypatch.setattr(guards.socket, "socket", no_ipv6)
-    with real() as probe:
-        probe.bind(("127.0.0.1", 0))
-        port = probe.getsockname()[1]
+    port = free_port()
     held = guards.loopback_sockets(port)
     try:
         assert [s.getsockname()[0] for s in held] == ["127.0.0.1"]
@@ -221,10 +218,7 @@ def test_x_forwarded_for_on_loopback_does_not_change_the_client_address():
         await send({"type": "http.response.start", "status": 200, "headers": []})
         await send({"type": "http.response.body", "body": b""})
 
-    sock = socket.socket()
-    sock.bind(("127.0.0.1", 0))
-    port = sock.getsockname()[1]
-    sock.close()
+    port = free_port()
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning",
                                            proxy_headers=False, access_log=False, lifespan="off"))
 

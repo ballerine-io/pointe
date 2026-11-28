@@ -504,11 +504,9 @@ def test_no_code_link_or_key_reaches_the_log(world, caplog):
 # ---------- the real listener: a route chosen on the page is served at once ----------
 
 def _free_port() -> int:
-    import socket
+    from ports import free_port
 
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+    return free_port()
 
 
 def _served_fingerprint(port: int) -> str:

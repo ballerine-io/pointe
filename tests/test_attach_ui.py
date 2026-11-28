@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 from test_new_session_ui import page_dict, swift_enum  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,7 +59,7 @@ CARD = """(() => ({card: document.getElementById('attachask').textContent,
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 def test_the_sheet_lists_searches_and_joins_by_key_and_the_card_follows():
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = fixture(sessions=2, connected=True)
         out = {}
         try:
@@ -83,7 +83,7 @@ def test_the_sheet_lists_searches_and_joins_by_key_and_the_card_follows():
                 await asyncio.sleep(0.3)
                 stub.status["attach_pending"] = {"id": "a1", "line": "Join pentest-recon, the Claude Code session in pentest-notes on studio? Say yes or tap.",
                                                  "choose": False, "verb": "join", "items": [], "expires_in": 50}
-                await page.eval("(async () => { await refresh(); return true; })()")
+                await page.eval("(async () => { await __fresh(); return true; })()")
                 await asyncio.sleep(0.3)
                 out["card"] = await page.eval(CARD)
                 await page.eval("(() => { document.querySelector('#attachask button.allow').click(); return true; })()")
@@ -92,7 +92,7 @@ def test_the_sheet_lists_searches_and_joins_by_key_and_the_card_follows():
                                                  "choose": True, "verb": "join", "expires_in": 50,
                                                  "items": [{"key": "-|claude-code|a", "name": "a", "harness": "claude-code", "state": "open"},
                                                            {"key": "-|claude-code|b", "name": "b", "harness": "claude-code", "state": "recent"}]}
-                await page.eval("(async () => { await refresh(); return true; })()")
+                await page.eval("(async () => { await __fresh(); return true; })()")
                 await asyncio.sleep(0.3)
                 out["choose"] = await page.eval(CARD)
                 await page.eval("(() => { document.querySelectorAll('#attachask button.allow')[1].click(); return true; })()")

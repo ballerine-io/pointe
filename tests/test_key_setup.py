@@ -243,10 +243,10 @@ def test_with_the_voice_on_this_mac_the_audio_only_keys_are_not_read(keys, monke
 
 @pytest.mark.skipif(not os.path.exists(__import__("page_rig").CHROME), reason="headless Chrome is not installed here")
 def test_the_page_shows_optional_not_missing():
-    from page_rig import Browser, StubMac, fixture, free_port
+    from page_rig import Browser, StubMac, fixture
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = {**fixture(sessions=1), "keys": {
             "line": "Every role is filled. The other keys are optional: not needed with your current keys.",
             "keys": {"gemini": "in use", "openai": "optional", "anthropic": "optional", "soniox": "optional", "elevenlabs": "not read"},
@@ -276,7 +276,7 @@ def test_the_page_shows_optional_not_missing():
 def test_an_open_settings_sheet_follows_a_setup_switch():
     """Use this setup restarts Pointe on the other setup. A sheet left open said "Switching. Pointe restarts in a
     moment." and marked the old setup In use for minutes, until it was closed and opened again."""
-    from page_rig import Browser, StubMac, fixture, free_port
+    from page_rig import Browser, StubMac, fixture, until
 
     setups = [{"id": i, "name": n, "short": f"{n}.", "pick_for": "testing", "cost": "about $1"}
               for i, n in (("two", "Two keys"), ("openai", "One OpenAI key"))]
@@ -285,7 +285,7 @@ def test_an_open_settings_sheet_follows_a_setup_switch():
                 "keys": {"openai": "in use" if chosen == "openai" else "not used", "anthropic": "in use", "soniox": "in use"}}
 
     async def run():
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = {**fixture(sessions=1), "keys": keys("two")}
         state = """(() => ({line: document.getElementById('pref-keys-line').textContent,
           rows: [...document.querySelectorAll('#pref-setups .r')].map(r => [r.querySelector('.shead2').innerText.replace(/\\s+/g, ' '),
@@ -295,11 +295,11 @@ def test_an_open_settings_sheet_follows_a_setup_switch():
                 page = await browser.open(stub.url)
                 await page.eval("(async () => { await openSettings(); settingsJump('g-keys'); return true; })()")
                 await page.eval("(async () => { [...document.querySelectorAll('#pref-setups .r button')][0].click(); return true; })()")
-                await asyncio.sleep(0.4)
-                switching = await page.eval(state)
+                await stub.posted("/voice/setup", 1)
+                switching = await until(page, f"(() => {{ const s = {state}; return s.line.startsWith('Switching') && s; }})()")
                 stub.status = {**stub.status, "keys": keys("openai")}  # Pointe came back on the other setup
-                await page.eval("(async () => { await refresh(); return true; })()")
-                return switching, await page.eval(state)
+                after = await until(page, f"(async () => {{ await __fresh(); const s = {state}; return !s.line.startsWith('Switching') && s; }})()")
+                return switching, after or await page.eval(state)
         finally:
             await stub.stop()
     switching, after = asyncio.run(run())

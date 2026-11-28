@@ -15,7 +15,7 @@ import pytest
 from aiohttp import web
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 ITEM = {"id": "agent_reply:hermes:0", "kind": "agent_reply", "session": "hermes", "title": "hermes replied",
@@ -47,7 +47,7 @@ class Replying(StubMac):
 @pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 def test_one_notification_and_a_click_opens_the_agents_replies():
     async def run():
-        stub = await Replying(free_port()).start()
+        stub = await Replying().start()
         stub.read = []
         stub.status = fixture(sessions=2)
         try:

@@ -465,13 +465,13 @@ CAPTION = ("(() => { const c = document.getElementById('caption'), l = document.
 
 @pytest.mark.skipif(not Path(CHROME).exists(), reason="headless Chrome is not installed here")
 def test_the_page_shows_a_press_s_words_as_a_draft_until_they_are_sent():
-    from page_rig import Browser, StubMac, fixture, free_port
+    from page_rig import Browser, StubMac, fixture
 
     async def run():
         status = fixture(connected=True)
         status["ptt"].update(mode="ptt", open=True, draft=True)
         status["hearing"] = "Let's look at the parser. And see why"
-        stub = await StubMac(free_port()).start()
+        stub = await StubMac().start()
         stub.status = status
         browser = Browser()
         await browser.__aenter__()

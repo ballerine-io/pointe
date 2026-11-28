@@ -492,7 +492,7 @@ def test_the_page_says_holding_on_its_own_call_while_a_hold_is_on():
     async def run():
         status = page_rig.fixture(connected=True)
         status["hold"] = {"since": time.time() - 3, "said": ["the cache should live per merchant"]}
-        stub = await page_rig.StubMac(page_rig.free_port()).start()
+        stub = await page_rig.StubMac().start()
         stub.status = status
         async with page_rig.Browser() as browser:
             page = await browser.open(stub.url)

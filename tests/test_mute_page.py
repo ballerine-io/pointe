@@ -27,14 +27,14 @@ sys.path[0:0] = [str(Path(__file__).resolve().parents[1] / "pointe"), str(Path(_
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mute  # noqa: E402
 import scope  # noqa: E402
-from page_rig import CHROME, Browser, StubMac, fixture, free_port  # noqa: E402
+from page_rig import CHROME, Browser, StubMac, fixture, until as _until  # noqa: E402
 
 pytestmark = pytest.mark.skipif(not os.path.exists(CHROME), reason="headless Chrome is not installed here")
 SHOTS = Path(os.environ.get("POINTE_SHOTS", "/tmp/parity-shots"))
 
 
 async def _page(status):
-    stub = await StubMac(free_port()).start()
+    stub = await StubMac().start()
     stub.status = status
     browser = Browser()
     await browser.__aenter__()
@@ -46,16 +46,6 @@ async def _page(status):
 async def _close(stub, browser):
     await browser.__aexit__(None, None, None)
     await stub.stop()
-
-
-async def _until(page, expression: str, timeout: float = 5.0):
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        value = await page.eval(expression)
-        if value:
-            return value
-        await asyncio.sleep(0.15)
-    return await page.eval(expression)
 
 
 async def _shot(page, name: str) -> None:
@@ -122,10 +112,12 @@ def test_while_pointe_speaks_the_status_says_speaking_and_the_mute_button_sits_b
             got = await _until(page, f"(() => {{ const g = {BTN}; return g.state === 'Speaking…' && g; }})()")
             await _shot(page, "page-speaking")
             await page.eval("document.getElementById('mutebtn').click()")
+            await stub.posted("/voice/reading", 1)
             after = await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
             await page.eval("document.getElementById('mutebtn').click()")
+            posts = await stub.posted("/voice/reading", 2)
             back = await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'false' && g; }})()")
-            return got, after, back, _posts(stub, "/voice/reading")
+            return got, after, back, posts
         finally:
             await _close(stub, browser)
     got, after, back, posts = asyncio.run(run())
@@ -157,8 +149,9 @@ def test_a_mute_and_an_unmute_tapped_quickly_end_unmuted_whatever_order_the_mac_
             await page.eval("document.getElementById('mutebtn').click()")
             await _until(page, f"(() => {{ const g = {BTN}; return g.pressed === 'true' && g; }})()")
             await page.eval("document.getElementById('mutebtn').click()")
-            await asyncio.sleep(2.0)  # both answered, and the page has polled the Mac since
-            return await page.eval(BTN), stub.status["reading"]["on"], _posts(stub, "/voice/reading")
+            posts = await stub.posted("/voice/reading", 2)  # the first one 0.8 s late
+            await stub.polled(2)  # and the page has polled the Mac since
+            return await page.eval(BTN), stub.status["reading"]["on"], posts
         finally:
             await _close(stub, browser)
     shown, on_the_mac, posts = asyncio.run(run())
@@ -275,7 +268,7 @@ def test_muting_mid_speech_stops_what_the_speakers_still_hold():
             await page.eval("document.getElementById('mutebtn').click()")
             flushed = await _until(page, "window.flushed.length && window.flushed")
             await page.eval("document.getElementById('mutebtn').click()")  # unmuting flushes nothing
-            await asyncio.sleep(0.4)
+            await stub.posted("/voice/reading", 2)  # a flush comes on the click, before its request leaves
             return flushed, await page.eval("window.flushed")
         finally:
             await _close(stub, browser)
@@ -305,7 +298,7 @@ def test_the_held_news_is_a_quiet_count_that_lists_its_items_and_tell_me_asks_fo
             await _shot(page, "page-held")
             await page.eval("document.getElementById('held-tell').click()")
             gone = await _until(page, "!document.getElementById('heldnews').innerText.trim()")
-            return chip, closed, items, gone, _posts(stub, "/voice/held")
+            return chip, closed, items, gone, await stub.posted("/voice/held", 1)
         finally:
             await _close(stub, browser)
     chip, closed, items, gone, posts = asyncio.run(run())
@@ -318,7 +311,7 @@ def test_nothing_held_shows_nothing():
     async def run():
         stub, browser, page = await _page(fixture(sessions=2, connected=True))
         try:
-            await asyncio.sleep(0.5)
+            await stub.polled(2)
             return await page.eval("document.getElementById('heldnews').innerText.trim()")
         finally:
             await _close(stub, browser)
@@ -332,8 +325,7 @@ def test_another_sessions_request_stays_on_its_card_in_session_mode_and_can_be_a
             shown = await _until(page, "document.querySelector('#attention .ask')?.innerText")
             ready = await _until(page, "!document.querySelector('#attention .ask .answer button.allow').disabled", 4)
             await page.eval("document.querySelector('#attention .ask .answer button.allow').click()")
-            await asyncio.sleep(0.6)
-            return shown, ready, _posts(stub, "/voice/approve")
+            return shown, ready, await stub.posted("/voice/approve", 1)
         finally:
             await _close(stub, browser)
     shown, ready, posts = asyncio.run(run())
@@ -368,9 +360,10 @@ def test_shift_or_option_enter_starts_a_new_line_and_enter_sends_it_whole():
             await _shot(page, "page-composer")
             sent_before = _posts(stub, "/voice/say")
             await _key(page)
-            await asyncio.sleep(0.6)
+            sent = await stub.posted("/voice/say", 1)
+            await _until(page, "document.getElementById('typed').value === ''")
             after = await page.eval("({value: document.getElementById('typed').value, h: document.getElementById('typed').offsetHeight})")
-            return one, draft, sent_before, _posts(stub, "/voice/say"), after
+            return one, draft, sent_before, sent, after
         finally:
             await _close(stub, browser)
     one, draft, before, sent, after = asyncio.run(run())
@@ -389,7 +382,7 @@ def test_enter_during_ime_composition_does_not_send():
               t.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', isComposing: true, bubbles: true, cancelable: true}));
               t.dispatchEvent(new KeyboardEvent('keydown', {key: 'Enter', code: 'Enter', keyCode: 229, bubbles: true, cancelable: true}));
               return true; })()""")
-            await asyncio.sleep(0.5)
+            await stub.polled(2)  # a send would have left on the keydown, before these polls
             return _posts(stub, "/voice/say"), await page.eval("document.getElementById('typed').value")
         finally:
             await _close(stub, browser)
