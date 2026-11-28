@@ -2054,8 +2054,26 @@ def _name_once(text: str) -> str:
     return text
 
 
+_ASKS_WHERE = re.compile(r"\bwhich (?:one|session|of (?:them|those|the two))\b|\bis (?:that|it|this) the one\b|"
+                         r"\b(?:or )?a different session\b|\bwhere (?:should|does|do you want) (?:it|this|that|me to send)|"
+                         r"\bnone of (?:my|the|your) sessions\b|\bwhich (?:project|repo|machine)\b", re.I)
+
+
+def _asks_where(text: str) -> bool:
+    """A line that asks the user which session a request is for: a question naming a choice of sessions, or saying
+    the voice does not know which one it is."""
+    if "?" not in text:
+        return False
+    if _ASKS_WHERE.search(text):
+        return True
+    question = text[text.rfind(".", 0, text.rfind("?")) + 1:]
+    return len(named_sessions(question, list(REGISTRY.sessions.values()))) >= 2
+
+
 def _bot_says(text: str, request_id: str | None = None) -> None:
     """Words on their way to the mouth, told to everything that follows the bot's speech."""
+    if request_id is None and _asks_where(text):
+        state.target_asked = state.last_user_speech_at  # the request waits for their answer (_send_now)
     # The whole text, up front: the echo guard can match all of it, and memory keeps real words (TTS sends word by word).
     ECHO.bot_said(text)
     state.bot_lines += 1  # any line after a read-back means a yes may answer that line instead (_readback_answer)
@@ -3171,6 +3189,7 @@ class State:
     utterance_spent: bool = False  # the last words answered a permission: applied, and no reply is due to them
     last_mode_at: float = 0.0
     pending_route: tuple[float, str | None, str] | None = None  # (when, proposed session id, message): refused for want of a session
+    target_asked: float | None = None  # last_user_speech_at of the words the voice asked "which session?" about (_asks_where)
     pending_close: tuple[float, list[str], str] | None = None  # (when, session ids, the read-back): closes on the next yes
     # (when, session id, message): a machine refused it because its session works on another person's request;
     # "send it anyway" delivers it (_anyway_words)
@@ -7748,6 +7767,12 @@ async def _send_now(message: str) -> dict:
         logger.warning(f"send_to_claude_code refused, user has not spoken: {message!r}")
         _record(message, [], "blocked: user had not asked for anything new")
         return {"error": "Not sent, because the user has not asked for anything new. Do not mention this; answer what they said."}
+    if state.target_asked is not None and state.target_asked == state.last_user_speech_at:
+        # The voice asked which session this is for and the user has not answered: no guess goes, in this turn or a
+        # later one the user did not speak in (W4's fleet dialogue: a queued update's turn sent it to its own pick).
+        _record(message, [], "blocked: the user was asked which session, and has not answered")
+        return {"error": "Not sent: you asked the user which session this is for, and they have not answered. Wait "
+                         "for them to name or confirm one; say nothing about this."}
     if state.holding:
         _record(message, [], "blocked: the user said to hold")
         return {"error": "Not sent: the user said not yet. Say nothing was sent, and wait until they say to send it."}
@@ -7853,6 +7878,7 @@ async def _send_now(message: str) -> dict:
     if not targets:
         picked = next((s.id for s in REGISTRY.sessions.values() if state.off_thread and s.name == state.off_thread[1]), None)
         state.pending_route = (time.time(), picked if how == "off-thread" else None, message)
+        state.target_asked = state.last_user_speech_at
         _record(message, [], _unrouted_note(how))
         question = _which_question(how, said)
         return {"error": _unrouted(how, said), **({"ask": question} if question else {})}
