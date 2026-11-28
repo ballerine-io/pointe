@@ -482,17 +482,27 @@ Open:
 2. Server keys after a reboot: unlock over SSH (default), or a keyring that opens by itself?
 3. Figures on screen only for Hermes: on by default for that agent?
 
-## As built: phase 1
+## As built
 
-- **Routes:** the line names its route (`via=tailscale|wifi|host`), the pairing keeps it, and the list shows it. One
-  route per machine for now: pairing the same machine again replaces its route. The machine still keeps one route in
-  `remote.json` (now with its `kind`); `routes` in the status, `--public` and the `ssh` route are not built.
-- **iPhone:** one Keychain item per machine (account `id:<machine id>`, else `fp:<fingerprint>`), the older
-  account-less item replaced once its machine is saved again; the bar over the call, the list with each machine's
-  route and state (checked every 15 s), tap to move the call, Remove, Face ID to add a second machine.
-- **By voice:** `handoff.py`; the hello's `machines`, the `handoff` message, and the same words typed.
-- **Alerts:** `origin` on each session and alert; merged by it on the phone; an action goes to the machine that runs
-  the session, and another machine's own "Approve from notifications" setting decides whether its alerts carry Approve.
-- **Not yet:** the hands-free fallback to another machine, Face ID when the app opens with several machines, the Mac
-  app's list, the page's menu, `pointe service install` and `pointe unlock` on Linux.
-
+- **Routes (1.2):** `remote.json` keeps its first route as `host`/`listen`/`kind` and, with more than one, a `routes`
+  list; `pointe pair <method> --add` adds one with the same certificate; `--public`; `pointe pair ssh <user@host>`
+  (the line then points at `127.0.0.1` and carries `ssh=<target>`). The listener answers every route's name, a
+  tunnel's as loopback. The status lists `routes` (never a listen address) to the phone and the page on the machine.
+- **iPhone (1.1 to 1.7):** behind Settings, Labs, Several machines. One Keychain item per machine (account
+  `id:<machine id>`, else `fp:<fingerprint>`); the item an older app kept is read the old way and replaced once saved
+  again. Listing reads each item's data by its persistent reference. The bar over the call and the list (route and
+  state, checked every 15 s), tap to move the call, Remove, Face ID to add a second machine; learnt routes, tried in
+  order when the one in use does not connect; "call kite" (`handoff.py`, typed too); alerts merged by `origin` and
+  answered through the machine that runs the session, each machine's own "Approve from notifications" deciding.
+  CI runs the app unsigned, where the Simulator's Keychain keeps nothing: the UI tests use `POINTE_MEMORY_VAULT=1`
+  (Debug only), so the real Keychain path for several items is proven by unit tests on its logic, not on a device.
+- **Mac app (1.8):** the same flag; a menu over the call screen (this Mac first), Add a machine (paste, Touch ID or
+  the password), SSH routes through `/usr/bin/ssh -N -L` to a free local port.
+- **Page (1.8):** Settings, Machines offers "Open its page" for each of the user's own linked machines.
+- **Own machines (2.1, 2.3, 2.4):** grant `mine` (`pointe machines link <name>`); `pointe people invite <name>
+  --another-voice` for one person's second voice; a turn the user started from another voice is theirs.
+- **Not built:** one invite for both directions (2.2), reverse links and heard markers (phase 3), one-tap add over a
+  link, figures on screen only (2.5 test of agents across links too), unpair a phone everywhere, the hands-free
+  fallback, Face ID on opening, the Mac app without a local Pointe, Mac app alerts from other machines,
+  `pointe service install` and `pointe unlock`, the person-scoped call (phase 4). An SSH route has no CI test against
+  a real sshd yet: its arguments and target check are unit-tested.

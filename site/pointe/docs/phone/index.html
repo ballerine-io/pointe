@@ -199,6 +199,22 @@ phone.</p>
 </ul>
 <p>Each route keeps the same rule: the phone listener answers only HTTPS requests for the name you paired, and only from a
 paired phone. The threat model for this path is in <a href="../security/#phone-access-experimental-off-by-default">SECURITY.md</a>.</p>
+<h3 id="several-routes-to-one-machine">Several routes to one machine</h3>
+<p><code>pointe pair &lt;route&gt; --add</code> adds a route beside the ones there are, with the same certificate, so no phone or machine
+pairs again: for example Wi-Fi at home and Twingate away. A paired phone or Mac app learns the new route from the
+machine itself and tries its routes in order when the one in use does not connect. Two more kinds of route:</p>
+<ul>
+<li>
+<p><code>pointe pair host &lt;name&gt; --public</code>: a name on the internet whose port 7443 reaches Pointe directly. The pinned
+  certificate and the one-time pairing code are what guard it. A front door that ends TLS itself (a Cloudflare Tunnel, an
+  HTTPS proxy) shows its own certificate, so the app refuses it: that route is for the phone's browser only.</p>
+</li>
+<li>
+<p><code>pointe pair ssh &lt;user@host&gt;</code>: the Mac app runs your own <code>ssh</code> (your <code>~/.ssh/config</code> and agent) to that target and
+  forwards a local port to the machine's <code>127.0.0.1:7443</code>. Nothing else has to be open but SSH. The iPhone app has no
+  SSH route.</p>
+</li>
+</ul>
 <h2 id="pairing">Pairing</h2>
 <p>Pairing tells the phone where the Mac is and which certificate to trust, and gives the phone its own key. Choose the
 route first (the guides above), then pair in one of these places.</p>
@@ -593,6 +609,7 @@ route before they show the code, and <code>pointe doctor</code> checks the route
 <ul>
 <li class="dx-l2"><a href="#which-should-i-pick">Which should I pick?</a></li>
 <li class="dx-l2"><a href="#all-the-routes">All the routes</a></li>
+<li class="dx-l3"><a href="#several-routes-to-one-machine">Several routes to one machine</a></li>
 <li class="dx-l2"><a href="#pairing">Pairing</a></li>
 <li class="dx-l3"><a href="#from-the-page">From the page</a></li>
 <li class="dx-l3"><a href="#from-the-mac-app">From the Mac app</a></li>

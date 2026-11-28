@@ -314,6 +314,21 @@ machine says which setting is on.</p>
 <p>Your voice treats the other machine's transcripts like its own: they go to its reader and brain vendors.
 <code>pointe node join</code> and <code>pointe node status</code> name those vendors. A voice in fully local mode (<code>pointe local</code>) sends them
 to none.</p>
+<h2 id="your-own-machines-each-a-full-voice">Your own machines, each a full voice</h2>
+<p>Each of your machines can run its own full Pointe, with its own keys, and your phone, Mac app and page can call any of
+them directly (<a href="../iphone-app/#several-machines-on-this-phone-labs">iPhone app, Several machines</a>,
+<a href="https://github.com/ballerine-io/pointe/blob/main/docs/design/multi-machine-clients.md">design</a>). They can also link each other, so the one you call reaches the rest:</p>
+<ol>
+<li>On one machine: <code>pointe machines link kite</code> prints a one-time line (<code>kite</code> is the name the other machine gets here).</li>
+<li>On the other machine: <code>pointe machine add '&lt;line&gt;'</code>. Do the same the other way round for the second direction.</li>
+</ol>
+<p>A machine linked this way is yours, not a person's: it sees every session there, private ones and agents included (never
+another machine's: links do not pass sessions on), what it sends carries your own tag and is never refused as busy
+against you, a permission prompt is offered to it at once, and its reports are spoken as your own. An approval is taken
+once, on the machine the session runs on, whichever of your voices answered it; the others are told it was answered.</p>
+<p><strong>Two of your voices on somebody else's machine.</strong> If Avi invited you and you add <code>avi-box</code> to a second voice of
+yours too, ask Avi for <code>pointe people invite &lt;your name&gt; --another-voice</code>: that voice gets its own key under your one
+name, so the two never count as two people (busy, "the turn you started", who answered).</p>
 <h2 id="a-shared-machine">A shared machine</h2>
 <p>One machine, one OS account, several people. The owner's Pointe runs there and is the owner's voice. Each other person
 runs their own Pointe on their own Mac or Linux machine, and adds the shared machine to it. Nobody shares a key or a
@@ -886,6 +901,7 @@ is not tested.</p>
 <li class="dx-l3"><a href="#when-a-machine-goes-offline">When a machine goes offline</a></li>
 <li class="dx-l3"><a href="#approvals">Approvals</a></li>
 <li class="dx-l3"><a href="#what-goes-where">What goes where</a></li>
+<li class="dx-l2"><a href="#your-own-machines-each-a-full-voice">Your own machines, each a full voice</a></li>
 <li class="dx-l2"><a href="#a-shared-machine">A shared machine</a></li>
 <li class="dx-l3"><a href="#the-owner-invites-a-person">The owner invites a person</a></li>
 <li class="dx-l3"><a href="#the-person-adds-the-machine">The person adds the machine</a></li>

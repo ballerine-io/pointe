@@ -37,6 +37,19 @@ phone.
 Each route keeps the same rule: the phone listener answers only HTTPS requests for the name you paired, and only from a
 paired phone. The threat model for this path is in [SECURITY.md](../SECURITY.md#phone-access-experimental-off-by-default).
 
+### Several routes to one machine
+
+`pointe pair <route> --add` adds a route beside the ones there are, with the same certificate, so no phone or machine
+pairs again: for example Wi-Fi at home and Twingate away. A paired phone or Mac app learns the new route from the
+machine itself and tries its routes in order when the one in use does not connect. Two more kinds of route:
+
+- `pointe pair host <name> --public`: a name on the internet whose port 7443 reaches Pointe directly. The pinned
+  certificate and the one-time pairing code are what guard it. A front door that ends TLS itself (a Cloudflare Tunnel, an
+  HTTPS proxy) shows its own certificate, so the app refuses it: that route is for the phone's browser only.
+- `pointe pair ssh <user@host>`: the Mac app runs your own `ssh` (your `~/.ssh/config` and agent) to that target and
+  forwards a local port to the machine's `127.0.0.1:7443`. Nothing else has to be open but SSH. The iPhone app has no
+  SSH route.
+
 ## Pairing
 
 Pairing tells the phone where the Mac is and which certificate to trust, and gives the phone its own key. Choose the

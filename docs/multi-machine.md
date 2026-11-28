@@ -127,6 +127,24 @@ Your voice treats the other machine's transcripts like its own: they go to its r
 `pointe node join` and `pointe node status` name those vendors. A voice in fully local mode (`pointe local`) sends them
 to none.
 
+## Your own machines, each a full voice
+
+Each of your machines can run its own full Pointe, with its own keys, and your phone, Mac app and page can call any of
+them directly ([iPhone app, Several machines](iphone-app.md#several-machines-on-this-phone-labs),
+[design](design/multi-machine-clients.md)). They can also link each other, so the one you call reaches the rest:
+
+1. On one machine: `pointe machines link kite` prints a one-time line (`kite` is the name the other machine gets here).
+2. On the other machine: `pointe machine add '<line>'`. Do the same the other way round for the second direction.
+
+A machine linked this way is yours, not a person's: it sees every session there, private ones and agents included (never
+another machine's: links do not pass sessions on), what it sends carries your own tag and is never refused as busy
+against you, a permission prompt is offered to it at once, and its reports are spoken as your own. An approval is taken
+once, on the machine the session runs on, whichever of your voices answered it; the others are told it was answered.
+
+**Two of your voices on somebody else's machine.** If Avi invited you and you add `avi-box` to a second voice of
+yours too, ask Avi for `pointe people invite <your name> --another-voice`: that voice gets its own key under your one
+name, so the two never count as two people (busy, "the turn you started", who answered).
+
 ## A shared machine
 
 One machine, one OS account, several people. The owner's Pointe runs there and is the owner's voice. Each other person
