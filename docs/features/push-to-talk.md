@@ -11,8 +11,9 @@ only words that say Pointe's name or a session's are acted on.
 
 ## Use it
 
-The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
-the page and in the iPhone app; on the Mac the microphone chip in the title strip ([quick settings](quick-settings.md)); or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
+The switch above the mic (Always on, Say "Pointe", or Hold to talk, which reads "Tap to talk" when that is the talk
+button), on the page and in the iPhone app; on the Mac the microphone chip in the title strip
+([quick settings](quick-settings.md)); or Settings → Microphone (Always on, Only when I say Pointe, or Push to talk). In the apps,
 Settings is the ••• button at the top (on the Mac also ⌘,). It is one daemon setting, so every client agrees. No
 spoken phrase switches it: a press is what opens the microphone. Then **Talk button**, each device's own choice: **Hold to talk** (the default: press and hold, let go to
 send) or **Tap to talk** (tap to start, the microphone stays open, tap again to send).
@@ -105,7 +106,7 @@ it too.
 | dialling | | opens Pointe; nothing more |
 | up, no press | Push to talk | opens Pointe in Orchestrator mode, with a press open |
 | up, a press open | Push to talk | sends it, as releasing the mic does |
-| up | Always on | opens Pointe; it is already listening, and a press never hangs up |
+| up | Always on, or Only when I say Pointe | opens Pointe; it is already listening, and a press never hangs up |
 
 In the app the line says **Talking · tap to send** and the mic is orange: a tap on it sends, whichever talk button you
 chose. A locked iPhone asks you to unlock first, as for opening any app, so nothing listens before you have.
@@ -203,15 +204,15 @@ chunk left 83 to 94 ms after the touch (it was 108 to 191 ms), and a press's aud
 
 ## API
 
-- Setting: `"microphone": "always" | "ptt"` in `GET/POST /voice/prefs` (default `always`).
+- Setting: `"microphone": "always" | "addressed" | "ptt"` in `GET/POST /voice/prefs` (default `always`).
 - Control, client text on the call socket: `{"type": "ptt", "open": true|false, "at": <client ms>}`. Ignored unless the
   setting is `ptt`.
 - From outside the call: `POST /voice/talk` `{"action": "on" | "off" | "toggle"}` (default `toggle`), with the page's
-  key or the CLI token (`$STATE/token`), never a phone key. 409 with a plain-words `detail` when the microphone is Always
-  on or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
+  key or the CLI token (`$STATE/token`), never a phone key. 409 with a plain-words `detail` when the microphone is not
+  Push to talk (the text names Always on in either other setting) or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
   `{"type": "ptt", "open": bool, "by": "shortcut"}` on the call socket and sends accordingly, and the reply is
   `{"open": bool, "mode": "ptt"}`. `GET /voice/status` carries `talk_command` (the command to bind) on this Mac only.
 - Status `ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes, draft}`. `draft: true`
   while a press's words are kept and not sent yet; `hearing` is then all of them so far, however long the pause. `closed_why`:
-  `released`, `held too long`, `no audio`, `switched to push to talk`. `sent_bytes` counts audio that passed the gate in
+  `released`, `held too long`, `no audio`, `switched to push to talk`, `the microphone setting changed`. `sent_bytes` counts audio that passed the gate in
   this call. Clients show `open` as the truth.

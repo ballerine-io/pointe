@@ -47,8 +47,8 @@ A haptic on the iPhone always comes with a change on the screen: it is attached 
 
 ## Large text
 
-The iPhone app follows Dynamic Type up to the largest accessibility size: the state line wraps to as many lines as it
-needs, with the mute button beside it and the microphone still in reach. The page is whole at 320 CSS pixels wide (a
+The iPhone app follows Dynamic Type: the state line grows up to the second accessibility size and wraps to as many
+lines as it needs, with the mute button beside it and the microphone still in reach. The page is whole at 320 CSS pixels wide (a
 1280-pixel window at 400% zoom): the state line wraps, and nothing scrolls sideways. The Mac app has no text-size
 setting of its own; it follows the window's size.
 
@@ -67,6 +67,6 @@ setting of its own; it follows the window's size.
   and read sensibly; they do not check the order of a long session or how it feels beside Pointe's own voice.
 - Sheets other than the call screen (Settings, Sessions, Night shift, Meeting) were not walked control by control.
 - The Mac app does not scale its text.
-- On the iPhone the bottom bar's labels keep a fixed size at the accessibility text sizes; the
+- On the iPhone the bottom bar's labels stay at the default text size; the
   state line and the conversation grow.
 - Captions for the site's film are in English only.

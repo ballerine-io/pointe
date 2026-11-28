@@ -12,7 +12,7 @@ an Approve that comes from a notification.
 - **Page:** Settings → Alerts → "Desktop alerts" (per browser; the browser asks for permission when you tick it). An
   item that appears while the tab is hidden becomes one notification. It closes when the item is answered or the tab is
   shown; a click brings the page forward. Approving stays a click on the card.
-- **iPhone:** Menu → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
+- **iPhone:** Settings (•••) → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
   when a session needs you and the app is not on screen, and withdraws it when the item is answered. iOS mirrors it to
   a watch on your wrist while the iPhone is locked.
 - **Mac app:** Settings (••• at the top, or ⌘,) → Alerts → "Alerts on this Mac". A notification when a session needs
@@ -28,7 +28,7 @@ What raises an alert: a permission request, a Claude Code session stopped for 15
 terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
 up), a session that ended its turn waiting on you, a raised hand in a
 [meeting](meeting-mode.md), a [conflict](conflict-alarm.md), a scheduled [briefing](briefings.md) that is ready, and
-an [agent](../agents.md) that replied while no call was up.
+an [agent](../agents.md) that replied while no call was up (only with agents on, `POINTE_AGENTS=on`).
 
 ## Rules
 
@@ -50,7 +50,7 @@ an [agent](../agents.md) that replied while no call was up.
   keystrokes and lets the next alert through soon after you walk away; a missed approval costs more than one extra buzz.
   The page on this Mac is never held: its desktop alerts are for the person at the Mac. An idle time that could not be
   read, or is over 15 seconds old, counts as away.
-- **An agent's reply** with no call up is one notification, "hermes replied", and only the agent's name: its words may
+- **An agent's reply** (only with `POINTE_AGENTS=on`) with no call up is one notification, "hermes replied", and only the agent's name: its words may
   hold anything, so they stay in the app and the page, as a conflict's claims do. More replies from that agent add no
   notification until you hear the first on a call or read it. A tap (a click on the page) opens its replies; reading
   them counts as hearing them, so the next call does not read them again. Only the machine the agent is connected to

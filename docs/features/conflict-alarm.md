@@ -31,7 +31,7 @@ Where:
 ## What is checked, in code
 
 - **Pairs.** Another registered session whose last report is under 4 hours old, and that shares a git root or folder,
-  or shares two or more names and edited files with this one, or is named in its new message. Only edits count as
+  or shares two or more names or edited files with this one, or is named in its new message. Only edits count as
   touching a file; reads never do, and common names (`index`, `main`, `README`, …) are ignored.
 - **Accepted only if** the reading model says the claims conflict and are still current; each claim's outcome words
   and numbers appear in its own session's message (and at least half its content words); and the two claims do not say

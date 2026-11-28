@@ -26,15 +26,15 @@ verdict); `pointe/daemon.py` starts, ends and records it.
 
 ## What grounds it
 
-The opening carries the plan (the brain dump, else your last six sentences within 15 minutes) and numbered evidence
+The opening carries the plan (the brain dump, else the last six things you said in the past 15 minutes) and numbered evidence
 `[E1]…`: the active session's notes (decided, ruled out, where it stands, open questions, goal), its last 12 record
-lines, and diffs against `HEAD` of files it edited that were recently shown on screen, plus up to three sessions the
-plan names. Everything passes the credential mask. With no evidence, it says so and argues from the plan only, and it
+lines, and diffs against `HEAD` of files it edited that were recently shown on screen; the active session and the sessions the plan names,
+three at most in total. Everything passes the credential mask. With no evidence, it says so and argues from the plan only, and it
 answers "I don't know" to a question of fact. After six objections it asks for your verdict.
 
 ## What it may do, in code
 
-- Tools: speak, list sessions, and ask a session a side question. Everything else is refused, including sends and
+- Tools: speak, list sessions, ask a session a side question, and how to use Pointe. Everything else is refused, including sends and
   briefings. A send is refused with "Not sent: you are in a challenge; end it first, then say what to send."
 - Ending it resets the send window, so neither the end words nor a "fine, do it" said during the challenge can
   authorize a send afterwards.

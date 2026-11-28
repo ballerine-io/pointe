@@ -128,8 +128,9 @@ noisy rooms, meetings, and anyone who does not want an open microphone.</p>
 <p>Between the two there is a third setting, <a href="../addressed-speech/">Only when I say Pointe</a>: the microphone stays open and
 only words that say Pointe's name or a session's are acted on.</p>
 <h2 id="use-it">Use it</h2>
-<p>The switch above the mic ("Always on" or "Hold to talk", which reads "Tap to talk" when that is the talk button), on
-the page and in the iPhone app; on the Mac the microphone chip in the title strip (<a href="../quick-settings/">quick settings</a>); or Settings → Microphone ("Always on" or "Push to talk"). In the apps,
+<p>The switch above the mic (Always on, Say "Pointe", or Hold to talk, which reads "Tap to talk" when that is the talk
+button), on the page and in the iPhone app; on the Mac the microphone chip in the title strip
+(<a href="../quick-settings/">quick settings</a>); or Settings → Microphone (Always on, Only when I say Pointe, or Push to talk). In the apps,
 Settings is the ••• button at the top (on the Mac also ⌘,). It is one daemon setting, so every client agrees. No
 spoken phrase switches it: a press is what opens the microphone. Then <strong>Talk button</strong>, each device's own choice: <strong>Hold to talk</strong> (the default: press and hold, let go to
 send) or <strong>Tap to talk</strong> (tap to start, the microphone stays open, tap again to send).</p>
@@ -281,7 +282,7 @@ it too.</p>
 </tr>
 <tr>
 <td>up</td>
-<td>Always on</td>
+<td>Always on, or Only when I say Pointe</td>
 <td>opens Pointe; it is already listening, and a press never hangs up</td>
 </tr>
 </tbody>
@@ -389,22 +390,22 @@ chunk left 83 to 94 ms after the touch (it was 108 to 191 ms), and a press's aud
 (it started 0 to 84 ms after it, so that much of the first word was lost).</p>
 <h2 id="api">API</h2>
 <ul>
-<li>Setting: <code>"microphone": "always" | "ptt"</code> in <code>GET/POST /voice/prefs</code> (default <code>always</code>).</li>
+<li>Setting: <code>"microphone": "always" | "addressed" | "ptt"</code> in <code>GET/POST /voice/prefs</code> (default <code>always</code>).</li>
 <li>
 <p>Control, client text on the call socket: <code>{"type": "ptt", "open": true|false, "at": &lt;client ms&gt;}</code>. Ignored unless the
   setting is <code>ptt</code>.</p>
 </li>
 <li>
 <p>From outside the call: <code>POST /voice/talk</code> <code>{"action": "on" | "off" | "toggle"}</code> (default <code>toggle</code>), with the page's
-  key or the CLI token (<code>$STATE/token</code>), never a phone key. 409 with a plain-words <code>detail</code> when the microphone is Always
-  on or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
+  key or the CLI token (<code>$STATE/token</code>), never a phone key. 409 with a plain-words <code>detail</code> when the microphone is not
+  Push to talk (the text names Always on in either other setting) or no call is up; otherwise the gate is pressed as a client's message would press it, the client gets
   <code>{"type": "ptt", "open": bool, "by": "shortcut"}</code> on the call socket and sends accordingly, and the reply is
   <code>{"open": bool, "mode": "ptt"}</code>. <code>GET /voice/status</code> carries <code>talk_command</code> (the command to bind) on this Mac only.</p>
 </li>
 <li>
 <p>Status <code>ptt: {mode, open, opened_at, closed_at, closed_why, sent_bytes, room_heard, room_bytes, draft}</code>. <code>draft: true</code>
   while a press's words are kept and not sent yet; <code>hearing</code> is then all of them so far, however long the pause. <code>closed_why</code>:
-  <code>released</code>, <code>held too long</code>, <code>no audio</code>, <code>switched to push to talk</code>. <code>sent_bytes</code> counts audio that passed the gate in
+  <code>released</code>, <code>held too long</code>, <code>no audio</code>, <code>switched to push to talk</code>, <code>the microphone setting changed</code>. <code>sent_bytes</code> counts audio that passed the gate in
   this call. Clients show <code>open</code> as the truth.</p>
 </li>
 </ul>

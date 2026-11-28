@@ -44,7 +44,8 @@ all during a meeting, which keeps a "yes" said in the room away from the approva
 You are identified in one of two ways:
 
 - **By the words that started it:** a voice start replays the last 5 s of audio into the meeting stream, so whoever
-  said "meeting mode" is you. After a tap start, tap "That was me" on one of your turns.
+  said "meeting mode" is you. After a tap start, tap "That was me" on one of your turns (in the apps, long-press or right-click the line
+  first).
 - **By the [voice lock](voice-lock.md),** when a voiceprint is stored and the lock is on: a turn in your voice binds
   you, "Pointe, that's me" in your voice moves the seat to you, and a "that's me" in another voice is refused.
 

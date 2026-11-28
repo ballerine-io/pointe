@@ -175,3 +175,22 @@ def test_the_mac_app_guide_names_every_call_menu_item_with_a_key():
     assert not missing, missing
     assert "Settings, This Mac, \"Open Pointe at login\"" in guide
     assert 'Text("This Mac")' in (ROOT / "apps" / "macos" / "PointeMac" / "MacSettings.swift").read_text()
+
+
+def test_push_to_talk_lists_every_microphone_setting_and_close_reason():
+    import prefs
+
+    names = list(prefs.SCHEMA["microphone"][1])
+    doc = _flat("docs/features/push-to-talk.md")
+    assert '`"microphone": ' + " | ".join(f'"{v}"' for v in names) + "`" in doc
+    ptt = (ROOT / "pointe" / "ptt.py").read_text()
+    for why in ("the microphone setting changed", "switched to push to talk"):
+        assert why in ptt and f"`{why}`" in doc, why
+
+
+def test_briefings_and_challenge_state_the_limits_in_code():
+    import briefing
+    import challenge
+
+    assert f"at most {briefing.MAX_SESSIONS} sessions" in _flat("docs/features/briefings.md")
+    assert challenge.PLAN_TURNS == 6 and "last six things you said" in _flat("docs/features/challenge.md")

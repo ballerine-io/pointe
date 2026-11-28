@@ -16,7 +16,7 @@ and when it picks the current mode.
   folded away, and the approval card without buttons.
 - **iPhone app:** a Drive button (a car) at the top, beside Start a meeting, a drive screen with the same line and the live caption, Now Playing
   "Pointe · lantern needs you", and play/pause as mute. The app suggests "Switch to Drive mode?" when CarPlay's audio
-  route carries the call, or after 60 s of motion detected as driving. It is never entered automatically. Menu →
+  route carries the call, or after 60 s of motion detected as driving. It is never entered automatically. Settings (•••) →
   "Suggest Drive mode in the car" (per device, on by default) controls this. Motion is used only after you tap that
   setting on, when iOS asks for motion permission; until then only CarPlay is detected. A plain Bluetooth car kit looks
   like a headset to iOS.
@@ -42,7 +42,7 @@ A spoken yes approves only when every normal rule holds (the daemon's own read-o
    [voice lock](voice-lock.md) level, Off included. Utterances are scored while driving even with the lock off.
 
 Otherwise the voice says "X wants to run: … I won't approve that while you drive. It waits until you stop, or say no."
-(or "X needs an approval I can't read out. …"), and opens no yes window: a yes repeats the line. **A no from anyone
+(or "X needs an approval I won't read out on the road. It waits until you stop, or say no."), and opens no yes window: a yes repeats the line. **A no from anyone
 denies.** A destructive request is said in full and waits; it is not denied for you.
 
 A tap still answers any request. The page and the app hide the buttons while driving; "I've stopped" leaves the mode,

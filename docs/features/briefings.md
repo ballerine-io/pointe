@@ -38,7 +38,7 @@ unheard until you ask; the page raises a desktop alert for it, and the app relie
 
 ## How it is built
 
-One reading-model call per session (4 at a time, 30 s timeout each; on failure, that session's last words are used).
+A briefing covers at most 8 sessions, those that wait on you first. One reading-model call per session (4 at a time, 30 s timeout each; on failure, that session's last words are used).
 The order and the opener are in code: waiting, then failed, then done, then quiet, as in "Three sessions since 18:00.
 lantern needs you; billing failed; docs is done." The voice says it in your language. The last seven briefings are kept
 in `~/.claude-voice/briefings.json` (0600), written out per session and redacted.

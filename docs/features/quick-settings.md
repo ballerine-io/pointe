@@ -14,12 +14,14 @@ limits of each level) and `QuickSettings.swift` (both apps).
     detailed", "more detail from now on", "longer answers", "be more thorough" one level up; "brief / concise / detailed
     / thorough answers" pick that level. Hebrew: "תהיה יותר תמציתי", "תהיה יותר מפורט", "תשובות קצרות / מפורטות".
   - Speed: "speak faster", "talk faster", "faster voice"; "slow down", "speak slower"; "normal speed", "fastest",
-    "slowest". Hebrew: "תדבר יותר מהר", "תדבר לאט יותר", "מהירות רגילה". Each needs "speak", "talk" or "voice", unless
-    the whole sentence is "slow down": "speed up the tests" is work, and "billing, slow down" is for a session.
+    "slowest". Hebrew: "תדבר יותר מהר", "תדבר לאט יותר", "מהירות רגילה". A speed phrase must be about the voice (speak,
+    talk, voice or speech in it, or "normal speed", "fastest", "slowest"); a bare "slow down" counts too. "Speed up the
+    tests" is work, and "billing, slow down" is for a session.
   - Clean up my words: "clean up my words"; "stop cleaning my words", "clean my words off". Hebrew: "תנקה את המילים שלי".
   - Whisper: [its own phrases](whisper-mode.md#use-it).
 
-  Each phrase is the whole sentence, caught in code before anything else reads it; Pointe confirms in four words at
+  Each phrase is the whole sentence, caught in code before anything else reads it, except during a meeting or a brain
+  dump; Pointe confirms in four words at
   most, a new speed at that speed. "Tell me more" still lengthens one answer and changes no setting.
 - **Page:** four chips in the top bar: Reply length and Speed open a menu with a line on each level; Clean words and
   Whisper flip on one click and show a small switch. On a narrow screen they are one Quick settings group under More.
@@ -65,7 +67,7 @@ At 1× nothing new is sent to any vendor.
 ## The change log
 
 Each change of a daemon setting adds a line to `~/.claude-voice/settings-changes.log`: the time, the key and where it
-came from (`app` or `voice`), never a value and never words. Speed names the device (`voice.speed.iphone`). The file is
+came from (`voice` for a spoken change, `app` for every other, including the few the daemon makes itself), never a value and never words. Speed names the device (`voice.speed.iphone`). The file is
 0600, keeps its newer half past 256 KB, and nothing in Pointe reads it or sends it anywhere: it is there to check this
 row against real use.
 

@@ -134,7 +134,7 @@ an Approve that comes from a notification.</p>
   shown; a click brings the page forward. Approving stays a click on the card.</p>
 </li>
 <li>
-<p><strong>iPhone:</strong> Menu → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
+<p><strong>iPhone:</strong> Settings (•••) → Alerts → "Alerts on this iPhone" (off until you turn it on). The app posts a local notification
   when a session needs you and the app is not on screen, and withdraws it when the item is answered. iOS mirrors it to
   a watch on your wrist while the iPhone is locked.</p>
 </li>
@@ -157,7 +157,7 @@ an Approve that comes from a notification.</p>
 terminal (a permission prompt, a question, a sandbox request: the ones the voice does not hold, for example with no call
 up), a session that ended its turn waiting on you, a raised hand in a
 <a href="../meeting-mode/">meeting</a>, a <a href="../conflict-alarm/">conflict</a>, a scheduled <a href="../briefings/">briefing</a> that is ready, and
-an <a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">agent</a> that replied while no call was up.</p>
+an <a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">agent</a> that replied while no call was up (only with agents on, <code>POINTE_AGENTS=on</code>).</p>
 <h2 id="rules">Rules</h2>
 <ul>
 <li>
@@ -189,7 +189,7 @@ an <a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">age
   read, or is over 15 seconds old, counts as away.</p>
 </li>
 <li>
-<p><strong>An agent's reply</strong> with no call up is one notification, "hermes replied", and only the agent's name: its words may
+<p><strong>An agent's reply</strong> (only with <code>POINTE_AGENTS=on</code>) with no call up is one notification, "hermes replied", and only the agent's name: its words may
   hold anything, so they stay in the app and the page, as a conflict's claims do. More replies from that agent add no
   notification until you hear the first on a call or read it. A tap (a click on the page) opens its replies; reading
   them counts as hearing them, so the next call does not read them again. Only the machine the agent is connected to

@@ -138,15 +138,17 @@ limits of each level) and <code>QuickSettings.swift</code> (both apps).</p>
 </li>
 <li>
 <p>Speed: "speak faster", "talk faster", "faster voice"; "slow down", "speak slower"; "normal speed", "fastest",
-  "slowest". Hebrew: "<span lang="he" dir="rtl">תדבר יותר מהר</span>", "<span lang="he" dir="rtl">תדבר לאט יותר</span>", "<span lang="he" dir="rtl">מהירות רגילה</span>". Each needs "speak", "talk" or "voice", unless
-  the whole sentence is "slow down": "speed up the tests" is work, and "billing, slow down" is for a session.</p>
+  "slowest". Hebrew: "<span lang="he" dir="rtl">תדבר יותר מהר</span>", "<span lang="he" dir="rtl">תדבר לאט יותר</span>", "<span lang="he" dir="rtl">מהירות רגילה</span>". A speed phrase must be about the voice (speak,
+  talk, voice or speech in it, or "normal speed", "fastest", "slowest"); a bare "slow down" counts too. "Speed up the
+  tests" is work, and "billing, slow down" is for a session.</p>
 </li>
 <li>
 <p>Clean up my words: "clean up my words"; "stop cleaning my words", "clean my words off". Hebrew: "<span lang="he" dir="rtl">תנקה את המילים שלי</span>".</p>
 </li>
 <li>Whisper: <a href="../whisper-mode/#use-it">its own phrases</a>.</li>
 </ul>
-<p>Each phrase is the whole sentence, caught in code before anything else reads it; Pointe confirms in four words at
+<p>Each phrase is the whole sentence, caught in code before anything else reads it, except during a meeting or a brain
+dump; Pointe confirms in four words at
 most, a new speed at that speed. "Tell me more" still lengthens one answer and changes no setting.</p>
 </li>
 <li>
@@ -248,7 +250,7 @@ another vendor. The next sentence takes a new speed (a Pipecat settings frame, q
 At 1× nothing new is sent to any vendor.</p>
 <h2 id="the-change-log">The change log</h2>
 <p>Each change of a daemon setting adds a line to <code>~/.claude-voice/settings-changes.log</code>: the time, the key and where it
-came from (<code>app</code> or <code>voice</code>), never a value and never words. Speed names the device (<code>voice.speed.iphone</code>). The file is
+came from (<code>voice</code> for a spoken change, <code>app</code> for every other, including the few the daemon makes itself), never a value and never words. Speed names the device (<code>voice.speed.iphone</code>). The file is
 0600, keeps its newer half past 256 KB, and nothing in Pointe reads it or sends it anywhere: it is there to check this
 row against real use.</p>
 <h2 id="api">API</h2>

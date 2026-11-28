@@ -56,7 +56,7 @@ Where each one works, and how to reach it:
 | [Skip](skip.md#use-it) | "skip", "next" | the skip button beside the status line, while Pointe speaks | the same button | the same button, and ⌃⌥S from any app |
 | [Thinking and the waiting sound](thinking.md#turn-it-off) | nothing to say: it follows the call | the status line; Settings → Turn taking → Waiting sound | the status line; Settings → Waiting sound | the status line, the bubble and the menu bar; Settings → Waiting sound |
 | [Progress updates](progress.md#use-it) | "keep me posted", "stop updates" | Settings → Turn taking → Progress updates | Settings → Progress updates | Settings → Progress updates |
-| [Only when I say Pointe](addressed-speech.md#use-it) | no: a setting; then every turn starts with "Pointe" or a session's name | the switch above the mic; Settings → Microphone | the switch above the mic; Settings → Microphone | the switch above the mic; Settings → Microphone |
+| [Only when I say Pointe](addressed-speech.md#use-it) | no: a setting; then every turn starts with "Pointe" or a session's name | the switch above the mic; Settings → Microphone | the switch above the mic; Settings → Microphone | the microphone chip in the title strip; Settings → Microphone |
 | [Session tones](session-tones.md#use-it) | no: a setting | Settings → Turn taking → Session tones | Settings → Session tones | Settings → Session tones |
 | [Approvals record](approvals-record.md#use-it) | no: a list to read | Settings → Approvals record | Settings → Approvals record | Settings → Approvals record |
 | [Conflict alarm](conflict-alarm.md#use-it) | the alarm is spoken; "I know" dismisses it | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm | the card; Settings → Conflict alarm |
