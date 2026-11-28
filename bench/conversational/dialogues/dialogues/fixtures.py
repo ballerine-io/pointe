@@ -71,7 +71,7 @@ FIXTURES = {
             "            seen.add(r)\n"
             "            out.append(r)\n"
             "    return out\n"),
-        "tmp/scratch.txt": "scratch\n",
+        "scratch.txt": "scratch\n",  # apr-04 deletes it: at the top level, so no folder name can be taken for /tmp
         "scripts/slow_check.sh": SLOW_CHECK,
     },
     "atlas": {

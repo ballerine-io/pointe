@@ -314,7 +314,9 @@ voice = "am_michael"
 # Looking is allowed in both arms, so the request the yes answers is the delete itself, not an `ls` before it.
 allow = ["Bash(ls:*)", "Bash(pwd)", "Bash(pwd:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(wc:*)", "Bash(git status:*)", "Bash(git ls-files:*)", "Bash(git log:*)", "Bash(test:*)", "Bash(echo:*)", "Bash(head:*)", "Bash(grep:*)"]
   [[dialogue.turn]]
-  say = "Tell quarry to delete the file scratch dot t x t in its own tmp folder with r m, without checking anything first."
+  # The file is at the top of quarry's own project, and the line says so: "its own tmp folder" sent the agent searching
+  # /tmp, where the run's repositories live, and it asked for a path instead of asking permission to delete.
+  say = "Tell quarry to delete scratch dot t x t, the file at the top of its own project, with r m. It's there: don't look for it or check anything first."
   expect = { kind = "send", session = "quarry", must = ["scratch", "delete|remove|rm"] }
   [[dialogue.turn]]
   say = "Yes."
