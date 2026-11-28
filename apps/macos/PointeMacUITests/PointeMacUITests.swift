@@ -56,22 +56,13 @@ final class PointeMacUITests: XCTestCase {
     @MainActor func testARequestsCardHasTheCommandDenyAndApprove() {
         _ = launch("request")
         XCTAssertTrue(any("requestCommand").waitForExistence(timeout: 5))
-        // The buttons themselves: the first element carrying an identifier can be its container (here the card's scroll
-        // view, which has no hit point: "Unable to find hit point for ScrollView" every CI run), as Connect's toolbar was.
         let deny = app.buttons.matching(identifier: "requestDeny").firstMatch
         XCTAssertTrue(deny.exists && app.buttons.matching(identifier: "requestApprove").firstMatch.exists)
         shot("02-request")
-        func denied() {  // Deny needs no one; the demo's card goes, as a Mac's would
-            deny.click()
-            XCTAssertTrue(any("requestCommand").waitForNonExistence(timeout: 5), "the card goes")
-        }
-        guard ProcessInfo.processInfo.environment["CI"] == "true" else { return denied() }
-        // Still an expected failure in CI until a run shows this step pass with the button queried (CONTRIBUTING.md, UI
-        // tests in CI); not strict, so a pass is not a failure.
-        let options = XCTExpectedFailure.Options()
-        options.isStrict = false
-        XCTExpectFailure("macOS 26 runner: Deny had no hit point while the card's scroll view answered for it", options: options,
-                         failingBlock: denied)
+        // A coordinate inside the button: click() first scrolls the element into view, and that step asks the card's
+        // scroll view for a hit point it does not have ("Unable to find hit point for ScrollView", every CI run).
+        deny.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).click()  // Deny needs no one: the card goes
+        XCTAssertTrue(any("requestCommand").waitForNonExistence(timeout: 5), "the card goes")
     }
 
     @MainActor func testSettingsHaveTheSharedRowsAndThisMacsOwn() {
