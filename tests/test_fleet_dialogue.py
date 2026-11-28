@@ -125,8 +125,8 @@ def test_the_opencode_service_keeps_each_session_apart_through_pointes_adapter(t
     monkeypatch.setattr(harnesses.HOST, "hold_permission", hold)
     fake = vendors.OpenCodeMachine()
     a, b = "ses_" + "a" * 32, "ses_" + "b" * 32
-    fake.add(a, "quarry", "Fix the payroll queue.", "Done, all tests pass.")
-    fake.add(b, "ember", "Fix the audit parser.", "Done, all tests pass.")
+    fake.add(a, "zeppelin", "Fix the payroll queue.", "Done, all tests pass.")
+    fake.add(b, "gondolier", "Fix the audit parser.", "Done, all tests pass.")
     fed = []
 
     async def feed(session, text, respond):
@@ -135,7 +135,7 @@ def test_the_opencode_service_keeps_each_session_apart_through_pointes_adapter(t
     async def scenario():
         await fake.start()
         oc = OpenCode(Service(url=fake.url, password="test-only"))
-        sa, sb = _session(a, "opencode", "quarry"), _session(b, "opencode", "ember")
+        sa, sb = _session(a, "opencode", "zeppelin"), _session(b, "opencode", "gondolier")
         tasks = [asyncio.create_task(oc.watch(s, feed)[0]) for s in (sa, sb)]
         await asyncio.sleep(0.6)
         assert await oc.send(sa, "run the linter")
@@ -151,8 +151,8 @@ def test_the_opencode_service_keeps_each_session_apart_through_pointes_adapter(t
     rid = asyncio.run(scenario())
     assert [x["session"] for x in fake.sent] == [a] and "run the linter" in fake.sent[0]["text"]
     reports = [(name, text) for name, text, respond in fed if respond]
-    assert len(reports) == 1 and reports[0][0] == "ember" and "audit parser work is finished" in reports[0][1]
-    assert asked == [("quarry", "Bash", "git status --short")] and fake.answers[rid]["decision"] == "once"
+    assert len(reports) == 1 and reports[0][0] == "gondolier" and "audit parser work is finished" in reports[0][1]
+    assert asked == [("zeppelin", "Bash", "git status --short")] and fake.answers[rid]["decision"] == "once"
     assert fake.sessions[a]["permissions"] == []
 
 
