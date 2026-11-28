@@ -307,8 +307,12 @@ def content_words(text: str) -> set[str]:
     return {w for w in re.findall(r"\w+", _lower(text)) if len(w) > 2} - {"the", "and", "then", "tell", "ask", "again"}
 
 
-_SWITCH = ("switch", "go to", "move to", "change to", "jump to", "back to", "talk to", "over to", "work on",
-           "תעבור", "עבור ל", "תחליף", "החלף", "לך ל", "תלך ל", "חזור ל", "תחזור ל")
+_SWITCH = ("switch", "go to", "move to", "change to", "jump to", "back to", "talk to", "talk with", "speak to",
+           "speak with", "chat with", "over to", "work on", "connect me to", "connect me with",
+           "תעבור", "עבור ל", "עבור אל", "תחליף", "החלף", "לך ל", "תלך ל", "חזור ל", "תחזור ל",
+           # "talk with hermes": the 1:1 with an agent (docs/agents.md), in each form a speaker uses
+           "דבר עם", "דברי עם", "תדבר עם", "תדברי עם", "לדבר עם", "נדבר עם", "חבר אותי ל", "תחבר אותי ל",
+           "תחברי אותי ל", "העבר אותי ל", "תעביר אותי ל")
 
 
 def switch_intent(text: str) -> bool:
@@ -679,10 +683,12 @@ def attach_intent(text: str) -> bool:
 
 def back_intent(text: str) -> bool:
     """'go back', 'the previous session': the session that was active before."""
-    return bool(re.search(r"\b(?:previous|last session|last one|switch back|go back|הקודם)\b", _lower(text)))
+    return bool(re.search(r"\b(?:previous|last session|last one|switch back|go back|הקודם|ת?חזו?ר(?:י)? אחורה)\b",
+                          _lower(text)))
 
 
-_ORCHESTRATOR = ("orchestrator", "orchestration", "route automatically", "אורקסטרטור")
+_ORCHESTRATOR = ("orchestrator", "orchestration", "route automatically", "אורקסטרטור", "אורקסטרייטור", "אורקסטרציה",
+                 "מתזמר")
 _SESSION = ("session mode", "direct mode", "focus mode", "מצב סשן")
 _FOCUS = ("focus on", "only talk to", "talk only to", "pin to", "רק עם", "תתמקד ב")
 

@@ -409,9 +409,54 @@ def speakable(name: str) -> bool:
 def _hears(word: str, spoken: str) -> bool:
     if word.isdigit():
         return NUMBERS.get(spoken, spoken) == word
+    if _HEBREW.search(spoken) and word.isascii():
+        return _sounds_like(word, spoken)
     if len(spoken) < 3:  # "we" is not "web": a short word can only match exactly
         return word == spoken
     return _similar(word, spoken) >= WORD_MATCH
+
+
+# A Latin name said in a Hebrew sentence may come back in Hebrew letters: "דבר עם הרמס" is "talk to hermes". Both are
+# compared as consonants: Hebrew writes most vowels not at all, or with letters (א ו י ע) that are vowels here.
+_HEBREW = re.compile(r"[\u05d0-\u05ea]")
+_HE_CONSONANT = {"ב": "b", "ג": "g", "ד": "d", "ה": "h", "ז": "s", "ח": "h", "ט": "t", "כ": "k", "ך": "k", "ל": "l",
+                 "מ": "m", "ם": "m", "נ": "n", "ן": "n", "ס": "s", "פ": "p", "ף": "p", "צ": "ts", "ץ": "ts", "ק": "k",
+                 "ר": "r", "ש": "s", "ת": "t"}
+_HE_PREFIX = "והבלמשכ"  # and, the, in, to, from, that, as: written joined to the next word ("להרמס")
+SKELETON_MIN = 3  # fewer consonants than this match too many Hebrew words
+
+
+def _latin_skeleton(word: str) -> str:
+    w = word.lower()
+    for a, b in (("ph", "p"), ("sh", "s"), ("ch", "c"), ("th", "t"), ("ck", "k"), ("qu", "k"), ("x", "ks"), ("tz", "ts")):
+        w = w.replace(a, b)
+    w = re.sub(r"c(?=[eiy])", "s", w)
+    w = w.translate(str.maketrans({"q": "k", "v": "b", "f": "p", "j": "g", "z": "s", "w": ""}))
+    w = w.replace("c", "k")
+    w = (w[:1] if w[:1] not in "aeiouy" else "") + re.sub(r"[aeiouyh]", "", w[1:])
+    return re.sub(r"(.)\1+", r"\1", re.sub(r"[^a-z]", "", w))
+
+
+def _hebrew_skeleton(word: str) -> str:
+    w = re.sub(r"[\"\u05f4]", "", word).replace("\u05f3", "'")
+    w = w.replace("ג'", "g").replace("ז'", "s").replace("צ'", "k")
+    out = [_HE_CONSONANT.get(ch, ch if ch.isascii() and ch.isalpha() else "")
+           for i, ch in enumerate(w) if not (ch == "ה" and i == len(w) - 1 and i)]  # a last ה is a vowel
+    return re.sub(r"(.)\1+", r"\1", "".join(out))
+
+
+def _sounds_like(word: str, spoken: str) -> bool:
+    """A Latin name word and a word in Hebrew letters say the same name: equal consonants, or nearly so for a long one.
+    The Hebrew word may carry a prefix letter or two ("להרמס", "ולהרמס")."""
+    latin = _latin_skeleton(word)
+    if len(latin) < SKELETON_MIN:
+        return False
+    forms = {spoken} | {spoken[n:] for n in (1, 2) if len(spoken) > n + 2 and all(c in _HE_PREFIX for c in spoken[:n])}
+    for form in forms:
+        heard = _hebrew_skeleton(form)
+        if heard == latin or (min(len(heard), len(latin)) >= 4 and _similar(heard, latin) >= WORD_MATCH):
+            return True
+    return False
 
 
 _SCRIPT_EDGE = re.compile(r"(?<=[\u0590-\u05ff])(?=[a-z0-9])|(?<=[a-z0-9])(?=[\u0590-\u05ff])")
@@ -472,13 +517,18 @@ def _negated(tokens: list[str], vocab: set[str]) -> set[int]:
 _TELL = {"tell", "ask", "get", "remind", "instruct", "תגיד", "תגידי", "תבקש", "תבקשי", "תשאל", "תשאלי",
          "ותגיד", "ותגידי", "ותבקש", "ותבקשי", "ותשאל", "ותשאלי"}
 _MOVE = {"switch", "go", "back", "move", "jump", "change", "talk", "over", "head", "come", "work", "focus", "pin",
-         "only"}
+         "only", "speak", "chat", "connect", "me"}
+# Hebrew verbs whose next words name where the user goes: "דבר עם הרמס", "תעבור להרמס", "תחבר אותי לאופנקלו".
+_MOVE_HE = {"דבר", "דברי", "תדבר", "תדברי", "לדבר", "נדבר", "עבור", "תעבור", "תעברי", "לעבור", "נעבור", "חזור",
+            "תחזור", "תחזרי", "לחזור", "חבר", "תחבר", "תחברי", "העבר", "תעביר", "תעבירי", "של"}
+# "מה הרמס אמר?": the word before one of these is who said it.
+_SAID_HE = {"אמר", "אמרה", "ענה", "ענתה", "כתב", "כתבה", "אומר", "עונה", "חושב"}
 _PREPOSITIONS = {"in", "inside", "for", "on", "at"}
 _ENDS = {",", ".", ";", ":", "!", "?", "and"}
 _CLAUSE_ENDS = {".", ";", ":", "!", "?"}
 
 
-_LEAD = {"the", "ל", "מ"}
+_LEAD = {"the", "ל", "מ", "את", "עם", "אל", "אותי"}
 _JOIN = {"and", "ו", "ול", "ומ", ","}
 
 
@@ -506,14 +556,16 @@ def _address(tokens: list[str], vocab: set[str]) -> set[int]:
         return j
 
     for i, t in enumerate(tokens):
-        if t in _TELL:
+        if t in _TELL or t in _MOVE_HE:
             names(i + 1)
+        elif t in _SAID_HE and i and name(i - 1):
+            slot.add(i - 1)
         elif t in _JOIN - {","} and ";" in tokens[:i]:  # "tell X to A and lantern to B": a second target
             end = names(i + 1)
             if end == i + 1 or not (end == len(tokens) or tokens[end] in (";", "to", "should")
                                     or tokens[end][0] in "לש"):
                 slot.difference_update(range(i + 1, end))
-        elif t in ("to", "on", "onto", "ל") and i and tokens[i - 1] in _MOVE:
+        elif t in ("to", "on", "onto", "with", "ל") and i and tokens[i - 1] in _MOVE:
             take(i + 1, _ENDS)
         elif t in _PREPOSITIONS:
             take(i + 1, _ENDS)
@@ -524,6 +576,8 @@ def _address(tokens: list[str], vocab: set[str]) -> set[int]:
                 j -= 1
     if "," in tokens[:4]:
         slot.update(range(tokens.index(",")))
+    if len([t for t in tokens if t not in _ENDS]) == 1:  # a name alone, as the answer to "which one?"
+        slot.update(range(len(tokens)))
     return slot
 
 
@@ -570,7 +624,10 @@ def _score(s: Session, tokens: list[str], idx: list[int], address=()) -> tuple[t
         repo = _name_words(label.split("/")[0])
         heard, where = set(), set()
         for w in words:
-            hits = {i for i in (address if w in machine else idx) if _hears(w, tokens[i])}
+            # A word in Hebrew letters names a session only where the words say who it is for ("דבר עם הרמס"): its
+            # consonants alone match ordinary words too ("מבלבל" sounds like bluebell).
+            hits = {i for i in (address if w in machine else idx) if _hears(w, tokens[i])
+                    and (i in address or not _HEBREW.search(tokens[i]))}
             if hits:
                 heard.add(w)
                 if _distinctive(w):

@@ -483,3 +483,76 @@ def test_last_final_reads_the_reply_and_its_hop_count(tmp_path):
               "pointeError": True}]
     path.write_text("".join(json.dumps(x) + "\n" for x in lines))
     assert agent_relay.last_final(str(path)) == ("two", 2)
+
+
+# ---------- Hebrew: switching to an agent, the orchestrator, and its name in Hebrew letters ----------
+
+def _named_sessions():
+    from sessions import named_sessions
+
+    return named_sessions
+
+
+def _sessions(*names):
+    return [Session(id=f"agent-{n}", name=n, cwd=f"/tmp/agents/{n}", pid=0, transcript="") for n in names]
+
+
+@pytest.mark.parametrize("said", [
+    "דבר עם הרמס", "תדבר עם הרמס", "תדברי עם הרמס", "אני רוצה לדבר עם הרמס", "בוא נדבר עם הרמס", "דבר עם hermes",
+    "עבור להרמס", "תעבור להרמס", "תחבר אותי להרמס", "talk with hermes", "speak to hermes"])
+def test_hebrew_and_other_switch_words_name_the_agent(said):
+    from guards import switch_intent
+    from sessions import match_session
+
+    hermes, openclaw = _sessions("hermes", "openclaw")
+    assert switch_intent(said), said
+    assert match_session(said, [hermes, openclaw]) is hermes, said
+
+
+@pytest.mark.parametrize("said,name", [
+    ("תעבור לאופנקלו", "openclaw"), ("דבר עם אופנקלו", "openclaw"), ("תשאל את הרמס מה השעה", "hermes"),
+    ("תגיד לאופנקלו לבדוק את היומן", "openclaw"), ("מה הרמס אמר?", "hermes"), ("הרמס", "hermes"),
+    ("תעבור ללנטרן", "lantern")])
+def test_a_name_said_in_hebrew_letters_is_the_session(said, name):
+    from sessions import match_session
+
+    every = _sessions("hermes", "openclaw", "lantern")
+    assert getattr(match_session(said, every), "name", None) == name, said
+
+
+@pytest.mark.parametrize("said", ["אתה מבלבל אותי", "תבלבל את הבדיקות", "הרמה של הקוד", "מה השעה?", "תריץ את הטסטים"])
+def test_hebrew_words_that_only_sound_like_a_name_name_nothing(said):
+    from sessions import name_groups
+
+    assert name_groups(said, _sessions("hermes", "openclaw", "bluebell")) == [], said
+
+
+def test_telling_an_agent_in_hebrew_to_talk_to_another_is_a_send_not_a_switch():
+    from guards import switch_intent
+
+    assert not switch_intent("תגיד להרמס לדבר עם אופנקלו")
+
+
+@pytest.mark.parametrize("said,mode", [("מצב מתזמר", "orchestrator"), ("תחזור למצב אורקסטרטור", "orchestrator"),
+                                       ("חזרה למתזמר", "orchestrator"), ("מצב סשן", "session")])
+def test_hebrew_routing_mode_words(said, mode):
+    from guards import mode_intent
+
+    assert mode_intent(said, _sessions("hermes")) == mode
+
+
+@pytest.mark.parametrize("said", ["תחזור אחורה", "חזור אחורה", "תחזור לסשן הקודם"])
+def test_hebrew_go_back(said):
+    from guards import back_intent
+
+    assert back_intent(said)
+
+
+def test_a_hebrew_relay_names_its_source_and_target_in_hebrew_letters():
+    hermes, openclaw, shop = _sessions("hermes", "openclaw", "shop")
+    every = [hermes, openclaw, shop]
+    named = _named_sessions()
+    assert agent_relay.pick("תעביר את התשובה של הרמס לאופנקלו", every, named) == (hermes, openclaw)
+    assert agent_relay.pick("תעביר את התשובה של הרמס ל-openclaw", every, named) == (hermes, openclaw)
+    assert agent_relay.pick("תשלח את זה לאופנקלו", every, named, last_reported=hermes) == (hermes, openclaw)
+

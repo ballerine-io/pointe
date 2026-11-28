@@ -2,6 +2,7 @@
 on the user's spoken yes, and the guard that keeps a relay from going out as an ordinary send."""
 
 import asyncio
+import time
 import json
 import sys
 from pathlib import Path
@@ -267,3 +268,21 @@ def test_only_the_owner_reaches_the_agent_routes(world, monkeypatch):
                 client.delete("/voice/agents/hermes")):
         assert got.status_code == 403 and "hermes" not in got.text, (got.request.method, got.request.url.path, got.text)
     assert world.store.get("hermes") is not None and world.store.get("x") is None
+
+@pytest.mark.parametrize("said", ["דבר עם הרמס", "תעבור להרמס", "talk to hermes"])
+def test_talk_to_an_agent_in_hebrew_focuses_on_it_and_orchestrator_mode_leaves_it(world, said):
+    """The owner's "דבר עם הרמס" was refused as "the user did not ask to switch": no Hebrew switch word, and the ears
+    wrote the name in Hebrew letters."""
+    d = world.d
+    hermes, _ = _add(world, "hermes", "hermes"), _add(world, "openclaw", "openclaw")
+
+    async def scenario():
+        now = time.time()
+        d.state.last_utterance, d.state.last_user_speech_at, d.state.last_switch_at = said, now, now - 30
+        p = Params(name="hermes")
+        await d.switch_session(p)
+        return p.results[0]
+
+    result = asyncio.run(scenario())
+    assert result.get("active") == hermes.name and result.get("mode") == "session", result
+    assert d.mode_intent("תחזור למצב מתזמר", list(d.REGISTRY.sessions.values())) == "orchestrator"

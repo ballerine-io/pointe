@@ -47,8 +47,10 @@ def pick(utterance: str, sessions: list, named, last_reported=None):
     the source is another session named, else the one whose reply was heard last."""
     before, after = _split_to(utterance)
     targets = named(after, sessions) if after else []
-    if not targets:  # Hebrew: "לאופנקלו", "ל-hermes"
-        targets = [s for s in sessions if re.search(rf"(?:^|\s)ל-?{re.escape(s.name)}\b", utterance or "", re.I)]
+    if not targets:  # Hebrew: the last name written with the prefix ל ("לאופנקלו", "ל-hermes"), in either alphabet
+        for m in reversed(list(re.finditer(r"(?<!\w)ל-?\s?([^\W_][\w'-]*)", utterance or ""))):
+            if targets := named(m.group(1), sessions):
+                break
     if len(targets) != 1:
         return None, None
     target = targets[0]
