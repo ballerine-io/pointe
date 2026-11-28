@@ -240,6 +240,13 @@ class MixedFleet(sim.FleetSim):
         return cwd
 
     def settle_notes(self, timeout: float = 120.0) -> dict:
+        """Before the call: every session's record on the voice's machine, as when sessions joined long before a call (a
+        Codex or OpenCode mirror its watcher writes, a remote one that arrives over the link)."""
+        def whole() -> bool:
+            return all(Path(s["transcript"]).exists() and Path(s["transcript"]).stat().st_size > 0
+                       for s in self.registry().values())
+
+        sim.until("every session's record is on the voice", whole, timeout, every=0.25)
         return {"with_notes": len(self.noted()), "sessions": len(self.described["sessions"])}
 
     def start_states(self) -> None:
@@ -477,6 +484,9 @@ def main() -> None:
                    "steps": {r.get("turn") or r["step"]: r["passed"] for r in rows}, "passed": all(r["passed"] for r in rows),
                    "fleet_on": bench.daemon_fleet(run.fleet)["fleet_on"]}
         run.write(summary)
+        if not summary["passed"]:  # what the voice did, for the cause: synthetic sessions only
+            run.out.mkdir(parents=True, exist_ok=True)
+            (run.out / "voice-log-tail.txt").write_text(run.fleet.voice.log(400_000).replace(str(Path.home()), "~"))
         print(f"dialogue {a.sessions}: {'PASS' if summary['passed'] else 'FAIL'}", flush=True)
     except Exception as e:
         error = f"{type(e).__name__}: {str(e)[:300]}".replace(str(Path.home()), "~")
