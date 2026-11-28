@@ -1,0 +1,95 @@
+{
+ "run": "fleet-20261128-083504-dialogue-2m8-fleet-on-stub",
+ "what": "dialogue",
+ "size": "2m8",
+ "arm": "fleet-on",
+ "models": "stub",
+ "pointe": {
+  "commit": "8dded9341f48867da7090f21a1433d10214c2ba1",
+  "pointe_tree": "13b600fbb07cd61e2f677dca92c3873a1ac571b4",
+  "pointe_commit": "eb16dc129208b0ceec6506d8e1c1c53ac6f1fea4",
+  "dirty_pointe": true
+ },
+ "harness_commit": "8dded9341f48867da7090f21a1433d10214c2ba1",
+ "fleet_sha256": "d6787e14c971f5be1e5b4d1601bd475fd9b0de10305c2b7546b6a9d4358dca1a",
+ "dataset_sha256": "ee2efc6bded4779e3d7905b73bd79d0144217f8b3b79b86481b4f59c245e95b0",
+ "started": "2026-11-28T08:35:04+0200",
+ "load_start": 7.48193359375,
+ "machine": "arm64, 18 cores",
+ "dialogue_seed": 20261128,
+ "notes_restored": {
+  "with_notes": 2,
+  "sessions": 8
+ },
+ "footprint_before_call": {
+  "voice": {
+   "rss_mb": 99.9,
+   "cpu_secs": 0.39
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 66.9,
+  "nodes_cpu_secs": 0.21,
+  "runner": {
+   "rss_mb": 47.0,
+   "cpu_secs": 0.3
+  },
+  "threads": 5
+ },
+ "timing": {
+  "voice_up_secs": 1.2,
+  "nodes_up_secs": 0.4,
+  "sessions_joined_secs": 0.7
+ },
+ "sessions_with_notes": 2,
+ "names": {
+  "c0120c50-b93a-4c63-92c8-6d5ad5faf3b0": "trowel",
+  "165e968f-72ad-4648-a318-2c5696138e34": "clover",
+  "ses_c64db446d5a34688ac51a5de650ee1a2": "oasis",
+  "1616584c-8a59-4dc0-af67-679e7480048c": "obsidian",
+  "523b1d8c-4f8f-4e7e-991d-572987ed33fd": "riddle",
+  "ses_3c6e07e1eecf689494983e894c9471ce": "orchid",
+  "9f6d72ac-4156-439a-909f-f02a15c4a711": "fondue",
+  "a02b0c97-f598-4b00-a883-38264f326cbe": "granite"
+ },
+ "notes_sha256": "2d014f4125d22d45770d3e8188a94909960a896e0bc54d294ee4f442c8b9a34f",
+ "setup_calls": {
+  "reader": 2,
+  "brain": 0
+ },
+ "setup_line": "Setup(brain='anthropic:claude-sonnet-5-5', reader='anthropic:claude-sonnet-5-5', checker='gemini:gemini-3.5-flash-lite', ears='soniox', mouth='elevenlabs:eleven_v4_turbo', notes=[])",
+ "footprint_call_up": {
+  "voice": {
+   "rss_mb": 108.1,
+   "cpu_secs": 0.49
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 66.9,
+  "nodes_cpu_secs": 0.24,
+  "runner": {
+   "rss_mb": 47.4,
+   "cpu_secs": 0.37
+  },
+  "threads": 6
+ },
+ "ended": "2026-11-28T08:37:05+0200",
+ "load_end": 7.759765625,
+ "footprint_end": {
+  "voice": {
+   "rss_mb": 109.7,
+   "cpu_secs": 1.45
+  },
+  "nodes": 1,
+  "nodes_rss_mb": 68.1,
+  "nodes_cpu_secs": 0.66,
+  "runner": {
+   "rss_mb": 48.1,
+   "cpu_secs": 1.37
+  },
+  "threads": 7
+ },
+ "error": "",
+ "spend": {
+  "usd": 0.0,
+  "by": {}
+ }
+}

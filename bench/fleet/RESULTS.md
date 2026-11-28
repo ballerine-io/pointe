@@ -351,9 +351,59 @@ Dataset `fleet-0.1`, frozen 2026-11-26T14:58:25+0200, sha256 `ee2efc6bded4779e`.
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 24 held, 3 lost, of 30 (fleet-20261127-032444-burst-10x30-fleet-on) | **FAIL** |
 | 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (4 spoken), 25 held, 1 lost, of 30 (fleet-20261127-032726-burst-10x30-fleet-on) | **FAIL** |
 
+### 1x4, the fleet build, POINTE_FLEET=on, build `13b600fbb0`
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 834 (median 648), 180 turns | **pass** |
+| brain input tokens per turn | the reference for the other sizes | median 25,074 | **pass** |
+| first token, median | the reference for the other sizes | 0.841 s | **pass** |
+| first token, p90 | the reference for the other sizes | 1.467 s | **pass** |
+| wrong session on clear turns | the reference for the other sizes | 0 of 102 (0% to 4%) | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 42 of 42 (92% to 100%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | not measured; models: stubbed; not counted: made before the scenario marked sessions quiet (80% of them idle, none quiet) | **not measured** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | not measured | **not measured** |
+
+### 5x20, the fleet build, POINTE_FLEET=on, build `13b600fbb0`
+
+3 runs of the turn list: 180 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 1,108 (median 1,013), 180 turns | **pass** |
+| brain input tokens per turn | within 10% of 1x4 | median 26,679 against 25,074 (+6.4%; 95% interval -0.2% to +14.7%) | **pass** |
+| first token, median | at most 150 ms above 1x4 | 1.134 s against 0.841 s (+293 ms; 95% interval +211 ms to +410 ms) | **FAIL** |
+| first token, p90 | at most 150 ms above 1x4 | 1.862 s against 1.467 s (+395 ms; 95% interval +265 ms to +636 ms) | **FAIL** |
+| wrong session on clear turns | not above the 1x4 rate | 0 of 102 (0% to 4%) against 0 of 102 | **pass** |
+| wrong session on clear turns | at most 5% | 0 of 102 (0% to 4%) | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 36 of 42 (72% to 93%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 2520 against 12000 (21%); models: stubbed; 80 of 100 marked quiet, 78 quiet in the tiers | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 3 report lines (6 spoken), 23 held, 0 lost, of 30 (fleet-20261128-081537-burst-5x20-fleet-on) | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (7 spoken), 25 held, 0 lost, of 30 (fleet-20261128-081743-burst-5x20-fleet-on) | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 2 report lines (5 spoken), 23 held, 0 lost, of 30 (fleet-20261128-081953-burst-5x20-fleet-on) | **pass** |
+
+### 10x30, the fleet build, POINTE_FLEET=on, build `13b600fbb0`
+
+3 runs of the turn list: 165 turns driven, 0 crashed, 0 not run (their run stopped first).
+
+| Bar | The plan's bar | Measured | |
+|---|---|---|---|
+| tokens of "what needs me" | at most 1,800 | max 1,700 (median 1,660), 165 turns | **pass** |
+| brain input tokens per turn | within 10% of 1x4 | median 28,738 against 25,074 (+14.6%; 95% interval +7.1% to +23.2%) | **FAIL** |
+| first token, median | at most 150 ms above 1x4 | 1.121 s against 0.841 s (+280 ms; 95% interval +223 ms to +356 ms) | **FAIL** |
+| first token, p90 | at most 150 ms above 1x4 | 1.742 s against 1.467 s (+275 ms; 95% interval +71 ms to +512 ms) | **FAIL** |
+| wrong session on clear turns | not above the 1x4 rate | 0 of 96 (0% to 4%) against 0 of 102 | **pass** |
+| asked first on ambiguous turns | at least 30 of 42 (10 of 14, scaled to n) | 39 of 42 (81% to 98%) | **pass** |
+| reader calls an hour with 80% of sessions quiet | at most 30% of all followed (rules off, every turn read) | 5160 against 36000 (14%); models: stubbed; 240 of 300 marked quiet, 255 quiet in the tiers | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (6 spoken), 25 held, 0 lost, of 30 (fleet-20261128-080714-burst-10x30-fleet-on) | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (6 spoken), 26 held, 0 lost, of 30 (fleet-20261128-081000-burst-10x30-fleet-on) | **pass** |
+| 30 sessions finish within a minute | at most 4 spoken report lines, nothing lost | 4 report lines (5 spoken), 26 held, 0 lost, of 30 (fleet-20261128-081244-burst-10x30-fleet-on) | **pass** |
+
 ## The arms, as the daemon states them
 
-3160 of 3160 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `26a52ec697`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
+3706 of 3706 rows carry the daemon's own `fleet.on` (`/voice/context`) equal to their arm's. The `pointe/` folder each arm ran (its git tree): fleet-off `05857b19f6`, fleet-off `0b98c14e3a`, fleet-off `271e64c1d0`, fleet-off `502cd35ea5`, fleet-on `05857b19f6`, fleet-on `0b98c14e3a`, fleet-on `13b600fbb0`, fleet-on `26a52ec697`, fleet-on `271e64c1d0`, fleet-on `502cd35ea5`.
 
 Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0b98c14e3a`, not run again. Between the two builds (f74b9505 and ec55bef5 on main) every change in pointe/daemon.py and pointe/scale.py is behind scale.enabled(), which is false with POINTE_FLEET=off; the other changes are the page (ui.html) and the defaults for people invited to a machine (guests.py), and no run here has a second person. Shown by `git diff f74b9505 ec55bef5 -- pointe`.
 
@@ -438,6 +488,18 @@ Carried: the fleet-off rows of build `05857b19f6` are shown again under build `0
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | fleet-20261127-012643-turns-10x30-fleet-on-r2 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 12 of 14 (60% to 96%) | 1 of 14 (1% to 31%) | 1 of 14 (1% to 31%) | 55 / 0 / 0 | 1,657 (1,650 to 1,668) / 1,691 | 28,595 (27,041 to 30,762) | 1.26 s (1.13 to 1.53) / 1.75 s (1.66 to 1.86) | 2.05 s (1.96 to 2.25) | 143 / 44 / 83 |
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | fleet-20261127-013554-turns-10x30-fleet-on-r3 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 13 of 14 (69% to 99%) | 1 of 14 (1% to 31%) | 0 of 14 (0% to 22%) | 55 / 0 / 0 | 1,659 (1,651 to 1,663) / 1,693 | 30,808 (28,662 to 33,239) | 1.19 s (1.03 to 1.29) / 1.77 s (1.72 to 1.89) | 2.14 s (2.05 to 2.42) | 146 / 41 / 84 |
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | all runs | 96 of 96 (96% to 100%) | 0 of 96 (0% to 4%) | 0 of 96 (0% to 4%) | 0 of 96 (0% to 4%) | 38 of 42 (78% to 96%) | 3 of 42 (2% to 19%) | 1 of 42 (0% to 12%) | 165 / 0 / 0 | 1,656 (1,649 to 1,661) / 1,697 | 30,148 (28,310 to 31,334) | 1.22 s (1.15 to 1.30) / 1.78 s (1.73 to 1.86) | 2.12 s (2.04 to 2.22) | 432 / 126 / 253 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | fleet-20261128-064539-turns-1x4-fleet-on-r1 | 27 of 34 (63% to 90%) | 0 of 34 (0% to 10%) | 2 of 34 (2% to 19%) | 5 of 34 (6% to 30%) | 14 of 14 (78% to 100%) | 0 of 14 (0% to 22%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 624 (569 to 663) / 762 | 25,689 (23,958 to 28,160) | 0.79 s (0.64 to 0.86) / 1.12 s (0.91 to 1.47) | 1.43 s (1.05 to 1.84) | 9 / 24 / 76 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | fleet-20261128-071530-turns-1x4-fleet-on-r2 | 28 of 34 (66% to 92%) | 0 of 34 (0% to 10%) | 3 of 34 (3% to 23%) | 3 of 34 (3% to 23%) | 14 of 14 (78% to 100%) | 0 of 14 (0% to 22%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 704 (644 to 752) / 820 | 23,970 (22,422 to 26,308) | 1.18 s (0.87 to 1.28) / 1.57 s (1.46 to 1.67) | 1.89 s (1.63 to 2.23) | 3 / 23 / 71 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | fleet-20261128-074205-turns-1x4-fleet-on-r3 | 32 of 34 (81% to 98%) | 0 of 34 (0% to 10%) | 2 of 34 (2% to 19%) | 0 of 34 (0% to 10%) | 14 of 14 (78% to 100%) | 0 of 14 (0% to 22%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 648 (611 to 671) / 834 | 24,820 (22,074 to 27,903) | 0.79 s (0.73 to 0.86) / 0.99 s (0.92 to 1.26) | 1.56 s (1.29 to 2.14) | 7 / 24 / 74 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | all runs | 87 of 102 (77% to 91%) | 0 of 102 (0% to 4%) | 7 of 102 (3% to 13%) | 8 of 102 (4% to 15%) | 42 of 42 (92% to 100%) | 0 of 42 (0% to 8%) | 0 of 42 (0% to 8%) | 180 / 0 / 0 | 648 (625 to 673) / 834 | 25,074 (23,883 to 26,308) | 0.84 s (0.79 to 0.88) / 1.47 s (1.34 to 1.54) | 1.65 s (1.48 to 1.97) | 19 / 71 / 221 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | fleet-20261128-070603-turns-5x20-fleet-on-r1 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,020 (998 to 1,041) / 1,108 | 26,954 (25,387 to 28,505) | 1.02 s (0.96 to 1.09) / 1.34 s (1.21 to 1.50) | 1.94 s (1.81 to 2.64) | 34 / 40 / 75 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | fleet-20261128-073233-turns-5x20-fleet-on-r2 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 1,010 (1,001 to 1,029) / 1,097 | 26,175 (24,404 to 29,066) | 0.85 s (0.71 to 0.93) / 1.80 s (1.58 to 2.31) | 1.45 s (1.16 to 2.13) | 18 / 39 / 73 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | fleet-20261128-075817-turns-5x20-fleet-on-r3 | 34 of 34 (90% to 100%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 0 of 34 (0% to 10%) | 12 of 14 (60% to 96%) | 2 of 14 (4% to 40%) | 0 of 14 (0% to 22%) | 60 / 0 / 0 | 999 (992 to 1,022) / 1,084 | 26,656 (25,129 to 28,344) | 1.60 s (1.42 to 1.66) / 2.00 s (1.85 to 2.11) | 2.28 s (1.93 to 2.46) | 49 / 39 / 77 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | all runs | 102 of 102 (96% to 100%) | 0 of 102 (0% to 4%) | 0 of 102 (0% to 4%) | 0 of 102 (0% to 4%) | 36 of 42 (72% to 93%) | 6 of 42 (7% to 28%) | 0 of 42 (0% to 8%) | 180 / 0 / 0 | 1,013 (999 to 1,023) / 1,108 | 26,679 (25,567 to 27,991) | 1.13 s (1.06 to 1.22) / 1.86 s (1.77 to 2.03) | 2.03 s (1.84 to 2.26) | 101 / 118 / 225 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | fleet-20261128-065304-turns-10x30-fleet-on-r1 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 13 of 14 (69% to 99%) | 1 of 14 (1% to 31%) | 0 of 14 (0% to 22%) | 55 / 0 / 0 | 1,595 (1,589 to 1,652) / 1,689 | 28,151 (26,065 to 30,058) | 1.14 s (0.97 to 1.26) / 1.60 s (1.33 to 1.66) | 1.83 s (1.47 to 2.53) | 145 / 41 / 74 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | fleet-20261128-072228-turns-10x30-fleet-on-r2 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 13 of 14 (69% to 99%) | 1 of 14 (1% to 31%) | 0 of 14 (0% to 22%) | 55 / 0 / 0 | 1,671 (1,666 to 1,681) / 1,700 | 29,363 (27,043 to 31,683) | 1.06 s (1.00 to 1.12) / 1.39 s (1.22 to 1.58) | 1.95 s (1.79 to 2.39) | 143 / 39 / 80 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | fleet-20261128-074907-turns-10x30-fleet-on-r3 | 32 of 32 (89% to 100%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 0 of 32 (0% to 11%) | 13 of 14 (69% to 99%) | 1 of 14 (1% to 31%) | 0 of 14 (0% to 22%) | 55 / 0 / 0 | 1,655 (1,647 to 1,666) / 1,691 | 28,930 (26,237 to 30,197) | 1.26 s (1.12 to 1.44) / 1.98 s (1.88 to 2.32) | 2.46 s (1.90 to 3.00) | 130 / 41 / 75 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | all runs | 96 of 96 (96% to 100%) | 0 of 96 (0% to 4%) | 0 of 96 (0% to 4%) | 0 of 96 (0% to 4%) | 39 of 42 (81% to 98%) | 3 of 42 (2% to 19%) | 0 of 42 (0% to 8%) | 165 / 0 / 0 | 1,660 (1,649 to 1,667) / 1,700 | 28,738 (27,474 to 29,987) | 1.12 s (1.08 to 1.18) / 1.74 s (1.58 to 1.91) | 1.99 s (1.83 to 2.47) | 418 / 121 / 229 |
 
 Needs tokens: the "what each session needs" block of the turn's first brain step, counted by the brain vendor's own token counter as one message. Brain input: the vendor's count of the whole prompt, summed over the turn's own brain steps. First token and first send: from the typed line; a send's time is exact to 20 ms. Timings leave out rows that began or ended with the load over 20.
 
@@ -653,6 +715,38 @@ Needs tokens: the "what each session needs" block of the turn's first brain step
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | ambiguous_name, only other machines have one | 15 | asked 15 |
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | needs_me: expected sessions named in the reply | 18 | 79 of 270 names; 5 replies name a session not expected |
 | the fleet build, POINTE_FLEET=on, build `271e64c1d0` | 10x30 | on_machine: expected sessions named in the reply | 9 | 16 of 270 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | clear_name | 66 | asked 7, nothing 4, right 55 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | clear_description | 36 | nothing 4, right 32 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | ambiguous_description | 21 | asked 21 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | ambiguous_none | 21 | asked 21 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | needs_me: expected sessions named in the reply | 18 | 30 of 36 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 1x4 | on_machine: expected sessions named in the reply | 18 | 57 of 72 names; 0 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | clear_name | 36 | right 36 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | clear_machine_name | 30 | right 30 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | clear_description | 36 | right 36 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | ambiguous_name | 18 | asked 12, sent 6 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | ambiguous_description | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | ambiguous_none | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | on_machine | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | ambiguous_name, this Mac has a session of the name | 6 | sent 6 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | ambiguous_name, only other machines have one | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | needs_me: expected sessions named in the reply | 18 | 91 of 108 names; 1 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 5x20 | on_machine: expected sessions named in the reply | 18 | 35 of 360 names; 1 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | clear_name | 33 | right 33 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | clear_machine_name | 30 | right 30 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | clear_description | 33 | right 33 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | ambiguous_name | 18 | asked 15, sent 3 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | ambiguous_description | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | ambiguous_none | 12 | asked 12 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | needs_me | 18 | answered 18 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | on_machine | 9 | answered 9 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | ambiguous_name, this Mac has a session of the name | 3 | sent 3 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | ambiguous_name, only other machines have one | 15 | asked 15 |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | needs_me: expected sessions named in the reply | 18 | 90 of 270 names; 5 replies name a session not expected |
+| the fleet build, POINTE_FLEET=on, build `13b600fbb0` | 10x30 | on_machine: expected sessions named in the reply | 9 | 15 of 270 names; 1 replies name a session not expected |
 
 ## Turns about a session the voice renamed when it joined, or whose name is one letter from another's
 
@@ -668,6 +762,9 @@ The voice's own naming rules refused some dataset names at join and gave those s
 | fleet-off, build `271e64c1d0` | 10x30 | on_machine, renamed session | answered 9 |
 | fleet-on, build `0b98c14e3a` | 10x30 | clear_description, renamed session | asked 2, right 1 |
 | fleet-on, build `0b98c14e3a` | 10x30 | on_machine, renamed session | answered 9 |
+| fleet-on, build `13b600fbb0` | 10x30 | clear_description, renamed session | asked 1, right 2 |
+| fleet-on, build `13b600fbb0` | 10x30 | clear_name, a name one letter from another's | right 3 |
+| fleet-on, build `13b600fbb0` | 10x30 | on_machine, renamed session | answered 9 |
 | fleet-on, build `271e64c1d0` | 10x30 | clear_description, renamed session | asked 3 |
 | fleet-on, build `271e64c1d0` | 10x30 | clear_name, a name one letter from another's | right 3 |
 | fleet-on, build `271e64c1d0` | 10x30 | on_machine, renamed session | answered 9 |
@@ -682,7 +779,7 @@ The frozen turns have no correction in them: each row here is a new request the 
 | fleet-on, build `0b98c14e3a` | 10x30 | fleet-20261126-224601-turns-10x30-fleet-on-r2 | clear_name-04 | 42 | no |
 | fleet-off, build `0b98c14e3a` | 10x30 | fleet-20261126-230636-turns-10x30-fleet-off-r1 | clear_name-11 | 52 | no |
 
-By build and arm, rows with such a send, of the turns driven: fleet-off `502cd35ea5` 0 of 360, fleet-on `502cd35ea5` 0 of 358, fleet-off `05857b19f6` 0 of 360, fleet-on `05857b19f6` 0 of 357, fleet-off `0b98c14e3a` 1 of 60, fleet-on `0b98c14e3a` 2 of 540, fleet-off `271e64c1d0` 0 of 539, fleet-on `271e64c1d0` 0 of 540.
+By build and arm, rows with such a send, of the turns driven: fleet-off `502cd35ea5` 0 of 360, fleet-on `502cd35ea5` 0 of 358, fleet-off `05857b19f6` 0 of 360, fleet-on `05857b19f6` 0 of 357, fleet-off `0b98c14e3a` 1 of 60, fleet-on `0b98c14e3a` 2 of 540, fleet-off `271e64c1d0` 0 of 539, fleet-on `271e64c1d0` 0 of 540, fleet-on `13b600fbb0` 0 of 540.
 
 ## Probe: "What did I send to <session>?" after the 60 turns
 
@@ -709,6 +806,15 @@ Not part of the frozen dataset and in no bar (`bench/fleet/probes.json`, its has
 | fleet-on, build `271e64c1d0` | 10x30 | fleet-20261127-012643-turns-10x30-fleet-on-r2 | yes | You asked pavilion to list the open TODO comments in the wishlist queue file. I haven't heard back from it yet. |
 | fleet-on, build `271e64c1d0` | 10x30 | fleet-20261127-013554-turns-10x30-fleet-on-r3 | yes | You asked ivy to run the tests. I haven't seen a report back from it. |
 | fleet-off, build `271e64c1d0` | 10x30 | fleet-20261127-014529-turns-10x30-fleet-off-r1 | no | Nothing that I can see. I have no record of sending anything to nozzle. |
+| fleet-on, build `13b600fbb0` | 1x4 | fleet-20261128-064539-turns-1x4-fleet-on-r1 | no | Five things went to finch, and none has reported back. |
+| fleet-on, build `13b600fbb0` | 10x30 | fleet-20261128-065304-turns-10x30-fleet-on-r1 | yes | You asked nozzle to add a docstring to the main function. I haven't heard back from it. |
+| fleet-on, build `13b600fbb0` | 5x20 | fleet-20261128-070603-turns-5x20-fleet-on-r1 | yes | You told aspen to add a docstring to the main function. It hasn't reported back yet. |
+| fleet-on, build `13b600fbb0` | 1x4 | fleet-20261128-071530-turns-1x4-fleet-on-r2 | no | Nine requests, none reported back. Latest three: bump the patch version, say which function is longest, look for a flaky test. |
+| fleet-on, build `13b600fbb0` | 10x30 | fleet-20261128-072228-turns-10x30-fleet-on-r2 | yes | You asked pavilion to list the open TODO comments in the wishlist queue file. It's no longer in the pending list, so I can't say whether it reported back. |
+| fleet-on, build `13b600fbb0` | 5x20 | fleet-20261128-073233-turns-5x20-fleet-on-r2 | yes | You asked ultra to list the open TODO comments in the dispatch export project. No report back yet. |
+| fleet-on, build `13b600fbb0` | 1x4 | fleet-20261128-074205-turns-1x4-fleet-on-r3 | yes | Ten asks, none reported back yet. They include the patch bump, tests, TODO list, helper rename, and 2 more. |
+| fleet-on, build `13b600fbb0` | 10x30 | fleet-20261128-074907-turns-10x30-fleet-on-r3 | yes | You asked ivy to run the tests. No report back from it yet. |
+| fleet-on, build `13b600fbb0` | 5x20 | fleet-20261128-075817-turns-5x20-fleet-on-r3 | yes | You asked rye to run the tests. Correction: rye's own history shows no test request, only the refund scheduler task. |
 
 ## 30 sessions end their turn within a minute
 
@@ -724,6 +830,12 @@ Not part of the frozen dataset and in no bar (`bench/fleet/probes.json`, its has
 | fleet-on | 10x30 | fleet-20261127-032202-burst-10x30-fleet-on | 30 | 4 | 2 | 23 | 3 | 23 | 4 | 4 | 3 | 55 |  |
 | fleet-on | 10x30 | fleet-20261127-032444-burst-10x30-fleet-on | 30 | 4 | 2 | 24 | 3 | 24 | 3 (written 4) | 4 | 2 | 59 |  |
 | fleet-on | 10x30 | fleet-20261127-032726-burst-10x30-fleet-on | 30 | 4 | 2 | 25 | 4 | 25 | 1 (written 2) | 4 | 1 | 60 |  |
+| fleet-on | 10x30 | fleet-20261128-080714-burst-10x30-fleet-on | 30 | 6 | 4 | 25 | 5 | 25 | 0 | 4 | 1 | 60 |  |
+| fleet-on | 10x30 | fleet-20261128-081000-burst-10x30-fleet-on | 30 | 6 | 4 | 26 | 4 | 26 | 0 | 4 | 1 | 62 |  |
+| fleet-on | 10x30 | fleet-20261128-081244-burst-10x30-fleet-on | 30 | 5 | 4 | 26 | 4 | 26 | 0 | 4 | 1 | 60 |  |
+| fleet-on | 5x20 | fleet-20261128-081537-burst-5x20-fleet-on | 30 | 6 | 3 | 23 | 8 | 22 | 0 | 4 | 0 | 65 |  |
+| fleet-on | 5x20 | fleet-20261128-081743-burst-5x20-fleet-on | 30 | 7 | 4 | 25 | 6 | 24 | 0 | 4 | 0 | 64 |  |
+| fleet-on | 5x20 | fleet-20261128-081953-burst-5x20-fleet-on | 30 | 5 | 2 | 23 | 8 | 22 | 0 | 4 | 0 | 62 |  |
 
 Lost: a session that ended its turn and is named neither in a spoken line nor in the held list when the fleet went quiet, by its dataset name or the name the voice gave it at join (a run written before that is counted again, with the count it wrote beside it). Spoken lines: every line said in the window, approvals and their reminders included. Report lines spoken: the spoken lines that name a session that finished; the bar counts these (the owner's reading: an approval prompt and its reminder are not reports). Report lines (daemon's count): the daemon's own count of lines about finished turns. Not read (quiet): finished turns of quiet sessions the daemon did not read.
 
@@ -765,6 +877,10 @@ Lost: a session that ended its turn and is named neither in a spoken line nor in
 | fleet-off | 10x30 | quiet_80 | 300 of 300 | 240 | 97 | 600 | 1200 | 0 | 36,000 |  |
 
 Counted with stubbed models: the count is the daemon's own decisions to call the reader, not what a model wrote. Every session ends a turn once a minute for two minutes; the hourly figure is the window's count times 30. In quiet_80 the user first types "keep tide harbor … quiet" for 80% of the sessions. The bar compares it with the rules-off arm's all_active, which reads every finished turn (all followed). Rows written before that (80% of the sessions idle, none marked, "Marked quiet" n/a) are listed and not counted. One run each: n = 1.
+
+## Fleet dialogues: 8, 15 and 30 sessions, two machines, three harnesses
+
+Not run.
 
 ## The simulator on this machine
 
@@ -851,7 +967,22 @@ Stubbed models, a call held for a minute with nothing typed. Processes: one voic
 | fleet-20261127-032202-burst-10x30-fleet-on | burst | 201 | 1.0239 |
 | fleet-20261127-032444-burst-10x30-fleet-on | burst | 199 | 1.0260 |
 | fleet-20261127-032726-burst-10x30-fleet-on | burst | 208 | 1.0637 |
-| all 71 paid launches | | 10526 | 85.7053 |
+| fleet-20261128-064539-turns-1x4-fleet-on-r1 | turns | 109 | 0.4687 |
+| fleet-20261128-065304-turns-10x30-fleet-on-r1 | turns | 260 | 1.4179 |
+| fleet-20261128-070603-turns-5x20-fleet-on-r1 | turns | 149 | 0.7843 |
+| fleet-20261128-071530-turns-1x4-fleet-on-r2 | turns | 97 | 0.4355 |
+| fleet-20261128-072228-turns-10x30-fleet-on-r2 | turns | 262 | 1.5421 |
+| fleet-20261128-073233-turns-5x20-fleet-on-r2 | turns | 130 | 0.6645 |
+| fleet-20261128-074205-turns-1x4-fleet-on-r3 | turns | 105 | 0.4570 |
+| fleet-20261128-074907-turns-10x30-fleet-on-r3 | turns | 246 | 1.4027 |
+| fleet-20261128-075817-turns-5x20-fleet-on-r3 | turns | 165 | 0.8611 |
+| fleet-20261128-080714-burst-10x30-fleet-on | burst | 194 | 1.0174 |
+| fleet-20261128-081000-burst-10x30-fleet-on | burst | 211 | 1.0857 |
+| fleet-20261128-081244-burst-10x30-fleet-on | burst | 208 | 1.0671 |
+| fleet-20261128-081537-burst-5x20-fleet-on | burst | 71 | 0.4197 |
+| fleet-20261128-081743-burst-5x20-fleet-on | burst | 71 | 0.4204 |
+| fleet-20261128-081953-burst-5x20-fleet-on | burst | 67 | 0.3945 |
+| all 86 paid launches | | 12871 | 98.1440 |
 
 Computed from each call's token counts at list price (`prices.json`), not metered; smoke runs included. Each run's `manifest.json` has the split by model and says which calls were estimated from sizes.
 
@@ -874,6 +1005,11 @@ Computed from each call's token counts at list price (`prices.json`), not metere
 | fleet-20261126-185601-readers-10x30-fleet-on-stub-quiet_80 | `502cd35ea5` | The harness counted zero reader calls: it looked for the reader's model name in the end of the daemon's log, where a fleet this size no longer has it. The row's own `callers` and calls.jsonl show the calls. Counted again in a new run. | 1 |
 | fleet-20261126-185932-readers-10x30-fleet-off-stub-all_active | `502cd35ea5` | The harness counted zero reader calls: it looked for the reader's model name in the end of the daemon's log, where a fleet this size no longer has it. The row's own `callers` and calls.jsonl show the calls. Counted again in a new run. | 1 |
 | fleet-20261126-190304-readers-10x30-fleet-off-stub-quiet_80 | `502cd35ea5` | The harness counted zero reader calls: it looked for the reader's model name in the end of the daemon's log, where a fleet this size no longer has it. The row's own `callers` and calls.jsonl show the calls. Counted again in a new run. | 1 |
+| fleet-20261128-064452-turns-1x4-fleet-on-stub-r1 | `13b600fbb0` | stubbed models (a dry run) | 3 |
+| fleet-20261128-082358-turns-10x30-fleet-on-stub-r1 | `13b600fbb0` | stubbed models (a dry run) | 30 |
+| fleet-20261128-083504-dialogue-2m8-fleet-on-stub | `13b600fbb0` | stubbed models (a dry run) | 10 |
+| fleet-20261128-083830-dialogue-2m8-fleet-on-stub | `13b600fbb0` | stubbed models (a dry run) | 10 |
+| fleet-20261128-084036-dialogue-2m8-fleet-on-stub | `13b600fbb0` | stubbed models (a dry run) | 10 |
 
 Runs that ended early (the turns they drove are counted; the turns they did not reach are "not run", in no rate):
 
@@ -894,4 +1030,4 @@ Runs that ended early (the turns they drove are counted; the turns they did not 
 - **The machine was shared** with other work; each row has the load at its start and end.
 - **Two scorer rules were written after the first rows were read**, and say so here: a turn whose brain steps all failed is crashed, not "asked" (the daemon's "say that again?" has a question mark); and rates are over the turns that were driven, with the crashed and not-run counts beside them, because a turn never reached lowered the wrong-session rate when it sat in the denominator.
 - **A run that stopped early drove fewer turns.** Each run types the 60 turns in its own shuffled order (the seed and the order are in its manifest), so a run that stopped at its launch's spend limit covers the first part of its own order: not the same turns as a whole run. The run list above has each stop; a stopped run that was made again whole is listed as superseded and not counted.
-- **Not run on the newest build (`26a52ec697`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work; 1x4, the fleet build, POINTE_FLEET=off; 5x20, the fleet build, POINTE_FLEET=off; 10x30, the fleet build, POINTE_FLEET=off; 1x4, the fleet build, POINTE_FLEET=on; 5x20, the fleet build, POINTE_FLEET=on; 10x30, the fleet build, POINTE_FLEET=on.
+- **Not run on the newest build (`13b600fbb0`):** the turn list at 1x4, main before the fleet work; 5x20, main before the fleet work; 10x30, main before the fleet work; 1x4, the fleet build, POINTE_FLEET=off; 5x20, the fleet build, POINTE_FLEET=off; 10x30, the fleet build, POINTE_FLEET=off.

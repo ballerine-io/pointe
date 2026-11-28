@@ -1,0 +1,177 @@
+{
+ "size": "dialogue-8",
+ "seed": 20261128,
+ "machines": [
+  "studio",
+  "avi-box"
+ ],
+ "voice_machine": "studio",
+ "sessions": [
+  {
+   "id": "c0120c50-b93a-4c63-92c8-6d5ad5faf3b0",
+   "machine": "studio",
+   "name": "trowel",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "billing ledger",
+   "goal": "Cut the billing ledger's cold start time by half.",
+   "files": [
+    "billing_ledger.py",
+    "test_billing_ledger.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic",
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "165e968f-72ad-4648-a318-2c5696138e34",
+   "machine": "studio",
+   "name": "clover",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "banner ledger",
+   "goal": "Move the banner ledger off the deprecated client library.",
+   "files": [
+    "banner_ledger.py",
+    "test_banner_ledger.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the banner ledger keep the old records, or may I drop them?"
+  },
+  {
+   "id": "ses_c64db446d5a34688ac51a5de650ee1a2",
+   "machine": "studio",
+   "name": "oasis",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "invoice validator",
+   "goal": "Add retries with backoff to the invoice validator and cover them with tests.",
+   "files": [
+    "invoice_validator.py",
+    "test_invoice_validator.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 6.86
+  },
+  {
+   "id": "1616584c-8a59-4dc0-af67-679e7480048c",
+   "machine": "studio",
+   "name": "obsidian",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "returns parser",
+   "goal": "Split the returns parser into a reader and a writer with a clear interface.",
+   "files": [
+    "returns_parser.py",
+    "test_returns_parser.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 2.84
+  },
+  {
+   "id": "523b1d8c-4f8f-4e7e-991d-572987ed33fd",
+   "machine": "avi-box",
+   "name": "riddle",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "tariff digest",
+   "goal": "Split the tariff digest into a reader and a writer with a clear interface.",
+   "files": [
+    "tariff_digest.py",
+    "test_tariff_digest.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic",
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "ses_3c6e07e1eecf689494983e894c9471ce",
+   "machine": "avi-box",
+   "name": "orchid",
+   "harness": "opencode",
+   "shared_name": false,
+   "twin": null,
+   "topic": "ticket migration",
+   "goal": "Add retries with backoff to the ticket migration and cover them with tests.",
+   "files": [
+    "ticket_migration.py",
+    "test_ticket_migration.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "topic",
+    "approves"
+   ],
+   "finish_at": null
+  },
+  {
+   "id": "9f6d72ac-4156-439a-909f-f02a15c4a711",
+   "machine": "avi-box",
+   "name": "fondue",
+   "harness": "claude-code",
+   "shared_name": false,
+   "twin": null,
+   "topic": "wishlist scheduler",
+   "goal": "Find why the wishlist scheduler drops records under load and fix it.",
+   "files": [
+    "wishlist_scheduler.py",
+    "test_wishlist_scheduler.py",
+    "README.md"
+   ],
+   "state": "asks",
+   "roles": [
+    "asks"
+   ],
+   "finish_at": null,
+   "question": "Should the wishlist scheduler keep the old records, or may I drop them?"
+  },
+  {
+   "id": "a02b0c97-f598-4b00-a883-38264f326cbe",
+   "machine": "avi-box",
+   "name": "granite",
+   "harness": "codex",
+   "shared_name": false,
+   "twin": null,
+   "topic": "consent cache",
+   "goal": "Add structured logging to the consent cache and remove the print calls.",
+   "files": [
+    "consent_cache.py",
+    "test_consent_cache.py",
+    "README.md"
+   ],
+   "state": "idle",
+   "roles": [
+    "name"
+   ],
+   "finish_at": 0.61
+  }
+ ],
+ "sha256": "d6787e14c971f5be1e5b4d1601bd475fd9b0de10305c2b7546b6a9d4358dca1a"
+}
