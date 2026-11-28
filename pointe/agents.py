@@ -116,7 +116,9 @@ def name_problem(name) -> str | None:
 
 
 def _private(host: str) -> bool:
-    if host in ("localhost",) or host.endswith(".local") or host.endswith(".internal"):
+    """A name or address no one on the internet can reach: this machine, the LAN, a Twingate alias (`.internal`), a
+    Tailscale MagicDNS name (`.ts.net`, a short name) or address (100.64.0.0/10, fd7a:115c:a1e0::/48)."""
+    if host in ("localhost",) or host.endswith((".local", ".internal", ".ts.net")) or re.fullmatch(r"[a-z0-9-]+", host):
         return True
     try:
         ip = ipaddress.ip_address(host)

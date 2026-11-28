@@ -556,3 +556,123 @@ def test_a_hebrew_relay_names_its_source_and_target_in_hebrew_letters():
     assert agent_relay.pick("תעביר את התשובה של הרמס ל-openclaw", every, named) == (hermes, openclaw)
     assert agent_relay.pick("תשלח את זה לאופנקלו", every, named, last_reported=hermes) == (hermes, openclaw)
 
+
+# ---------- an agent on another machine: https, Tailscale, Twingate (docs/agents.md, "An agent on another machine") ----
+
+@pytest.mark.parametrize("url,ok", [
+    ("https://openclaw.example.com", True), ("https://kite.tail1234.ts.net:18789", True),
+    ("http://kite.tail1234.ts.net:18789", True),  # Tailscale MagicDNS: only inside the tailnet, WireGuard underneath
+    ("http://kite:18789", True),  # a MagicDNS or LAN short name: never routed on the internet
+    ("http://100.88.12.4:8642", True), ("http://[fd7a:115c:a1e0::12]:8642", True),  # Tailscale's v4 and v6 ranges
+    ("http://kite.acme.internal:18789", True),  # a Twingate alias, as docs/phone/twingate.md names them
+    ("http://10.0.3.7:8642", True), ("http://91.99.24.44:18789", False), ("http://kite.example.com:18789", False)])
+def test_a_remote_agent_address_is_https_or_a_private_network(url, ok):
+    assert (agents.url_problem(url) is None) is ok, url
+
+
+def test_openclaw_over_https_uses_a_tls_socket_at_the_same_address():
+    from harnesses.openclaw import ws_url
+
+    assert ws_url("https://kite.tail1234.ts.net/gateway/") == "wss://kite.tail1234.ts.net/gateway"
+    assert ws_url("http://100.88.12.4:18789") == "ws://100.88.12.4:18789"
+
+
+class _ForeignCard(FakeA2A):
+    """An A2A server behind a TLS proxy: it builds its card from the Host header and says http, or names another host.
+    OpenClaw 2026.11.10 and Hermes v0.23.4 both do the first (checked against the lab)."""
+
+    def __init__(self, url: str):
+        super().__init__()
+        self.card_url = url
+
+    async def card(self, request):
+        from aiohttp import web
+
+        return web.json_response({"name": "fake", "supportedInterfaces": [{"url": self.card_url, "protocolBinding": "JSONRPC",
+                                                                           "protocolVersion": "1.0"}]})
+
+
+@pytest.mark.parametrize("card_url", ["http://openclaw.example.com/rpc", "http://203.0.113.9:80/rpc"])
+def test_an_a2a_token_goes_only_to_the_agents_own_address_whatever_its_card_says(world, monkeypatch, card_url):
+    """The card's path is used; its scheme, host and port never are: a card that says http behind https, or names
+    another host, would take the bearer token out in clear or to someone else."""
+    fake = _ForeignCard(card_url)
+
+    async def scenario():
+        runner, url = await serve(fake.app())
+        world["agent"] = agent = agents.Agent(name="ledger", kind="a2a", url=url)
+        session, harness = _session(agent, "a2a"), A2A()
+        monkeypatch.setattr("harnesses.a2a.asyncio.sleep", _fast_sleep)
+        try:
+            assert (await harness.endpoint(agent))[0] == url + "/rpc"
+            assert await harness.send(session, "open invoices?")
+            await _until(lambda: _replies(session))
+        finally:
+            await runner.cleanup()
+        assert _replies(session) == [fake.answer]
+
+    asyncio.run(scenario())
+
+
+def _tls(tmp_path):
+    """A server context for a self-signed localhost certificate, and a client context that trusts only it."""
+    import datetime
+    import ipaddress
+    import ssl
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.x509.oid import NameOID
+
+    key = ec.generate_private_key(ec.SECP256R1())
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "localhost")])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+            .serial_number(x509.random_serial_number()).not_valid_before(now - datetime.timedelta(minutes=5))
+            .not_valid_after(now + datetime.timedelta(days=1))
+            .add_extension(x509.SubjectAlternativeName([x509.DNSName("localhost"),
+                                                        x509.IPAddress(ipaddress.ip_address("127.0.0.1"))]), critical=False)
+            .add_extension(x509.BasicConstraints(ca=True, path_length=None), critical=True)
+            .sign(key, hashes.SHA256()))
+    (tmp_path / "cert.pem").write_bytes(cert.public_bytes(serialization.Encoding.PEM))
+    (tmp_path / "key.pem").write_bytes(key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                                          serialization.NoEncryption()))
+    server = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    server.load_cert_chain(tmp_path / "cert.pem", tmp_path / "key.pem")
+    client = ssl.create_default_context(cafile=str(tmp_path / "cert.pem"))
+    return server, client
+
+
+@pytest.mark.parametrize("kind", ["hermes", "a2a"])
+def test_an_agent_at_an_https_address_answers_over_tls(world, monkeypatch, tmp_path, kind):
+    """An agent on another machine behind TLS (Tailscale Serve, a reverse proxy): the turn and its reply go over https,
+    and the A2A card's http address does not take the token out of TLS."""
+    import aiohttp
+    from aiohttp import web
+
+    monkeypatch.setattr("harnesses.hermes.POLL_SECS", (0.01, 0.01, 0.01))
+    monkeypatch.setattr("harnesses.a2a.asyncio.sleep", _fast_sleep)
+    server_tls, client_tls = _tls(tmp_path)
+    fake = FakeHermes() if kind == "hermes" else FakeA2A()
+
+    async def scenario():
+        runner = web.AppRunner(fake.app(), shutdown_timeout=0.2)
+        await runner.setup()
+        site = web.TCPSite(runner, "127.0.0.1", 0, ssl_context=server_tls)
+        await site.start()
+        url = f"https://localhost:{site._server.sockets[0].getsockname()[1]}"
+        world["agent"] = agent = agents.Agent(name="far", kind=kind, url=url)
+        assert agents.url_problem(url) is None
+        harness = Hermes() if kind == "hermes" else A2A()
+        harness._http = aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=client_tls))
+        session = _session(agent, kind)
+        try:
+            assert await harness.send(session, "is Friday free?")
+            await _until(lambda: _replies(session))
+        finally:
+            await harness._http.close()
+            await runner.cleanup()
+        assert _replies(session) == [fake.answer]
+
+    asyncio.run(scenario())

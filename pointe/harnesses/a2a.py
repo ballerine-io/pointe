@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import time
 import uuid
+from urllib.parse import urlparse
 
 import aiohttp
 
@@ -25,6 +26,14 @@ DONE = {"TASK_STATE_COMPLETED", "completed"}
 FAILED = {"TASK_STATE_FAILED", "failed", "TASK_STATE_REJECTED", "rejected", "TASK_STATE_CANCELED", "canceled", "cancelled"}
 ASKS = {"TASK_STATE_INPUT_REQUIRED", "input-required", "TASK_STATE_AUTH_REQUIRED", "auth-required"}
 OLD = {"SendMessage": "message/send", "GetTask": "tasks/get", "CancelTask": "tasks/cancel"}
+
+
+def _at_agent(address: str, advertised: str) -> str:
+    """The card's JSON-RPC path at the agent's own scheme, host and port. The bearer token goes only where the owner
+    pointed: OpenClaw and Hermes build the card from the Host header and always say http, so behind a TLS proxy the
+    advertised address would take the token out in clear; a card may also name another host."""
+    own, said = urlparse(address), urlparse(advertised)
+    return own._replace(path=said.path or own.path, query=said.query, fragment="").geturl()
 
 
 class A2A(AgentHarness):
@@ -60,7 +69,7 @@ class A2A(AgentHarness):
         card = await self._card(agent)
         rpc = next((i.get("url") for i in card.get("supportedInterfaces") or []
                     if isinstance(i, dict) and str(i.get("protocolBinding") or "").upper() in ("JSONRPC", "JSON-RPC")), None)
-        rpc = str(rpc or card.get("url") or agent.url)
+        rpc = _at_agent(agent.url, str(rpc or card.get("url") or agent.url))
         old = not card.get("supportedInterfaces") and str(card.get("protocolVersion") or "").startswith("0.")
         self._endpoint[agent.url] = (rpc, old)
         return rpc, old

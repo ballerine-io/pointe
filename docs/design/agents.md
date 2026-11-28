@@ -56,8 +56,12 @@ added; with it off, nothing is registered and the file is left alone.
 - HTTP: `GET /voice/agents`, `POST /voice/agents`, `DELETE /voice/agents/{name}`, for the page, the iPhone and the Mac
   (the Agents section of Settings, one shared SwiftUI screen). The credential travels once, over the same
   authenticated local or paired channel as everything else, and goes straight to the Keychain.
-- A URL must be http(s). A non-loopback `http://` URL is refused unless it is a private address (the credential would
-  cross the network in clear).
+- A URL must be http(s). A non-loopback `http://` URL is refused unless it is a private name or address (the
+  credential would cross the network in clear): a private or CGNAT address (Tailscale, Twingate), `.local`,
+  `.internal` (a Twingate alias), `.ts.net` or a one-word name (Tailscale MagicDNS).
+- A2A: the JSON-RPC address is the card's path at the agent's own scheme, host and port. OpenClaw and Hermes build the
+  card from the Host header and always say `http`, so behind a TLS proxy the advertised address would carry the token
+  in clear; a card may also name another host.
 
 ## Turns are asynchronous
 
@@ -117,8 +121,10 @@ Pointe answers only "once" or "deny", never "always" or "for the session". When 
 nothing and the framework's own timeout applies (OpenClaw: `askFallback`, deny by default; Hermes: 300 s, then deny).
 
 The A2A and chat completions surfaces carry no approvals: the agent's own policy decides. `capabilities.approvals` is
-false for them, so the brain and the screens never promise one. OpenClaw ships with `ask=off`; the docs tell the owner
-how to turn approvals on.
+false for them, so the brain and the screens never promise one. OpenClaw ships with `security: full`, `ask: off` (no
+prompt at all); docs/agents.md recommends `tools.exec.mode: ask` (allowlist, ask on a miss, fallback deny) for OpenClaw
+and Hermes's own default `approvals.mode: manual`, and says why not `full`, `auto` or `smart` (nobody, or a model,
+approves).
 
 ## People and privacy
 
