@@ -38,11 +38,22 @@ TALK = [
 SIZES = {"desktop": (1280, 800, 2), "phone": (402, 874, 3)}
 
 
+# The screens the iPhone's ParityUITests shoots, by the page's name for them: (iPhone shot, Settings section or None).
+# Settings sections open the sheet and jump there, as the iPhone's Settings list does.
+SCENES = {"request": ("request", None), "call": ("call", None), "settings": ("settings", ""),
+          "machines": ("machines-all", None), "settings-machines": ("settings-machines", "machines"),
+          "settings-keys": ("settings-keys", "g-keys"), "settings-approvals": ("settings-approvals", "g-approvals"),
+          "settings-appearance": ("settings-appearance", "g-appearance"), "settings-local": ("settings-local", "g-local"),
+          "settings-agents": ("settings-agents", "agents")}
+
+
 def scene(name: str) -> dict:
     status = page_rig.fixture(sessions=0, connected=True)
     status.update({"active": "billing/main", "connected": True, "mode": "orchestrator", "sessions": [dict(s) for s in SESSIONS], "talk": TALK,
                    "version": "1.17.0"})
-    if name in ("call", "settings"):
+    if name == "machines":  # three machines, as the apps' `-demo machines`
+        status = page_rig.fixture(sessions=6, machines=3, connected=True, talk=4)
+    elif name != "request":
         for s in status["sessions"]:
             s.update(waiting=False, request=None, request_id=None, working=s["name"] == "billing/main")
     return status
@@ -50,7 +61,7 @@ def scene(name: str) -> dict:
 
 async def shoot(out: Path, scenes: list[str]) -> None:
     out.mkdir(parents=True, exist_ok=True)
-    stub = await page_rig.StubMac(page_rig.free_port()).start()
+    stub = await page_rig.StubMac().start()
     try:
         for name in scenes:
             stub.status = scene(name)
@@ -64,9 +75,13 @@ async def shoot(out: Path, scenes: list[str]) -> None:
                         await page.cdp("Page.reload")
                         await asyncio.sleep(0.5)
                         await page.wait_for_page()
-                        if name == "settings":
-                            await page.eval("document.getElementById('settingsbtn').click()")
-                        await asyncio.sleep(1.2)
+                        section = SCENES[name][1]
+                        if section is not None:
+                            await page.eval("(async () => { await openSettings(); return true; })()")
+                            if section:
+                                await page.eval(f"settingsJump({section!r}); true")
+                        await stub.polled(2)
+                        await asyncio.sleep(0.5)  # a sheet's slide-in, which no poll marks
                         shot = await page.cdp("Page.captureScreenshot", {"format": "png"})
                         path = out / f"{name}-{size}-{look}.png"
                         path.write_bytes(base64.b64decode(shot["data"]))
@@ -81,8 +96,7 @@ def side_by_side(root: Path) -> None:
     from the simulator)."""
     from PIL import Image
 
-    pairs = {"call": ("call-desktop", "call", "call"), "request": ("request-desktop", "request", "request"),
-             "settings": ("settings-desktop", "settings", "sheet-settings")}
+    pairs = {name: (f"{name}-desktop", ios, "sheet-settings" if name == "settings" else name) for name, (ios, _) in SCENES.items()}
     for screen, (web, ios, mac) in pairs.items():
         for look in ("light", "dark"):
             files = [root / "web" / f"{web}-{look}.png", root / "ios" / f"{ios}-{look}.png", root / "mac" / f"{mac}-{look}.png"]
@@ -106,4 +120,4 @@ if __name__ == "__main__":
     if "--side-by-side" in sys.argv:
         side_by_side(Path(args[0]) if args else Path("/tmp/parity-shots"))
     else:
-        asyncio.run(shoot(Path(args[0]) if args else Path("/tmp/parity-shots/web"), ["request", "call", "settings"]))
+        asyncio.run(shoot(Path(args[0]) if args else Path("/tmp/parity-shots/web"), list(SCENES)))
