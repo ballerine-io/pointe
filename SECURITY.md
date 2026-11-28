@@ -854,7 +854,12 @@ tabs and screenshots, and opens the page to anyone who can also reach the listen
     somebody invited this person to, from its owner's one-time line: the daemon then connects out to that machine,
     and only to the certificate the line names);
   - the people invited to this machine: `/voice/people`, `/voice/people/invite`, `/voice/people/grant`,
-    `/voice/people/remove`, and `/voice/share` (keep a session private, or share it again).
+    `/voice/people/remove`, and `/voice/share` (keep a session private, or share it again), and what they may do there
+    (`/voice/people/settings`: answer prompts, start sessions, how long the owner is asked first);
+  - the approvals record (`/voice/approvals`: who answered which request, read only);
+  - agents (`/voice/agents`: the list, and adding one, its credential going to the machine's Keychain only;
+    `/voice/agents/seen`; `/voice/agents/<name>/replies`, an agent's replies; and `/voice/agents/<name>`, taking one
+    out). The pattern routes are `guards._PHONE_PATTERNS`: one name, one segment.
 
   Not the model's whole context, the page's own routes (phone pairing, keys, setup), or anything a Claude Code session
   uses.

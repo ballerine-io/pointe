@@ -945,7 +945,15 @@ def loopback_sockets(port: int) -> list[socket.socket]:
 
 LOCAL_COOKIE = "pointe_local"
 _OPEN_PATHS = {"/voice/health"}
-_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/skip", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/add-sessions", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/held", "/voice/reading", "/voice/read", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/machines/add", "/voice/people", "/voice/people/invite", "/voice/people/grant", "/voice/people/remove", "/voice/share"}  # all the phone app needs; nothing else takes its key
+_PHONE_PATHS = {"/voice/phone", "/voice/approve", "/voice/status", "/voice/listen", "/voice/switch", "/voice/skip", "/voice/hung-up", "/voice/disconnect", "/voice/rename", "/voice/new-session", "/voice/add-sessions", "/voice/night-shift", "/voice/mode", "/voice/say", "/voice/correct", "/voice/polish", "/voice/meeting", "/voice/meeting/transcript", "/voice/notes", "/voice/prefs", "/voice/attention", "/voice/voiceprint", "/voice/artifact", "/voice/briefings", "/voice/briefings/latest", "/voice/briefings/schedule", "/voice/conflicts", "/voice/dictionary", "/voice/challenge", "/voice/drive", "/voice/held", "/voice/reading", "/voice/read", "/voice/dump", "/voice/hub/invite", "/voice/hub/nodes", "/voice/hub/revoke", "/voice/machines/add", "/voice/people", "/voice/people/invite", "/voice/people/grant", "/voice/people/remove", "/voice/share",
+                "/voice/approvals", "/voice/agents", "/voice/agents/seen", "/voice/people/settings"}  # all the phone app needs; nothing else takes its key
+# Routes with a name in them, one segment: an agent's replies, and taking one out (agent_routes.py).
+_PHONE_PATTERNS = (re.compile(r"/voice/agents/[^/]+(?:/replies)?"),)
+
+
+def phone_path(path: str) -> bool:
+    """A route the phone app's key opens (tests/test_phone_paths.py reads the app's own calls against it)."""
+    return path in _PHONE_PATHS or any(p.fullmatch(path) for p in _PHONE_PATTERNS)
 # A node's own routes, and the phone app's pairing: each authenticates in its handler (an HMAC over the hub's nonce; a
 # one-time code), so no page, phone or daemon secret is asked for. On loopback they still need local headers, and a page
 # never reaches them.
@@ -1026,7 +1034,7 @@ class LocalAuth:
                 message["headers"] = [*message["headers"], _NO_FRAMING]
             await send(message)
 
-        if scope["path"] in _PHONE_PATHS:  # the phone app: its own key, on the TLS listener or from this machine
+        if phone_path(scope["path"]):  # the phone app: its own key, on the TLS listener or from this machine
             on_tls = bool(self.remote and self.remote.on_tls_listener(scope))
             wanted = "websocket" if scope["path"] == "/voice/phone" else "http"
             who = self.phone(connection.headers.get("authorization")) if scope["type"] == wanted and self.phone else None

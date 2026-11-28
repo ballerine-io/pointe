@@ -512,7 +512,10 @@ def test_the_phone_key_gained_the_three_machines_routes_and_nothing_else():
                                      "/voice/people/remove", "/voice/share",
                                      "/voice/new-session",
 "/voice/night-shift", "/voice/add-sessions", "/voice/reading", "/voice/read",
-                                     "/voice/skip", "/voice/held"}
+                                     "/voice/skip", "/voice/held",
+                                     # the app's Approvals record, Agents screen and People settings: each called by
+                                     # the app and refused until now (tests/test_phone_paths.py reads the app's calls)
+                                     "/voice/approvals", "/voice/agents", "/voice/agents/seen", "/voice/people/settings"}
     assert before <= _PHONE_PATHS
 
 
