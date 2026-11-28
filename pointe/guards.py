@@ -818,6 +818,20 @@ def backchannel(text: str) -> bool:
     return ack_only(text) or bool(_LONE_YES.match(text or ""))
 
 
+_LISTENER_WORDS = {"yeah", "yes", "yep", "yup", "ok", "okay", "right", "sure", "mm", "mhm", "mmhm", "mmhmm", "hm", "hmm",
+                   "uh", "huh", "uhhuh", "m", "h", "כן", "אוקיי", "נכון"}
+
+
+def listener_sounds(text: str) -> bool:
+    """Over the voice: only a listener's sounds, said once or twice or heard half way ("Yeah, yeah", "Mm-h", "Okay,
+    ok"), nothing that asks or turns away. Never an answer here: a yes to a request is judged on the final words, as
+    ever (permission_answer). For the barge-in only: whether these words take the floor."""
+    if backchannel(text):
+        return True
+    words = re.findall(r"[^\W\d_]+", _lower(text or ""))
+    return 0 < len(words) <= 4 and all(w in _LISTENER_WORDS for w in words)
+
+
 _STOP_VERB = re.compile(r"^(?:stop|cancel|abort|halt|kill|hold on|hang on|עצור|תעצור|תפסיק|הפסק|בטל|תבטל)$")
 _STOP_LEAD = ("ok", "okay", "no", "please", "hey", "um", "uh", "oh", "so", "just", "wait", "actually", "לא", "רגע")
 # Words that only point at what runs: "stop it now, please", "cancel that job", "halt the script".

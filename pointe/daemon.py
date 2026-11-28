@@ -140,6 +140,7 @@ from guards import (relays_approval, remote_readable,
     ack_only,
     withdrawn,
     backchannel,
+    listener_sounds,
     repeat_intent,
     said_question,
     cut_off,
@@ -2472,7 +2473,8 @@ class SonioxEars(FrameProcessor):
                 state.hearing = (state.user_heard_at, part)
                 if state.ptt.collecting:
                     state.ptt.live = part
-            if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)) and not _side_talk(frame.text):
+            if ECHO.speaking and ECHO.is_barge_in(frame.text, _spoken(frame)) and not _side_talk(frame.text) \
+                    and not listener_sounds(frame.text):  # "yeah, yeah" is two words, and listening
                 logger.info(f"barge-in: {frame.text!r}")
                 await self.broadcast_interruption()
             return
@@ -2513,7 +2515,7 @@ class SonioxEars(FrameProcessor):
                     self._judging -= 1
                 if not theirs:
                     return
-                if ECHO.speaking and not backchannel(heard) and not _side_talk(heard):  # the user's words surfaced only when Soniox finalized them
+                if ECHO.speaking and not listener_sounds(heard) and not _side_talk(heard):  # the user's words surfaced only when Soniox finalized them
                     logger.info(f"barge-in: {heard!r}")
                     await self.broadcast_interruption()
                 if state.ptt.collecting:  # push to talk: the press is one message, sent when it closes (_send_press)
@@ -2566,7 +2568,7 @@ class SonioxEars(FrameProcessor):
         if not ECHO.speaking:
             return
         heard = words()
-        if heard and backchannel(heard):
+        if heard and listener_sounds(heard):
             logger.info(f"no barge-in: a backchannel over the voice: {heard!r}")
             return
         if not self._voiced and not heard:

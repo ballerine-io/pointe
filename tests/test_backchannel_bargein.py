@@ -125,3 +125,47 @@ def test_a_wordless_short_sound_over_the_voice_does_not_cut_it(d, monkeypatch): 
 def test_a_wordless_voice_must_outlast_a_backchannel_before_it_cuts(d):  # noqa: F811
     """The third probe's "mm-hm" was voiced for 0.94 s with no live words; the wordless cut came at 0.6 s."""
     assert d.BARGE_CONFIRM_SECS + d.BARGE_WORDS_SECS >= 1.0
+
+
+# From the synthetic barge-in set (bench/conversational/dialogues/bargein.toml, 2026-11-28): a doubled listener sound or
+# one heard half way still cut the voice in 5 of 30 backchannels: "Yeah, yeah." and "Okay, okay" as live words are two
+# words in a row (echo.is_barge_in), "Mm-h" is "mm" and "h", and "Yes, yes." read as a final was not a backchannel.
+
+def _interim_over_the_voice(d, monkeypatch, text: str) -> list:  # noqa: F811
+    from pipecat.frames.frames import InterimTranscriptionFrame
+    from pipecat.processors.frame_processor import FrameDirection
+
+    cuts = []
+
+    async def run():
+        ears = _ears(d, monkeypatch)
+
+        async def cut():
+            cuts.append(text)
+        monkeypatch.setattr(ears, "broadcast_interruption", cut)
+        monkeypatch.setattr(d.ECHO, "speaking", True, raising=False)
+        await ears.process_frame(InterimTranscriptionFrame(text, "u", "t"), FrameDirection.DOWNSTREAM)
+
+    asyncio.run(run())
+    return cuts
+
+
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("text", ["Yeah, yeah", "Okay, ok", "Yes, yes", "Mm-h", "Mm-hm, mm-hm", "Uh-huh, yeah"])
+def test_a_doubled_or_half_heard_listener_sound_over_the_voice_does_not_cut_it(d, monkeypatch, text):  # noqa: F811
+    assert _interim_over_the_voice(d, monkeypatch, text) == []
+
+
+@pytest.mark.parametrize("text", ["Okay, stop", "No, no", "Yeah, but wait", "Yes, tell billing"])
+def test_listener_words_with_anything_else_still_cut_at_once(d, monkeypatch, text):  # noqa: F811
+    assert _interim_over_the_voice(d, monkeypatch, text) == [text]
+
+
+def test_listener_sounds_are_only_listener_sounds():
+    from guards import listener_sounds
+
+    assert all(listener_sounds(t) for t in ("Yeah, yeah.", "Yes, yes.", "Mm-h", "Okay, okay.", "mhm", "Right, right."))
+    assert not any(listener_sounds(t) for t in ("Okay, stop.", "No, no.", "Yes, do it.", "Yeah, yeah, yeah, yeah, yeah.",
+                                                  "", "Stop."))
