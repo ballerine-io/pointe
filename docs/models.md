@@ -37,8 +37,9 @@ your words go. The table, with the file and row of every number: [Setups](setups
 | Voice stays on your Mac | `pointe setup voice-local` | Anthropic (Gemini optional) |
 | Fully local | `pointe setup local` | none |
 
-`pointe setup` lists them, with the one in use. `pointe setup <id>` switches; from then on Pointe uses exactly that
-setup's vendors, whatever other keys the Keychain holds. Then `pointe restart`. The two local setups download their
+`pointe setup` lists them, with the one in use (the first time, at a terminal, it runs the guided setup instead).
+`pointe setup <id>` switches; from then on Pointe uses exactly that setup's vendors, whatever other keys the Keychain
+holds, unless a `CLAUDE_VOICE_<ROLE>` variable in the environment sets that role. Then `pointe restart`. The two local setups download their
 models first (`pointe local voice`, `pointe local`).
 
 On the page, Settings → Model keys does the same with buttons: **Use this setup** for a setup, **Add…** or **Replace…**
@@ -109,8 +110,8 @@ For example:
 }
 ```
 
-Restart after a change (`pointe restart`). `pointe doctor` shows what runs in each role. `pointe setup <id>` writes the
-roles of the setup you choose, so it replaces roles you set by hand.
+Restart after a change (`pointe restart`). `pointe doctor` shows what runs in each role. `pointe setup <id>` removes the
+roles you set in `config.json` and records the setup; a role set by an environment variable still wins.
 
 Only Soniox ears have the echo guard, which lets you use laptop speakers. With any other ears, use headphones.
 

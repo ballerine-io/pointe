@@ -1,8 +1,8 @@
 # Speech component benchmarks
 
 These benchmarks chose Pointe's default vendors: one role at a time (ears, brain, mouth, gate, voice lock), on
-**synthetic speech and invented cases**. Most were run once, between 2026-11-05 and 2026-11-25, on builds before 0.8.5,
-and they have not been re-run on 0.8.5. Each line gives its date, its method and where its raw rows are. The scripts
+**synthetic speech and invented cases**. Most were run once, between 2026-11-05 and 2026-11-25, on builds up to 0.8.5,
+and none has been re-run on a later build. Each line gives its date, its method and where its raw rows are. The scripts
 are in `bench/`; re-run them with your own keys.
 
 What the whole product does on a call (first word, accuracy, approvals, turn-taking, recorded people) is measured

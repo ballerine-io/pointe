@@ -148,11 +148,11 @@ where state lives and where the trust boundaries are. How the call pipeline deci
 </tr>
 <tr>
 <td><strong>Plugin and hooks</strong></td>
-<td>The Claude Code plugin: the <code>/pointe:*</code> commands, and two hooks active in every session. <code>PermissionRequest</code> hands a joined session's permission prompts to the daemon while a call is up, and leaves them in the terminal otherwise. <code>SessionStart</code> suggests <code>/pointe:setup</code> until setup is done.</td>
+<td>The Claude Code plugin: the <code>/pointe:*</code> commands, and four hooks active in every session. <code>PermissionRequest</code> hands a joined session's permission prompts to the daemon while a call is up, and leaves them in the terminal otherwise. <code>PreToolUse</code> and <code>PostToolUse</code> end a joined session's turn at its next tool step after you say "stop". <code>SessionStart</code> suggests <code>/pointe:setup</code> until setup is done.</td>
 </tr>
 <tr>
 <td><strong>Harness adapters</strong></td>
-<td>One adapter per kind of agent: Claude Code, OpenCode and Codex, and <code>remote</code> for a session on another machine. Each follows a session's record, sends to it, and holds its permission prompts, behind one contract (<a href="../harnesses/">Harnesses</a>).</td>
+<td>One adapter per kind of agent: Claude Code, OpenCode and Codex, and <code>remote</code> for a session on another machine; behind <code>POINTE_AGENTS=on</code>, adapters for agent frameworks (<a href="https://github.com/ballerine-io/pointe/blob/main/docs/agents.md">Agents</a>). Each follows a session's record, sends to it, and holds its permission prompts, behind one contract (<a href="../harnesses/">Harnesses</a>).</td>
 </tr>
 <tr>
 <td><strong>Other machines</strong></td>
@@ -160,7 +160,7 @@ where state lives and where the trust boundaries are. How the call pipeline deci
 </tr>
 <tr>
 <td><strong>People</strong></td>
-<td>Somebody a machine's owner invited to it. Each person's own daemon (their voice) dials that machine, proves the person's own key, and gets its shared sessions. The machine decides what each person sees and may send (<code>pointe/guests.py</code>; <a href="../multi-machine/#a-shared-machine">A shared machine</a>).</td>
+<td>Somebody a machine's owner invited to it. Each person's own daemon (their voice) dials that machine, proves the person's own key, and gets its shared sessions. The machine decides what each person sees, may send, may approve and may start (<code>pointe/guests.py</code>; <a href="../multi-machine/#a-shared-machine">A shared machine</a>).</td>
 </tr>
 <tr>
 <td><strong>iPhone app and Mac app</strong></td>

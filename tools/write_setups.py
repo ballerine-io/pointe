@@ -49,7 +49,8 @@ minutes, and this table only if you ask for the other setups.
 ## Choosing and switching
 
 `pointe setup` shows this table and the setup in use; `pointe setup <id>` switches, and from then on the daemon uses
-exactly that setup's vendors, whatever other keys the Keychain holds. `pointe key <vendor>` saves a key through a Mac
+exactly that setup's vendors, whatever other keys the Keychain holds, unless a `CLAUDE_VOICE_<ROLE>` variable in its
+environment sets that role. `pointe key <vendor>` saves a key through a Mac
 window after opening the vendor's key page, checks it with one tiny live call (and asks again when the vendor refuses
 it), and restarts Pointe to use it; `pointe key check <vendor>` checks a saved key. After `pointe setup <id>`, restart
 with `pointe restart`. The page's Settings, Model keys, and the Mac app's do the same with buttons: Add… or Replace… for a

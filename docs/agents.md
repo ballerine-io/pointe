@@ -52,7 +52,7 @@ Neither surface carries approvals: the agent's own rules decide, and Pointe says
 
 - `pointe agents` lists them and whether each answers.
 - `pointe agent remove <name>` takes one out and deletes its saved credential.
-- An agent is yours alone: people you invite to this machine do not see it unless you share it (`pointe share <name>`).
+- An agent is yours alone: people you invite to this machine do not see it unless you share it (`pointe share <name> --shared`).
 
 ## Privacy
 

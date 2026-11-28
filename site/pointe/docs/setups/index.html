@@ -225,7 +225,8 @@ more cases, Sonnet answered faster. Pick by what matters to you:</p>
 minutes, and this table only if you ask for the other setups.</p>
 <h2 id="choosing-and-switching">Choosing and switching</h2>
 <p><code>pointe setup</code> shows this table and the setup in use; <code>pointe setup &lt;id&gt;</code> switches, and from then on the daemon uses
-exactly that setup's vendors, whatever other keys the Keychain holds. <code>pointe key &lt;vendor&gt;</code> saves a key through a Mac
+exactly that setup's vendors, whatever other keys the Keychain holds, unless a <code>CLAUDE_VOICE_&lt;ROLE&gt;</code> variable in its
+environment sets that role. <code>pointe key &lt;vendor&gt;</code> saves a key through a Mac
 window after opening the vendor's key page, checks it with one tiny live call (and asks again when the vendor refuses
 it), and restarts Pointe to use it; <code>pointe key check &lt;vendor&gt;</code> checks a saved key. After <code>pointe setup &lt;id&gt;</code>, restart
 with <code>pointe restart</code>. The page's Settings, Model keys, and the Mac app's do the same with buttons: Add… or Replace… for a

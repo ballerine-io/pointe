@@ -130,3 +130,16 @@ def test_the_iphone_app_is_not_described_as_built_from_source_only():
         text = _flat(path)
         assert "until it is in the App Store" not in text and "built from source for now" not in text, path
         assert "Until the iPhone app has a download" not in text, path
+
+
+def test_harnesses_counts_the_capabilities_its_table_lists():
+    text = (ROOT / "docs" / "harnesses.md").read_text()
+    table = text[text.index("| Capability |"):].split("\n\n", 1)[0].splitlines()[2:]
+    words = {5: "five", 6: "six", 7: "seven"}
+    assert f"It needs {words[len(table)]} things from the agent" in " ".join(text.split())
+
+
+def test_the_commands_the_architecture_docs_name_exist():
+    assert (ROOT / "plugin" / "commands" / "voice-review.md").exists()
+    assert "`/pointe:voice-review`" in _flat("docs/how-it-works.md")
+    assert "`pointe share <name> --shared`" in _flat("docs/agents.md")  # a bare `pointe share` makes it private

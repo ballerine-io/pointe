@@ -6,8 +6,8 @@ browser tab or phone app (one WebSocket, echo cancel, shows the active session)
   -> brain: a text model decides, through tools (speak, send_to_claude_code, list_sessions, switch_session,
      ask_about_session). Speech is a tool call, so code checks each reply before you hear it.
   -> mouth: text to speech
-  -> one worker per registered Claude Code session
-       in:  its voice channel (launch mode) or its inbox socket (attach mode)
+  -> one worker per joined session (Claude Code, OpenCode, Codex, or one on another machine)
+       in:  through its harness adapter (for Claude Code: its voice channel in launch mode, its inbox socket in attach mode)
        out: its transcript, followed live; a reader model turns each final message into what you must hear
 ```
 
@@ -25,7 +25,8 @@ Built on [Pipecat](https://github.com/pipecat-ai/pipecat).
   history and the model cannot chain tasks on its own.
 - **Echo:** the bot's own voice through the speakers is never taken as your words, and never answers a permission. See
   [Echo](#echo). It needs Soniox as ears. Other ears have no such guard: use headphones.
-- **Who may connect:** localhost only, with a secret on every route, and `Origin` checked against `Host`.
+- **Who may connect:** localhost, with a secret on every route, and `Origin` checked against `Host`. After you pair, a
+  separate TLS listener on 7443 also takes phones, your other machines and invited people.
 
 Background sessions stay quiet except for a one-line "finished" or "needs approval". A report you talk over comes back once
 your question is answered.
@@ -142,7 +143,7 @@ Harness text (system reminders, task notifications) is not treated as you typing
 call with its result, routing, gate refusals, echo drops, barge-ins, permissions. Any Claude Code session can run
 it: `bin/voice-log --call` (the latest call, with everything the model was given), `bin/voice-log --session NAME`,
 `bin/voice-log --since 14:20`, `bin/voice-log --grep 'refused|blocked'`. `bin/voice-context notes` shows the notes, and
-`/voice-review` in a session investigates a call from there.
+`/pointe:voice-review` in a session investigates a call from there.
 `daemon.log` keeps the full library-level detail.
 
 ## Tests

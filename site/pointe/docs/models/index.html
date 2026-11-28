@@ -212,8 +212,9 @@ your words go. The table, with the file and row of every number: <a href="../set
 </tr>
 </tbody>
 </table></div>
-<p><code>pointe setup</code> lists them, with the one in use. <code>pointe setup &lt;id&gt;</code> switches; from then on Pointe uses exactly that
-setup's vendors, whatever other keys the Keychain holds. Then <code>pointe restart</code>. The two local setups download their
+<p><code>pointe setup</code> lists them, with the one in use (the first time, at a terminal, it runs the guided setup instead).
+<code>pointe setup &lt;id&gt;</code> switches; from then on Pointe uses exactly that setup's vendors, whatever other keys the Keychain
+holds, unless a <code>CLAUDE_VOICE_&lt;ROLE&gt;</code> variable in the environment sets that role. Then <code>pointe restart</code>. The two local setups download their
 models first (<code>pointe local voice</code>, <code>pointe local</code>).</p>
 <p>On the page, Settings → Model keys does the same with buttons: <strong>Use this setup</strong> for a setup, <strong>Add…</strong> or <strong>Replace…</strong>
 for a key, each key marked In use, Needed or Optional. The Mac app has the same.</p>
@@ -324,8 +325,8 @@ wins. A role you do not set takes the first vendor in its order that has a key (
   &quot;ears&quot;: &quot;soniox&quot;,
   &quot;mouth&quot;: &quot;elevenlabs:eleven_v4_turbo&quot;
 }</code></pre><button class="dx-copy" type="button" hidden>Copy</button></div>
-<p>Restart after a change (<code>pointe restart</code>). <code>pointe doctor</code> shows what runs in each role. <code>pointe setup &lt;id&gt;</code> writes the
-roles of the setup you choose, so it replaces roles you set by hand.</p>
+<p>Restart after a change (<code>pointe restart</code>). <code>pointe doctor</code> shows what runs in each role. <code>pointe setup &lt;id&gt;</code> removes the
+roles you set in <code>config.json</code> and records the setup; a role set by an environment variable still wins.</p>
 <p>Only Soniox ears have the echo guard, which lets you use laptop speakers. With any other ears, use headphones.</p>
 <h2 id="azure-openai-and-other-openai-compatible-hosts">Azure OpenAI and other OpenAI-compatible hosts</h2>
 <p><code>openai_url</code> in <code>config.json</code> (or <code>CLAUDE_VOICE_OPENAI_URL</code>) points the OpenAI text models (brain, reader, checker) at

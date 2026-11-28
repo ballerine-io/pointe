@@ -1,7 +1,7 @@
 # Harnesses: Claude Code, OpenCode, Codex, and how to add another
 
 Pointe's voice side (ears, brain, mouth, approvals, routing) does not care which coding agent runs a session. It needs
-five things from the agent, and each harness adapter in `pointe/harnesses/` provides them:
+six things from the agent, and each harness adapter in `pointe/harnesses/` provides them:
 
 | Capability | What Pointe needs | Adapter |
 |---|---|---|
