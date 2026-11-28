@@ -139,6 +139,16 @@ def d(tmp_path, monkeypatch):
     monkeypatch.setattr(daemon, "ECHO", daemon.EchoGuard())
     monkeypatch.setattr(daemon, "DELEGATION_GRACE_SECS", 0.1)
     monkeypatch.setattr(daemon, "COPY_SESSIONS", False)  # never start Claude Code from a test
+    # The stores the daemon keeps in its state folder, each test's own: they are shared by every test in a process, so
+    # a night shift one test began (test_skip_permissions) led every later briefing in that worker, and six briefing
+    # tests failed whenever xdist ran them after it.
+    monkeypatch.setattr(daemon, "NIGHT", daemon.nightshift.Store(tmp_path / "night-shifts.json"))
+    monkeypatch.setattr(daemon, "_NIGHT_WATCH", {})
+    monkeypatch.setattr(daemon, "_NIGHT_SEEN", set())
+    monkeypatch.setattr(daemon, "BRIEFINGS", daemon.briefing.Store(tmp_path / "briefings.json"))
+    monkeypatch.setattr(daemon, "PREFS", daemon.Prefs(tmp_path / "prefs.json"))
+    monkeypatch.setattr(daemon, "DICTIONARY", daemon.vocabulary.Dictionary(tmp_path / "dictionary.json"))
+    monkeypatch.setattr(daemon, "RECENT_FOLDERS", daemon.newsession.Recent(tmp_path / "folders.json"))
     # Past its first call: the state folder is fixed at the daemon's first import, so whether an earlier test left the
     # marker there decided the greeting (test_o125 failed alone). tests/test_first_hello.py points it elsewhere.
     (tmp_path / "past-first-call").mkdir()
