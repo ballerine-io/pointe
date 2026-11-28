@@ -1670,6 +1670,13 @@ def _log_timing(turn: latency.Turn) -> None:
         logger.info(turn.line())
 
 
+def _repeat_filter_off(asked: str) -> bool:
+    """The brain's repeat filter steps aside: the user asked to hear it again ("say that again", "what did hermes
+    say?"), or a read-back waits, which _speak says word for word in place of the reply: its opening quotes a reply
+    already reported, and a cut of it was only noise in the log."""
+    return repeat_intent(asked) or said_question(asked) or state.readback is not None
+
+
 def make_brain(speak, filler=None) -> Brain:
     def usage(u: dict) -> None:
         _brain_answered()
@@ -1697,7 +1704,7 @@ def make_brain(speak, filler=None) -> Brain:
     brain.stage = _stage
     brain.work_words = _work_words
     brain.quick_ack = _quick_ack
-    brain.repeat_asked = lambda asked: repeat_intent(asked) or said_question(asked)  # "what did hermes say?" too
+    brain.repeat_asked = _repeat_filter_off
     brain.session_words = lambda: {w for s in REGISTRY.sessions.values() for w in re.findall(r"[^\W_]+", s.name.lower())}
     return brain
 
