@@ -125,6 +125,7 @@ def unfinished(text: str) -> bool:
     before = " ".join(words[:-1])  # "it fails when" is cut; "tell me when" asks (the question word before the last)
     return words[-1] in _DANGLING or words[-1] in _DANGLING_OUTSIDE_QUESTIONS and not _QUESTION.search(before)
 _ASKS_THE_USER = {"AskUserQuestion", "ExitPlanMode"}  # an answer, not an approval: "allow" would send none
+_LISTS = re.compile(r"(?:^|[\s;&|(])(?:find|git\s+ls-files)(?=\s|$)")
 _FILE_VERBS = {"Edit": "edit", "MultiEdit": "edit", "NotebookEdit": "edit", "Write": "write", "Read": "read"}
 
 
@@ -139,9 +140,13 @@ def readable_request(tool: str, tool_input: dict, cwd: str | None = None, run_in
         return None
     path = tool_input.get("file_path") or tool_input.get("notebook_path")
     if tool == "Bash":
-        command = readout.spoken(str(tool_input.get("command") or ""), cwd, run_in)
-        # No short form of what it runs: it may still only look (readout.looking), which is said as that.
-        what = f"run: {command}" if command else readout.looking(str(tool_input.get("command") or ""), cwd, run_in) or ""
+        raw = str(tool_input.get("command") or "")
+        look = readout.looking(raw, cwd, run_in)
+        # No short form of what it runs: it may still only look (readout.looking), which is said as that. A command that
+        # only looks and has a find in it keeps that read-out: it says "the folder above the project" where the short
+        # form of a find says the place in full.
+        command = None if look and _LISTS.search(raw) else readout.spoken(raw, cwd, run_in)
+        what = f"run: {command}" if command else look or ""
     elif tool in _FILE_VERBS and isinstance(path, str) and not readout._hidden(path):
         what = f"{_FILE_VERBS[tool]} {readout.place(path, cwd)}"
     else:

@@ -19,7 +19,7 @@ WORDS = 25  # about ten seconds of speech
 _GREP_SAFE = set("-n -i -l -L -c -v -w -x -o -h -H -s -q -E -F -r -R -I -m -A -B -C --color=never".split())
 _PROGRAMS: dict[str, tuple[set, set, set, set]] = {
     "ls": (set("-l -a -la -al -lh -lah -1 -R -t -S -d -F -h".split()), set(), set(), set()),
-    "cat": (set("-n".split()), set(), set(), set()),
+    "cat": (set("-n -A -b -e -s -t -v".split()), set(), set(), set()),
     "head": (set(), set(), set(), set("-n -c".split())),
     "tail": (set("-f".split()), set(), set(), set("-n -c".split())),
     "wc": (set("-l -w -c -m".split()), set(), set(), set()),
@@ -48,10 +48,17 @@ _PROGRAMS: dict[str, tuple[set, set, set, set]] = {
     "sleep": (set(), set(), set(), set()),
     "date": (set(), set(), set(), set()),
     "curl": (set("-s -S -f -L -sS -fsSL -sSL -I -i -v".split()), set("-X --data -d".split()), set("-o -O --output".split()), set()),  # -H can read a file (@file): unknown, so refused
+    "du": (set("-s -h -sh -hs -a -c -k -m -x".split()), set(), set(), set("-d".split())),
+    "chmod": (set(), set("-R".split()), set(), set()),  # the mode is said, as every positional is
+    "ln": (set(), set("-s -f -sf -fs".split()), set(), set()),
+    "py_compile": (set(), set(), set(), set()),  # python3 -m py_compile: each file it compiles is said
+    "sh": (set(), set(), set(), set()), "bash": (set(), set(), set(), set()),  # a script file, said; no flag (-c runs text)
 }
+_POSITIONALS = {"sh": (1, 99), "bash": (1, 99), "ln": (2, 2), "chmod": (2, 99)}  # how many each needs, at least and at most
 _SUBCOMMANDS = {
     "git": {"status", "diff", "log", "show", "add", "commit", "push", "pull", "fetch", "checkout", "switch", "branch",
-            "restore", "stash", "rebase", "merge", "reset", "clean", "rm", "mv", "tag", "blame", "rev-parse"},
+            "restore", "stash", "rebase", "merge", "reset", "clean", "rm", "mv", "tag", "blame", "rev-parse", "grep",
+            "check-ignore", "ls-files"},
     "npm": {"test", "run", "install", "ci", "ls"}, "pnpm": {"test", "run", "install", "ls"}, "yarn": {"test", "run", "install"},
     "go": {"test", "build", "vet"}, "cargo": {"test", "build", "check", "clippy"},
     "gh": {"pr", "run", "issue"}, "kubectl": {"get", "describe", "logs"},
@@ -59,7 +66,14 @@ _SUBCOMMANDS = {
 _GIT_QUIET = set("-q --oneline --stat -p --name-only --name-status --short -s -b --cached --staged --graph --decorate "
                  "--porcelain --no-pager".split())  # only change what is printed
 _GIT_QUIET_BY_SUB = {"log": {"-n", "--format", "--pretty", "--author", "--since", "--until"}, "show": {"--format", "--pretty"},
-                     "commit": {"-m"}, "tag": {"-m"}}  # flags whose value is dropped, for that subcommand only
+                     "commit": {"-m"}, "tag": {"-m"}, "grep": {"-e"}}  # flags whose value is dropped, for that subcommand only
+_GIT_LISTING_BY_SUB = {  # flags that only change what is printed or matched, for that subcommand only; git grep -O runs a program
+    "grep": set("-n -i -I -l -L -w -E -F -c -h -H -q -v -o --cached --untracked --line-number --ignore-case --count "
+                "--files-with-matches --word-regexp".split()),
+    "check-ignore": set("-v --verbose -n --non-matching -q".split()),
+    "ls-files": set("-m -o -d -c -s --others --modified --deleted --cached --stage --exclude-standard".split()),
+    "branch": set("-a -r -v -vv --list --all --show-current".split()),
+}
 _GIT_SAID_BY_SUB = {
     "commit": {"-a", "-n", "--no-verify", "--amend", "--all"},
     "push": {"--force", "-f", "--force-with-lease", "--all", "--mirror", "--tags", "--delete", "-d", "--no-verify", "-u",
@@ -73,7 +87,8 @@ _GIT_SAID_BY_SUB = {
 }
 _GIT_REMOTE = {"push", "pull", "fetch"}  # their arguments name remotes and refs: said whole, never shortened
 _URL_PATH = 60  # a URL's path longer than this is not read out: it is said whole or not at all
-_SAFE_VARIABLES = {"CI", "NODE_ENV", "DEBUG", "TZ", "LANG", "LC_ALL", "NO_COLOR", "FORCE_COLOR", "TERM"}
+_SAFE_VARIABLES = {"CI", "NODE_ENV", "DEBUG", "TZ", "LANG", "LC_ALL", "NO_COLOR", "FORCE_COLOR", "TERM",
+                   "PYTHONDONTWRITEBYTECODE"}
 _JOIN = {"|": "into", "&&": "then", ";": "then", "||": "or else"}
 _REDIRECT = {">": "writing to", ">>": "appending to", "<": "reading"}
 _WORD = re.compile(r"~?[\w@%+=:,./-]+")  # a literal word: no glob, brace, quote, variable or substitution
@@ -222,6 +237,8 @@ def _flag(program: str, sub: str | None, token: str, at) -> tuple[str, str | Non
             return "", None  # "--" only ends the options: "git checkout -- notes.txt" is said "git checkout notes.txt"
         if name in _GIT_QUIET_BY_SUB.get(sub or "", ()):
             return "", None if value else "drop"
+        if token in _GIT_LISTING_BY_SUB.get(sub or "", ()):
+            return "", None
         if token in _GIT_SAID_BY_SUB.get(sub or "", ()):
             return token, None
         return None
@@ -241,6 +258,169 @@ def _flag(program: str, sub: str | None, token: str, at) -> tuple[str, str | Non
     if attached and "-o" in value_said:
         return f"{attached[1]} {at(attached[2])}", None
     return None
+
+
+_FIND_TESTS = {"-name": "named", "-iname": "named", "-path": "path", "-ipath": "path", "-wholename": "path",
+               "-iwholename": "path", "-regex": "matching", "-iregex": "matching"}  # said with their pattern
+_FIND_TYPES = {"f": "files", "d": "folders", "l": "links"}
+_FIND_DEPTH = {"-maxdepth": "at most {} deep", "-mindepth": "at least {} deep"}
+_FIND_TIMES = {"-mtime", "-mmin", "-atime", "-amin", "-ctime", "-cmin", "-size"}
+_FIND_LISTING = {"-print", "-print0", "-ls", "-depth"}
+_FIND_GROUPING = {"-o", "-or", "(", ")", "-prune"}  # fine for a find that only lists; with an action, which files it acts on
+_FIND_PATTERN = re.compile(r"[\w.*?\[\]/@%+=:~-]+")  # no space or comma: a pattern cannot pass for words of the read-out
+_FOUND = "pointe-each-found"  # stands for {} while what -exec runs is read
+_SED_REPLACE = re.compile(r"s/((?:[^/\\\n]|\\.)*)/((?:[^/\\\n]|\\.)*)/[gIi0-9]*")  # no e (runs), w (writes), p, m
+
+
+def _find(args: list[tuple[str, bool]], at, cwd: str | None, here: str | None) -> list[str] | None:
+    """find, said: where it looks, and when it deletes or runs something, which files it picks and what it does to each.
+    A find that only lists drops its tests, as looking() does. None for an action other than -delete and -exec, a test
+    after an action, "-o" or brackets around what an action acts on, or anything unknown."""
+    paths, i = [], 0
+    while i < len(args) and not args[i][0].startswith("-") and args[i][0] not in ("(", "!"):
+        token, was_quoted = args[i]
+        if not _WORD.fullmatch(token) or token.startswith("~") and (was_quoted or not (token == "~" or token[:2] == "~/")):
+            return None
+        paths.append(at(token))
+        i += 1
+    tests: list[str] = []
+    acts: list[str] = []
+    grouped = negated = False
+    while i < len(args):
+        token, was_quoted = args[i]
+        i += 1
+        if was_quoted and token not in ("(", ")", "!", ";") or not was_quoted and token in ("(", ")", "!", ";"):
+            return None  # a test is a bare word; a bracket or "!" is quoted for the shell
+        if token in ("-not", "!"):
+            negated = True
+            tests.append("not")
+            continue
+        if token in ("-a", "-and"):
+            continue
+        if acts and token not in {"-delete", "-exec", *_FIND_LISTING}:
+            return None  # a test after an action: the action has already run on what came before it
+        if negated and token not in {*_FIND_TESTS, "-type", "-empty", "-newer", *_FIND_TIMES}:
+            return None
+        negated = False
+        if token in _FIND_GROUPING:
+            grouped = True
+        elif token in _FIND_LISTING:
+            pass
+        elif token == "-empty":
+            tests.append("empty")
+        elif token == "-delete":
+            acts.append("deleting each")
+        elif token == "-exec":
+            inner: list[str] = []
+            while i < len(args):
+                word, quoted_word = args[i]
+                i += 1
+                if word == ";" and quoted_word or word == "+" and not quoted_word and inner[-1:] == ["{}"]:
+                    break
+                if "{}" in word and word != "{}" or _FOUND in word:
+                    return None  # "{}.bak": find puts the name inside the word, which is not said as such
+                inner.append(word)
+            else:
+                return None
+            if not inner or inner[0] in ("{}", "find", "cd"):
+                return None
+            runs = spoken(shlex.join(_FOUND if w == "{}" else w for w in inner), cwd, here)
+            lead = f"in {place(here, cwd)}, " if here and cwd and os.path.normpath(here) != os.path.normpath(cwd) else ""
+            if not runs or not runs.startswith(lead) or " then " in runs or " into " in runs:
+                return None
+            acts.append("on each: " + re.sub(rf"\S*{_FOUND}", "it", runs[len(lead):]))
+        elif i >= len(args):
+            return None  # every test below takes a value
+        else:
+            value, _ = args[i]
+            i += 1
+            if token in _FIND_TESTS and _FIND_PATTERN.fullmatch(value) and not value.startswith("-"):
+                tests.append(f"{_FIND_TESTS[token]} {value}")
+            elif token == "-type" and value in _FIND_TYPES:
+                tests.append(_FIND_TYPES[value])
+            elif token in _FIND_DEPTH and value.isdigit():
+                tests.append(_FIND_DEPTH[token].format(value))
+            elif token in _FIND_TIMES and re.fullmatch(r"[+-]?\d+[ckMGwb]?", value):
+                tests.append(f"{token} {value}")
+            elif token == "-newer" and _WORD.fullmatch(value) and not value.startswith("~"):
+                tests.append(f"newer than {at(value)}")
+            else:
+                return None
+    if negated or acts and grouped:
+        return None
+    where = [p for p in paths if p != "."]
+    words = ["find"] + (["everything"] if acts and not tests else []) + ([f"in {' '.join(where)}"] if where else [])
+    if not acts:
+        return words
+    picked = words + tests
+    return picked[:-1] + [f"{picked[-1]},", ", ".join(acts)]
+
+
+def _sed(args: list[tuple[str, bool]], at) -> list[str] | None:
+    """sed, said: every file it rewrites in place, and what it replaces when both sides are plain words. Only a
+    substitution (s/a/b/, no e or w flag) may rewrite a file; printing lines (-n '10,20p') only reads. None otherwise."""
+    in_place = quiet = given = False
+    scripts: list[str] = []
+    files: list[str] = []
+    i = 0
+    while i < len(args):
+        token, was_quoted = args[i]
+        i += 1
+        if not was_quoted and token in ("-i", "--in-place"):
+            in_place = True
+            if args[i:i + 1] == [("", True)]:
+                i += 1  # BSD: -i '' keeps no backup
+        elif not was_quoted and token in ("-E", "-r"):
+            pass
+        elif not was_quoted and token == "-n":
+            quiet = True
+        elif not was_quoted and token == "-e":
+            if i >= len(args) or scripts and not given:
+                return None  # after a script with no -e, an -e makes that script a file name to sed
+            scripts.append(args[i][0])
+            given = True
+            i += 1
+        elif token.startswith("-"):
+            return None
+        elif not scripts:
+            scripts.append(token)
+        elif not _WORD.fullmatch(token) or token.startswith("~") and (was_quoted or token[:2] != "~/"):
+            return None
+        else:
+            files.append(at(token))
+    replacing = [_SED_REPLACE.fullmatch(script) for script in scripts]
+    if not scripts or in_place and (quiet or not files or not all(replacing)):
+        return None
+    if not in_place:
+        printing = quiet and all(re.fullmatch(r"\d+(,\d+)?p", script) for script in scripts)
+        return ["sed"] + files if printing or all(replacing) and not quiet else None
+    old, new = (re.sub(r"\\[b<>]", "", replacing[0][1]), replacing[0][2]) if len(scripts) == 1 else ("", "")
+    what = f"{old} with {new}" if re.fullmatch(r"\w+", old) and re.fullmatch(r"\w+", new) else "text"
+    return ["sed", f"replacing {what} in"] + files
+
+
+def _escaped_words(command: str) -> str:
+    """The command with a whole word \\; \\( \\) or \\! outside quotes written ';' '(' ')' '!': the same word to the shell,
+    and the way find's terminator and brackets are usually written."""
+    out, quote, i = [], None, 0
+    while i < len(command):
+        c = command[i]
+        if quote is None and c == "\\" and command[i + 1:i + 2] in (";", "(", ")", "!") and (i == 0 or command[i - 1] in " \t") \
+                and command[i + 2:i + 3] in ("", " ", "\t"):
+            out.append(f"'{command[i + 1]}'")
+            i += 2
+            continue
+        if c == "\\" and quote != "'":
+            out.append(command[i:i + 2])
+            i += 2
+            continue
+        if quote is None and c in "'\"":
+            quote = c
+        elif c == quote:
+            quote = None
+        out.append(c)
+        i += 1
+    return "".join(out)
 
 
 _QUOTED = re.compile(r"'[^']*'|\"[^\"]*\"")
@@ -304,7 +484,9 @@ def _python_calls(code: str, cwd: str | None) -> list[str] | None:
             node = stmt.value
             if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "print" \
                     and "print" not in local and not node.keywords:
-                inner = [call(a) or ("" if literal(a) else None) for a in node.args]
+                # A string printed is only shown: print('syntax ok') runs nothing.
+                inner = [call(a) or ("" if literal(a) or isinstance(a, ast.Constant) and isinstance(a.value, str) else None)
+                         for a in node.args]
             else:
                 inner = [call(node)]
             if None in inner:
@@ -326,7 +508,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
         return f"empty {place(emptied['file'], cwd)}" if _WORD.fullmatch(emptied["file"]) else None
     if "\n" in _QUOTED.sub("", command.strip()):
         return None  # a newline outside quotes is a second command; inside, a line of python -c code (checked below)
-    command = _TRIM.sub("", _QUIET.sub(" ", command))
+    command = _escaped_words(_TRIM.sub("", _QUIET.sub(" ", command)))
     lexer = shlex.shlex(command, posix=True, punctuation_chars="|&;<>")
     lexer.whitespace_split, lexer.commenters = True, ""
     try:
@@ -345,6 +527,8 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
     for word in raws:  # single quotes are literal; double quotes still expand $ and backticks; bare words expand much more
         if word[:1] == "'":
             quoted.append(True)
+        elif word == "{}":
+            quoted.append(False)  # not a brace expansion: what find -exec puts each name in
         elif word[:1] == '"':
             if any(c in word.replace("$?", "") for c in "$`\\!"):
                 return None
@@ -364,6 +548,19 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
     unsure = False  # an "||" or "|" came before: a cd after it may not run, or runs in a subshell
     echoed: list[str] = []
     positionals, pattern_given = 0, False  # grep and rg: the first positional is the pattern unless -e gave one
+    gathered: list[tuple[str, bool]] | None = None  # find's or sed's words, read together when the command ends
+
+    def ended() -> bool:
+        """The simple command being read is whole: find's and sed's words read, and each program's positionals there."""
+        nonlocal gathered
+        if gathered is not None:
+            said = _find(gathered, at, cwd, here) if program == "find" else _sed(gathered, at)
+            if said is None:
+                return False
+            words.extend(said)
+            gathered = None
+        least, most = _POSITIONALS.get(program, (0, 99))
+        return least <= positionals <= most
 
     def at(path: str) -> str:
         if here == cwd or path.startswith(("/", "~")) or not here:
@@ -371,8 +568,13 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
         return place(os.path.join(here, path), cwd)
   # what to do with this word, set by the flag before it
     for token, was_quoted in zip(tokens, quoted):
-        if was_quoted and token.startswith("-"):
-            return None  # a flag in quotes is still a flag: never "some text"
+        if gathered is not None and (was_quoted or not re.fullmatch(r"[|&;<>]+", token)):
+            gathered.append((token, was_quoted))
+            continue
+        if not was_quoted and re.fullmatch(r"[|&;<>]+", token) and program is not None and not ended():
+            return None
+        if was_quoted and token.startswith("-") and not (program == "echo" and not re.fullmatch(r"-[neE]+", token)):
+            return None  # a flag in quotes is still a flag: never "some text" (echo prints "--- notes:" as text)
         if then:
             if re.fullmatch(r"[|&;<>]+", token) and not was_quoted or token.startswith("-"):
                 return None  # "git commit -m ; rm x": the flag's value is missing, and what follows is not its value
@@ -428,8 +630,8 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             words.append(token)
             continue
         if program in ("python", "python3") and sub is None:
-            if token == "-I" and not was_quoted:
-                continue  # isolated mode: less is loaded, nothing more runs
+            if token in ("-I", "-B") and not was_quoted:
+                continue  # isolated mode: less is loaded, nothing more runs; -B: no bytecode written
             if token not in ("-m", "-c") or was_quoted:
                 return None
             sub = token
@@ -445,7 +647,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
         if program in ("python", "python3") and sub == "code":
             return None  # arguments to the code: sys.argv can steer it
         if program in ("python", "python3") and sub == "-m":
-            if token not in ("pytest", "unittest"):
+            if token not in ("pytest", "unittest", "py_compile"):
                 return None
             program, sub = token, None
             words.append(token)
@@ -456,25 +658,9 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
                 return None
             words.append(f"with {variable} set")
             continue
-        if program == "sed":  # only printing lines: sed -n '10,20p' file
-            if sub is None:
-                if token != "-n":
-                    return None
-                sub = "-n"
-                continue
-            if sub == "-n":
-                if not re.fullmatch(r"\d+(,\d+)?p", token):
-                    return None
-                sub = "print"
-                continue
-            if token.startswith("-") or not _WORD.fullmatch(token):
-                return None
-            words.append(at(token))
-            continue
         if program is None:
-            if token == "sed" and not was_quoted:
-                program = "sed"
-                words.append("sed")
+            if token in ("find", "sed") and not was_quoted:
+                program, gathered = token, []
                 continue
             if token in ("python", "python3", "uv") and not was_quoted:
                 program = token
@@ -507,7 +693,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             if known is None:
                 return None
             said, then = known
-            if program in ("grep", "rg") and token.split("=", 1)[0] in ("-e", "--regexp"):
+            if (program in ("grep", "rg") or program == "git" and sub == "grep") and token.split("=", 1)[0] in ("-e", "--regexp"):
                 pattern_given = True  # the positionals are all files now
             if said:
                 words.append(said)
@@ -524,7 +710,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             return None  # owner/repo, git URLs and scoped names install other people's code with its scripts
         positionals += 1
         if was_quoted:
-            if program not in ("grep", "rg") or positionals > 1 or pattern_given:
+            if program not in ("grep", "rg") and (program, sub) != ("git", "grep") or positionals > 1 or pattern_given:
                 return None  # a quoted path, URL, ref or target is never "some text": only a search pattern is
             words.append("some text")
         elif not _WORD.fullmatch(token):
@@ -546,7 +732,7 @@ def spoken(command: str, cwd: str | None, run_in: str | None = None) -> str | No
             return None
         else:
             words.append(at(token))
-    if redirect or then or program is None:
+    if redirect or then or program is None or not ended():
         return None
     text = " ".join(w for w in words if w)
     return text if len(text.split()) <= WORDS else None
