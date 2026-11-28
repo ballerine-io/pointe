@@ -1132,7 +1132,7 @@ def test_the_answer_to_the_users_own_question_gets_the_reply_limit_not_the_repor
     assert cv.limit_for(REPORT_BILLING, "") == cv.REPORT
 
 
-def test_on_the_call_two_awaited_answers_from_one_session_are_said_one_after_the_other(call):
+def test_on_the_call_two_awaited_answers_from_one_session_are_said_one_after_the_other(call, monkeypatch):
     """heb-04, round 4: the second answer replaced the first in the queue (test_two_answers_queued.py); and two answers
     batched as "Two updates: ..." lose the answers themselves. Each is said, in its own turn."""
     d = call.d  # noqa: F811
@@ -1141,7 +1141,7 @@ def test_on_the_call_two_awaited_answers_from_one_session_are_said_one_after_the
 
     async def run():
         injector = call.start()
-        d.REPLY_WAIT_SECS = 0.4
+        monkeypatch.setattr(d, "REPLY_WAIT_SECS", 0.4)  # set directly, a module value outlives the test
         d.state.floor.user_started(time.time())
         await injector.inject(first, True)
         await injector.inject(second, True)
