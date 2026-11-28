@@ -46,8 +46,8 @@ public struct PointeRoot: View {
     @State private var machineLine: String?  // a machine invite that opened the app: Add a machine opens on it
     @State private var watch = MachinesWatch()  // how each machine on this phone answers (several machines)
     @State private var showPaired = false
-    @AppStorage(SeveralMachines.key) private var severalSetting = false
-    private var several: Bool { severalSetting || SeveralMachines.on }
+    @AppStorage(SeveralMachines.key) private var severalSetting = SeveralMachines.byDefault
+    private var several: Bool { _ = severalSetting; return SeveralMachines.on }  // reading the setting redraws on a change
     @AppStorage(Theme.key) private var theme = Theme.fallback.rawValue  // Settings' Appearance: System, Light or Dark
 
     public init() {

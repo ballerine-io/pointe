@@ -19,7 +19,7 @@ final class MachinesUITests: XCTestCase {
         app.launchEnvironment["POINTE_MEMORY_VAULT"] = "1"  // unsigned in CI: the Simulator's Keychain keeps nothing
         app.launchEnvironment["POINTE_PAIR"] = line("studio.invalid", "a", via: "tailscale")
         app.launchEnvironment["POINTE_PAIR_MORE"] = line("kite.invalid", "b", via: "host")
-        if several { app.launchEnvironment["POINTE_MACHINES"] = "1" }
+        app.launchEnvironment["POINTE_MACHINES"] = several ? "1" : "0"
         app.launch()
         return app
     }

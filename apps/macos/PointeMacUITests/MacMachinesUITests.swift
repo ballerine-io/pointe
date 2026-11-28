@@ -18,7 +18,7 @@ final class MacMachinesUITests: XCTestCase {
         app.launchArguments = ["-demo", "call", "-PointeOpenWindow", "YES", "-ApplePersistenceIgnoreState", "YES"]
         app.launchEnvironment["POINTE_MEMORY_VAULT"] = "1"
         app.launchEnvironment["POINTE_PAIR_MORE"] = line("kite.invalid", "b", via: "host") + " " + line("ledger.invalid", "c", via: "tailscale")
-        if several { app.launchEnvironment["POINTE_MACHINES"] = "1" }
+        app.launchEnvironment["POINTE_MACHINES"] = several ? "1" : "0"
         app.launch()
         app.activate()
         let window = app.windows["pointe.main"]

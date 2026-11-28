@@ -4,15 +4,17 @@ import Foundation
 // voice, certificate, key and route, and a call goes to one of them, directly. Behind a flag until the iPhone UI
 // tests prove the list, the switch and a machine that does not answer.
 
-/// Settings → Labs → Several machines. Off: pairing replaces the machine, as before.
+/// Settings → Several machines: on unless the person turned it off (CI's iPhone and Mac UI tests proved the list, the
+/// switch and a machine that does not answer). Off: pairing replaces the machine, as before.
 enum SeveralMachines {
     static let key = "pointe.labs.machines"
+    static let byDefault = true
 
     static var on: Bool {
-        #if DEBUG  // UI tests turn it on at launch
-        if ProcessInfo.processInfo.environment["POINTE_MACHINES"] == "1" { return true }
+        #if DEBUG  // UI tests choose at launch
+        if let forced = ProcessInfo.processInfo.environment["POINTE_MACHINES"] { return forced == "1" }
         #endif
-        return UserDefaults.standard.bool(forKey: key)
+        return UserDefaults.standard.object(forKey: key) as? Bool ?? byDefault
     }
 }
 

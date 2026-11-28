@@ -103,7 +103,7 @@ struct CallSettingsSheet: View, Equatable {
     @State private var outsideWanted: Bool?
     @State private var agentsWanted: Bool?
     @State private var unpairAsked = false
-    @AppStorage(SeveralMachines.key) private var severalMachines = false
+    @AppStorage(SeveralMachines.key) private var severalMachines = SeveralMachines.byDefault
     #if os(macOS)
     @Environment(\.macSettings) private var macSections
     #endif

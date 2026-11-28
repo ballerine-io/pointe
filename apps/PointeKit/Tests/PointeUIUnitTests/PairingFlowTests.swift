@@ -25,8 +25,9 @@ final class PairingFlowTests: XCTestCase {
 
     private func flow(_ keeper: Keeper, owner: Bool = true, answers: Bool = true, owned: @escaping () -> Void = {},
                       redeem: @escaping (PairingInvite) async throws -> (Pairing, String) = { _ in throw Refused() }) -> PairingFlow {
+        // One machine: several machines off (PairedMachinesTests covers it on).
         PairingFlow(keeper: keeper, ownerCheck: { _ in owned(); return owner }, redeem: redeem,
-                    answers: { p in answers ? nil : ConnectionProblem(cause: .timedOut, host: p.host, port: p.port) })
+                    answers: { p in answers ? nil : ConnectionProblem(cause: .timedOut, host: p.host, port: p.port) }, several: { false })
     }
 
     func testALinkFromOutsideTheAppPairsNothingAndLeavesThePairingAsItWas() async {
