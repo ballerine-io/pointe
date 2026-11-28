@@ -101,3 +101,13 @@ def test_on_the_voice_that_dialed_a_mine_machines_sessions_are_its_own(d):
 
 
 from test_orchestrator import d  # noqa: E402,F401  (a fixture)
+
+
+def test_the_page_offers_each_of_the_users_own_machines_page_and_no_one_elses(d, monkeypatch):
+    import daemon
+    monkeypatch.setattr(daemon.HUB.nodes, "nodes", {
+        "n9": {"id": "n9", "name": "kite", "grant": "mine", "dial": {"host": "kite.example.internal", "port": 7443}},
+        "n8": {"id": "n8", "name": "avi-box", "grant": "send", "dial": {"host": "avi.example.internal", "port": 7443}}})
+    assert daemon._machine_page(Machine(name="kite", id="n9", dialed=True, grant="mine")) == "https://kite.example.internal:7443/voice"
+    assert daemon._machine_page(Machine(name="avi-box", id="n8", dialed=True, grant="send")) is None, "somebody else's page is theirs"
+    assert daemon._machine_page(Machine(name="devbox", id="n7")) is None, "a node has no page of its own"

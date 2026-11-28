@@ -4689,6 +4689,12 @@
                        `${m.sessions || 0} session${m.sessions === 1 ? '' : 's'}`, m.key_fp ? `key ${m.key_fp}` : ''].filter(Boolean);
         li.append(el('span', 'mmeta' + (away ? ' away' : ''), facts.join(' · ')));
         if (m.notice) li.append(el('span', 'mmeta away', m.notice));  // a link takeover from another address
+        if (m.page) {  // one of my own machines: its own page, paired there once (pointe pair link on it)
+          const a = el('a', 'mlink', 'Open its page');
+          a.href = m.page; a.target = '_blank'; a.rel = 'noopener noreferrer';
+          a.dataset.machinePage = m.name;
+          li.append(a);
+        }
         if (!m.here && canInvite && !remotePage) {  // the same owner check as an invite; over the phone's listener the Mac refuses a revoke (hub_nodes.owner)
           // A machine I invited is revoked; one I was invited to is removed from my voice (the same route, the daemon knows which).
           const sure = asking === m.name, b = el('button', sure ? 'sure' : '', m.owner ? (sure ? PEOPLE_COPY.removeAsk(m.name) : PEOPLE_COPY.remove) : sure ? `Revoke ${m.name}?` : 'Revoke');

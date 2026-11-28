@@ -1469,8 +1469,20 @@ def _status_machines() -> list[dict]:
                     # this person may start a session there now (its owner's setting is checked there, at the start)
                     **({"can_start": HUB.start_problem(HUB.machine(m.name)) is None} if m.dialed else {}),
                     **({"removed": True} if m.removed else {}),  # its owner removed this person: `notice` says so
+                    **({"page": page} if (page := _machine_page(m)) else {}),  # one of the user's own: its own page
                     **({"notice": m.notice} if m.notice else {})})
     return out
+
+
+def _machine_page(m) -> str | None:
+    """The page of one of the user's own machines this voice dials (grant "mine"), opened there with its own pairing:
+    each machine's page stays its own origin (docs/design/multi-machine-clients.md, 1.8)."""
+    entry = HUB.nodes.nodes.get(m.id) or {}
+    dial = entry.get("dial")
+    if not (m.dialed and m.grant == "mine" and isinstance(dial, dict) and isinstance(dial.get("host"), str)):
+        return None
+    host = f"[{dial['host']}]" if ":" in dial["host"] else dial["host"]
+    return f"https://{host}:{int(dial.get('port') or remote.TLS_PORT)}/voice"
 
 
 def _disclosure(request) -> dict:
